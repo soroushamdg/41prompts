@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>41Prompts; illustration system</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EFEDE6; --surface:#FFFFFF; --sunken:#F4F2EC;
+  --line:#DCD9CF; --ink:#111111; --ink-2:#4A4740; --ink-3:#77736A;
+  --pass:#0B5C2E; --pass-soft:#CFF3DC; --fail:#8E1207; --fail-soft:#FFD5D0;
+  --warn:#6B4200; --warn-soft:#FFEAB8; --focus:#0F3DFF;
+  --plate:#111111;
+}
+[data-theme=dark]{
+  --bg:#0B0B0B; --surface:#141414; --sunken:#0E0E0E;
+  --line:#2B2B2B; --ink:#F2F2F0; --ink-2:#B4B2AC; --ink-3:#807D76;
+  --pass:#5BE39A; --pass-soft:#0E2C1C; --fail:#FF7A6E; --fail-soft:#2E1210;
+  --warn:#FFC65C; --warn-soft:#2C2205; --focus:#7DA0FF;
+  --plate:#333330;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3{margin:0;letter-spacing:-.03em}
+p{margin:0}
+button{font:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.page{max-width:1200px;margin:0 auto;padding:32px 20px 80px}
+
+.head{border:2px solid var(--ink);background:var(--surface);box-shadow:6px 6px 0 var(--plate);padding:24px;margin-bottom:28px}
+.head h1{font-size:clamp(24px,4.6vw,40px);font-weight:900;line-height:1.05}
+.head p{margin-top:12px;max-width:74ch;color:var(--ink-2)}
+.bartop{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.btn{border:2px solid var(--ink);background:var(--surface);border-radius:4px;padding:7px 13px;font-weight:600;
+  font-size:13px;box-shadow:3px 3px 0 var(--plate);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translate(3px,3px);box-shadow:none}
+.btn[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+
+.sec{margin:36px 0 14px;font-size:12px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.cell{border:2px solid var(--ink);background:var(--surface);box-shadow:4px 4px 0 var(--plate);display:flex;flex-direction:column}
+.art{background:var(--sunken);border-bottom:2px solid var(--ink);padding:18px;display:grid;place-items:center;min-height:172px}
+.art svg{width:100%;max-width:220px;height:auto;display:block}
+.cap{padding:12px 14px}
+.cap h3{font-size:14px;font-weight:800}
+.cap p{font-size:12.5px;color:var(--ink-2);margin-top:5px}
+.cap code{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3)}
+
+.rules{border:2px solid var(--ink);background:var(--surface);box-shadow:5px 5px 0 var(--plate);padding:20px;margin-top:34px}
+.rules h2{font-size:17px;font-weight:900;margin-bottom:12px}
+.rules ul{margin:0;padding-left:18px} .rules li{margin-bottom:8px;font-size:14px;color:var(--ink-2)}
+.rules li b{color:var(--ink)}
+.ban{border-color:var(--fail)} .ban h2{color:var(--fail)}
+
+/* illustration primitives */
+.ill{stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;color:var(--ink)}
+.ill .fillsurface{fill:var(--surface)}
+.ill .fillsunk{fill:var(--sunken)}
+.ill .pass{stroke:var(--pass)} .ill .passf{fill:var(--pass-soft);stroke:var(--pass)}
+.ill .fail{stroke:var(--fail)} .ill .failf{fill:var(--fail-soft);stroke:var(--fail)}
+.ill .warnf{fill:var(--warn-soft);stroke:var(--warn)}
+.ill .dim{stroke:var(--ink-3)}
+.ill .dash{stroke-dasharray:5 4}
+.ill .thin{stroke-width:1.5}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="head">
+    <h1>Illustration system</h1>
+    <p>Eight geometric SVGs built from the product's own vocabulary: cards, spans, connectors, cells. Two-pixel strokes matching the UI border weight, drawn in <code>currentColor</code> so they invert with the theme instead of needing a second set. No characters, no gradients, no raster.</p>
+    <div class="bartop" style="margin-top:18px;margin-bottom:0">
+      <button class="btn" id="t-light" aria-pressed="true">Light</button>
+      <button class="btn" id="t-dark" aria-pressed="false">Dark</button>
+      <span style="font-size:12.5px;color:var(--ink-3)">Same files, both themes. Nothing is re-exported.</span>
+    </div>
+  </header>
+
+  <div class="sec">Empty states</div>
+  <div class="grid">
+
+    <!-- 1. empty canvas -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Empty canvas with a dashed slot">
+        <rect x="14" y="16" width="82" height="26" class="fillsurface"/>
+        <line x1="14" y1="16" x2="14" y2="42" stroke-width="5"/>
+        <rect x="14" y="52" width="82" height="26" class="fillsurface"/>
+        <line x1="14" y1="52" x2="14" y2="78" stroke-width="5"/>
+        <rect x="14" y="88" width="82" height="34" class="dash dim fillsunk"/>
+        <path d="M47 105h16M55 97v16" class="dim"/>
+        <path d="M110 44h34M110 66h34M110 88h20" class="dim thin"/>
+        <rect x="106" y="20" width="80" height="100" class="dim dash"/>
+      </svg>
+    </div><div class="cap"><h3>Canvas is empty</h3><p>Two ghosted bloks and one open slot. Shows the shape of the thing before it exists.</p><code>empty-canvas.svg</code></div></div>
+
+    <!-- 2. compile -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Cards compiling into a document">
+        <rect x="8" y="14" width="60" height="22" class="fillsurface"/><line x1="8" y1="14" x2="8" y2="36" stroke-width="5"/>
+        <rect x="8" y="46" width="60" height="22" class="fillsurface"/><line x1="8" y1="46" x2="8" y2="68" stroke-width="5"/>
+        <rect x="8" y="78" width="60" height="22" class="fillsurface"/><line x1="8" y1="78" x2="8" y2="100" stroke-width="5"/>
+        <path d="M70 25h22l8 10" class="dim thin"/>
+        <path d="M70 57h30" class="dim thin"/>
+        <path d="M70 89h22l8-10" class="dim thin"/>
+        <rect x="120" y="10" width="72" height="120" class="fillsurface"/>
+        <line x1="128" y1="28" x2="184" y2="28" stroke-width="5"/>
+        <line x1="128" y1="42" x2="170" y2="42" stroke-width="5"/>
+        <line x1="128" y1="64" x2="184" y2="64" stroke-width="5"/>
+        <line x1="128" y1="78" x2="160" y2="78" stroke-width="5"/>
+        <line x1="128" y1="100" x2="184" y2="100" stroke-width="5"/>
+        <line x1="128" y1="114" x2="150" y2="114" stroke-width="5"/>
+      </svg>
+    </div><div class="cap"><h3>Bloks compile to a prompt</h3><p>The core metaphor. Used on the marketing hero and the first lesson.</p><code>compile.svg</code></div></div>
+
+    <!-- 3. no runs -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Three empty provider columns">
+        <line x1="16" y1="112" x2="184" y2="112" stroke-width="2.5"/>
+        <rect x="30" y="60" width="34" height="52" class="dash dim fillsunk"/>
+        <rect x="84" y="60" width="34" height="52" class="dash dim fillsunk"/>
+        <rect x="138" y="60" width="34" height="52" class="dash dim fillsunk"/>
+        <circle cx="47" cy="34" r="7" class="dim"/><circle cx="101" cy="34" r="7" class="dim"/><circle cx="155" cy="34" r="7" class="dim"/>
+        <path d="M47 41v19M101 41v19M155 41v19" class="dim thin dash"/>
+      </svg>
+    </div><div class="cap"><h3>No runs yet</h3><p>Providers connected, nothing measured. Sits behind the primary Run action.</p><code>no-runs.svg</code></div></div>
+
+    <!-- 4. all passing -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Grid of passing cells with a check">
+        <g class="passf">
+          <rect x="20" y="30" width="18" height="18"/><rect x="44" y="30" width="18" height="18"/><rect x="68" y="30" width="18" height="18"/><rect x="92" y="30" width="18" height="18"/><rect x="116" y="30" width="18" height="18"/>
+          <rect x="20" y="54" width="18" height="18"/><rect x="44" y="54" width="18" height="18"/><rect x="68" y="54" width="18" height="18"/><rect x="92" y="54" width="18" height="18"/><rect x="116" y="54" width="18" height="18"/>
+          <rect x="20" y="78" width="18" height="18"/><rect x="44" y="78" width="18" height="18"/><rect x="68" y="78" width="18" height="18"/><rect x="92" y="78" width="18" height="18"/><rect x="116" y="78" width="18" height="18"/>
+        </g>
+        <circle cx="156" cy="87" r="22" class="passf"/>
+        <path d="M146 87l7 7 14-15" class="pass" stroke-width="3"/>
+      </svg>
+    </div><div class="cap"><h3>Suite green</h3><p>The reward state. Only place a saturated fill covers this much area.</p><code>all-pass.svg</code></div></div>
+  </div>
+
+  <div class="sec">Explanatory; lesson and failure surfaces</div>
+  <div class="grid">
+
+    <!-- 5. attribution -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="A highlighted span pointing back to its card">
+        <rect x="14" y="14" width="96" height="112" class="fillsurface"/>
+        <line x1="24" y1="34" x2="100" y2="34" stroke-width="5"/>
+        <line x1="24" y1="50" x2="86" y2="50" stroke-width="5"/>
+        <rect x="20" y="62" width="86" height="18" class="failf"/>
+        <line x1="24" y1="94" x2="100" y2="94" stroke-width="5"/>
+        <line x1="24" y1="110" x2="76" y2="110" stroke-width="5"/>
+        <path d="M108 71h30" class="fail"/>
+        <path d="M132 65l7 6-7 6" class="fail"/>
+        <rect x="142" y="56" width="46" height="30" class="failf"/>
+        <line x1="142" y1="56" x2="142" y2="86" class="fail" stroke-width="5"/>
+      </svg>
+    </div><div class="cap"><h3>Failure attributed</h3><p>The signature diagram. One span, one owner. Use once, in the failure empty state and the pitch.</p><code>attribution.svg</code></div></div>
+
+    <!-- 6. nondeterminism -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="One prompt producing five different outputs">
+        <rect x="10" y="56" width="34" height="28" class="fillsurface"/>
+        <line x1="10" y1="56" x2="10" y2="84" stroke-width="5"/>
+        <path d="M46 70h16" class="dim thin"/>
+        <path d="M62 70V24h12M62 70V47h12M62 70h12M62 70v23h12M62 70v46h12" class="dim thin"/>
+        <line x1="78" y1="24" x2="150" y2="24" stroke-width="5"/>
+        <line x1="78" y1="47" x2="122" y2="47" stroke-width="5"/>
+        <line x1="78" y1="70" x2="164" y2="70" stroke-width="5"/>
+        <line x1="78" y1="93" x2="108" y2="93" stroke-width="5"/>
+        <line x1="78" y1="116" x2="140" y2="116" class="fail" stroke-width="5"/>
+        <rect x="168" y="110" width="14" height="13" class="failf"/>
+      </svg>
+    </div><div class="cap"><h3>Same prompt, five answers</h3><p>Lesson 2 header. The short bars are the point; one of them is red.</p><code>variance.svg</code></div></div>
+
+    <!-- 7. versions -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Three versions on a timeline">
+        <line x1="16" y1="118" x2="184" y2="118" class="dim thin"/>
+        <circle cx="46" cy="118" r="4" class="dim fillsurface"/><circle cx="100" cy="118" r="4" class="dim fillsurface"/><circle cx="154" cy="118" r="4" class="fillsurface"/>
+        <rect x="22" y="58" width="48" height="46" class="fillsurface dim"/>
+        <rect x="76" y="46" width="48" height="58" class="fillsurface dim"/>
+        <rect x="130" y="30" width="48" height="74" class="fillsurface"/>
+        <line x1="138" y1="46" x2="170" y2="46" stroke-width="4"/>
+        <line x1="138" y1="58" x2="162" y2="58" stroke-width="4"/>
+        <rect x="136" y="70" width="36" height="12" class="passf"/>
+        <line x1="138" y1="92" x2="170" y2="92" stroke-width="4"/>
+      </svg>
+    </div><div class="cap"><h3>Every version kept</h3><p>Height encodes pass rate. History empty state and the versioning feature page.</p><code>versions.svg</code></div></div>
+
+    <!-- 8. lesson badge -->
+    <div class="cell"><div class="art">
+      <svg viewBox="0 0 200 140" class="ill" role="img" aria-label="Lesson complete badge">
+        <path d="M100 16l20 12 23 3 5 23 14 18-14 18-5 23-23 3-20 12-20-12-23-3-5-23-14-18 14-18 5-23 23-3z" class="passf"/>
+        <path d="M84 72l11 11 22-24" class="pass" stroke-width="3.5"/>
+      </svg>
+    </div><div class="cap"><h3>Lesson complete</h3><p>Geometric seal built from straight segments only; no soft curves anywhere in the set.</p><code>lesson-done.svg</code></div></div>
+  </div>
+
+  <div class="rules">
+    <h2>Rules that keep this from turning into stock art</h2>
+    <ul>
+      <li><b>Draw the product, never a person.</b> Every illustration is a diagram of the data model: bloks, spans, connectors, cells, versions. It teaches while it decorates, which is the only reason a workbench earns illustration at all.</li>
+      <li><b>currentColor and CSS variables only.</b> No baked hex, no gradients, no shadows inside the SVG. One file serves both themes and any future accent change.</li>
+      <li><b>2px strokes, square caps, mitre joins.</b> Same weight as the UI borders, so the art reads as part of the interface rather than pasted onto it.</li>
+      <li><b>Straight segments and right angles only.</b> One exception: the check mark and the badge outline. Curves would break the family instantly.</li>
+      <li><b>Saturation is still reserved.</b> Green and red appear in illustrations only when they mean pass and fail. No decorative colour, ever.</li>
+      <li><b>Under 2KB each, inline, no sprite sheet.</b> These are eight shapes, not an asset pipeline.</li>
+    </ul>
+  </div>
+
+  <div class="rules ban">
+    <h2>Where illustration is banned</h2>
+    <ul>
+      <li><b>Any surface showing live data.</b> The results matrix, the compiled prompt, the canvas with bloks in it. Illustration appears only where there is nothing to read.</li>
+      <li><b>Loading and transitional states.</b> A skeleton is faster to parse and does not need to be looked at twice.</li>
+      <li><b>Anything a person sees more than twice a week.</b> Illustration in a daily-use tool becomes furniture on the third viewing and clutter on the tenth.</li>
+      <li><b>As a substitute for an empty-state action.</b> The drawing is the smaller half; the button underneath it is the point.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var root = document.documentElement;
+  var L = document.getElementById('t-light'), D = document.getElementById('t-dark');
+  function set(mode){
+    root.setAttribute('data-theme', mode);
+    L.setAttribute('aria-pressed', String(mode === 'light'));
+    D.setAttribute('aria-pressed', String(mode === 'dark'));
+  }
+  L.addEventListener('click', function(){ set('light'); });
+  D.addEventListener('click', function(){ set('dark'); });
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) set('dark');
+})();
+</script>
+</body>
+</html>

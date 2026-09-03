@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>41Prompts; six neobrutalism variants</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   Six neobrutalism variants for 41Prompts.
+   Identical markup in every card; only the variant tokens change.
+   Axes varied: border weight · shadow offset+colour · palette
+   saturation · surface ground · type voice · radius
+   ═══════════════════════════════════════════════════════════════ */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:#F2F0E9;color:#111;font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3{margin:0}
+p{margin:0}
+button{font:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:3px solid #0057FF;outline-offset:3px}
+
+.page{max-width:1280px;margin:0 auto;padding:32px 20px 80px}
+.masthead{border:3px solid #000;background:#FFD84D;box-shadow:8px 8px 0 #000;padding:24px;margin-bottom:14px}
+.masthead h1{font-family:"Archivo Black",sans-serif;font-size:clamp(26px,5vw,46px);line-height:1;text-transform:uppercase;letter-spacing:-.02em}
+.masthead p{margin-top:12px;max-width:70ch;font-size:15.5px}
+.axisbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.axis{border:2px solid #000;background:#fff;padding:6px 11px;font-size:12px;font-weight:700;box-shadow:3px 3px 0 #000}
+
+.grid{display:grid;gap:26px;grid-template-columns:1fr}
+@media(min-width:960px){.grid{grid-template-columns:1fr 1fr}}
+
+/* ---------- variant frame ---------- */
+.variant{border:3px solid #000;background:#fff;box-shadow:7px 7px 0 #000;overflow:hidden}
+.vhead{border-bottom:3px solid #000;padding:14px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.vnum{font-family:"Archivo Black",sans-serif;font-size:13px;border:2px solid #000;width:28px;height:28px;
+  display:grid;place-items:center;background:#fff;flex:none}
+.vname{font-family:"Archivo Black",sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:-.01em}
+.vtag{margin-left:auto;font-size:11px;font-weight:700;border:2px solid #000;padding:3px 8px;background:#fff}
+.vbody{padding:18px}
+.vnote{border-top:3px solid #000;padding:12px 16px;font-size:13px;background:#F7F5EE}
+.vnote b{font-weight:700}
+.spec{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:10px 16px;border-top:2px dashed #000;color:#333;background:#fff}
+
+/* ═══════ shared component skeleton; tokens supply the style ═══════ */
+.demo{--r:6px;--bw:2px;--sh:4px;--shc:#000;font-family:var(--f-body);color:var(--ink);background:var(--ground);
+  padding:16px;display:grid;gap:12px}
+.demo .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.demo .btn{border:var(--bw) solid var(--line);background:var(--btn);border-radius:var(--r);padding:8px 14px;
+  font-weight:700;font-size:13px;box-shadow:var(--sh) var(--sh) 0 var(--shc);transition:transform .12s,box-shadow .12s}
+.demo .btn:active{transform:translate(var(--sh),var(--sh));box-shadow:none}
+.demo .btn.pri{background:var(--accent);color:var(--on-accent)}
+.demo .card{border:var(--bw) solid var(--line);background:var(--surface);border-radius:var(--r);
+  box-shadow:var(--sh) var(--sh) 0 var(--shc);padding:12px 12px 12px 16px;position:relative}
+.demo .card::before{content:"";position:absolute;left:calc(var(--bw)*-1);top:10px;bottom:10px;width:6px;background:var(--c-exp)}
+.demo .card h4{font-family:var(--f-display);font-size:13px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.demo .card p{font-size:13.5px}
+.demo .tag{font-family:var(--f-display);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 7px;border:var(--bw) solid var(--line);border-radius:calc(var(--r) - 2px);background:var(--tagbg);color:var(--tagink)}
+.demo .badge{font-size:10.5px;font-weight:800;padding:3px 8px;border:var(--bw) solid var(--line);
+  border-radius:calc(var(--r) - 2px)}
+.demo .badge.p{background:var(--pass-bg);color:var(--pass-ink)}
+.demo .badge.f{background:var(--fail-bg);color:var(--fail-ink)}
+.demo .badge.w{background:var(--warn-bg);color:var(--warn-ink)}
+.demo table{width:100%;border-collapse:collapse;font-size:12.5px;border:var(--bw) solid var(--line);background:var(--surface)}
+.demo th{text-align:left;font-family:var(--f-display);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;
+  padding:7px 9px;border-bottom:var(--bw) solid var(--line);background:var(--thbg);color:var(--think)}
+.demo td{padding:7px 9px;border-bottom:1px solid var(--linesoft)}
+.demo tr:last-child td{border-bottom:0}
+.demo tr.bad td{background:var(--fail-bg)}
+.demo .ok{color:var(--pass-ink);font-weight:700}
+.demo .no{color:var(--fail-ink);font-weight:700}
+.demo .kpi{border:var(--bw) solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px;
+  box-shadow:var(--sh) var(--sh) 0 var(--shc);flex:1;min-width:110px}
+.demo .kpi .k{font-family:var(--f-display);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.demo .kpi .v{font-family:var(--f-display);font-size:22px;font-weight:900;line-height:1.1}
+.demo .code{font-family:"IBM Plex Mono",monospace;font-size:11.5px;border:var(--bw) solid var(--line);
+  background:var(--codebg);border-radius:var(--r);padding:10px;white-space:pre-wrap;color:var(--ink)}
+.demo .mono{font-family:"IBM Plex Mono",monospace}
+
+/* ───────── V1  FULL SEND ───────── */
+.v1{--f-body:Archivo,sans-serif;--f-display:"Archivo Black",sans-serif;
+  --ground:#FFF3C4;--surface:#FFFFFF;--btn:#FFFFFF;--codebg:#FFFFFF;
+  --line:#000;--linesoft:#000;--ink:#000;--muted:#3A3A3A;
+  --accent:#FF5C8A;--on-accent:#000;--tagbg:#C9B7FF;--tagink:#000;--thbg:#FFD84D;--think:#000;
+  --pass-bg:#7CF5C4;--pass-ink:#00381E;--fail-bg:#FF9B9B;--fail-ink:#5C0000;--warn-bg:#FFD84D;--warn-ink:#3D2A00;
+  --c-exp:#6C3BF4;--bw:3px;--sh:5px;--r:8px}
+/* ───────── V2  MUTED INK  (recommended) ───────── */
+.v2{--f-body:Archivo,sans-serif;--f-display:Archivo,sans-serif;
+  --ground:#F4F2EC;--surface:#FFFFFF;--btn:#FFFFFF;--codebg:#FAF9F5;
+  --line:#111;--linesoft:#DDD9CE;--ink:#111;--muted:#5A574E;
+  --accent:#111;--on-accent:#fff;--tagbg:#EDEAE1;--tagink:#111;--thbg:#EDEAE1;--think:#111;
+  --pass-bg:#CFF3DC;--pass-ink:#0B5C2E;--fail-bg:#FFD5D0;--fail-ink:#8E1207;--warn-bg:#FFEAB8;--warn-ink:#6B4200;
+  --c-exp:#0B5C2E;--bw:2px;--sh:4px;--r:4px}
+.v2 .demo .card h4{font-weight:800}
+/* ───────── V3  EDITORIAL INK ───────── */
+.v3{--f-body:"Space Grotesk",sans-serif;--f-display:"Instrument Serif",serif;
+  --ground:#FFFFFF;--surface:#FFFFFF;--btn:#FFFFFF;--codebg:#F7F7F7;
+  --line:#000;--linesoft:#E2E2E2;--ink:#000;--muted:#666;
+  --accent:#0F3DFF;--on-accent:#fff;--tagbg:#FFFFFF;--tagink:#000;--thbg:#000;--think:#fff;
+  --pass-bg:#FFFFFF;--pass-ink:#00662F;--fail-bg:#FFFFFF;--fail-ink:#C50000;--warn-bg:#FFFFFF;--warn-ink:#8A5A00;
+  --c-exp:#0F3DFF;--bw:1.5px;--sh:3px;--r:0px}
+.v3 .demo .card h4{font-size:17px;text-transform:none;letter-spacing:-.01em;font-style:italic}
+.v3 .demo .kpi .v{font-family:"Instrument Serif",serif;font-weight:400;font-size:28px}
+.v3 .demo .badge{background:#fff}
+/* ───────── V4  TERMINAL BRUTALISM ───────── */
+.v4{--f-body:"IBM Plex Mono",monospace;--f-display:"IBM Plex Mono",monospace;
+  --ground:#0C0C0C;--surface:#161616;--btn:#161616;--codebg:#0A0A0A;
+  --line:#F5F5F5;--linesoft:#333;--ink:#F5F5F5;--muted:#9A9A9A;
+  --accent:#C6FF3D;--on-accent:#0C0C0C;--tagbg:#161616;--tagink:#C6FF3D;--thbg:#F5F5F5;--think:#0C0C0C;
+  --pass-bg:#0F2B18;--pass-ink:#5BFF9E;--fail-bg:#2E0E0E;--fail-ink:#FF6B6B;--warn-bg:#2B2205;--warn-ink:#FFD84D;
+  --c-exp:#C6FF3D;--bw:2px;--sh:4px;--shc:#C6FF3D;--r:0px}
+.v4 .demo .card h4,.v4 .demo th{letter-spacing:.12em}
+/* ───────── V5  SOFT BRUTALISM ───────── */
+.v5{--f-body:"Space Grotesk",sans-serif;--f-display:"Space Grotesk",sans-serif;
+  --ground:#FFF7F0;--surface:#FFFFFF;--btn:#FFFFFF;--codebg:#FFF9F4;
+  --line:#2B2118;--linesoft:#EFE2D6;--ink:#2B2118;--muted:#7A6A5C;
+  --accent:#FFB27A;--on-accent:#2B2118;--tagbg:#E8DEFF;--tagink:#33236B;--thbg:#FFE9D6;--think:#2B2118;
+  --pass-bg:#D6F5E0;--pass-ink:#125E33;--fail-bg:#FFDAD6;--fail-ink:#9E2015;--warn-bg:#FFEFC7;--warn-ink:#7A5200;
+  --c-exp:#7B5CE8;--bw:2px;--sh:5px;--shc:#E4C7B2;--r:14px}
+.v5 .demo .card h4{font-weight:700;text-transform:none;letter-spacing:0;font-size:14px}
+/* ───────── V6  RISO PRINT ───────── */
+.v6{--f-body:Archivo,sans-serif;--f-display:"Archivo Black",sans-serif;
+  --ground:#F5F0E3;--surface:#FCF9F0;--btn:#FCF9F0;--codebg:#FCF9F0;
+  --line:#1D2B8C;--linesoft:#C9CDE8;--ink:#151A3A;--muted:#5C6291;
+  --accent:#FF4B33;--on-accent:#FCF9F0;--tagbg:#DDE1F7;--tagink:#1D2B8C;--thbg:#1D2B8C;--think:#FCF9F0;
+  --pass-bg:#D3E8DC;--pass-ink:#14563A;--fail-bg:#FFD9D2;--fail-ink:#B32411;--warn-bg:#FBE8C8;--warn-ink:#7A5200;
+  --c-exp:#FF4B33;--bw:2px;--sh:4px;--shc:#FF4B33;--r:3px}
+.v6 .demo .card{transform:rotate(-.5deg)} .v6 .demo .kpi:nth-child(2){transform:rotate(.6deg)}
+
+.legendbar{border:3px solid #000;background:#fff;box-shadow:6px 6px 0 #000;padding:16px 18px;margin:30px 0 0}
+.legendbar h3{font-family:"Archivo Black",sans-serif;font-size:15px;text-transform:uppercase;margin-bottom:10px}
+.legendbar ul{margin:0;padding-left:18px} .legendbar li{margin-bottom:6px;font-size:14px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <h1>Neobrutalism &times; 6</h1>
+    <p>Same components in every panel; only the tokens change. The variants differ on the axes that matter for a data-dense workbench, not on palette alone. Pass and fail contrast is checked in each.</p>
+  </header>
+
+  <div class="axisbar">
+    <span class="axis">border 1.5&ndash;3px</span>
+    <span class="axis">shadow 3&ndash;5px</span>
+    <span class="axis">shadow colour: black / accent / none</span>
+    <span class="axis">radius 0&ndash;14px</span>
+    <span class="axis">decorative saturation: max &rarr; zero</span>
+    <span class="axis">type: display / grotesk / serif / mono</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="legendbar">
+    <h3>How to choose</h3>
+    <ul>
+      <li><b>The axis that matters is decorative saturation, not palette.</b> Every colour you spend on decoration is one you cannot spend on pass/fail.</li>
+      <li><b>V2 keeps the construction and gives up the party.</b> Black ink, hard shadows, zero decorative colour; the only saturated things on screen are states. It is the only variant where a red row is the loudest object.</li>
+      <li><b>V1 is the honest version of what you asked for</b> and the one that will be hardest to read at 40 rows.</li>
+      <li><b>V4 is the one your users already live in.</b> Terminal palette, mono everywhere, lime accent as the shadow colour. Strongest fit for the eval product, weakest for the lesson product aimed at newcomers.</li>
+      <li><b>V5 is the lesson-mode candidate.</b> Same construction, softened; a beginner will not feel shouted at.</li>
+      <li>Running two variants is defensible: <b>V4 or V2 for the workbench, V5 for lessons, V1 for the marketing site.</b> Running three visual systems is not.</li>
+    </ul>
+  </div>
+</div>
+
+<template id="tpl">
+  <div class="demo">
+    <div class="row">
+      <button class="btn pri">Run 6 assertions</button>
+      <button class="btn">Compile</button>
+      <span class="tag">Constraint</span>
+      <span class="badge p">passes</span>
+      <span class="badge f">2 of 3 fail</span>
+      <span class="badge w">drifted</span>
+    </div>
+    <div class="card">
+      <h4>Expected blok</h4>
+      <p>Output must parse as valid JSON with exactly three keys.</p>
+      <p class="mono" style="font-size:11px;margin-top:6px;opacity:.7">&rarr; assertion json_schema</p>
+    </div>
+    <table>
+      <thead><tr><th>Assertion</th><th>GPT</th><th>Claude</th><th>Gemini</th></tr></thead>
+      <tbody>
+        <tr><td>No prose outside JSON</td><td class="ok">40/40</td><td class="ok">40/40</td><td class="ok">40/40</td></tr>
+        <tr><td>Reason under 20 words</td><td class="ok">40/40</td><td class="no">31/40</td><td class="ok">39/40</td></tr>
+        <tr class="bad"><td><b>Valid JSON, three keys</b></td><td class="no">28/40</td><td class="ok">40/40</td><td class="no">22/40</td></tr>
+      </tbody>
+    </table>
+    <div class="row">
+      <div class="kpi"><div class="k">Pass rate</div><div class="v">81.7%</div></div>
+      <div class="kpi"><div class="k">Regressions</div><div class="v">3</div></div>
+      <div class="kpi"><div class="k">Cost</div><div class="v">$0.37</div></div>
+    </div>
+    <div class="code">{ "category": "billing_error", "confidence": 0.77 }</div>
+  </div>
+</template>
+
+<script>
+(function(){
+  'use strict';
+  var VARIANTS = [
+    { cls:'v1', name:'Full Send',          tag:'canonical',
+      note:'<b>Maximum loudness.</b> 3px ink, 5px hard shadow, yellow header rows, violet tags, pink primary. This is neobrutalism unmodified.',
+      spec:'border 3px #000 · shadow 5px 5px 0 #000 · radius 8px · Archivo Black · ground #FFF3C4',
+      risk:'The failing row has to compete with a yellow table head and a pink button. At 40 rows the eye has nowhere to rest.' },
+    { cls:'v2', name:'Muted Ink',          tag:'recommended',
+      note:'<b>Construction kept, decoration removed.</b> Ink borders and hard shadows stay; every decorative colour is stripped to bone and paper so saturation belongs to state alone.',
+      spec:'border 2px #111 · shadow 4px 4px 0 #111 · radius 4px · Archivo 800 · ground #F4F2EC',
+      risk:'Less memorable in a screenshot. Gains legibility at density and never fights the semantics.' },
+    { cls:'v3', name:'Editorial Ink',      tag:'refined',
+      note:'<b>Swiss-brutalist.</b> Hairline 1.5px rules, square corners, inverted black table head, italic serif headings against a grotesk body. Print-object rather than sticker.',
+      spec:'border 1.5px #000 · shadow 3px 3px 0 #000 · radius 0 · Instrument Serif + Space Grotesk',
+      risk:'State lives in text colour only, since fills are white. Green and red text must be dark enough to clear 4.5:1; verified here.' },
+    { cls:'v4', name:'Terminal Brutalism', tag:'dev-native',
+      note:'<b>Dark ground, white ink, lime shadow.</b> Monospace everywhere, phosphor accent. The shadow colour is the accent, not black, which is the one legal way to keep hard shadows on a dark surface.',
+      spec:'border 2px #F5F5F5 · shadow 4px 4px 0 #C6FF3D · radius 0 · IBM Plex Mono · ground #0C0C0C',
+      risk:'Reads as home to engineers and as hostile to the newcomers the lesson track targets.' },
+    { cls:'v5', name:'Soft Brutalism',     tag:'lesson mode',
+      note:'<b>Same bones, lower voice.</b> 14px radii, warm paper ground, a tinted shadow instead of black. Keeps the offset-shadow language while dropping the aggression.',
+      spec:'border 2px #2B2118 · shadow 5px 5px 0 #E4C7B2 · radius 14px · Space Grotesk · ground #FFF7F0',
+      risk:'Drifts toward generic friendly SaaS if the borders ever thin below 2px.' },
+    { cls:'v6', name:'Riso Print',         tag:'identity play',
+      note:'<b>Two-ink risograph.</b> Blue ink borders, red offset shadows, warm paper, cards rotated a half degree. Most distinctive, most opinionated.',
+      spec:'border 2px #1D2B8C · shadow 4px 4px 0 #FF4B33 · radius 3px · Archivo Black · ground #F5F0E3',
+      risk:'Red is already the shadow colour on every element, so a red failure state has to fight the decoration. Fixable by moving fail to a deep maroon, but that weakens the alarm.' }
+  ];
+
+  var tpl = document.getElementById('tpl');
+  var grid = document.getElementById('grid');
+
+  VARIANTS.forEach(function(v, i){
+    var wrap = document.createElement('section');
+    wrap.className = 'variant ' + v.cls;
+
+    var head = document.createElement('div');
+    head.className = 'vhead';
+    head.innerHTML = '<span class="vnum">' + (i + 1) + '</span>' +
+                     '<span class="vname">' + v.name + '</span>' +
+                     '<span class="vtag">' + v.tag + '</span>';
+
+    var body = document.createElement('div');
+    body.className = 'vbody';
+    body.appendChild(tpl.content.cloneNode(true));
+
+    var spec = document.createElement('div');
+    spec.className = 'spec';
+    spec.textContent = v.spec;
+
+    var note = document.createElement('div');
+    note.className = 'vnote';
+    note.innerHTML = v.note + '<br><br><b>Watch:</b> ' + v.risk;
+
+    wrap.appendChild(head);
+    wrap.appendChild(body);
+    wrap.appendChild(spec);
+    wrap.appendChild(note);
+    grid.appendChild(wrap);
+  });
+})();
+</script>
+</body>
+</html>

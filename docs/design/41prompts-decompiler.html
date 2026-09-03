@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>41Prompts; the decompiler</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EFEDE6; --surface:#FFFFFF; --sunken:#F4F2EC; --line:#DCD9CF;
+  --ink:#111111; --ink-2:#4A4740; --ink-3:#77736A; --plate:#111111; --focus:#0F3DFF;
+  --pass:#0B5C2E; --pass-soft:#CFF3DC; --fail:#8E1207; --fail-soft:#FFD5D0;
+  --warn:#6B4200; --warn-soft:#FFEAB8;
+}
+[data-theme=dark]{
+  --bg:#0B0B0B; --surface:#141414; --sunken:#0E0E0E; --line:#2B2B2B;
+  --ink:#F2F2F0; --ink-2:#B4B2AC; --ink-3:#807D76; --plate:#333330; --focus:#7DA0FF;
+  --pass:#5BE39A; --pass-soft:#0E2C1C; --fail:#FF7A6E; --fail-soft:#2E1210;
+  --warn:#FFC65C; --warn-soft:#2C2205;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;transition:background .3s,color .3s;padding-bottom:env(safe-area-inset-bottom)}
+h1,h2,h3{margin:0;letter-spacing:-.03em} p{margin:0}
+button{font:inherit;cursor:pointer;color:inherit}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.page{max-width:1300px;margin:0 auto;padding:28px 18px 80px}
+.head{border:2px solid var(--ink);background:var(--surface);box-shadow:6px 6px 0 var(--plate);padding:22px;margin-bottom:18px}
+.head h1{font-size:clamp(22px,4.2vw,34px);font-weight:900;line-height:1.06}
+.head p{margin-top:10px;max-width:76ch;color:var(--ink-2);font-size:14.5px}
+.btn{border:2px solid var(--ink);background:var(--surface);border-radius:4px;padding:8px 14px;font-weight:700;
+  font-size:13px;box-shadow:3px 3px 0 var(--plate);transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translate(3px,3px);box-shadow:none}
+.btn.pri{background:var(--ink);color:var(--bg)}
+.btn[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.grow{flex:1}
+.sec{margin:24px 0 10px;font-size:11.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:"IBM Plex Mono",monospace}
+
+.cols{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:1020px){.cols{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+.panel{border:2px solid var(--ink);background:var(--surface);box-shadow:4px 4px 0 var(--plate);display:flex;flex-direction:column;min-width:0}
+.ptop{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:2px solid var(--ink);flex-wrap:wrap}
+.ptop .t{font-size:11px;font-weight:700;letter-spacing:.11em;text-transform:uppercase}
+
+textarea{width:100%;min-height:520px;border:0;resize:vertical;padding:14px;font-family:"IBM Plex Mono",monospace;
+  font-size:12.5px;line-height:1.75;background:var(--sunken);color:var(--ink);outline:none;display:block}
+
+/* ── one colour scale, used by the blok rail and the source marker ── */
+[data-k=role]{--kc:#5B4BD6} [data-k=constraint]{--kc:#0B5FA5} [data-k=format]{--kc:#0B5FA5}
+[data-k=example]{--kc:#8A5A00} [data-k=conditional]{--kc:#8A5A00} [data-k=tone]{--kc:#77736A}
+[data-k=procedure]{--kc:#0B5C2E} [data-k=instruction]{--kc:#111111}
+[data-theme=dark] [data-k=role]{--kc:#9E90FF} [data-theme=dark] [data-k=constraint]{--kc:#5AB1F5}
+[data-theme=dark] [data-k=format]{--kc:#5AB1F5} [data-theme=dark] [data-k=example]{--kc:#FFC65C}
+[data-theme=dark] [data-k=conditional]{--kc:#FFC65C} [data-theme=dark] [data-k=tone]{--kc:#B4B2AC}
+[data-theme=dark] [data-k=procedure]{--kc:#5BE39A} [data-theme=dark] [data-k=instruction]{--kc:#F2F2F0}
+
+/* ── mapped source view; the spans live here ── */
+.map{padding:14px 14px 14px 26px;font-family:"IBM Plex Mono",monospace;font-size:12.5px;line-height:1.9;
+  background:var(--sunken);white-space:pre-wrap;overflow:auto;max-height:640px;min-height:520px;position:relative}
+.sp{border-bottom:1.5px solid transparent;transition:background .14s,color .14s,border-color .14s;
+  padding:1px 0;position:relative}
+.map:hover .sp{border-bottom-color:var(--line)}
+.sp.hl{background:var(--ink);color:var(--surface);border-bottom-color:var(--ink);box-shadow:0 0 0 2px var(--ink)}
+/* leading marker: absolutely placed so it never reflows the paragraph,
+   coloured from the same scale as the blok card's rail */
+.sp::before{content:"";position:absolute;left:-11px;top:.22em;width:5px;height:1.05em;
+  background:transparent;transition:background .14s,transform .18s;transform:scaleY(.4);transform-origin:top}
+.sp.hl::before{background:var(--kc);transform:scaleY(1)}
+.sp.dim{opacity:.28}
+.frag{font-family:Archivo,sans-serif;font-size:9px;font-weight:800;vertical-align:super;
+  border:1.5px solid currentColor;padding:0 3px;margin-left:3px;opacity:.5}
+.sp.hl .frag{opacity:1}
+
+.out{padding:12px;overflow:auto;max-height:640px;min-height:520px;background:var(--sunken)}
+.blok{border:2px solid var(--ink);background:var(--surface);margin-bottom:9px;padding:10px 11px 10px 14px;
+  position:relative;cursor:pointer;transition:transform .14s,box-shadow .14s}
+.blok::before{content:"";position:absolute;left:-2px;top:9px;bottom:9px;width:5px;background:var(--kc,var(--ink))}
+.blok .k{border-color:var(--kc,var(--ink));color:var(--kc,var(--ink))}
+.blok.hl{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--plate)}
+.blok.pin{box-shadow:4px 4px 0 var(--plate)}
+.btop{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px}
+.k{font-size:9.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;padding:2px 6px;border:1.5px solid var(--ink)}
+.n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3)}
+.sum{font-size:13.5px;font-weight:700}
+.meta{display:flex;gap:8px;margin-top:7px;font-size:11px;color:var(--ink-3);flex-wrap:wrap;align-items:center}
+.flag{font-size:10px;font-weight:800;padding:2px 6px;border:1.5px solid currentColor}
+.flag.w{color:var(--warn);background:var(--warn-soft)}
+.flag.f{color:var(--fail);background:var(--fail-soft)}
+.flag.p{color:var(--pass);background:var(--pass-soft)}
+.flag.frags{color:var(--ink);background:transparent;border-style:dashed}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));border-bottom:2px solid var(--ink)}
+.stat{padding:9px 12px;border-right:1.5px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat .k2{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.stat .v2{font-size:20px;font-weight:900;letter-spacing:-.02em}
+
+.diag{border:2px solid var(--ink);background:var(--surface);box-shadow:4px 4px 0 var(--plate)}
+.d{padding:11px 13px;border-bottom:1.5px solid var(--line);display:flex;gap:11px;align-items:flex-start;cursor:pointer}
+.d:last-child{border-bottom:0}
+.d:hover{background:var(--sunken)}
+.d .sev{font-size:9.5px;font-weight:800;letter-spacing:.08em;padding:3px 7px;border:1.5px solid currentColor;flex:none;min-width:62px;text-align:center}
+.d.high .sev{color:var(--fail);background:var(--fail-soft)}
+.d.med .sev{color:var(--warn);background:var(--warn-soft)}
+.d.low .sev{color:var(--ink-3)}
+.d .txt{font-size:13.5px} .d .txt b{font-weight:800}
+.d .txt span{color:var(--ink-2);display:block;margin-top:3px;font-size:12.5px}
+
+.note{border:2px solid var(--ink);background:var(--surface);box-shadow:4px 4px 0 var(--plate);padding:16px;margin-top:18px}
+.note h3{font-size:14px;font-weight:900;margin-bottom:8px}
+.note ul{margin:0;padding-left:17px} .note li{font-size:13.5px;color:var(--ink-2);margin-bottom:7px}
+.note li b{color:var(--ink)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="head">
+    <h1>The decompiler</h1>
+    <p>Hover a blok and every piece of source it owns inverts at once, including pieces that sit paragraphs apart. A blok is not a slice of text; it is a <b>set of ranges</b>. That is the only way a rule stated in three places can be one thing you edit once. Click to pin a highlight, click again to release.</p>
+    <div class="bar">
+      <button class="btn pri" id="run">Decompile</button>
+      <button class="btn" id="sample">Load messy prompt</button>
+      <button class="btn" id="edit" aria-pressed="false">Edit source</button>
+      <button class="btn" id="dimmer" aria-pressed="false">Dim the rest</button>
+      <div class="grow"></div>
+      <button class="btn" id="t-light" aria-pressed="true">Light</button>
+      <button class="btn" id="t-dark" aria-pressed="false">Dark</button>
+    </div>
+  </header>
+
+  <div class="cols">
+    <div class="panel">
+      <div class="ptop"><span class="t">Source prompt</span><div class="grow"></div><span class="n mono" id="srcstat">0 words</span></div>
+      <div class="map" id="map"></div>
+      <textarea id="src" spellcheck="false" style="display:none" placeholder="Paste a prompt…"></textarea>
+    </div>
+
+    <div class="panel">
+      <div class="ptop"><span class="t">Bloks</span><div class="grow"></div><span class="n mono" id="hint">hover to locate</span></div>
+      <div class="stats" id="stats"></div>
+      <div class="out" id="out"></div>
+    </div>
+  </div>
+
+  <div class="sec">Diagnostics</div>
+  <div class="diag" id="diag"></div>
+
+  <div class="note">
+    <h3>What the multi-range mapping changes</h3>
+    <ul>
+      <li><b>A blok owns a set of ranges, not one span.</b> <code>Block { blok_id, ranges: [[start,end], …] }</code>. Every downstream feature inherits this: failure attribution can point at three places at once, and editing the blok rewrites all of them.</li>
+      <li><b>Fragmentation becomes a visible defect.</b> A rule scattered across four paragraphs is a bug in the prompt, and the fragment count on the card is the first honest measure of how disorganised a prompt is.</li>
+      <li><b>Recompiling defragments.</b> Once fragments are one blok, the compiler emits the rule once, in one place. That is a real, measurable improvement to the prompt that costs the user a single click.</li>
+      <li><b>Highlight uses ink inversion, not a colour.</b> Green, red and amber stay reserved for pass, fail and drift; a highlight that borrowed one of them would break the semantics the whole system depends on.</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var SAMPLE = [
+    "You are a helpful customer support assistant for Northwind, a B2B SaaS company that sells inventory software. You should always be professional and friendly.",
+    "",
+    "Your job is to read an incoming support email and decide how to route it.",
+    "",
+    "Rules:",
+    "1. Always classify the email into one of these categories: billing, technical, onboarding, cancellation, other.",
+    "2. You must respond in JSON only. Do not include any explanation outside the JSON.",
+    "3. Never mention that you are an AI model.",
+    "4. Keep the summary field reasonably short and use appropriate language.",
+    "5. If the customer sounds angry, set the priority field to high.",
+    "6. Always be professional and friendly in the summary field.",
+    "",
+    "The JSON should have these fields: category, priority, summary, needs_human.",
+    "Please make sure the output is valid JSON. Thank you!",
+    "",
+    "For example, if the email says 'I was charged twice this month', you would return {\"category\":\"billing\",\"priority\":\"medium\"}.",
+    "",
+    "When the email mentions a chargeback, always set needs_human to true.",
+    "",
+    "Do not use markdown formatting in your response. Format the summary as a markdown bullet list if there are multiple issues.",
+    "",
+    "If you are unsure about the category, use your best judgement and pick the most likely one.",
+    "",
+    "Remember: respond in JSON only, with no extra text before or after."
+  ].join("\n");
+
+  /* ───────── deterministic segmentation with exact offsets ───────── */
+  function segment(text){
+    var segs = [], cursor = 0;
+    function push(str){
+      str = str.trim(); if (!str) return;
+      var s = text.indexOf(str, cursor);
+      if (s < 0) return;
+      segs.push({ text:str, start:s, end:s + str.length });
+      cursor = s + str.length;
+    }
+    text.split(/\n{2,}/).forEach(function(para){
+      var lines = para.split(/\n/);
+      var listy = lines.filter(function(l){ return /^\s*(\d+[.)]|[-*•])\s+/.test(l); }).length >= 2;
+      if (listy){ lines.forEach(push); }
+      else if (para.trim().length > 190){ para.split(/(?<=[.!?])\s+/).forEach(push); }
+      else push(para);
+    });
+    return segs;
+  }
+
+  /* ───────── labelling ───────── */
+  var RX = {
+    role:/^(you are|you're|act as|your role|assume the role)/i,
+    procedure:/^(your job|your task|step \d|first,|then,|finally,)/i,
+    example:/\b(for example|e\.g\.|for instance|input:|output:)\b/i,
+    conditional:/^(if|when|unless|in case|whenever)\b/i,
+    format:/\b(json|xml|yaml|markdown|schema|format|fields?|respond in|output (must|should)|no extra text)\b/i,
+    constraint:/\b(must|always|never|do not|don't|only|ensure|required|should not|avoid|remember)\b/i,
+    tone:/\b(tone|friendly|professional|polite|concise|warm|formal|empathetic)\b/i
+  };
+  function classify(t){
+    if (RX.role.test(t)) return 'role';
+    if (RX.example.test(t)) return 'example';
+    if (RX.conditional.test(t)) return 'conditional';
+    if (RX.format.test(t) && RX.constraint.test(t)) return 'format';
+    if (RX.tone.test(t) && RX.constraint.test(t)) return 'tone';
+    if (RX.constraint.test(t)) return 'constraint';
+    if (RX.format.test(t)) return 'format';
+    if (RX.procedure.test(t)) return 'procedure';
+    return 'instruction';
+  }
+  var STOP = /^(that|this|with|from|your|will|have|they|them|then|when|what|into|must|should|would|about|there|their|which|these|those|only|also|make|sure|using|used|does|each)$/;
+  function norm(t){
+    return t.toLowerCase().replace(/[^a-z0-9_\s]/g,' ').split(/\s+/)
+      .filter(function(w){ return w.length > 3 && !STOP.test(w); });
+  }
+  function overlap(a,b){
+    var A = norm(a), B = norm(b);
+    if (!A.length || !B.length) return 0;
+    var m = {}, hit = 0;
+    B.forEach(function(w){ m[w] = 1; });
+    A.forEach(function(w){ if (m[w]) hit++; });
+    return hit / Math.min(A.length, B.length);
+  }
+  /* topic keys let fragments in different paragraphs join one blok */
+  var TOPICS = [
+    { key:'json-only',  rx:/\b(json only|only json|valid json|no extra text|outside the json|explanation outside)\b/i },
+    { key:'json-shape', rx:/\b(fields?|schema|category|priority|needs_human)\b/i },
+    { key:'markdown',   rx:/\bmarkdown\b/i },
+    { key:'tone',       rx:/\b(professional and friendly|tone|polite)\b/i },
+    { key:'ai-identity',rx:/\bai model\b/i }
+  ];
+  function topicOf(t){
+    for (var i = 0; i < TOPICS.length; i++) if (TOPICS[i].rx.test(t)) return TOPICS[i].key;
+    return null;
+  }
+
+  function cluster(segs){
+    var bloks = [];
+    segs.forEach(function(s){
+      var topic = topicOf(s.text), kind = classify(s.text), hit = null;
+      for (var i = 0; i < bloks.length; i++){
+        var b = bloks[i];
+        var sameTopic = topic && b.topic === topic;
+        var similar = overlap(s.text, b.parts[0].text) >= 0.6;
+        if ((sameTopic || similar) && b.kind === kind){ hit = b; break; }
+      }
+      if (hit){ hit.parts.push(s); }
+      else bloks.push({ kind:kind, topic:topic, parts:[s], flags:[] });
+    });
+    return bloks;
+  }
+
+  function summarize(t, kind){
+    var s = t.replace(/^\s*(\d+[.)]|[-*•])\s+/,'').replace(/\s+/g,' ').trim();
+    s = s.replace(/^(you (should|must|will|can)|please|remember:?|note:?)\s+/i,'');
+    if (s.length > 84) s = s.slice(0,81).replace(/\s\S*$/,'') + '…';
+    var pre = { role:'Sets the role: ', example:'Example: ', conditional:'Edge case: ', format:'Output shape: ',
+                constraint:'Rule: ', tone:'Tone: ', procedure:'Task: ', instruction:'' }[kind] || '';
+    return pre + s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  var VAGUE = /\b(reasonably|appropriate|appropriately|as needed|if necessary|best judgement|best judgment|good|properly|adequate)\b/i;
+  var POLITE = /\b(please|thank you|thanks|kindly)\b/i;
+
+  function diagnose(bloks){
+    var out = [];
+    bloks.forEach(function(b,i){
+      var all = b.parts.map(function(p){ return p.text; }).join(' ');
+      b.words = all.trim().split(/\s+/).length;
+
+      if (b.parts.length > 1){
+        b.flags.push({ c:'frags', t:b.parts.length + ' fragments' });
+        out.push({ sev:'med', blok:i, title:'Rule split across ' + b.parts.length + ' places',
+          body:'This instruction appears in ' + b.parts.length + ' separate spots. Edit one and the others keep contradicting it. Recompiling emits it once.' });
+      }
+      if (VAGUE.test(all)){
+        b.flags.push({ c:'w', t:'untestable' });
+        out.push({ sev:'med', blok:i, title:'Untestable language',
+          body:'Uses "' + all.match(VAGUE)[0] + '". No assertion can be written against it, so it can never fail visibly.' });
+      }
+      if (POLITE.test(all)){
+        b.flags.push({ c:'w', t:'filler' });
+        out.push({ sev:'low', blok:i, title:'Politeness padding',
+          body:'Courtesy language costs tokens and changes nothing.' });
+      }
+      if (b.words > 55){
+        b.flags.push({ c:'w', t:'too long' });
+        out.push({ sev:'low', blok:i, title:'Carries more than one instruction',
+          body:b.words + ' words. Split it so a failure points somewhere specific.' });
+      }
+      if (b.kind === 'constraint' || b.kind === 'format') b.flags.push({ c:'p', t:'assertable' });
+    });
+
+    /* contradiction: a negated blok and a positive blok sharing a format keyword */
+    bloks.forEach(function(a,i){
+      var at = a.parts.map(function(p){return p.text;}).join(' ');
+      if (!/\b(do not|don't|never|avoid|no )\b/i.test(at)) return;
+      bloks.forEach(function(c,j){
+        if (i === j) return;
+        var ct = c.parts.map(function(p){return p.text;}).join(' ');
+        if (/\b(do not|don't|never|avoid)\b/i.test(ct)) return;
+        var shared = norm(at).filter(function(w){ return norm(ct).indexOf(w) > -1; })
+          .filter(function(w){ return /^(markdown|json|explanation|format|summary|bullet|list|prose)$/.test(w); });
+        if (shared.length){
+          a.flags.push({ c:'f', t:'conflict' }); c.flags.push({ c:'f', t:'conflict' });
+          out.unshift({ sev:'high', blok:i, title:'Contradiction on "' + shared[0] + '"',
+            body:'Blok ' + (i+1) + ' forbids what blok ' + (j+1) + ' asks for. Hover both to see where they sit.' });
+        }
+      });
+    });
+
+    var rules = bloks.filter(function(b){ return b.kind === 'constraint' || b.kind === 'format'; }).length;
+    if (rules) out.unshift({ sev:'high', blok:null, title:rules + ' rules, 0 assertions',
+      body:'Every rule here is unverified. These are the bloks to turn into expected-behaviour bloks first.' });
+    return out;
+  }
+
+  /* ───────── render ───────── */
+  var mapEl = document.getElementById('map'), outEl = document.getElementById('out'),
+      diagEl = document.getElementById('diag'), statsEl = document.getElementById('stats'),
+      srcEl = document.getElementById('src'), srcStat = document.getElementById('srcstat'),
+      hintEl = document.getElementById('hint');
+  var TEXT = SAMPLE, BLOKS = [], pinned = null, dim = false;
+
+  function esc(s){ return s.replace(/[&<>]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }); }
+
+  function renderMap(){
+    var pieces = [], cursor = 0, all = [];
+    BLOKS.forEach(function(b,bi){ b.parts.forEach(function(p,pi){ all.push({ s:p.start, e:p.end, b:bi, i:pi, n:b.parts.length, k:b.kind }); }); });
+    all.sort(function(x,y){ return x.s - y.s; });
+    all.forEach(function(r){
+      if (r.s > cursor) pieces.push(esc(TEXT.slice(cursor, r.s)));
+      pieces.push('<span class="sp" data-b="' + r.b + '" data-k="' + r.k + '" tabindex="0">' + esc(TEXT.slice(r.s, r.e)) +
+        (r.n > 1 ? '<span class="frag">' + (r.i + 1) + '/' + r.n + '</span>' : '') + '</span>');
+      cursor = r.e;
+    });
+    if (cursor < TEXT.length) pieces.push(esc(TEXT.slice(cursor)));
+    mapEl.innerHTML = pieces.join('');
+
+    mapEl.querySelectorAll('.sp').forEach(function(sp){
+      sp.addEventListener('mouseenter', function(){ if (pinned === null) light(+sp.dataset.b, false); });
+      sp.addEventListener('mouseleave', function(){ if (pinned === null) light(null); });
+      sp.addEventListener('focus', function(){ light(+sp.dataset.b, false); });
+      sp.addEventListener('click', function(){ pin(+sp.dataset.b); });
+    });
+  }
+
+  function light(bi, scroll){
+    mapEl.querySelectorAll('.sp').forEach(function(sp){
+      var on = bi !== null && +sp.dataset.b === bi;
+      sp.classList.toggle('hl', on);
+      sp.classList.toggle('dim', dim && bi !== null && !on);
+    });
+    outEl.querySelectorAll('.blok').forEach(function(c){
+      c.classList.toggle('hl', bi !== null && +c.dataset.b === bi);
+    });
+    if (bi === null){ hintEl.textContent = pinned === null ? 'hover to locate' : 'pinned'; return; }
+    var b = BLOKS[bi];
+    hintEl.textContent = b.parts.length > 1 ? b.parts.length + ' fragments highlighted' : '1 span highlighted';
+    if (scroll){
+      var first = mapEl.querySelector('.sp.hl');
+      if (first) first.scrollIntoView({ block:'nearest', behavior:'smooth' });
+    }
+  }
+  function pin(bi){
+    pinned = (pinned === bi) ? null : bi;
+    outEl.querySelectorAll('.blok').forEach(function(c){ c.classList.toggle('pin', pinned !== null && +c.dataset.b === pinned); });
+    light(pinned, pinned !== null);
+  }
+
+  function renderBloks(){
+    outEl.innerHTML = BLOKS.map(function(b,i){
+      var first = b.parts[0];
+      return '<article class="blok" data-b="' + i + '" data-k="' + b.kind + '" tabindex="0">' +
+        '<div class="btop"><span class="k">' + b.kind + '</span>' +
+        '<span class="n">blok ' + (i+1) + ' · ' + b.parts.map(function(p){ return 'c' + p.start; }).join(', ') + '</span></div>' +
+        '<div class="sum">' + esc(summarize(first.text, b.kind)) + '</div>' +
+        '<div class="meta"><span>' + b.words + ' words</span>' +
+        b.flags.map(function(f){ return '<span class="flag ' + f.c + '">' + f.t + '</span>'; }).join('') +
+        '</div></article>';
+    }).join('');
+
+    outEl.querySelectorAll('.blok').forEach(function(card){
+      var bi = +card.dataset.b;
+      card.addEventListener('mouseenter', function(){ if (pinned === null) light(bi, true); });
+      card.addEventListener('mouseleave', function(){ if (pinned === null) light(null); });
+      card.addEventListener('focus', function(){ light(bi, true); });
+      card.addEventListener('click', function(){ pin(bi); });
+      card.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pin(bi); } });
+    });
+  }
+
+  function run(){
+    TEXT = srcEl.value || TEXT;
+    var segs = segment(TEXT);
+    BLOKS = cluster(segs);
+    var findings = diagnose(BLOKS);
+
+    srcStat.textContent = TEXT.trim().split(/\s+/).length + ' words';
+    statsEl.innerHTML =
+      st('Bloks', BLOKS.length) + st('Spans', segs.length) +
+      st('Fragmented', BLOKS.filter(function(b){ return b.parts.length > 1; }).length) +
+      st('Findings', findings.length);
+
+    renderBloks(); renderMap();
+
+    diagEl.innerHTML = findings.map(function(f){
+      return '<div class="d ' + f.sev + '"' + (f.blok !== null ? ' data-b="' + f.blok + '"' : '') + '>' +
+        '<span class="sev">' + f.sev + '</span><span class="txt"><b>' + esc(f.title) + '</b>' +
+        '<span>' + esc(f.body) + '</span></span></div>';
+    }).join('');
+    diagEl.querySelectorAll('.d[data-b]').forEach(function(d){
+      var bi = +d.dataset.b;
+      d.addEventListener('mouseenter', function(){ if (pinned === null) light(bi, true); });
+      d.addEventListener('mouseleave', function(){ if (pinned === null) light(null); });
+      d.addEventListener('click', function(){ pin(bi); });
+    });
+  }
+  function st(k,v){ return '<div class="stat"><div class="k2">' + k + '</div><div class="v2">' + v + '</div></div>'; }
+
+  /* controls */
+  srcEl.value = SAMPLE;
+  document.getElementById('run').addEventListener('click', run);
+  document.getElementById('sample').addEventListener('click', function(){ srcEl.value = SAMPLE; run(); });
+  var editBtn = document.getElementById('edit');
+  editBtn.addEventListener('click', function(){
+    var editing = srcEl.style.display === 'none';
+    srcEl.style.display = editing ? 'block' : 'none';
+    mapEl.style.display = editing ? 'none' : 'block';
+    editBtn.setAttribute('aria-pressed', String(editing));
+    if (!editing) run();
+  });
+  var dimBtn = document.getElementById('dimmer');
+  dimBtn.addEventListener('click', function(){
+    dim = !dim; dimBtn.setAttribute('aria-pressed', String(dim));
+    if (pinned !== null) light(pinned, false);
+  });
+
+  var root = document.documentElement, L = document.getElementById('t-light'), D = document.getElementById('t-dark');
+  function setTheme(m){ root.setAttribute('data-theme',m);
+    L.setAttribute('aria-pressed', String(m==='light')); D.setAttribute('aria-pressed', String(m==='dark')); }
+  L.addEventListener('click', function(){ setTheme('light'); });
+  D.addEventListener('click', function(){ setTheme('dark'); });
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+
+  run();
+})();
+</script>
+</body>
+</html>
