@@ -189,6 +189,45 @@ fallback itself and the other two F3 bootstrap notes were already on `main` from
 session (container status table, current — still-`unknown` — healthz output, TLS confirmed independently via
 `curl -vI` since the original proxy issuance log line had rotated out of the buffer, the live ACME-failure log
 line that F3's Domains fix addresses), what F1–F3 changed, both exposures and their rotations, and the open items
-still owed by Soroush. This session log finalized alongside it. Next: push the branch, open a PR, wait for CI,
-pause for Soroush's go-ahead before squash-merging (per the standing instruction), then verify F2's acceptance
-criterion on the deployed result.
+still owed by Soroush. Pushed `epic/001-followup`, opened PR #3, CI green (`ci — pass, 54s`), paused for
+Soroush's go-ahead per the standing instruction. Told "Go. Squash-merge PR #3." — merged (`67d10e8`), local
+`main` fast-forwarded.
+
+**Post-merge verification — F2's own acceptance criterion, the actual result.** Staging's auto-deploy for
+`67d10e8` was already `in_progress` moments after the merge (confirmed via `GET
+/api/v1/deployments/applications/{uuid}`, read-only); polled it read-only until `finished` (two attempts — the
+first polling script died on `read-only variable: status`, a zsh built-in name collision with my own variable
+name, unrelated to secrets or the deployment itself; second attempt with a renamed variable worked). `curl -s
+https://staging.41prompts.ai/healthz` briefly returned `no available server` right at deploy completion (Traefik
+hadn't picked up the new container yet — containers were 17s old; resolved itself 5s later) then settled on
+`{"ok":true,"commit":"unknown","env":"staging"}` — **still `unknown`**. Checked why, read-only: `GET
+/api/v1/applications/{uuid}/envs` no longer lists `SOURCE_COMMIT` or `COMMIT_SHA` at all (11 variables total,
+neither key present) — the locked-variable half of F2 is genuinely fixed. But the new container's environment,
+filtered to just these two keys, showed `COMMIT_SHA=unknown` and no `SOURCE_COMMIT` entry whatsoever — Coolify is
+not injecting a real commit into this compose deployment's runtime, contradicting what reading
+`ApplicationDeploymentJob.php` predicted (the theory: runtime injection of `SOURCE_COMMIT` should be unconditional
+once no locked variable exists; the observed reality: it just doesn't happen for this app, and I never actually
+traced the code path that would explain why not).
+
+Reported this to Soroush along with a recommendation — the epic's own second option, reading `.git/HEAD` inside
+the Docker build via a narrow `.dockerignore` exception, fully self-contained and independent of Coolify's
+internal wiring — and asked whether to implement it. **Soroush's answer: no.** Do not implement the `.git/HEAD`
+fix, do not read Coolify's source again for this. F2 is closed as deferred, not fixed: two hours already went
+into this investigation, further attempts each cost a full deploy cycle, and the `.git/HEAD` workaround would be
+deleted within a week anyway by **EPIC-008 Prebuilt images** — moved to the front of the backlog specifically to
+own this criterion, building images in GitHub Actions with `github.sha` passed explicitly as `--build-arg
+SOURCE_COMMIT`, which is certain rather than inferred. Soroush wrote the "F2 outcome" decision directly into
+`docs/epics/CURRENT.md`/`EPIC-001-infrastructure.md`, updated `docs/backlog.md`/`docs/roadmap.md` with EPIC-008,
+and asked for one closeout commit: fold in those doc edits as-is, update the report and this session log with the
+outcome above (this entry), and write `docs/epics/EPIC-008-prebuilt-images.md` from the roadmap entry and these
+lessons, setting it as the new `docs/epics/CURRENT.md`.
+
+**What's kept from F2 as merged, unchanged:** the healthz fallback logic (`COMMIT_SHA` unless it's the literal
+`"unknown"`, then `SOURCE_COMMIT`) — correct, and will work the moment EPIC-008 supplies a real build arg; the
+compose file's comment explaining Coolify's locking behavior; all of F3's runbook corrections. Nothing about F1
+or F3 changes.
+
+**EPIC-001 is now closed** with `commit` on `/healthz` explicitly deferred to EPIC-008, not silently left broken —
+recorded in the report's acceptance criteria, the backlog, and the roadmap. `docs/epics/CURRENT.md` now holds
+EPIC-008 in full; planning and implementing it is explicitly out of scope for this session per Soroush's
+instruction ("do not plan or implement EPIC-008 yet").

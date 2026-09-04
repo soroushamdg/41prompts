@@ -227,11 +227,12 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
 - [x] Web container entrypoint runs migrations before start (a log line proves order). Evidence above.
 - [ ] **Handed to Soroush — `infra/README.md` step 16.** `infra/README.md` read top to bottom by Soroush; every
       console step has a screenshot name or exact menu path.
-- [ ] **Handed to Soroush — `infra/README.md` step 14.** `curl https://staging.41prompts.ai/healthz` returns the
-      current `main` commit once his steps are done.
+- [x] **Amended, per `docs/epics/CURRENT.md`'s "F2 outcome".** `curl https://staging.41prompts.ai/healthz`
+      returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. The `commit` field is a known
+      defect, moved to EPIC-008 — see the Follow-up section below.
 - [ ] **Handed to Soroush — `infra/README.md` step 14.** A no-op tag `v0.0.1-test` deploys production;
-      `https://app.41prompts.ai/healthz` returns that commit. (I can push the tag myself once asked, at that
-      time — see plan §6.)
+      `https://app.41prompts.ai/healthz` returns HTTP 200 and `env: production`. (`commit` is EPIC-008's
+      criterion, not this epic's.) (I can push the tag myself once asked, at that time — see plan §6.)
 - [ ] **Handed to Soroush — live Coolify UI action, after `infra/README.md` step 14; no dedicated numbered setup
       step covers this specifically.** Killing the web container in Coolify restarts it within 30 s.
 - [ ] **Handed to Soroush — `infra/README.md` step 13 (setup) and step 15 (the drill itself).** Nightly backup
@@ -243,9 +244,11 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
 
 ## Follow-up (2026-09-04)
 
-Branch `epic/001-followup`, four commits (`aa513ce` F1, `d2c70a9` F2, `2f21d55` F3, plus this F4). Full detail,
-including every server command run and its approval status, is in `docs/epics/sessions/EPIC-001-session.md`'s
-Follow-up session section — this is the summary.
+Branch `epic/001-followup`, merged as PR #3 (five commits: `aa513ce` F1, `d2c70a9` F2, `2f21d55` F3, `b01f6a5` a
+test-coverage fixup for F2, `8551301` F4), plus one closeout commit on a second branch recording F2's actual
+outcome and handing the deferred criterion to EPIC-008. Full detail, including every server command run and its
+approval status, is in `docs/epics/sessions/EPIC-001-session.md`'s Follow-up session section — this is the
+summary.
 
 ### Human-half evidence (staging, live at time of writing)
 
@@ -259,12 +262,23 @@ web-pboa5wxrnggay30epiq0pmzd-211242712167        Up 14 minutes (healthy)
 postgres-pboa5wxrnggay30epiq0pmzd-211242702541   Up 14 minutes (healthy)
 ```
 
-`curl -s https://staging.41prompts.ai/healthz` (still `unknown` — this is *before* F2's fix has merged and gone
-through its post-merge cleanup; see F2's acceptance sequence in `infra/README.md` step 10 and "Open items" below):
+`curl -s https://staging.41prompts.ai/healthz`, after PR #3 merged, staging auto-deployed, and Soroush confirmed
+`GET /api/v1/applications/.../envs` no longer lists `SOURCE_COMMIT` or `COMMIT_SHA` at all (read-only, both
+locked variables gone — the compose-file half of F2 worked):
 
 ```
 {"ok":true,"commit":"unknown","env":"staging"}
 ```
+
+Still `unknown` — see "F2 outcome" below for why this is now closed as deferred rather than chased further. The
+running container's environment, filtered to just these two keys (nothing else printed, per rule 7):
+
+```
+COMMIT_SHA=unknown
+```
+
+`SOURCE_COMMIT` is absent entirely (not even set to `unknown`) — Coolify injects no usable commit into this
+compose deployment's build or runtime, contrary to what reading `ApplicationDeploymentJob.php` predicted.
 
 TLS: the exact `coolify-proxy` log line for this domain's original certificate issuance has since rotated out of
 the container's log buffer, so verified independently instead — `curl -vI https://staging.41prompts.ai/healthz`:
@@ -286,20 +300,38 @@ observed directly rather than inferred.
 
 - **F1** — Claude Code may now reach the box over SSH and the Coolify API, under `infra/ACCESS.md`'s rules
   (`CLAUDE.md` carries the same six — now seven, after F3 — rules).
-- **F2** — root cause of `commit: unknown`, confirmed by reading Coolify's own deployment-job source on the box:
-  any `${VAR}` anywhere in `infra/docker-compose.yml` becomes a permanently locked application environment
-  variable whose stored value Coolify re-feeds into the build every deploy. Removed the `web.build.args` block
-  entirely; `apps/web/Dockerfile`'s `ARG` renamed to `SOURCE_COMMIT` to match what Coolify actually injects;
-  `apps/web/app/healthz/route.ts` now falls back to `SOURCE_COMMIT` (which Coolify sets directly on the running
-  container independent of any build arg) when `COMMIT_SHA` is the `unknown` placeholder. Verified locally only so
-  far — a local build with an explicit `--build-arg SOURCE_COMMIT` bakes the real commit correctly; the staging
-  acceptance criterion itself is still open, see below.
+- **F2** — root cause of the *locked-variable* half of `commit: unknown`, confirmed by reading Coolify's own
+  deployment-job source on the box: any `${VAR}` anywhere in `infra/docker-compose.yml` becomes a permanently
+  locked application environment variable whose stored value Coolify re-feeds into the build every deploy.
+  Removed the `web.build.args` block entirely — confirmed fixed, the locked variables are gone. `apps/web/
+  Dockerfile`'s `ARG` renamed to `SOURCE_COMMIT`; `apps/web/app/healthz/route.ts` falls back to `SOURCE_COMMIT`
+  when `COMMIT_SHA` is the `unknown` placeholder — this part is correct and stays, but on staging today neither
+  variable carries a real commit, so `healthz` still reads `unknown`. See "F2 outcome" below: closed as deferred
+  to EPIC-008, not fixed end to end.
 - **F3** — runbook corrections found while following it: `POSTGRES_PASSWORD` generation (`openssl rand -hex 24`,
   why, and both the drop-volume and `ALTER USER` rotation paths), Coolify UI access via
   `https://coolify.41prompts.ai` with the tunnel as documented fallback, the GitHub App screen name, the Base
   Directory caveat removed (confirmed working), a narrower initial Environment Variables list with a warning
   about Coolify's `${VAR}`-locking behavior, the Domains `redirect` field (read from the API, not guessed — see
   above), a bootstrap.sh comment, and a new "Web container restart loop" runbook section.
+
+### F2 outcome: closed as deferred, not fixed
+
+The compose half of F2 worked — removing every `${...}` reference stopped Coolify from creating locked
+variables, confirmed via `GET /api/v1/applications/.../envs` and a filtered `docker inspect`. The other half
+didn't: Coolify injects no usable commit into a Docker Compose deployment's build or runtime, so `commit` is
+still `unknown` on staging. Two hours went into reading Coolify's source and testing theories against a real
+deploy; the source doesn't distinguish the Nixpacks/Railpack path from the compose path clearly enough to keep
+going, and every further attempt costs a full deploy cycle.
+
+**Decision (Soroush's call, recorded in `docs/epics/CURRENT.md`'s "F2 outcome"):** stop investigating Coolify's
+internals for this. The `.git/HEAD`-in-build-context workaround that was the epic's own fallback option would
+just get deleted a week later by **EPIC-008 Prebuilt images**, which moves the build to GitHub Actions, passes
+`github.sha` as `--build-arg SOURCE_COMMIT` explicitly, and makes the value certain rather than inferred.
+EPIC-008 is pulled to the front of the backlog (`docs/backlog.md`, `docs/roadmap.md`) and now owns this
+criterion. What's kept from F2 as merged: the healthz fallback logic (correct, and will work the moment a real
+`SOURCE_COMMIT` is actually supplied), the compose file's comment explaining the locking behavior, and F3's
+runbook corrections.
 
 ### Two secret exposures this session (full account in the session log)
 
@@ -313,9 +345,9 @@ and `CLAUDE.md` rule 7 (F3) exists because of both.
 
 ### Open items still owed by Soroush
 
-- **F2's own acceptance criterion**: merge this branch, then follow `infra/README.md` step 10 (b)–(e) — delete
-  the now-orphaned `SOURCE_COMMIT`/`COMMIT_SHA` locked variables in Coolify's Environment Variables tab, redeploy,
-  and confirm `curl -s https://staging.41prompts.ai/healthz` matches `git rev-parse origin/main`.
+- **`commit` on `/healthz`**: no longer an action item here — owned by EPIC-008 (`docs/epics/CURRENT.md`), which
+  builds images in GitHub Actions with `github.sha` passed explicitly, sidestepping Coolify's build/runtime
+  injection entirely.
 - **Domains `redirect` fix**: set staging's Direction to non-www (`infra/README.md` step 11) to stop the recurring
   ACME failure shown above; repeat for the production resource once it exists.
 - **Production environment + `v0.0.1-test`**: not yet created — original epic's production acceptance criteria
