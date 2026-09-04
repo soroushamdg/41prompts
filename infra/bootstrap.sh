@@ -34,7 +34,7 @@ if command -v sshd >/dev/null 2>&1; then
   mkdir -p /run/sshd
   sshd -t
 fi
-systemctl reload ssh
+systemctl reload-or-restart ssh || systemctl restart ssh.socket
 
 echo "== ufw: 22/80/443 only =="
 if ! command -v ufw >/dev/null 2>&1; then
