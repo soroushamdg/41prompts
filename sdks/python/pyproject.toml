@@ -1,0 +1,19 @@
+[project]
+# TODO(EPIC-054): confirm this distribution name (and that "fortyone" is free on PyPI) before first publish.
+name = "fortyone-prompts"
+version = "0.0.1"
+description = "Runtime resolve() for 41Prompts. Zero dependencies."
+requires-python = ">=3.12"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["fortyone"]
+
+[dependency-groups]
+dev = ["pytest"]

@@ -1,0 +1,4 @@
+// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-License-Identifier: Apache-2.0
+
+export { VERSION, getVersionOutput } from "./version.js";

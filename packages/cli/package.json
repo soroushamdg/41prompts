@@ -1,0 +1,32 @@
+{
+  "name": "@41prompts/cli",
+  "version": "0.0.1",
+  "type": "module",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/41prompts/41prompts.git",
+    "directory": "packages/cli"
+  },
+  "bin": {
+    "41p": "./src/bin.ts"
+  },
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "files": ["dist", "LICENSE", "NOTICE", "README.md"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "prepublishOnly": "test \"$GITHUB_REPOSITORY\" = 41prompts/41prompts"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.7",
+    "@41prompts/cli": "workspace:*"
+  }
+}
