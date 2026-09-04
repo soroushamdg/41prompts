@@ -46,7 +46,7 @@ Coolify UI, and sets secrets. The runbook Claude Code writes must be followable 
 - [ ] Web container entrypoint runs migrations before start (a log line proves order). Evidence: log excerpt.
 - [ ] `infra/README.md` read top to bottom by Soroush; every console step has a screenshot name or exact menu path.
 - [x] After Soroush completes his steps: `curl https://staging.41prompts.ai/healthz` returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. Evidence: report. **The `commit` field is a known defect, moved to EPIC-008** (see F2 outcome below).
-- [ ] A no-op tag `v0.0.1-test` deploys production; `https://app.41prompts.ai/healthz` returns HTTP 200 and `env: production`. Evidence: output. (The `commit` value is EPIC-008's criterion, not this epic's.)
+- [ ] ~~A no-op tag `v0.0.1-test` deploys production~~ **Moved to EPIC-008 (2026-09-04).** Building both images on the box took 9 minutes with staging running (Coolify injects per-application `ARG` declarations into the Dockerfile, so the two environments share no layer cache), and Coolify cannot deploy a tag at all; both are exactly what EPIC-008 fixes. The production environment is created and configured in this epic; its first deploy is an image pull in EPIC-008, verified there: `https://app.41prompts.ai/healthz` returns HTTP 200, `env: production`, and the tag's `commit`.
 - [ ] Killing the web container in Coolify restarts it within 30 s. Evidence: Coolify log.
 - [ ] Nightly backup produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`. Evidence: bucket listing and the recorded time.
 - [ ] `gitleaks detect` on the repo finds nothing. Evidence: output.
