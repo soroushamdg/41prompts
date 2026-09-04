@@ -1,3 +1,8 @@
+# Local dev only (`pnpm dev` / `docker compose up`) — this is the one file here that still has build:.
+# Coolify no longer deploys from this file; it deploys infra/docker-compose.staging.yml and
+# infra/docker-compose.production.yml instead, which pull prebuilt images from GHCR (see
+# .github/workflows/build-images.yml and docs/epics/EPIC-008-prebuilt-images.md).
+#
 # Run this file with the repo root as the project directory, e.g. from the repo root:
 #   docker compose --project-directory . -f infra/docker-compose.yml <command>
 # Without --project-directory, Compose resolves build.context, env_file, and its default
