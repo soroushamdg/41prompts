@@ -418,3 +418,16 @@ client-fetched prompt is extractable from a binary; teams treating prompts as IP
 - Whether blok-to-block compilation uses a model at all in v1, or pure templating with model assist as v2.
 - Whether semantic diff ("added constraint blok") is exposed in UI v1 or stored only.
 - Provider set at launch, and whether provider-specific formatting lives in the compiler or the run engine.
+
+---
+
+## 13. September 2026 revisions (specialist review)
+
+- ICP locked: AI engineer at a company of 10–500 people who owns a production prompt.
+- "block" removed; a blok owns spans. "check" replaces "assertion" in UI. See ADR-003.
+- Lessons deferred to the final stage; validated on paper first.
+- Stage 1 ships the decompiler soft-public; loud launch after Stage 3.
+- Delivery split into 5a (artifact, gate, API, TypeScript SDK) and 5b (CLI, Python, open-source split) with a demand gate.
+- Apache-2.0 for public packages; `packages/ui` proprietary; judge and summariser prompts proprietary.
+- Legal minimum (EPIC-017) before any public traffic; retention enforced where data appears; telemetry off by default.
+- Full record: `docs/reviews/2026-09-specialist-review.md`.
