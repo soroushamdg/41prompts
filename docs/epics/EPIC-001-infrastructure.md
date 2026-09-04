@@ -16,7 +16,7 @@ Coolify UI, and sets secrets. The runbook Claude Code writes must be followable 
 - `infra/bootstrap.sh`: idempotent, safe to re-run. Ubuntu 24.04. Creates a non-root `deploy` user with sudo, disables password SSH, `ufw` allowing 22/80/443 only, `fail2ban`, unattended upgrades, swap file 2 GB, Docker via the official script, then installs Coolify (`curl -fsSL https://cdn.coollabs.io/coolify/install.sh | bash`). Prints the Coolify URL at the end. Every step checks whether it already happened.
 - `infra/docker-compose.yml`: services `postgres` (postgres:16, named volume, healthcheck), `web` (built from `apps/web/Dockerfile`), `worker` (built from `apps/worker/Dockerfile`); worker waits for postgres healthy; `web` exposes 3000 to Coolify's proxy only.
 - `apps/web/Dockerfile` and `apps/worker/Dockerfile`: multi-stage, pnpm with `--frozen-lockfile`, non-root user, `HEALTHCHECK`.
-- `apps/web/app/healthz/route.ts`: returns `{ ok: true, sha, env }` from build-time env.
+- `apps/web/app/healthz/route.ts`: returns `{ ok: true, commit, env }` from build-time env (not `sha`; ADR-003).
 - `infra/backup.sh`: `pg_dump` to a timestamped file, upload to R2 with `rclone` or the AWS CLI (S3-compatible), keep 30 days, exit non-zero on any failure so Coolify's scheduled task shows red. `infra/restore.sh`: restore a named dump into a scratch database and print row counts.
 - `.env.example` updated with every variable the compose file reads, each commented.
 - `.github/workflows/deploy.yml`: no deploy logic (Coolify deploys itself); only a job that on `v*` tags creates a GitHub Release with the tag's notes, so production deploys are visible in one place.
