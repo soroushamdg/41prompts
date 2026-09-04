@@ -31,6 +31,7 @@ PermitRootLogin no
 KbdInteractiveAuthentication no
 EOF
 if command -v sshd >/dev/null 2>&1; then
+  mkdir -p /run/sshd
   sshd -t
 fi
 systemctl reload ssh

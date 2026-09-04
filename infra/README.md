@@ -13,9 +13,13 @@ you actually see and correct this file if the label differs.
 
 ## Steps
 
-1. **AWS Console → Lightsail → Create instance.** Region **Montréal (ca-central-1)**, platform Linux/Unix,
-   blueprint **OS Only → Ubuntu 24.04 LTS**, plan **4 GB RAM / 2 vCPU / 80 GB SSD** or larger. On the instance's
-   **Networking** tab: attach a **static IP**. On **Snapshots**: enable **automatic daily snapshots**.
+1. **AWS Console → Lightsail → Create instance.** **The region selector is top-right in the Lightsail console
+   and defaults to N. Virginia — confirm it says Canada (Central) / ca-central-1 before clicking Create; its
+   default key pair is a different file from the N. Virginia (us-east-1) one.** Region **Montréal
+   (ca-central-1)**, platform Linux/Unix, blueprint **OS Only → Ubuntu 24.04 LTS**, plan **4 GB RAM / 2 vCPU /
+   80 GB SSD** or larger. On the instance's **Networking** tab: attach a **static IP**. On **Snapshots**: enable
+   **automatic daily snapshots**. Download the region's default SSH key pair during creation and store it in
+   `~/.ssh/lightsail/`, never inside the repo.
 2. **Networking tab, firewall rules:** allow only **22 (SSH)**, **80 (HTTP)**, **443 (HTTPS)**. Do not open 8000
    (Coolify's own UI) — it's reached only via an SSH tunnel in step 5.
 3. **DNS** (registrar or Cloudflare): `A` records for `41prompts.ai`, `app.41prompts.ai`, `staging.41prompts.ai`
@@ -23,7 +27,7 @@ you actually see and correct this file if the label differs.
    11, then switch it **on**.
 4. **From your terminal**, run the bootstrap once:
    ```
-   ssh -i <lightsail-key> ubuntu@<static-ip> 'sudo bash -s' < infra/bootstrap.sh
+   ssh -i ~/.ssh/lightsail/<key>.pem ubuntu@<static-ip> 'sudo bash -s' < infra/bootstrap.sh
    ```
    It's idempotent — safe to re-run if interrupted. It hardens the `ubuntu` user (key-only SSH, no root login),
    sets up `ufw`/`fail2ban`/unattended upgrades, adds a 2 GB swap file, installs Docker, then installs Coolify.

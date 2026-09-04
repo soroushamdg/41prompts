@@ -15,3 +15,5 @@ __pycache__/
 .pytest_cache/
 *.tsbuildinfo
 infra/key/
+*.pem
+*.key
