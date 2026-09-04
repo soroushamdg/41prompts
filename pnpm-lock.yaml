@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@41prompts/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@eslint/js':
         specifier: ^9.39.5
         version: 9.39.5
@@ -84,9 +87,6 @@ importers:
 
   packages/cli:
     devDependencies:
-      '@41prompts/cli':
-        specifier: workspace:*
-        version: 'link:'
       vitest:
         specifier: ^3.2.7
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@30.0.1)(lightningcss@1.32.0)(tsx@4.23.13)

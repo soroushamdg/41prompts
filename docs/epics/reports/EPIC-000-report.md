@@ -29,7 +29,7 @@ Real DB schema/auth/UI, Docker/Coolify, `REUSE.toml`/SBOM/licence gate/mirror dr
 
 1. **`LICENSES/LicenseRef-41Prompts-Proprietary.txt` text isn't sourced from anywhere.** The epic's Scope says its "text in ADR-002 / licensing review" — neither document actually contains proprietary licence body text, only the SPDX identifier name. I wrote generic "all rights reserved / proprietary" boilerplate (`<legal entity>` kept literal, no legal claims invented). Not a `BLOCKER`: `LICENSES/` isn't in Acceptance criteria, and `REUSE.toml` (the only place this identifier gets consumed) is explicitly Stage EPIC-007. **Needs real legal wording before EPIC-007.**
 2. **`packages/cli/src/bin.ts`'s shebang is line 1, SPDX is lines 2–3, not "the first two lines."** Unavoidable: the OS/interpreter requires `#!` at byte 0 for the file to execute as `41p`, and the CLI-prints-`0.0.1` acceptance criterion is checked, unlike line position (the epic's own grep check only tests that the string appears somewhere in the file). Every other file under the four public paths has it on lines 1–2.
-3. **`packages/cli` declares itself as its own `workspace:*` devDependency.** pnpm does not self-link a package's own `bin` into its own `node_modules/.bin`; without this, `pnpm --filter @41prompts/cli exec 41p --version` (the epic's literal Verification command, with no build step before it) has nothing to `exec`. This is the standard workaround for "run my own bin locally pre-publish." It prints one benign `WARNING Package "@41prompts/cli" depends on itself` on every Turborepo invocation — harmless, but worth a look whenever `packages/cli` gets a real dependency on `@41prompts/core` (the self-edge should probably be dropped in favour of the real one, or kept alongside it).
+3. **The root `package.json` declares `"@41prompts/cli": "workspace:*"` in its own `devDependencies`.** pnpm does not link a package's own `bin` into its own `node_modules/.bin`, so without a workspace dependency on it from *somewhere*, `41p` has nothing to `exec` before a real build exists. Declaring it at the root (rather than as a self-referential dependency inside `packages/cli/package.json`, tried first and replaced) links `41p` into the workspace root's `node_modules/.bin` instead, so `pnpm exec 41p --version` works from the repo root with no `--filter` and no Turborepo self-dependency warning.
 4. **`tsconfig.base.json` sets `"types": []`.** Without it, `tsc`'s default typeRoots scan climbs every ancestor directory looking for `node_modules/@types` — including, in this sandbox, `/Users/soro/node_modules/@types` from an unrelated global install — and pulled in a broken `react` ambient type into every package's typecheck, `apps/web` included. `"types": []` disables that automatic global-ambient inclusion; it does not affect normal `import`-driven type resolution (drizzle/pg, Next's own `next-env.d.ts` triple-slash references, etc. are unaffected).
 5. **Every package that imports from `vitest` in a `.test.ts(x)` file now declares `vitest` in its own `devDependencies`**, not just the root. Root-only worked for *running* `vitest`/`tsc`/`eslint` as CLI binaries (pnpm's bin-PATH walks up to the workspace root), but not for *resolving the `import "vitest"` specifier* inside source under pnpm's strict linking — dependency-cruiser correctly flagged that as `no-phantom-deps` the first time I ran it. Fixed everywhere, not only in the three packages the boundary check scans.
 6. **`apps/web/next-env.d.ts` is committed with the static two-line form**, not the version Next.js regenerates the moment you run `next dev` (which adds `import "./.next/dev/types/routes.d.ts"` etc.). The regenerated form breaks a fresh-clone `pnpm typecheck` before `.next/` exists. This file will keep drifting locally every time someone runs `next dev`; that's expected Next.js behaviour and fine to leave uncommitted.
@@ -61,7 +61,7 @@ Checked 31 files in 7 packages, no issues found
  Tasks:    7 successful, 7 total   (typecheck)
  Tasks:    7 successful, 7 total, 7 cached >>> FULL TURBO   (test, cache hit)
 
-$ pnpm --filter @41prompts/cli exec 41p --version
+$ pnpm exec 41p --version
 0.0.1
 
 $ cd sdks/python && uv run pytest -q
@@ -99,7 +99,7 @@ Checked 31 files in 7 packages, 1 issue found
 - [x] `import "node:fs"` fails naming `core-is-pure`. Reverted.
 - [x] `"@41prompts/ui": "workspace:*"` fails `turbo boundaries`. Reverted.
 - [x] `pnpm dev`: web on :3000 shows "41Prompts"; worker logs "worker up".
-- [x] `pnpm --filter @41prompts/cli exec 41p --version` prints `0.0.1`.
+- [x] `pnpm exec 41p --version` prints `0.0.1` (root `devDependencies` link, no `--filter` needed).
 - [x] SPDX grep empty.
 - [x] LICENSE + NOTICE present in all four public paths.
 - [x] Second `pnpm test` run: `7 cached, 7 total >>> FULL TURBO`.

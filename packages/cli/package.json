@@ -26,7 +26,6 @@
     "prepublishOnly": "test \"$GITHUB_REPOSITORY\" = 41prompts/41prompts"
   },
   "devDependencies": {
-    "vitest": "^3.2.7",
-    "@41prompts/cli": "workspace:*"
+    "vitest": "^3.2.7"
   }
 }
