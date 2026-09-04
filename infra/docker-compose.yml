@@ -30,11 +30,15 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        # Coolify sets SOURCE_COMMIT for git-based builds. COMMIT_SHA lets a local build
-        # override it explicitly; in Coolify, COMMIT_SHA is normally unset so this falls
-        # through to SOURCE_COMMIT automatically. See infra/README.md step 10.
-        COMMIT_SHA: ${COMMIT_SHA:-${SOURCE_COMMIT:-unknown}}
+      # No `args:` here on purpose: any `${VAR}` written anywhere in this file — including
+      # inside `build.args` — gets parsed by Coolify into a permanently "locked" application
+      # environment variable, defaulting to whatever the fallback in the `${...}` expression
+      # was (here, the literal string "unknown"). Once that locked variable exists, Coolify
+      # feeds its stored value back into the build as the `SOURCE_COMMIT`/`COMMIT_SHA` build
+      # arg, permanently pinning it to "unknown" even after the fallback logic below is fixed
+      # — see infra/README.md step 10 for the diagnosis and the one-time cleanup this needs
+      # in the Coolify UI. For a local build with a real commit baked in, pass it on the CLI
+      # instead of here: `docker compose ... build --build-arg SOURCE_COMMIT=$(git rev-parse HEAD) web`.
     restart: unless-stopped
     env_file: .env
     environment:

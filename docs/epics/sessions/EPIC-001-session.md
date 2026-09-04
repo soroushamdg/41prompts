@@ -88,3 +88,107 @@ prints → container exits 1); `pnpm lint && pnpm typecheck && pnpm test` — `7
 - Five of the epic's eleven acceptance criteria are handed to Soroush by design (server/Coolify/DNS access this
   session never had) — each one marked with its `infra/README.md` step number in the report, per your
   instruction.
+
+---
+
+## Follow-up session (2026-09-04)
+
+**Prompt sent.** Execute Follow-up F1 → F2 → F3 → F4 on `epic/001-followup` off `origin/main`, one commit each,
+per `docs/epics/CURRENT.md`'s Follow-up section. Server access (F1) applies from the first command: `41p-box` /
+`~/.41prompts/staging.env`, read-only by default, mutating commands need a one-line reason and a yes. Plan first
+into `docs/epics/plan-EPIC-001-followup.md`, approved with four amendments (fold the pre-existing advisor doc
+edits into F1 as-is; F2's diagnosis order — Coolify API deployment log first, `docker inspect`/`docker history` as
+corroboration; F2's exact five-step acceptance sequence, not done at merge; F3's www-router setting must be read
+from the API, not invented).
+
+**F1 (commit `aa513ce`).** `infra/ACCESS.md` (rules verbatim + human setup steps), matching `CLAUDE.md` **Server
+access** section, a link from `infra/README.md`, `.gitignore` entries for `infra/*.env` and `.41prompts/`. Folded
+in the pre-existing uncommitted edits to `docs/decisions/ADR-001-stack-and-structure.md`, `docs/epics/CURRENT.md`,
+and `docs/epics/EPIC-001-infrastructure.md` (the ADR revision and the Follow-up section itself), per amendment 1 —
+committed as-is, not edited further. `gitleaks detect`: clean. No server access needed for this commit.
+
+**Security incident 1 — Coolify API token fragment exposed, cause: an advisor bug, not mine.** First read-only
+attempt at F2 (`source ~/.41prompts/staging.env` to get `COOLIFY_API_TOKEN` for a Coolify API call) failed: the
+shell tried to execute part of the token as a bare command, and the "command not found" error — visible in my own
+tool output — contained a large fragment of the token. Reproduced once more under plain `bash` to rule out a
+zsh-snapshot quirk (same fragment, confirming it wasn't a fluke). Root cause, confirmed by Soroush: Coolify's
+Sanctum tokens are formatted `<id>|<random>`; `infra/setup-access.sh` (new file, written by the advisor, not by
+this session) wrote the token unquoted into `~/.41prompts/staging.env`, so the literal `|` in the token was parsed
+as a shell pipe when the file was `source`d — first stage (`COOLIFY_API_TOKEN=<id>`) ran as an assignment-only
+subshell and was discarded, second stage (`<random>`) ran as a bare command and produced the "not found" error
+that leaked it. The advisor fixed `setup-access.sh` to single-quote values. Soroush rotated the token and
+rewrote/verified `~/.41prompts/staging.env`. Going forward this session reads the file with
+`grep '^KEY=' file | cut -d= -f2- | sed "s/^'//; s/'$//"` — plain text extraction, never `source` — confirmed
+working against the rotated token (HTTP 200 from the Coolify API on the first real call).
+
+**Security incident 2 — staging `POSTGRES_PASSWORD` exposed, cause: this session's own error.** Immediately after
+the token issue, ran `docker inspect <web-container> --format '{{json .Config.Env}}'` as F2's corroboration step
+and printed the *entire* env array unfiltered — including `POSTGRES_PASSWORD` in the clear and `DATABASE_URL` with
+it embedded. `docker inspect` is allowed read-only under `infra/ACCESS.md` rule 2; dumping it unfiltered into
+visible output is not, and this one is squarely on me, not a tool or file bug. Flagged immediately. Soroush rotated
+`POSTGRES_PASSWORD` (changed the Coolify variable, dropped the postgres data volume since the staging DB was still
+empty, redeployed) rather than the live-DB `ALTER USER` path, since nothing needed preserving yet.
+
+**Policy change from both incidents.** Added rule 7 to `infra/ACCESS.md` and `CLAUDE.md` (F3): never output
+`Config.Env`, `.env` contents, or a Coolify API body unfiltered — select named keys with `--format`, `jq`, or
+`grep` before anything reaches the transcript. `docs/decisions/ADR-001-stack-and-structure.md` also gained an
+"Incident log" line under the access-policy revision recording both exposures and rotations (written directly in
+the working tree, not by this session — committed as-is alongside F2, matching how the other pre-existing advisor
+edits were handled in F1).
+
+**F2 diagnosis (read-only, per amendment 2/this session's correction after the incidents).** Coolify's
+`GET /api/v1/deployments/{uuid}` does not return the build log for our token: Coolify gates the `logs` field
+behind `read:sensitive` scope specifically because deployment logs can contain secrets, and per policy this token
+is never granted that scope. No elevated-scope token was requested or used. Instead, per Soroush's redirected
+order: (a) `docker exec coolify grep/sed -n` (read-only under rule 2) against Coolify's own
+`app/Jobs/ApplicationDeploymentJob.php` inside the `coolify` container — found the exact mechanism: any `${VAR}`
+anywhere in `infra/docker-compose.yml` becomes a locked application environment variable whose *stored* value
+Coolify re-feeds into the build as that build arg every deploy, and separately, Coolify unconditionally injects a
+real `SOURCE_COMMIT` onto the *running container* at deploy time whenever no such variable exists for that key.
+(b) `docker history --no-trunc`, filtered with `grep`, on the deployed web image corroborated it: `ARG
+COMMIT_SHA=unknown` and a separate, Coolify-injected `ARG SOURCE_COMMIT` (no default) both present as layers.
+Full command list and each one's read-only/approval status: `curl GET /api/v1/applications` (read-only, no
+approval — found the staging application's uuid), `curl GET /api/v1/deployments` (read-only, empty — endpoint
+lists only in-progress deployments), `curl GET /api/v1/deployments/applications/{uuid}` (read-only — found the two
+past deployment uuids), `curl GET /api/v1/deployments/{uuid}` (read-only — confirmed no `logs` field for this
+token's scope), `ssh 41p-box docker ps` / `docker inspect --format` (filtered) / `docker history --no-trunc`
+(filtered) / `docker exec coolify grep -n` / `docker exec coolify sed -n` — all read-only under rule 2, none
+needed Soroush's approval, none were logged as mutating.
+
+**F2 fix (commit `d2c70a9`).** `infra/docker-compose.yml`: removed the `web.build.args` block entirely (no
+`${...}` text left for Coolify to lock). `apps/web/Dockerfile`: `ARG COMMIT_SHA` renamed to `ARG SOURCE_COMMIT`
+(matches Coolify's own injected name) in both `builder` and `runner` stages. `apps/web/app/healthz/route.ts`:
+commit resolution now treats `COMMIT_SHA=unknown` as a sentinel, not a real value, and falls back to
+`SOURCE_COMMIT` (a plain `??` would never have reached the fallback, since `COMMIT_SHA` is always *set*). Verified
+locally: `docker compose ... build --build-arg SOURCE_COMMIT=$(git rev-parse HEAD) web` built clean,
+`pnpm turbo run typecheck --filter=@41prompts/web` passed, and the built image's baked `COMMIT_SHA` (checked via
+filtered `docker inspect ... | grep -i commit`, not an unfiltered dump this time) matched `git rev-parse HEAD`
+exactly. `infra/README.md` step 10 rewritten with the diagnosis and the exact five-step post-merge acceptance
+sequence from amendment 3 (merge → staging redeploys, commit may still read `unknown` → delete the two locked
+variables in Coolify's UI → Redeploy → `healthz` now matches). **Not yet verified end to end** — that needs the
+merge, the variable deletion, and a redeploy, done and checked in F4.
+
+**F3 (commit `2f21d55`).** Read the Domains `redirect` field for real rather than guessing its name, per amendment
+4: `GET /api/v1/applications/{uuid}` (read-only) showed `redirect: both` on the live staging resource; the valid
+enum (`www` / `non-www` / `both`) came from `docker exec coolify grep` against `app/Models/Application.php` on the
+box (same read-only pattern as F2's diagnosis). Confirmed the failure mode this causes is real, not theoretical:
+`docker logs coolify-proxy`, filtered, shows repeated `ERR Unable to obtain ACME certificate for domains` for
+`www.staging.41prompts.ai` (`NXDOMAIN`) recurring on every renewal attempt. Added rule 7 to `infra/ACCESS.md` and
+`CLAUDE.md` (never output `Config.Env`/`.env` contents/a Coolify API body unfiltered — select named keys first),
+referenced and committed `infra/setup-access.sh` (advisor-written, already fixed to single-quote values,
+`shellcheck` clean) as the one-command form of F1's human setup steps. Runbook corrections: `POSTGRES_PASSWORD`
+generation (`openssl rand -hex 24`, why, both the drop-volume and `ALTER USER` paths), Coolify UI access rewritten
+to `https://coolify.41prompts.ai` with the tunnel as documented fallback, GitHub App screen name corrected, the
+Base Directory "not yet confirmed" caveat removed (confirmed against the real deploy), Environment Variables step
+narrowed with a warning about Coolify's `${VAR}`-locking (the same mechanism F2 fixed), Domains section documents
+the `redirect` finding above, one missing `bootstrap.sh` comment added (`ssh.service`/`ssh.socket` naming — the
+fallback itself and the other two F3 bootstrap notes were already on `main` from prior `fix(infra)` commits), new
+"Web container restart loop" runbook section. `shellcheck infra/*.sh`: clean.
+
+**F4.** Report (`docs/epics/reports/EPIC-001-report.md`) updated with human-half evidence gathered read-only this
+session (container status table, current — still-`unknown` — healthz output, TLS confirmed independently via
+`curl -vI` since the original proxy issuance log line had rotated out of the buffer, the live ACME-failure log
+line that F3's Domains fix addresses), what F1–F3 changed, both exposures and their rotations, and the open items
+still owed by Soroush. This session log finalized alongside it. Next: push the branch, open a PR, wait for CI,
+pause for Soroush's go-ahead before squash-merging (per the standing instruction), then verify F2's acceptance
+criterion on the deployed result.

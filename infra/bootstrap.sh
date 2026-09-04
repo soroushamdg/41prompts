@@ -37,6 +37,10 @@ if command -v sshd >/dev/null 2>&1; then
   mkdir -p /run/sshd
   sshd -t
 fi
+# Ubuntu 24.04 ships the SSH daemon socket-activated: the long-running unit is `ssh.service`
+# (present, reload-or-restart succeeds) on some images but `ssh.socket` fronting an on-demand
+# `sshd` on others — reload-or-restart against the wrong name fails outright rather than
+# no-op'ing, hence the fallback instead of a single unconditional call.
 systemctl reload-or-restart ssh || systemctl restart ssh.socket
 
 echo "== Coolify root SSH key (no-op until Coolify is installed) =="
