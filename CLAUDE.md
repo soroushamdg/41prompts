@@ -21,7 +21,7 @@ ICP: an AI engineer at a company of 10–500 people who owns a production prompt
 - `packages/sdk-ts`: published as `@41prompts/sdk`. Runtime `resolve()`. Zero dependencies. Public.
 - `sdks/python`: `fortyone-prompts`, import `fortyone`. Zero dependencies. Public.
 - Postgres 16. Cloudflare R2. Vercel AI SDK for providers. Stripe, Resend, PostHog, Sentry.
-- Infra: Hetzner (EU), Docker Compose, Coolify. See `infra/`.
+- Infra: AWS Lightsail (Montréal), Docker Compose, Coolify. See `infra/`.
 
 ## Commands
 
