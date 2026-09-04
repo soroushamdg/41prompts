@@ -20,8 +20,13 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    # 5433, not 5432: staging and production run on the same box and both publish to loopback for local
+    # debug access (psql, curl) — Coolify's proxy never uses this published port, it reaches the container
+    # over the compose network by service name (see infra/docker-compose.yml's comment on this same port).
+    # Staging already holds 127.0.0.1:5432; discovered as a real deploy failure ("port is already allocated")
+    # during EPIC-008 verification, not a hypothetical.
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
@@ -40,8 +45,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # 3001, not 3000 — same reasoning as postgres's 5433 above.
     ports:
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:3001:3000"
 
   worker:
     image: ghcr.io/soroushamdg/41prompts-worker:production
