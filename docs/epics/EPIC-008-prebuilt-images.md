@@ -6,6 +6,12 @@ No image is ever built on the box that serves production. GitHub Actions builds 
 to private GHCR, and Coolify only pulls a fixed tag and redeploys — closing the `healthz` `commit` criterion
 deferred from EPIC-001 F2.
 
+This epic also closes EPIC-001's production-deploy criterion, moved here on 2026-09-04: building both images on
+the box took 9 minutes with staging running (Coolify injects per-application `ARG` declarations into the
+Dockerfile, so the two environments share no layer cache), and Coolify has no way to deploy a specific tag at
+all — its UI resource points at a branch, never a tag. Both are exactly what building in Actions and pulling a
+fixed tag fixes.
+
 ## Scope
 - `.github/workflows/build-images.yml`: on push to `main` and on `v*` tags only (never on PRs — `ci.yml` already
   lints/typechecks/tests those). Builds `apps/web/Dockerfile` and `apps/worker/Dockerfile` with `docker buildx`
@@ -25,6 +31,9 @@ deferred from EPIC-001 F2.
 - Workflow's last step calls Coolify's deploy webhook (a `deploy`-scoped Coolify API token stored as a GitHub
   Actions secret — never the read-only token in `~/.41prompts/staging.env`) once the new image has pushed
   successfully, so the redeploy is automatic, not a second manual step.
+- Production's first deploy is a pull of the `:production` tag, not a build: since Coolify's UI has no field to
+  select a tag, the `v*`-tag job's workflow triggers the redeploy itself by calling Coolify's deploy webhook once
+  `:production` has pushed — the same mechanism the `main`-push job already uses to redeploy staging on `:staging`.
 - `infra/README.md` and `infra/RUNBOOK.md` updated for the new deploy flow (what Coolify's resource points at now,
   how a rollback works, where the registry token/webhook token live).
 
