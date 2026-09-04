@@ -11,9 +11,6 @@ its own GitHub App (step 6).
 Claude Code may now reach this box directly over SSH and the Coolify API — see `infra/ACCESS.md` for who may
 connect, how, and the rules that apply every time.
 
-One screen in this doc (marked ⚠) I can't confirm without a running Coolify instance — check it against what
-you actually see and correct this file if the label differs.
-
 ## Steps
 
 1. **AWS Console → Lightsail → Create instance.** **The region selector is top-right in the Lightsail console
@@ -24,7 +21,7 @@ you actually see and correct this file if the label differs.
    **automatic daily snapshots**. Download the region's default SSH key pair during creation and store it in
    `~/.ssh/lightsail/`, never inside the repo.
 2. **Networking tab, firewall rules:** allow only **22 (SSH)**, **80 (HTTP)**, **443 (HTTPS)**. Do not open 8000
-   (Coolify's own UI) — it's reached only via an SSH tunnel in step 5.
+   (Coolify's own UI) — port 8000 stays closed permanently; step 5 covers how the UI is actually reached.
 3. **DNS** (registrar or Cloudflare): `A` records for `41prompts.ai`, `app.41prompts.ai`, `staging.41prompts.ai`
    → the static IP from step 1. If using Cloudflare: proxy **off** (grey cloud) until Coolify issues TLS in step
    11, then switch it **on**.
@@ -35,17 +32,22 @@ you actually see and correct this file if the label differs.
    It's idempotent — safe to re-run if interrupted. It hardens the `ubuntu` user (key-only SSH, no root login),
    sets up `ufw`/`fail2ban`/unattended upgrades, adds a 2 GB swap file, installs Docker, then installs Coolify.
    It prints the Coolify URL (`http://localhost:8000`, only reachable from the box itself) when done.
-5. **Open a tunnel and reach Coolify's setup wizard:**
+5. **First time only — open a tunnel to reach Coolify's setup wizard** (no domain is configured yet, so this is
+   the only way in):
    ```
    ssh -i <lightsail-key> -L 8000:localhost:8000 ubuntu@<static-ip>
    ```
-   Then open `http://localhost:8000` in your browser and create the **admin account** (first screen the wizard
-   shows). Coolify's own default local server should already be registered as the deploy target, since Coolify
-   runs on the same box it deploys to — if the wizard instead prompts you to add a server, confirm it's adding
-   `localhost`/`127.0.0.1`, not a new remote host.
-6. **Sources → GitHub Apps → Connect** ⚠ (exact screen name/path to confirm against the installed version — this
-   is where a Coolify-managed GitHub App is installed against `soroushamdg/41prompts` so Coolify can pull the
-   repo and post deploy-status checks on commits).
+   Open `http://localhost:8000` in your browser and create the **admin account** (first screen the wizard shows).
+   Coolify's own default local server should already be registered as the deploy target, since Coolify runs on
+   the same box it deploys to — if the wizard instead prompts you to add a server, confirm it's adding
+   `localhost`/`127.0.0.1`, not a new remote host. Once the admin account exists, set Coolify's **Instance
+   Domain** to `coolify.41prompts.ai` (DNS record from step 3) so the UI is reachable at
+   **`https://coolify.41prompts.ai`** through Coolify's own proxy from then on, behind 2FA. Port 8000 stays
+   closed permanently (step 2); the tunnel above is the fallback for whenever the instance domain or proxy itself
+   is unreachable, not the normal path.
+6. **Sources → + Add → GitHub App** (needs the public HTTPS instance domain from step 5 set first, or the GitHub
+   OAuth callback fails) — this is where a Coolify-managed GitHub App is installed against
+   `soroushamdg/41prompts` so Coolify can pull the repo and post deploy-status checks on commits.
 7. **Projects → New Project**, name it `41prompts`. Inside it, create two **Environments**: `staging` (tracks
    branch `main`, auto-deploy on push) and `production` (tracks tags matching `v*`).
 8. In each environment: **New Resource → Docker Compose**, point it at the connected repo. **Important:** set
@@ -54,15 +56,21 @@ you actually see and correct this file if the label differs.
    `env_file`) and its default `.env` lookup relative to whatever it treats as the project directory, which
    defaults to the *compose file's own directory* unless told otherwise. Since `infra/docker-compose.yml` needs
    the repo root as both its build context (the Dockerfiles run `turbo prune` over the whole monorepo) and where
-   `.env` lives, Coolify's Base Directory has to be the repo root for its deploy to work at all — confirmed
-   locally with `docker compose --project-directory . -f infra/docker-compose.yml config` (see
-   `docs/epics/reports/EPIC-001-report.md`); not yet confirmed that Coolify's own "Base Directory" field produces
-   the equivalent of `--project-directory` under the hood, so treat this as the first thing to check if the
-   first deploy fails on a missing file or an empty env var.
-9. **Environment Variables** tab on the resource: paste in every variable from `.env.example`, filled with real
-   values — `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL` (for local-dev parity; the
-   compose file overrides it for the containers themselves), auth/provider keys, `R2_*`, and `DEPLOY_ENV` set to
-   `staging` or `production` to match the environment.
+   `.env` lives, Coolify's Base Directory has to be the repo root for its deploy to work at all — confirmed both
+   locally (`docker compose --project-directory . -f infra/docker-compose.yml config`, see
+   `docs/epics/reports/EPIC-001-report.md`) and against a real Coolify deploy: this setting does produce the
+   equivalent of `--project-directory`. Coolify writes an `.env` file at the Base Directory itself, generated from
+   this resource's Environment Variables tab (step 9) — you never create or edit that file by hand.
+9. **Environment Variables** tab on the resource: only what the compose file actually needs to bring `postgres`,
+   `web`, and `worker` up is required at this point — `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and
+   `DEPLOY_ENV` (`staging` or `production` to match the environment). Auth/provider keys and `R2_*` arrive with
+   the epics that need them; `R2_*` specifically has its own step later (step 12). **Generate
+   `POSTGRES_PASSWORD` with `openssl rand -hex 24`, not `-base64`** — see `infra/RUNBOOK.md`'s "Generating or
+   rotating `POSTGRES_PASSWORD`" for why, and for what to do if you need to change it after the first start.
+   **Warning:** Coolify auto-creates a locked, permanent environment variable for *every* `${VAR}` it finds
+   anywhere in `infra/docker-compose.yml`, regardless of section — this is exactly the mechanism behind the
+   `commit: unknown` defect fixed in Follow-up F2 (`infra/README.md` step 10), so don't add a variable here by
+   editing the compose file to reference it unless you mean to lock it permanently.
 10. Nothing to configure for `COMMIT_SHA` going forward — but if this application was created before the
     Follow-up F2 fix, it likely still carries two **locked** Environment Variables named `SOURCE_COMMIT` and
     `COMMIT_SHA`, both stuck at the literal value `unknown`. Diagnosis (read from Coolify's own source on the box,
@@ -85,7 +93,13 @@ you actually see and correct this file if the label differs.
     - (e) `curl -s https://staging.41prompts.ai/healthz` now equals `git rev-parse origin/main`.
 11. **Domains** tab, `web` service only: set `staging.41prompts.ai` (staging environment) and
     `app.41prompts.ai` (production environment). Leave `worker`, `postgres`, and `backup` without a domain —
-    they're not web-facing. Let Coolify issue TLS (Let's Encrypt) once DNS resolves.
+    they're not web-facing. Let Coolify issue TLS (Let's Encrypt) once DNS resolves. **Set Direction to
+    non-www** (API field `redirect`, valid values `www` / `non-www` / `both` — confirmed by reading
+    `app/Models/Application.php` on the box; our staging resource was found set to `both`). With no
+    `www.staging.41prompts.ai` DNS record, `both` makes Coolify's Traefik also configure a router for that
+    hostname, whose ACME certificate renewal then fails every few minutes — visible as repeated errors for
+    `www.staging.41prompts.ai` in `coolify-proxy`'s logs (`ssh 41p-box docker logs coolify-proxy`, read-only).
+    Setting Direction to non-www removes that router entirely.
 12. Create the R2 bucket `41p-backups` and an R2 API token (Cloudflare dashboard → R2 → Manage API tokens), then
     set `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` in step 9's Environment Variables.
 13. Nothing to configure for backups either: `infra/docker-compose.yml` includes a `backup` service that runs

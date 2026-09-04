@@ -76,6 +76,7 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
 4. Never touch `coolify`, `coolify-db`, `coolify-redis`, `coolify-realtime`, `coolify-proxy`, `coolify-sentinel`, or anything under `/data/coolify/` except read.
 5. Every change made on the box is also made in `infra/` in the same session, or reverted before the session ends. Every mutating command and its approval is logged in the session file.
 6. Never allow-list `ssh`, `scp`, or `curl` against the Coolify URL in Claude Code's permissions; they stay on per-command approval.
+7. Never output `Config.Env`, the contents of any `.env` file, or a Coolify API response body unfiltered — select named keys first (`--format`, `jq`, `grep`) before anything reaches the transcript.
 
 ## Never touch without an explicit instruction in the current epic
 

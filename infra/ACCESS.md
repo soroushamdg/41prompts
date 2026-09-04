@@ -2,8 +2,9 @@
 
 Who may connect to the Lightsail box that runs Coolify, how, and the rules that apply every time. This
 supersedes the original ADR-001 position ("no agent ever holds SSH access to the server") — see the 2026-09-04
-Revisions block in `docs/decisions/ADR-001-stack-and-structure.md` for the decision, the advisor's dissent, and
-the six mitigations this file implements.
+Revisions block in `docs/decisions/ADR-001-stack-and-structure.md` for the decision, the advisor's dissent, the
+mitigations this file implements, and the incident log entry recording the two secret exposures rule 7 exists
+because of.
 
 ## Who
 
@@ -29,8 +30,18 @@ the six mitigations this file implements.
    ends. Every mutating command and its approval is logged in the session file.
 6. Never allow-list `ssh`, `scp`, or `curl` against the Coolify URL in Claude Code's permissions; they stay on
    per-command approval.
+7. Never output `Config.Env`, the contents of any `.env` file, or a Coolify API response body unfiltered — select
+   named keys first (`--format`, `jq`, `grep`) so a secret never reaches the transcript just because it happened
+   to sit next to a field that was actually needed. Read `~/.41prompts/staging.env` the same way: extract with
+   `grep '^KEY=' file | cut -d= -f2- | sed "s/^'//; s/'$//"`, never `source` it — Coolify API tokens are Sanctum
+   format (`<id>|<random>`); an unquoted `|` in a sourced shell file is a pipe, not a literal character, and
+   `source` will try to run the part after it as a command.
 
 ## Human setup (Soroush runs this once)
+
+Run `infra/setup-access.sh` for the one-command form of steps 1–3 below (idempotent — safe to re-run to rotate
+the token; leaves the SSH entry alone if it already exists). It writes single-quoted values into
+`~/.41prompts/staging.env` on purpose — see rule 7.
 
 1. **SSH alias.** Add to `~/.ssh/config`:
    ```
