@@ -24,8 +24,17 @@ Status: accepted · 2026-08-19
 - **pg-boss over Inngest.** We chose a single VPS; a Postgres-backed queue keeps the whole system on one box with no external dependency and no cold starts.
 - **R2 even on a VPS.** SDK polls for label pointers and artifacts must never hit the application server. R2's CDN and free egress absorb that traffic at zero cost.
 
+## Revisions (2026-09-04)
+
+- Hetzner region is **EU (Falkenstein)**; recorded in the privacy policy.
+- The import boundary is an **allow-list**, not a deny-list: public packages may import only public packages, Node builtins, and their own declared dependencies; `packages/core` imports nothing; `packages/sdk-ts` has no npm dependencies. Enforced by dependency-cruiser and Turborepo boundary tags (`public` / `private`).
+- Model prompts (judge, summariser) and drift heuristics are proprietary and live in `apps/worker` or a private `packages/engine`. `packages/core` contains only what we are content to see forked.
+- SDK telemetry is off by default. "Apps resolving this prompt" is derived from CDN access logs.
+- Raw run payloads have a 12-month default retention with a purge job, from EPIC-031.
+
 ## Consequences
 
 - One deployable for web + API keeps early ops trivial; if the API ever needs independent scaling it splits along the route-handler boundary.
 - The worker is the only process allowed to call model providers for runs. Web calls providers only for the decompiler summariser, via the worker queue, cached.
-- Anything in `packages/core` that reaches for `fetch`, `fs`, or `process.env` is a bug.
+- Anything in `packages/core` that reaches for `fetch`, `fs`, `process.env`, or the DOM is a bug.
+- `packages/ui` is proprietary and may not be imported by any public package.

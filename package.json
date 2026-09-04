@@ -1,0 +1,36 @@
+{
+  "name": "41prompts",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
+  "packageManager": "pnpm@10.25.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint && pnpm boundaries && turbo boundaries",
+    "boundaries": "depcruise --config .dependency-cruiser.cjs packages/core/src packages/cli/src packages/sdk-ts/src",
+    "db:generate": "pnpm --filter @41prompts/db db:generate",
+    "db:migrate": "pnpm --filter @41prompts/db db:migrate"
+  },
+  "devDependencies": {
+    "@41prompts/cli": "workspace:*",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3",
+    "eslint": "^9.39.5",
+    "@eslint/js": "^9.39.5",
+    "@typescript-eslint/parser": "^8.69.0",
+    "@typescript-eslint/eslint-plugin": "^8.69.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.6",
+    "dependency-cruiser": "^18.2.0",
+    "vitest": "^3.2.7",
+    "tsx": "^4.23.13"
+  }
+}

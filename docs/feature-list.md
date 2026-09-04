@@ -1,6 +1,8 @@
 # 41Prompts; full feature list
 
-Version 1.0 · 2026-08-19
+Version 1.1 · 2026-09-04 · revised after the specialist review
+ICP: an AI engineer at a company of 10–500 people who owns a production prompt.
+Vocabulary per ADR-003: blok, span, check. No "block", no "assertion" in UI.
 Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferred · **[cut]** decided against
 
 ---
@@ -45,7 +47,7 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 - Untestable language detection **[v1]**
 - Politeness padding detection **[v1]**
 - Over-long blok detection **[v1]**
-- Rules with zero assertions, counted **[v1]**
+- Rules with zero checks, counted **[v1]**
 - Unused variable detection **[v1.5]**
 - Dead instruction detection (never triggered in any run) **[later]**
 
@@ -54,7 +56,7 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 - Multi-provider run engine: GPT, Claude, Gemini **[v1]**
 - Prompt variables and input rows **[v1]**
 - Input sets, importable from CSV **[v1]**
-- Assertions generated from expected-behaviour bloks **[v1]**
+- Checks generated from expected-behaviour bloks **[v1]**
 - Deterministic graders: contains, regex, JSON schema, length, refusal **[v1]**
 - LLM-judge graders **[v1]**
 - Pinned judge model versions **[v1]**
@@ -82,11 +84,12 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 ## 6. Delivery (live prompt updates)
 
 - Immutable content-addressed prompt builds on CDN **[v1]**
+- Public packages under Apache-2.0 with NOTICE and DCO **[v1]**
 - Two environments only: Draft and Live **[v1]**
 - Publish = move the Live marker **[v1]**
 - Undo = move it back, instant **[v1]**
-- Publish blocked when assertions fail on the target model **[v1]**
-- Override with typed reason, attributed and audited **[v1]**
+- Publish blocked when checks fail on the target model **[v1]**
+- Publish anyway with typed reason, attributed and audited **[v1]**
 - Projected cost and latency delta shown at publish **[v1]**
 - Semantic diff versus current Live version at publish **[v1]**
 - Bundled fallback copy written at build time **[v1]**
@@ -98,13 +101,14 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 - Percentage rollout by stable unit hash **[later]**
 - Cohort filters: platform, app version, locale **[later]**
 - Custom environments beyond Draft and Live **[later]**
-- Production output sampling graded against the same assertions **[later]**
+- Production output sampling graded against the same checks **[later]**
 - Production failures filed back into the eval set **[later]**
 - Gateway mode; prompt never leaves the server **[later]**
 
 ## 7. SDK and CLI
 
 - `41p link` — pick the project, writes `.41prc` **[v1]**
+- `41p decompile <file>` — the open decompiler, no account **[v1.5]**
 - `41p pull` — generate typed bindings, lockfile, bundled fallback **[v1]**
 - `41p check` — fail the build on stale bindings or missing inputs **[v1]**
 - `41p run` — run the assertion suite in CI **[v1]**
@@ -121,7 +125,7 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 
 ## 8. Learning
 
-- Playable lessons inside the app **[v1]**
+- Playable lessons inside the app, for junior members of ICP teams **[v1.5]**
 - Preloaded lesson workspaces with a failing assertion **[v1]**
 - Run 5× variance demo with temperature control **[v1]**
 - Step tracker per lesson **[v1]**
@@ -175,3 +179,5 @@ Scope marks: **[v1]** ship first · **[v1.5]** soon after · **[later]** deferre
 - Team collaboration in v1 **[cut]** — high cost before single-player value is proven
 - Flashcards as an ideation toy **[cut]** — replaced by the blok compiler
 - Skeuomorphism, neumorphism, full-strength neobrutalism for the app UI **[cut]**
+- SDK telemetry on by default **[cut]** — off by default; CDN logs instead
+- MIT for public packages **[cut]** — Apache-2.0

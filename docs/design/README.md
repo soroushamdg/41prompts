@@ -28,3 +28,19 @@ disagree, the epic wins; say so in the report.
 Open the file in a browser and interact. Read the CSS custom properties before writing any component. When porting
 an algorithm from the decompiler prototype, port its tests too: the sample prompt in it has known findings and
 known fragment counts, and those become fixtures.
+
+## Corrections after the September review (these override the prototypes)
+
+Vocabulary (ADR-003): the prototypes say "block", "assertion", "labelled", "enum", "json_schema", "drifted",
+"Reconcile", "Override with a reason", "sha". Build with: span, check, named, "one of the allowed values",
+"valid JSON shape", "edited by hand", "Update from blok", "Publish anyway", "version id".
+
+Colour: the prototypes use amber for "unsaved" and for cost deltas. Amber means drift only. "Unsaved" and cost
+deltas use neutral ink.
+
+Version state: one vocabulary everywhere: "Draft v7" and "Live v6". Not "v7 · unsaved", not "v7 · current".
+
+Accessibility the prototypes get wrong and the build must get right: one tab stop per blok in the source map with
+arrow keys inside, not one per span; keyboard pin from the span side; real ARIA tabs; heatmap cells as focusable,
+labelled buttons with a shape difference; pass/fail icons alongside colour; `aria-valuetext` on sliders; 44px
+touch targets; reduced motion shows the end state of the hero and the logo, it does not skip them.
