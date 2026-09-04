@@ -89,6 +89,10 @@ you actually see and correct this file if the label differs.
   published ports to loopback keeps them usable locally (SSH tunnel + `curl localhost`, or `psql` from the box)
   without opening them publicly. Coolify's proxy reaches `web` over the compose network by service name, not
   through the published port, so this doesn't affect routing.
+- **Root SSH login stays enabled by key only (never by password), and fail2ban ignores Docker's private
+  ranges (`10.0.0.0/8`, `172.16.0.0/12`).** Coolify manages this host by SSHing in as root, from its own
+  container on the Docker bridge network, using a key it generates at install — blocking root login outright
+  or letting fail2ban ban Coolify's own container would lock it out of the box it's supposed to manage.
 - **No separate `deploy` user.** The existing `ubuntu` user already has sudo and the launch SSH key; hardening
   it (key-only SSH, no root login) is one less user/key/permission set to get wrong than provisioning a new one.
 - **The migrate-before-start entrypoint assumes a single `web` replica.** See `infra/RUNBOOK.md`'s note on

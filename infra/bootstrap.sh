@@ -23,11 +23,14 @@ if ! dpkg -s unattended-upgrades >/dev/null 2>&1; then
 fi
 dpkg-reconfigure -f noninteractive unattended-upgrades
 
-echo "== harden ubuntu user: key-only SSH, no root login =="
+echo "== harden ubuntu user: key-only SSH, root login by key only =="
 sshd_hardening_file=/etc/ssh/sshd_config.d/99-41prompts-hardening.conf
 cat > "$sshd_hardening_file" <<'EOF'
 PasswordAuthentication no
-PermitRootLogin no
+# Coolify manages this host by SSHing in as root from its own container, authenticating
+# with a key it generates at install (see the "Coolify" step below) — PermitRootLogin no
+# would break that, so allow root login by key only, never by password.
+PermitRootLogin prohibit-password
 KbdInteractiveAuthentication no
 EOF
 if command -v sshd >/dev/null 2>&1; then
@@ -35,6 +38,20 @@ if command -v sshd >/dev/null 2>&1; then
   sshd -t
 fi
 systemctl reload-or-restart ssh || systemctl restart ssh.socket
+
+echo "== Coolify root SSH key (no-op until Coolify is installed) =="
+coolify_root_pubkey=/data/coolify/ssh/keys/id.root@host.docker.internal.pub
+if [ -f "$coolify_root_pubkey" ]; then
+  mkdir -p /root/.ssh
+  chmod 700 /root/.ssh
+  touch /root/.ssh/authorized_keys
+  chmod 600 /root/.ssh/authorized_keys
+  if ! grep -qxF "$(cat "$coolify_root_pubkey")" /root/.ssh/authorized_keys; then
+    cat "$coolify_root_pubkey" >> /root/.ssh/authorized_keys
+  fi
+else
+  echo "Coolify root key not present yet (expected before Coolify is installed), skipping"
+fi
 
 echo "== ufw: 22/80/443 only =="
 if ! command -v ufw >/dev/null 2>&1; then
@@ -51,7 +68,13 @@ echo "== fail2ban =="
 if ! dpkg -s fail2ban >/dev/null 2>&1; then
   apt-get install -y fail2ban
 fi
+cat > /etc/fail2ban/jail.d/41prompts.local <<'EOF'
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 172.16.0.0/12
+EOF
 systemctl enable --now fail2ban
+systemctl restart fail2ban
+fail2ban-client unban --all || true
 
 echo "== 2G swap file =="
 if [ ! -f /swapfile ]; then
