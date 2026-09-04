@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
@@ -15,7 +16,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3",
-    "@tailwindcss/postcss": "^4.3.3"
+    "@tailwindcss/postcss": "^4.3.3",
+    "@41prompts/db": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
