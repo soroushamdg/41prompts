@@ -238,3 +238,90 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
       produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`.
 - [x] `gitleaks detect` on the repo finds nothing. Evidence above.
 - [x] This report and `docs/epics/sessions/EPIC-001-session.md` written.
+
+---
+
+## Follow-up (2026-09-04)
+
+Branch `epic/001-followup`, four commits (`aa513ce` F1, `d2c70a9` F2, `2f21d55` F3, plus this F4). Full detail,
+including every server command run and its approval status, is in `docs/epics/sessions/EPIC-001-session.md`'s
+Follow-up session section — this is the summary.
+
+### Human-half evidence (staging, live at time of writing)
+
+Container status (`ssh 41p-box docker ps`, read-only):
+
+```
+NAMES                                            STATUS
+backup-pboa5wxrnggay30epiq0pmzd-211242720321     Up 14 minutes
+worker-pboa5wxrnggay30epiq0pmzd-211242717413     Up 14 minutes (healthy)
+web-pboa5wxrnggay30epiq0pmzd-211242712167        Up 14 minutes (healthy)
+postgres-pboa5wxrnggay30epiq0pmzd-211242702541   Up 14 minutes (healthy)
+```
+
+`curl -s https://staging.41prompts.ai/healthz` (still `unknown` — this is *before* F2's fix has merged and gone
+through its post-merge cleanup; see F2's acceptance sequence in `infra/README.md` step 10 and "Open items" below):
+
+```
+{"ok":true,"commit":"unknown","env":"staging"}
+```
+
+TLS: the exact `coolify-proxy` log line for this domain's original certificate issuance has since rotated out of
+the container's log buffer, so verified independently instead — `curl -vI https://staging.41prompts.ai/healthz`:
+
+```
+subject: CN=staging.41prompts.ai
+issuer: C=US; O=Let's Encrypt; CN=YR2
+SSL certificate verify ok.
+HTTP/2 200
+```
+
+What *is* still in the live proxy log, and became directly relevant to F3's Domains fix: repeated `ERR Unable to
+obtain ACME certificate for domains` for `www.staging.41prompts.ai` (`NXDOMAIN` — no DNS record for that host),
+recurring every renewal attempt because the staging application's `redirect` field is `both` (confirmed via
+`GET /api/v1/applications/{uuid}`). This is the exact failure `infra/README.md`'s Domains step now documents,
+observed directly rather than inferred.
+
+### What F1–F3 changed
+
+- **F1** — Claude Code may now reach the box over SSH and the Coolify API, under `infra/ACCESS.md`'s rules
+  (`CLAUDE.md` carries the same six — now seven, after F3 — rules).
+- **F2** — root cause of `commit: unknown`, confirmed by reading Coolify's own deployment-job source on the box:
+  any `${VAR}` anywhere in `infra/docker-compose.yml` becomes a permanently locked application environment
+  variable whose stored value Coolify re-feeds into the build every deploy. Removed the `web.build.args` block
+  entirely; `apps/web/Dockerfile`'s `ARG` renamed to `SOURCE_COMMIT` to match what Coolify actually injects;
+  `apps/web/app/healthz/route.ts` now falls back to `SOURCE_COMMIT` (which Coolify sets directly on the running
+  container independent of any build arg) when `COMMIT_SHA` is the `unknown` placeholder. Verified locally only so
+  far — a local build with an explicit `--build-arg SOURCE_COMMIT` bakes the real commit correctly; the staging
+  acceptance criterion itself is still open, see below.
+- **F3** — runbook corrections found while following it: `POSTGRES_PASSWORD` generation (`openssl rand -hex 24`,
+  why, and both the drop-volume and `ALTER USER` rotation paths), Coolify UI access via
+  `https://coolify.41prompts.ai` with the tunnel as documented fallback, the GitHub App screen name, the Base
+  Directory caveat removed (confirmed working), a narrower initial Environment Variables list with a warning
+  about Coolify's `${VAR}`-locking behavior, the Domains `redirect` field (read from the API, not guessed — see
+  above), a bootstrap.sh comment, and a new "Web container restart loop" runbook section.
+
+### Two secret exposures this session (full account in the session log)
+
+Both happened during F2's diagnosis, before rule 7 existed; both were disclosed immediately and rotated before
+continuing. (1) A Coolify API token fragment, caused by `infra/setup-access.sh` (advisor-written) writing an
+unquoted Sanctum-format token (`<id>|<random>`) into `~/.41prompts/staging.env` — the literal `|` was parsed as a
+shell pipe when the file was `source`d. Fixed (script now single-quotes values), token rotated by Soroush. (2)
+Staging `POSTGRES_PASSWORD`, caused by this session running `docker inspect --format '{{json .Config.Env}}'`
+unfiltered. Password rotated by Soroush (Coolify variable changed, data volume dropped, redeployed). `infra/ACCESS.md`
+and `CLAUDE.md` rule 7 (F3) exists because of both.
+
+### Open items still owed by Soroush
+
+- **F2's own acceptance criterion**: merge this branch, then follow `infra/README.md` step 10 (b)–(e) — delete
+  the now-orphaned `SOURCE_COMMIT`/`COMMIT_SHA` locked variables in Coolify's Environment Variables tab, redeploy,
+  and confirm `curl -s https://staging.41prompts.ai/healthz` matches `git rev-parse origin/main`.
+- **Domains `redirect` fix**: set staging's Direction to non-www (`infra/README.md` step 11) to stop the recurring
+  ACME failure shown above; repeat for the production resource once it exists.
+- **Production environment + `v0.0.1-test`**: not yet created — original epic's production acceptance criteria
+  are still open.
+- **R2 bucket + backup evidence**: R2 bucket/token setup (`infra/README.md` step 12) and a file actually landing
+  in it are still unconfirmed.
+- **Restore drill**: not yet run/timed in `infra/RUNBOOK.md`.
+- **Kill-container test**: killing `web` in Coolify's UI and confirming a restart within 30s is still unconfirmed
+  against real Coolify behavior (only plain `docker kill` was tested locally, in the original epic).
