@@ -65,6 +65,18 @@ Check kinds display as plain phrases: "valid JSON shape", "one of the allowed va
 - Env: `FORTYONE_API_KEY`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `KEY_ENCRYPTION_SECRET`.
 - Public source files carry `SPDX-License-Identifier: Apache-2.0` headers. Copyright holder is `<legal entity>` until incorporation.
 
+## Server access
+
+Claude Code may reach the staging/production box over SSH and the Coolify API from Soroush's machine (ADR-001
+revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). Rules:
+
+1. Connect only through the `~/.ssh/config` alias `41p-box` and the values in `~/.41prompts/staging.env` (`COOLIFY_URL`, `COOLIFY_API_TOKEN`). Never read `~/.ssh/lightsail/` directly, never copy either file, never print a value from them.
+2. Read-only by default: `docker ps/logs/inspect/stats`, `free`, `df`, `journalctl`, `cat` of files under `/data/coolify/applications/`, and `GET` calls to the Coolify API.
+3. Any command that changes the box (`rm`, `docker rm/volume/exec/restart/compose`, editing a file, `apt`, `systemctl`, any Coolify API call other than `GET`) is shown in chat with a one-line reason and run only after Soroush says yes. Batch approvals are not a thing; one command, one yes.
+4. Never touch `coolify`, `coolify-db`, `coolify-redis`, `coolify-realtime`, `coolify-proxy`, `coolify-sentinel`, or anything under `/data/coolify/` except read.
+5. Every change made on the box is also made in `infra/` in the same session, or reverted before the session ends. Every mutating command and its approval is logged in the session file.
+6. Never allow-list `ssh`, `scp`, or `curl` against the Coolify URL in Claude Code's permissions; they stay on per-command approval.
+
 ## Never touch without an explicit instruction in the current epic
 
 - `docs/backlog.md`, `docs/roadmap.md`, `docs/decisions/*`, `docs/reviews/*` (I edit these)

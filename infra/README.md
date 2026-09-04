@@ -8,6 +8,9 @@ Before you start: an AWS account with Lightsail access, a Cloudflare (or other) 
 a Cloudflare account for R2. Nothing here needs a GitHub personal access token — Coolify connects to GitHub via
 its own GitHub App (step 6).
 
+Claude Code may now reach this box directly over SSH and the Coolify API — see `infra/ACCESS.md` for who may
+connect, how, and the rules that apply every time.
+
 One screen in this doc (marked ⚠) I can't confirm without a running Coolify instance — check it against what
 you actually see and correct this file if the label differs.
 

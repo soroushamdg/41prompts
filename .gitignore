@@ -6,6 +6,8 @@ coverage/
 .env
 .env.*
 !.env.example
+infra/*.env
+.41prompts/
 .DS_Store
 *.log
 .41p/cache/
