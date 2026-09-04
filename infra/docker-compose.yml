@@ -1,0 +1,93 @@
+# Run this file with the repo root as the project directory, e.g. from the repo root:
+#   docker compose --project-directory . -f infra/docker-compose.yml <command>
+# Without --project-directory, Compose resolves build.context, env_file, and its default
+# .env lookup relative to THIS file's own directory (infra/), not the repo root, and the
+# build/deploy breaks (missing .env, wrong build context). See infra/README.md step 8 for
+# the equivalent setting in Coolify.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Bound to 127.0.0.1, not published to the internet: ufw only allows 22/80/443, but
+    # Docker's port publishing bypasses ufw by writing straight to iptables. Loopback-only
+    # keeps this reachable for local `psql`/dev use without opening it up publicly.
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Coolify sets SOURCE_COMMIT for git-based builds. COMMIT_SHA lets a local build
+        # override it explicitly; in Coolify, COMMIT_SHA is normally unset so this falls
+        # through to SOURCE_COMMIT automatically. See infra/README.md step 10.
+        COMMIT_SHA: ${COMMIT_SHA:-${SOURCE_COMMIT:-unknown}}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Overrides .env's localhost-hostname DATABASE_URL (for `pnpm dev` outside Docker)
+      # with the in-network hostname, built from the same POSTGRES_* vars postgres uses.
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Same loopback-only reasoning as postgres above. Coolify's proxy reaches this
+    # container over the compose network by service name (web:3000), not via this
+    # published port — it never needs to be open beyond 127.0.0.1.
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Nightly pg_dump -> R2, run as a small always-on scheduler rather than a Coolify
+  # Scheduled Task: this way the whole backup story is infra-as-code, verifiable locally
+  # with `docker compose config`/`up`, and doesn't depend on whatever the installed
+  # Coolify version supports for scheduled tasks against a compose resource (unverifiable
+  # without server access — see docs/epics/plan-EPIC-001.md §2). If a later epic finds
+  # Coolify's own scheduler is a better fit, this service can be swapped for that without
+  # touching infra/backup.sh or infra/restore.sh, which know nothing about the trigger.
+  backup:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM postgres:16
+        RUN apt-get update \
+            && apt-get install -y --no-install-recommends awscli \
+            && rm -rf /var/lib/apt/lists/*
+        WORKDIR /app
+        COPY infra/backup.sh infra/backup-loop.sh ./
+        RUN chmod +x ./backup.sh ./backup-loop.sh
+        CMD ["./backup-loop.sh"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

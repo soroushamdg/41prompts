@@ -70,8 +70,8 @@ orgs and the PyPI names are ours. Ten ICP interviews are written up.
 **Review.** Decision recorded on whether to file the word mark now (CIPO + USPTO, classes 9 and 42) or at the loud launch.
 
 ### EPIC-001 Infrastructure · M
-**Goal.** A Hetzner box in the EU running Coolify deploys web and worker from GitHub with TLS, staging and production, and backups that have been restored once.
-**Tasks.** Hetzner CX, Falkenstein; harden (keys only, ufw, fail2ban, unattended upgrades); Coolify; staging on push to `main`, production on tag; `infra/docker-compose.yml` with postgres 16, web, worker, healthchecks; DNS + TLS; R2 `41p-backups`, nightly `pg_dump`, 30-day retention; secrets in Coolify only, `.env.example` complete; restore drill, timed, in `infra/RUNBOOK.md`.
+**Goal.** One AWS Lightsail instance in Montréal running Coolify deploys web and worker from GitHub with TLS, staging and production, and backups that have been restored once. Claude Code writes infra as code; Soroush runs the bootstrap once; no agent holds SSH. Full detail in `docs/epics/EPIC-001-infrastructure.md`.
+**Tasks.** Lightsail 4 GB, ca-central-1, static IP, snapshots; `infra/bootstrap.sh` (harden, Docker, Coolify) run by Soroush; staging on push to `main`, production on tag; `infra/docker-compose.yml` with postgres 16, web, worker, healthchecks; Dockerfiles; migrate-before-start entrypoint; DNS + TLS via Coolify; R2 `41p-backups`, nightly `pg_dump`, 30-day retention; secrets set by a human only; restore drill, timed, in `infra/RUNBOOK.md`.
 **Tests.** `/healthz` returns git sha. Killed container restarts in 30 s. Restore drill completed.
 **Review.** Runbook readable by a stranger. `gitleaks` clean. No-op tag deploy tested. Region recorded for the privacy policy.
 

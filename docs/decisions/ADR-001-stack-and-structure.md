@@ -26,7 +26,8 @@ Status: accepted · 2026-08-19
 
 ## Revisions (2026-09-04)
 
-- Hetzner region is **EU (Falkenstein)**; recorded in the privacy policy.
+- Hosting is **AWS Lightsail, Montréal (ca-central-1)**, replacing Hetzner (2026-09-04). Same single-VPS posture; user data stays in Canada, which simplifies the Law 25 cross-border note. Minimum instance 4 GB / 2 vCPU. Lightsail daily snapshots are a second backup layer alongside the nightly dump to R2.
+- **No agent ever holds SSH access to the server.** Claude Code writes infra as code (`infra/`); Soroush runs the bootstrap once from his own machine; Coolify deploys from GitHub thereafter. Secrets are set by a human in Coolify and GitHub, never by an agent.
 - The import boundary is an **allow-list**, not a deny-list: public packages may import only public packages, Node builtins, and their own declared dependencies; `packages/core` imports nothing; `packages/sdk-ts` has no npm dependencies. Enforced by dependency-cruiser and Turborepo boundary tags (`public` / `private`).
 - Model prompts (judge, summariser) and drift heuristics are proprietary and live in `apps/worker` or a private `packages/engine`. `packages/core` contains only what we are content to see forked.
 - SDK telemetry is off by default. "Apps resolving this prompt" is derived from CDN access logs.
