@@ -230,9 +230,14 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
 - [x] **Amended, per `docs/epics/CURRENT.md`'s "F2 outcome".** `curl https://staging.41prompts.ai/healthz`
       returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. The `commit` field is a known
       defect, moved to EPIC-008 — see the Follow-up section below.
-- [ ] **Handed to Soroush — `infra/README.md` step 14.** A no-op tag `v0.0.1-test` deploys production;
-      `https://app.41prompts.ai/healthz` returns HTTP 200 and `env: production`. (`commit` is EPIC-008's
-      criterion, not this epic's.) (I can push the tag myself once asked, at that time — see plan §6.)
+- [ ] ~~Handed to Soroush — `infra/README.md` step 14. A no-op tag `v0.0.1-test` deploys production~~ **Moved to
+      EPIC-008 (2026-09-04).** Building both images on the box took 9 minutes with staging running (Coolify
+      injects per-application `ARG` declarations into the Dockerfile, so the two environments share no layer
+      cache), and Coolify cannot deploy a tag at all; both are exactly what EPIC-008 fixes. The production
+      environment is created and configured in this epic; its first deploy — an image pull, triggered by
+      EPIC-008's Actions workflow calling Coolify's deploy webhook on the `v*` tag, since Coolify's UI has no tag
+      field — is verified there: `https://app.41prompts.ai/healthz` returns HTTP 200, `env: production`, and the
+      tag's `commit`.
 - [ ] **Handed to Soroush — live Coolify UI action, after `infra/README.md` step 14; no dedicated numbered setup
       step covers this specifically.** Killing the web container in Coolify restarts it within 30 s.
 - [ ] **Handed to Soroush — `infra/README.md` step 13 (setup) and step 15 (the drill itself).** Nightly backup
@@ -333,6 +338,18 @@ criterion. What's kept from F2 as merged: the healthz fallback logic (correct, a
 `SOURCE_COMMIT` is actually supplied), the compose file's comment explaining the locking behavior, and F3's
 runbook corrections.
 
+### Production tag-deploy criterion outcome: closed as deferred, not fixed (2026-09-04)
+
+Attempting the `v0.0.1-test` tag deploy surfaced two problems that make this epic's criterion impossible as
+written: building both images on the box took 9 minutes with staging already running — Coolify injects
+per-application `ARG` declarations into the Dockerfile, so the two environments share no layer cache — and
+Coolify has no way to deploy a specific tag at all; its UI resource points at a branch, never a tag.
+
+**Decision:** move the criterion to EPIC-008, which builds both images once in GitHub Actions and pushes fixed
+tags to GHCR. Production's first deploy there is a pull of the `:production` tag, triggered by the Actions
+workflow calling Coolify's deploy webhook on a `v*` tag, since Coolify's UI has no tag field. The production
+environment itself is created and configured in this epic and stays that way — only its first deploy moves.
+
 ### Two secret exposures this session (full account in the session log)
 
 Both happened during F2's diagnosis, before rule 7 existed; both were disclosed immediately and rotated before
@@ -350,8 +367,8 @@ and `CLAUDE.md` rule 7 (F3) exists because of both.
   injection entirely.
 - **Domains `redirect` fix**: set staging's Direction to non-www (`infra/README.md` step 11) to stop the recurring
   ACME failure shown above; repeat for the production resource once it exists.
-- **Production environment + `v0.0.1-test`**: not yet created — original epic's production acceptance criteria
-  are still open.
+- **Production environment**: not yet created. Its first deploy is no longer this epic's criterion — see the
+  tag-deploy outcome above — but the environment and configuration steps in `infra/README.md` are still owed.
 - **R2 bucket + backup evidence**: R2 bucket/token setup (`infra/README.md` step 12) and a file actually landing
   in it are still unconfirmed.
 - **Restore drill**: not yet run/timed in `infra/RUNBOOK.md`.
