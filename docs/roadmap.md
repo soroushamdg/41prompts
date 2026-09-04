@@ -75,6 +75,12 @@ orgs and the PyPI names are ours. Ten ICP interviews are written up.
 **Tests.** `/healthz` returns git sha. Killed container restarts in 30 s. Restore drill completed.
 **Review.** Runbook readable by a stranger. `gitleaks` clean. No-op tag deploy tested. Region recorded for the privacy policy.
 
+### EPIC-008 Prebuilt images · S
+**Goal.** No image is ever built on the box that serves production. GitHub Actions builds `web` and `worker`, pushes them to private GHCR, and Coolify pulls fixed tags.
+**Tasks.** `build-images.yml` on push to `main` and on `v*` tags only (never on PRs; CI already tests them), buildx with registry cache, `--build-arg SOURCE_COMMIT=${{ github.sha }}`, tags `:staging` / `:production` / `:sha-<sha>`; `infra/docker-compose.staging.yml` and `.production.yml` with `image:` and `pull_policy: always`, no `${...}` anywhere (Coolify locks them); local dev keeps `build:` in `infra/docker-compose.yml`; registry credentials on the box (Coolify registry settings, else a documented one-time `docker login ghcr.io`); workflow's last step calls Coolify's deploy webhook with a `deploy`-scoped token stored as a GitHub secret; README/RUNBOOK updated; Actions minutes budget noted (Free plan 2,000/month).
+**Tests.** A `main` merge produces a GHCR image whose `/healthz` `commit` equals the merge sha, with no build log on the box. A `v*` tag does the same for production. Rollback = redeploy the previous `:sha-` tag, timed in the runbook.
+**Review.** Box CPU/memory flat during a deploy. No `${...}` in either deployed compose file. Images private.
+
 ### EPIC-002 Data layer and auth · M
 **Goal.** Users in our Postgres, three sign-in methods, protected routes, and an account purge window.
 **Tasks.** Drizzle baseline: users, sessions, accounts, projects, api_keys (empty); migrations on deploy; Better Auth with Google, GitHub, magic link via Resend; `/app/*` protected; account page with delete (soft delete, 30-day purge job); seed script.

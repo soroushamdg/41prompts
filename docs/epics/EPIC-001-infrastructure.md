@@ -45,8 +45,8 @@ Coolify UI, and sets secrets. The runbook Claude Code writes must be followable 
 - [ ] Local `docker compose up` (with a local `.env`) brings up postgres, web, worker; `curl localhost:3000/healthz` returns `ok: true`. Evidence: output.
 - [ ] Web container entrypoint runs migrations before start (a log line proves order). Evidence: log excerpt.
 - [ ] `infra/README.md` read top to bottom by Soroush; every console step has a screenshot name or exact menu path.
-- [ ] After Soroush completes his steps: `curl https://staging.41prompts.ai/healthz` returns the current `main` sha. Evidence: output pasted into the report by Soroush.
-- [ ] A no-op tag `v0.0.1-test` deploys production; `https://app.41prompts.ai/healthz` returns that sha. Evidence: output.
+- [x] After Soroush completes his steps: `curl https://staging.41prompts.ai/healthz` returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. Evidence: report. **The `commit` field is a known defect, moved to EPIC-008** (see F2 outcome below).
+- [ ] A no-op tag `v0.0.1-test` deploys production; `https://app.41prompts.ai/healthz` returns HTTP 200 and `env: production`. Evidence: output. (The `commit` value is EPIC-008's criterion, not this epic's.)
 - [ ] Killing the web container in Coolify restarts it within 30 s. Evidence: Coolify log.
 - [ ] Nightly backup produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`. Evidence: bucket listing and the recorded time.
 - [ ] `gitleaks detect` on the repo finds nothing. Evidence: output.
@@ -108,3 +108,10 @@ Cause, confirmed in the Coolify UI: Coolify parses every `${VAR}` in `infra/dock
 - Update `docs/epics/reports/EPIC-001-report.md`: human-half evidence (healthz output with commit, container status table, proxy log line for the certificate), what F1–F3 changed, open items still owed by Soroush (production environment + `v0.0.1-test`, R2 bucket + backup evidence, restore drill time, kill-container test).
 - `docs/epics/sessions/EPIC-001-session.md`: append this session, including every server command run and its approval.
 - PR to `main`, CI green, squash merge. Staging auto-deploys; verify F2's acceptance on the deployed result before closing.
+
+### F2 outcome (2026-09-04): closed as deferred, not fixed
+The compose half of F2 worked: removing every `${...}` reference stopped Coolify from creating locked variables (confirmed via `GET /api/v1/applications/.../envs`). The other half did not: Coolify injects no usable commit into a Docker Compose deployment's build or runtime, so `commit` is still `unknown`. Two hours went into reading Coolify's source and testing theories against staging; the source does not distinguish the Nixpacks path from the compose path clearly enough to keep going, and each attempt costs a full deploy cycle.
+
+**Decision.** Stop. The commit value is not worth another Coolify-internals investigation, and the `.git/HEAD`-in-build-context workaround would be deleted a week later by EPIC-008, which moves the build to GitHub Actions where `github.sha` is passed explicitly as `--build-arg SOURCE_COMMIT` and is certain. EPIC-008 is pulled to the front of the queue and owns this criterion. Rules for it, learned here: no `${...}` in any compose file Coolify deploys; images are built once in Actions and pulled by tag; nothing about the deployed commit may depend on what Coolify chooses to inject.
+
+Keep as merged: the healthz fallback (`COMMIT_SHA` unless it is the literal `unknown`, then `SOURCE_COMMIT`) is correct and works the moment a real value is passed; the compose file's comment explaining the locking behaviour; the runbook corrections.
