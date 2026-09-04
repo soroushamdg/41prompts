@@ -1,8 +1,10 @@
 name: Release
 
-# No deploy logic here — Coolify deploys itself on push to main (staging) and on v* tags
-# (production), per infra/README.md. This workflow only makes production deploys visible
-# in one place by creating a GitHub Release from the tag.
+# No deploy logic here — build-images.yml builds, pushes to GHCR, and triggers Coolify's deploy
+# webhook on push to main (staging) and on v* tags (production); Coolify's own GitHub-App
+# auto-deploy is off (see infra/README.md and docs/epics/EPIC-008-prebuilt-images.md). This
+# workflow only makes production deploys visible in one place by creating a GitHub Release
+# from the tag.
 on:
   push:
     tags:

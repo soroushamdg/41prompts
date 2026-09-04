@@ -47,12 +47,26 @@ connect, how, and the rules that apply every time.
    is unreachable, not the normal path.
 6. **Sources → + Add → GitHub App** (needs the public HTTPS instance domain from step 5 set first, or the GitHub
    OAuth callback fails) — this is where a Coolify-managed GitHub App is installed against
-   `soroushamdg/41prompts` so Coolify can pull the repo and post deploy-status checks on commits.
-7. **Projects → New Project**, name it `41prompts`. Inside it, create two **Environments**: `staging` (tracks
-   branch `main`, auto-deploy on push) and `production` (tracks tags matching `v*`).
+   `soroushamdg/41prompts` so Coolify can pull the repo and post deploy-status checks on commits. **As of
+   EPIC-008 (2026-09-04), this is only used to read the compose file's content on deploy — Coolify never builds
+   an image from this checkout.** Both images are built in GitHub Actions and pushed to GHCR (step 6.5 below);
+   Coolify only pulls the fixed tag `docker-compose.staging.yml`/`docker-compose.production.yml` point at. The
+   "Prebuilt images (EPIC-008)" section at the end of this file turns off this App's own auto-deploy-on-push
+   behavior, since that would otherwise redeploy the *previous* image tag the instant a push lands, before
+   Actions has finished building the new one.
+7. **Projects → New Project**, name it `41prompts`. Inside it, create two **Environments**: `staging` and
+   `production`. **Both track branch `main`** — Coolify's UI has no way to have a resource track a tag instead
+   of a branch (confirmed against a real deploy attempt, see `docs/epics/reports/EPIC-001-report.md`'s
+   "Production tag-deploy criterion outcome"), so both environments read `main`'s copy of the compose file for
+   its *content* only. Which environment actually gets deployed, and with which image tag, is decided entirely
+   by GitHub Actions (`.github/workflows/build-images.yml`) calling that environment's deploy webhook — see the
+   "Prebuilt images (EPIC-008)" section at the end of this file. This also means step 8's "auto-deploy on push"
+   must be turned off for both (same section) — otherwise Coolify redeploys on every push to `main` using
+   whatever image tag was already pulled last time, before Actions has built the new one.
 8. In each environment: **New Resource → Docker Compose**, point it at the connected repo. **Important:** set
-   **Base Directory** to `/` (the repo root) and **Docker Compose Location** to `/infra/docker-compose.yml` —
-   not the other way around. Docker Compose resolves the compose file's relative paths (`build.context`,
+   **Base Directory** to `/` (the repo root) and **Docker Compose Location** to `/infra/docker-compose.yml` for
+   now — the "Prebuilt images (EPIC-008)" section repoints this to the per-environment file once those exist on
+   `main`. Docker Compose resolves the compose file's relative paths (`build.context`,
    `env_file`) and its default `.env` lookup relative to whatever it treats as the project directory, which
    defaults to the *compose file's own directory* unless told otherwise. Since `infra/docker-compose.yml` needs
    the repo root as both its build context (the Dockerfiles run `turbo prune` over the whole monorepo) and where
@@ -107,13 +121,64 @@ connect, how, and the rules that apply every time.
     Coolify Scheduled Task — see the comment above the `backup` service in that file for why. Once step 9's R2
     variables are set, it works without further setup. Confirm it after the first deploy:
     `docker compose -f infra/docker-compose.yml logs backup` should show `[backup] scheduler started`.
-14. Push to `main`; confirm the staging deploy runs and `curl https://staging.41prompts.ai/healthz` returns the
-    current commit's sha. Push a `v0.0.1-test` tag; confirm the production deploy and
-    `curl https://app.41prompts.ai/healthz`.
+14. Push to `main`; confirm `build-images.yml` runs green in GitHub Actions, then that the staging deploy follows
+    and `curl https://staging.41prompts.ai/healthz` returns the current commit's sha (do this after the
+    "Prebuilt images (EPIC-008)" section — before it, this file has no `web`/`worker` images to pull yet). Push a
+    `v0.0.1-test` tag; confirm the production deploy and `curl https://app.41prompts.ai/healthz`.
 15. Follow `infra/RUNBOOK.md`'s restore drill once, end to end, and record the time in that file.
 16. Read this file top to bottom once, start to finish, exactly as written, and confirm every step above matched
     what the Coolify UI actually showed. Fix anything that drifted — this file only stays useful if it matches
     reality the next time someone (including future-you) runs it.
+
+## Prebuilt images (EPIC-008, 2026-09-04)
+
+Do this once, in order, before the first push to `main` after EPIC-008 merges — it moves image building off the
+box entirely. `.github/workflows/build-images.yml` builds `web` and `worker`, pushes both to private GHCR, and
+calls Coolify's deploy webhook; Coolify's job shrinks to "pull this tag and restart."
+
+1. **GitHub → repo → Settings → Secrets and variables → Actions → New repository secret.** Add four:
+   - `COOLIFY_URL` — same value as `~/.41prompts/staging.env`'s `COOLIFY_URL` (`https://coolify.41prompts.ai`).
+   - `COOLIFY_DEPLOY_TOKEN` — a **new** token, narrowest scope Coolify's UI offers that includes deploy (never
+     reuse the read-only token from `~/.41prompts/staging.env`). Create it: **Coolify UI → Keys & Tokens → API
+     tokens → Create**.
+   - `COOLIFY_STAGING_UUID` — `pboa5wxrnggay30epiq0pmzd` (the staging application's uuid; read via a `GET` to
+     `/api/v1/applications`, not secret in itself, but stored as a secret here per the epic's decision so the
+     workflow file names no environment-specific identifiers at all).
+   - `COOLIFY_PRODUCTION_UUID` — `d180rye1i9dtab789t9jyjmh` (same, for the production application).
+2. **Turn off Coolify's own auto-deploy, on both applications** (otherwise the instant this PR's merge to `main`
+   lands, Coolify redeploys the *old* `docker-compose.yml`-based build before Actions has even started — or,
+   once step 4 below repoints it, redeploys the previous image tag before the new one exists): open each
+   application → **Advanced** tab → **Deployment** section → **Auto deploy** listbox → **"Manual deployments
+   only"** (saves instantly, no separate save button). Do this for the staging application and the production
+   application both.
+3. **One-time GHCR registry auth on the box.** Coolify 4.3.17 has no private-registry credential store to
+   configure through its UI (confirmed by reading `ApplicationDeploymentJob.php` on the box — it throws "Please
+   run docker login to login to the docker registry on the server" when a pull needs auth it doesn't have; the
+   only registry-shaped fields on `Application`, `docker_registry_image_name`/`docker_registry_image_tag`, belong
+   to a different application type — "deploy a prebuilt image, no git repo" — not to a docker-compose resource
+   like ours). So: on GitHub, create a **classic PAT** scoped **`read:packages`** only (**GitHub → Settings →
+   Developer settings → Personal access tokens → Tokens (classic) → Generate new token**). Then, **run this
+   yourself, directly over SSH** (don't paste the PAT into a Claude Code session — it would sit in the
+   transcript needlessly):
+   ```
+   ssh 41p-box
+   echo '<the PAT>' | sudo docker login ghcr.io -u soroushamdg --password-stdin
+   ```
+   This writes root's `~/.docker/config.json` on the box once; `pull_policy: always` deploys need no further
+   auth after that. Rotation: repeat this whenever the PAT is rotated or expires — see
+   `infra/RUNBOOK.md`.
+4. **Repoint each environment's Docker Compose Location** (only meaningful once `infra/docker-compose.staging.yml`
+   / `infra/docker-compose.production.yml` exist on `main`, i.e. after this PR merges): open each application →
+   **General** tab → **Docker Compose Location** → change from `/infra/docker-compose.yml` to
+   `/infra/docker-compose.staging.yml` (staging application) or `/infra/docker-compose.production.yml`
+   (production application). Base Directory stays `/` on both.
+5. First deploy after all four steps above: either push a trivial commit to `main` (triggers
+   `build-images.yml` → GHCR push → Coolify webhook), or manually press **Redeploy** on the staging resource once
+   step 4's file exists there. Confirm `curl -s https://staging.41prompts.ai/healthz` returns the pushed commit's
+   sha, then confirm `docker images` timestamps on the box (or the Coolify deployment log) show a pull, not a
+   build.
+
+Rollback procedure and its timed run are in `infra/RUNBOOK.md`'s "Roll back a deploy" section.
 
 ## Why some things are the way they are
 

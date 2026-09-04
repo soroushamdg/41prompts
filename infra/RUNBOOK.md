@@ -78,11 +78,37 @@ exactly which step it died on — migration or app start). Two causes seen in pr
   container exits before `[entrypoint] migrations complete, starting web` ever appears — `drizzle-kit migrate`
   itself failed. Check `docker logs --tail 40` for the actual SQL/connection error underneath.
 
-## Roll back a production deploy
+## Roll back a deploy
 
-Coolify keeps previous deployments. On the `production` environment's resource: **Deployments** tab → pick the
-last known-good deployment → **Redeploy**. Confirm `https://app.41prompts.ai/healthz` returns the sha you
-expect afterward.
+Since EPIC-008, Coolify never builds — it only pulls `:staging`/`:production` from GHCR, so its own
+**Deployments → Redeploy** just re-pulls the *same* tag again, it doesn't go back to an older image. To actually
+roll back:
+
+1. GitHub → repo → **Actions → Rollback → Run workflow**. Inputs: `environment` (`staging` or `production`),
+   `sha` (the full commit sha to roll back to — it must already exist as `ghcr.io/soroushamdg/41prompts-{web,worker}:sha-<sha>`,
+   i.e. a commit `build-images.yml` previously built successfully; check via **Actions → Build images** history
+   or `git log` for candidate commits).
+2. The workflow retags that sha's images to `:staging`/`:production` with `docker buildx imagetools create` (a
+   registry-side copy — no rebuild, no checkout) and then calls the same Coolify deploy webhook
+   `build-images.yml` uses.
+3. Confirm `curl -s https://{staging.41prompts.ai,app.41prompts.ai}/healthz` (whichever environment) returns the
+   sha you rolled back to.
+
+**Timed run:** _(fill in after the first real rollback — see `docs/epics/reports/EPIC-008-report.md` for the
+drill run during the epic itself)._
+
+| Date | Environment | From sha → To sha | Elapsed |
+|---|---|---|---|
+| | | | |
+
+### Rotating the GHCR registry PAT
+
+The box authenticates to GHCR with a one-time `docker login ghcr.io` (root, `~/.docker/config.json`) using a
+classic PAT scoped `read:packages` — see `infra/README.md`'s "Prebuilt images (EPIC-008)" section for why
+Coolify 4.3.17 has no built-in registry credential store to use instead. To rotate: generate a new PAT (GitHub →
+Settings → Developer settings → Personal access tokens → Tokens (classic)), then re-run the same `docker login`
+command on the box with the new token — it overwrites the stored credential, no restart needed. Revoke the old
+PAT on GitHub afterward.
 
 ## The box is down
 
