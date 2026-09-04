@@ -1,0 +1,82 @@
+# Coolify-deployed, production environment. image: only, no build: anywhere in this file — GitHub Actions
+# (.github/workflows/build-images.yml) builds and pushes both images to GHCR on every push to main; this file
+# only ever pulls ghcr.io/soroushamdg/41prompts-{web,worker}:production with pull_policy: always. Local dev /
+# `docker compose up` still uses infra/docker-compose.yml, which keeps build:.
+#
+# ${POSTGRES_USER}/${POSTGRES_PASSWORD}/${POSTGRES_DB}/${DEPLOY_ENV} below are Coolify Environment Variables,
+# entered by hand per infra/README.md step 9 — that's intentional; those four are meant to be Coolify-managed.
+# What must never appear here is ${SOURCE_COMMIT} or ${COMMIT_SHA} as a build.args interpolation: that's the
+# EPIC-001 F2 defect (any ${VAR} in a build.args block becomes a permanently locked Coolify env var that
+# overrides the real build arg on every future deploy). There is no build: block in this file at all, so that
+# mistake isn't reachable here. SOURCE_COMMIT is instead baked into the image once, in Actions, from github.sha —
+# see build-images.yml.
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  web:
+    image: ghcr.io/soroushamdg/41prompts-web:production
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEPLOY_ENV: ${DEPLOY_ENV}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  worker:
+    image: ghcr.io/soroushamdg/41prompts-worker:production
+    pull_policy: always
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DEPLOY_ENV: ${DEPLOY_ENV}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Still built inline, not pulled from GHCR: this is a tiny wrapper around postgres:16 + awscli, not one of the
+  # two images EPIC-008 moved to Actions (web/worker only, per docs/epics/CURRENT.md's scope). Identical to the
+  # backup service in infra/docker-compose.yml.
+  backup:
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM postgres:16
+        RUN apt-get update \
+            && apt-get install -y --no-install-recommends awscli \
+            && rm -rf /var/lib/apt/lists/*
+        WORKDIR /app
+        COPY infra/backup.sh infra/backup-loop.sh ./
+        RUN chmod +x ./backup.sh ./backup-loop.sh
+        CMD ["./backup-loop.sh"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
