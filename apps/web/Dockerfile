@@ -29,8 +29,13 @@ COPY --from=pruner /app/out/full/ .
 # know about tsconfig.json's plain-file `extends`, so the root tsconfig every package
 # extends has to be copied in separately or the build fails with TS5083.
 COPY --from=pruner /app/tsconfig.base.json ./tsconfig.base.json
-ARG COMMIT_SHA=unknown
-ENV COMMIT_SHA=$COMMIT_SHA
+# Named SOURCE_COMMIT, not COMMIT_SHA: Coolify auto-declares an ARG of this exact name for
+# every git-based compose build (confirmed by reading ApplicationDeploymentJob.php on the
+# box), so this picks it up without infra/docker-compose.yml needing to reference it as a
+# `${...}` interpolation — see the comment on the `web` service's `build:` block for why that
+# matters. Default stays "unknown" for a plain local `docker compose build` with no override.
+ARG SOURCE_COMMIT=unknown
+ENV COMMIT_SHA=$SOURCE_COMMIT
 ENV DEPLOY_ENV=production
 RUN pnpm turbo run build --filter=@41prompts/web
 
@@ -40,8 +45,8 @@ RUN pnpm turbo run build --filter=@41prompts/web
 # start`. Bigger image, one moving part instead of two — see plan §3.4/§4.0 for the tradeoff.
 FROM base AS runner
 ENV NODE_ENV=production
-ARG COMMIT_SHA=unknown
-ENV COMMIT_SHA=$COMMIT_SHA
+ARG SOURCE_COMMIT=unknown
+ENV COMMIT_SHA=$SOURCE_COMMIT
 COPY --from=builder --chown=node:node /app .
 USER node
 EXPOSE 3000

@@ -63,10 +63,26 @@ you actually see and correct this file if the label differs.
    values — `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL` (for local-dev parity; the
    compose file overrides it for the containers themselves), auth/provider keys, `R2_*`, and `DEPLOY_ENV` set to
    `staging` or `production` to match the environment.
-10. Nothing to configure for `COMMIT_SHA`: Coolify sets `SOURCE_COMMIT` automatically for git-based builds, and
-    `infra/docker-compose.yml`'s build args already fall back to it. Only revisit this if you find the installed
-    Coolify version exposes the commit under a different variable name — if so, either rename it to
-    `SOURCE_COMMIT` in Coolify's build settings or set `COMMIT_SHA` explicitly there, and update this note.
+10. Nothing to configure for `COMMIT_SHA` going forward — but if this application was created before the
+    Follow-up F2 fix, it likely still carries two **locked** Environment Variables named `SOURCE_COMMIT` and
+    `COMMIT_SHA`, both stuck at the literal value `unknown`. Diagnosis (read from Coolify's own source on the box,
+    `app/Jobs/ApplicationDeploymentJob.php`): any `${VAR}` written anywhere in `infra/docker-compose.yml` —
+    `build.args` included — gets parsed by Coolify into a permanent application environment variable defaulting to
+    that `${VAR:-fallback}` expression's fallback. Once such a variable exists, Coolify feeds *its stored value*
+    back into the build as that build arg on every deploy, permanently pinning it, regardless of what the compose
+    file's fallback logic would otherwise resolve to. Coolify does still auto-inject a real `SOURCE_COMMIT`
+    directly onto the **running container** at deploy time (not the build) whenever no such variable exists —
+    `apps/web/app/healthz/route.ts` reads that as a fallback if `COMMIT_SHA` comes back `unknown`. If this
+    application predates the fix, clean it up once, in order — **do not consider `commit: unknown` fixed until
+    step (e) below**:
+    - (a) Merge the Follow-up F2 change (removes every `${COMMIT_SHA...}`/`${SOURCE_COMMIT...}` reference from
+      `infra/docker-compose.yml`).
+    - (b) Staging auto-deploys on the merge. `commit` may still read `unknown` right after this — the locked
+      `SOURCE_COMMIT=unknown` variable still exists at this point; that's expected, not a failure.
+    - (c) In the resource's **Environment Variables** tab, delete `SOURCE_COMMIT` and `COMMIT_SHA` — now deletable
+      because the compose file no longer references either.
+    - (d) Press **Redeploy**.
+    - (e) `curl -s https://staging.41prompts.ai/healthz` now equals `git rev-parse origin/main`.
 11. **Domains** tab, `web` service only: set `staging.41prompts.ai` (staging environment) and
     `app.41prompts.ai` (production environment). Leave `worker`, `postgres`, and `backup` without a domain —
     they're not web-facing. Let Coolify issue TLS (Let's Encrypt) once DNS resolves.
