@@ -1,7 +1,5 @@
-41Prompts Proprietary Licence
-
 Copyright 2026 <legal entity>. All rights reserved.
 
-This software is proprietary and confidential. No licence, express or implied, is granted to
-use, copy, modify, merge, publish, distribute, sublicense, or sell copies of this software
-without the prior written permission of <legal entity>.
+This software is proprietary and confidential. No licence is granted to use, copy,
+modify, distribute, or create derivative works of it except under a written agreement
+with <legal entity>.

@@ -13,6 +13,20 @@ Status: accepted · 2026-08-19 · revised 2026-09-04 after the licensing review
 - **Trademark:** knockout search in EPIC-006; word mark "41PROMPTS" filed at CIPO and USPTO, classes 9 and 42, with Paris priority, no later than the loud launch (EPIC-035). Logo filed when final. `TRADEMARKS.md` in the public repo.
 - **Copyright holder:** `<legal entity>` placeholder until incorporation. Founder-to-company IP assignment executed before EPIC-056.
 
+## Proprietary licence text
+
+`LICENSES/LicenseRef-41Prompts-Proprietary.txt`, verbatim:
+
+```
+Copyright 2026 <legal entity>. All rights reserved.
+
+This software is proprietary and confidential. No licence is granted to use, copy,
+modify, distribute, or create derivative works of it except under a written agreement
+with <legal entity>.
+```
+
+SPDX headers in public source files follow a shebang line where one exists; the header is then lines 2–3.
+
 ## Why
 
 - Developers will only run our SDK inside their app if they can read it and their scanners accept it. Apache-2.0 passes every default allow-list; source-available licences do not.
