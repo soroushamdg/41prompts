@@ -6,9 +6,9 @@ module.exports = {
       severity: "error",
       comment:
         "core, cli, and sdk-ts may import only each other, Node builtins, or their own declared " +
-        "dependencies (CLAUDE.md rule 11) — never packages/db, packages/ui, or apps/*.",
+        "dependencies (CLAUDE.md rule 11) — never packages/db, packages/ui, packages/logger, or apps/*.",
       from: { path: "^packages/(core|cli|sdk-ts)/src" },
-      to: { path: "^(packages/(db|ui)/|apps/)" }
+      to: { path: "^(packages/(db|ui|logger)/|apps/)" }
     },
     {
       name: "core-is-pure",
