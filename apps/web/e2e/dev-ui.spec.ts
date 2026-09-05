@@ -24,13 +24,18 @@ test.describe("design system gallery (/dev/ui)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 
+  // maxDiffPixelRatio: the baseline was generated inside mcr.microsoft.com/playwright:v1.63.0-noble
+  // (matching CI's ubuntu-latest platform, since this repo has no macOS runner) rather than on
+  // GitHub's actual runner image, and font hinting/anti-aliasing differs by a few hundred pixels
+  // (~0.02% of the page) between the two even on the same OS family. A real regression — wrong
+  // colour, missing component, layout shift — moves thousands to millions of pixels, not hundreds.
   test("visual regression: light theme", async ({ page }) => {
-    await expect(page).toHaveScreenshot("gallery-light.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("gallery-light.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test("visual regression: dark theme", async ({ page }) => {
     await setTheme(page, "dark");
-    await expect(page).toHaveScreenshot("gallery-dark.png", { fullPage: true });
+    await expect(page).toHaveScreenshot("gallery-dark.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
   });
 
   test("keyboard: Button is reachable and activatable by keyboard, with a visible focus ring", async ({ page }) => {
