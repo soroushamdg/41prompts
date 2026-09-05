@@ -24,10 +24,16 @@ project key on both apps; `SENTRY_AUTH_TOKEN` moved to GitHub Actions. Productio
 epic's code for the first time via tag `v0.0.2`. Re-verified: PostHog's signup/login criterion is
 now definitively confirmed (the `401` errors that reliably appeared before are now reliably
 absent, on the identical code path). Sentry's config and code are confirmed correct and exercised
-for real on staging (`/dev/throw`) — the one thing this session still can't do is read Sentry's
+for real on staging (`/dev/throw`) — the one thing this session still couldn't do is read Sentry's
 own dashboard to see the resulting issue, having no read-scoped credential for it. **9 of 11
-acceptance criteria are now fully confirmed** (see "Acceptance criteria" below for the complete,
-current status of all eleven).
+acceptance criteria fully confirmed** at the end of this session (see "Acceptance criteria" below).
+
+**Update, fourth session — Soroush confirmed the Sentry web issue by eye.** He saw the `/dev/throw`
+issue in the Sentry web project directly, closing the one gap this session's own tooling couldn't:
+no read-scoped Sentry credential ever existed here to check it programmatically. **10 of 11
+acceptance criteria are now fully confirmed** — only "same for the worker" remains open, since
+that confirmation was specifically for the web project and the worker still has no natural error
+to test against (see the "Acceptance criteria" section for the current status of all eleven).
 
 ## Built
 
@@ -276,10 +282,10 @@ case, and not something fixable without values only Soroush's dashboards hold:**
 The exact env-var names and account-setup steps are in `infra/README.md`'s new "Observability
 secrets" section; this is the acceptance-criteria-level summary.
 
-1. **A thrown error on staging appears in Sentry, tagged with environment and commit** (web and
-   worker) — needs the Sentry projects + `NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN` set in Coolify and
-   a real deploy. The route/init code is done and locally confirmed inert-when-unset; the actual
-   Sentry-side evidence (an issue) can't exist without the account.
+1. ~~A thrown error on staging appears in Sentry, tagged with environment and commit (web)~~ —
+   **done**, Soroush confirmed the `/dev/throw` issue by eye in the Sentry web project. **The
+   worker half is still open**: it needs a real worker error to test against, which hasn't
+   happened naturally and wasn't manufactured on staging without being asked to.
 2. **`signup`/`login` events appear in PostHog with a user id and no email** — same shape: needs
    `NEXT_PUBLIC_POSTHOG_KEY` and a real deploy. The call sites are done and confirmed to no-op
    safely without a key (see the manual verification above); the PostHog-side evidence (an event
@@ -304,20 +310,18 @@ and evidenced above.
 
 ## Acceptance criteria
 
-- [~] A thrown error on staging appears in Sentry within a minute, tagged with environment and
-      commit, readable stack frame. **Config fixed and re-verified, dashboard sighting
-      unconfirmed.** Coolify now has `NEXT_PUBLIC_SENTRY_DSN` on both apps (re-checked via a
-      read-only `GET .../envs`, both the old `SENTRY_DSN_WEB` name and `SENTRY_AUTH_TOKEN` are
-      gone from Coolify). `/dev/throw` fired again post-redeploy (500, logged). What this session
-      cannot do: read Sentry's own dashboard/API to confirm the issue actually landed — no
-      Sentry auth token with read scope was shared, and Sentry's SDK is silent on both success and
-      most failure by default (unlike PostHog's loud error below), so log silence isn't proof
-      either way. **Needs Soroush to glance at the Sentry project once, or share a read-scoped
-      token, to fully close this.**
-- [~] Same for the worker. Same config-fixed status (`SENTRY_DSN` confirmed present, correctly
-      named, on both apps) — but the worker had no natural error to test against even before, and
-      still doesn't (its logs are clean heartbeats). Deliberately did not induce an artificial
-      worker failure on staging without being asked to. Same dashboard-sighting caveat as above.
+- [x] A thrown error on staging appears in Sentry within a minute, tagged with environment and
+      commit, readable stack frame. **Confirmed.** Coolify has `NEXT_PUBLIC_SENTRY_DSN` on both
+      apps (re-checked via a read-only `GET .../envs`, both the old `SENTRY_DSN_WEB` name and
+      `SENTRY_AUTH_TOKEN` are gone from Coolify); `/dev/throw` fired post-redeploy (500, logged);
+      Soroush confirmed by eye that the resulting issue is visible in the Sentry web project —
+      this session had no read-scoped Sentry credential to check that half itself.
+- [ ] Same for the worker. **Still open.** Same config-fixed status (`SENTRY_DSN` confirmed
+      present, correctly named, on both apps) as the web criterion above, but the worker had no
+      natural error to test against even before, and still doesn't (its logs are clean
+      heartbeats) — deliberately did not induce an artificial worker failure on staging without
+      being asked to, and Soroush's confirmation above was specifically the web project's issue,
+      not a worker one.
 - [x] `signup`/`login` events appear in PostHog with a user id and no email. **Confirmed.** A
       second real signup+login round trip against staging, post-fix: the two `PostHogFetchHttpError
       401` lines that appeared every time before are now **absent** — `grep -c PostHog` over a
@@ -351,12 +355,13 @@ and evidenced above.
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `gitleaks` clean. Evidence above.
 - [x] Report and session log written; backlog updated.
 
-**Summary after two verification passes:** 9 of 11 criteria fully confirmed (up from 7). The
-PostHog signup/login criterion is now definitively closed. The two Sentry criteria have every
-piece of config and code confirmed correct and exercised for real — the only remaining gap is a
-direct look at Sentry's own dashboard, which this session has no credential to do itself. Uptime
-and the PostHog dashboard remain exactly where they were: both need one more concrete action
-(check a phone / run one script with a key) that only Soroush can supply the missing piece for.
+**Summary after three verification passes:** 10 of 11 criteria fully confirmed (up from 7). The
+PostHog signup/login criterion is definitively closed, and Soroush has now confirmed the web
+Sentry criterion by eye in the Sentry UI — this session never held a read-scoped Sentry credential
+to check that half itself. The worker's Sentry criterion is still open — it needs a real worker
+error to test against, which hasn't happened naturally and wasn't manufactured on staging without
+being asked. Uptime and the PostHog dashboard remain exactly where they were: both need one more
+concrete action (check a phone / run one script with a key) that only Soroush can supply.
 
 ## Verification
 
