@@ -9,6 +9,12 @@ RUN pnpm dlx turbo@2.10.12 prune @41prompts/worker --docker
 
 FROM base AS runner
 ENV NODE_ENV=production
+# Named SOURCE_COMMIT, not COMMIT_SHA, for the same reason as apps/web/Dockerfile: Coolify
+# auto-declares an ARG of this exact name for every git-based compose build. Read at runtime by
+# apps/worker/src/sentry.ts (release tag) — this app runs straight from TS source via tsx, so
+# there's no build step to bake it into, just an env var the process reads.
+ARG SOURCE_COMMIT=unknown
+ENV COMMIT_SHA=$SOURCE_COMMIT
 COPY --from=pruner /app/out/json/ .
 RUN pnpm install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .

@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "@41prompts/db": "workspace:*",
+    "@41prompts/logger": "workspace:*",
+    "@sentry/node": "^10.73.0",
     "drizzle-orm": "^0.45.2",
     "pg-boss": "^12.30.0",
     "tsx": "^4.23.13"
