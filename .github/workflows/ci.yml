@@ -8,6 +8,34 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: 41p
+          POSTGRES_PASSWORD: 41p
+          POSTGRES_DB: 41p
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U 41p -d 41p"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://41p:41p@localhost:5432/41p
+      DEPLOY_ENV: development
+      BETTER_AUTH_SECRET: ci-secret-not-for-prod-0123456789
+      BETTER_AUTH_URL: http://localhost:3000
+      # Non-secret placeholders — never real credentials. Better Auth needs a clientId/Secret
+      # pair to construct its Google/GitHub providers at startup, but nothing in this suite
+      # drives an actual OAuth round trip (that's verified by hand against staging, see
+      # docs/epics/EPIC-002-data-and-auth.md's acceptance criteria); the magic-link Playwright
+      # tests read the verification token straight from the database instead.
+      GOOGLE_CLIENT_ID: ci-google-client-id
+      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      GITHUB_CLIENT_ID: ci-github-client-id
+      GITHUB_CLIENT_SECRET: ci-github-client-secret
     steps:
       - uses: actions/checkout@v4
 
@@ -24,7 +52,14 @@ jobs:
 
       - run: pnpm typecheck
 
+      - run: pnpm db:migrate
+
       - run: pnpm test
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm e2e
 
       - uses: actions/setup-python@v5
         with:

@@ -1,3 +1,6 @@
-import { main } from "./main.js";
+import { main } from "./main";
 
-main();
+main().catch((error: unknown) => {
+  console.error("worker failed to start", error);
+  process.exit(1);
+});
