@@ -180,6 +180,47 @@ calls Coolify's deploy webhook; Coolify's job shrinks to "pull this tag and rest
 
 Rollback procedure and its timed run are in `infra/RUNBOOK.md`'s "Roll back a deploy" section.
 
+## Auth secrets (EPIC-002, 2026-09-05)
+
+Six secrets plus one non-secret, environment-specific URL, needed once before staging/production
+sign-in works. All of them arrive the same way every other secret has (step 9): **Coolify UI →
+that environment's application → Environment Variables tab** — never by editing
+`infra/docker-compose.staging.yml`/`.production.yml` (see the `${...}` warning in step 9). Set
+each one separately for the staging application and the production application; decision 8 is
+explicit that staging and production never share an OAuth app, a secret, or a callback URL.
+
+1. **`BETTER_AUTH_URL`** — not secret, but still only reaches the container through this same
+   Environment Variables tab. Staging: `https://staging.41prompts.ai`. Production:
+   `https://app.41prompts.ai`.
+2. **`BETTER_AUTH_SECRET`** — generate a distinct value per environment:
+   `openssl rand -base64 32`.
+3. **Google OAuth** — two separate OAuth 2.0 Client IDs (Google Cloud Console → APIs & Services
+   → Credentials → Create Credentials → OAuth client ID → Application type **Web
+   application**), one per environment:
+   - Authorized JavaScript origins: `https://staging.41prompts.ai` (staging) /
+     `https://app.41prompts.ai` (production).
+   - Authorized redirect URIs: `https://staging.41prompts.ai/api/auth/callback/google`
+     (staging) / `https://app.41prompts.ai/api/auth/callback/google` (production) — confirmed
+     against a real local sign-in, this is exactly the URL Better Auth's `signInSocial`
+     constructs from `BETTER_AUTH_URL`, not a guess.
+   - Set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` per environment.
+4. **GitHub OAuth** — two separate OAuth Apps (GitHub → Settings → Developer settings → OAuth
+   Apps → New OAuth App), one per environment:
+   - Homepage URL: same as `BETTER_AUTH_URL` for that environment.
+   - Authorization callback URL: `https://staging.41prompts.ai/api/auth/callback/github`
+     (staging) / `https://app.41prompts.ai/api/auth/callback/github` (production) — same
+     confirmation as Google's above.
+   - Set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` per environment.
+5. **Resend** — one account covers both environments (it's an email-sending account, not a
+   per-environment credential like the OAuth apps): create it, verify the sending domain used
+   by `apps/web/lib/email.ts` (`sign-in@41prompts.ai` — verify `41prompts.ai` itself, or
+   whichever domain that address's domain part actually is by the time this runs, in Resend's
+   **Domains** tab, adding the SPF/DKIM DNS records it gives you), then create an API key and
+   set `RESEND_API_KEY` in both environments' Environment Variables tabs.
+
+None of the four OAuth client-secret/API-key values above are ever pasted into a Claude Code
+session or committed anywhere — Soroush sets all six directly in the Coolify UI.
+
 ## Why some things are the way they are
 
 - **`postgres`, `web`, and its published ports are bound to `127.0.0.1`, not the open internet.** `ufw` (step 4)
