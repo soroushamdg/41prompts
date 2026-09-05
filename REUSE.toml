@@ -1,0 +1,75 @@
+version = 1
+SPDX-PackageName = "41prompts"
+SPDX-PackageSupplier = "<legal entity>"
+SPDX-PackageDownloadLocation = "https://github.com/41prompts/41prompts"
+
+# CLAUDE.md's own rule: public packages (packages/core, packages/cli, packages/sdk-ts,
+# sdks/python) carry a real SPDX header on every source file, checked in directly — that's
+# already done and needs no annotation here. Everything else in the repo is proprietary
+# (LicenseRef-41Prompts-Proprietary) and, per the same established convention (see
+# docs/epics/reports/EPIC-003-report.md's "packages/ui gets no SPDX header comment at all,
+# matching packages/db's existing convention"), is covered here in bulk rather than by adding a
+# header comment to every config file, doc, and proprietary source file individually — many of
+# these (JSON, SQL, .env.example, .gitignore, lockfiles) cannot carry a comment header at all.
+
+[[annotations]]
+path = [
+  ".dependency-cruiser.cjs",
+  ".dockerignore",
+  ".editorconfig",
+  ".env.example",
+  ".gitignore",
+  ".nvmrc",
+  ".prettierignore",
+  ".prettierrc.json",
+  "CLAUDE.md",
+  "CONTRIBUTING.md",
+  "README.md",
+  "eslint.config.js",
+  "package.json",
+  "playwright.config.ts",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "tsconfig.base.json",
+  "tsconfig.depcruise.json",
+  "turbo.json",
+  ".github/**",
+  "apps/**",
+  "docs/**",
+  "infra/**",
+  "packages/db/**",
+  "packages/logger/**",
+  "packages/ui/**",
+  "scripts/**",
+]
+SPDX-FileCopyrightText = "2026 <legal entity>"
+SPDX-License-Identifier = "LicenseRef-41Prompts-Proprietary"
+
+# The four public packages' own non-source files (package metadata, project config, the NOTICE
+# REUSE itself requires a licence for) ship as part of the same public artifact as their `src`
+# (or `fortyone`/`tests`) trees, which already carry real Apache-2.0 headers — these get the same
+# licence, not the repo-wide proprietary default above, since they are the public package.
+[[annotations]]
+path = [
+  "packages/cli/NOTICE",
+  "packages/cli/README.md",
+  "packages/cli/package.json",
+  "packages/cli/tsconfig.json",
+  "packages/cli/turbo.json",
+  "packages/core/NOTICE",
+  "packages/core/README.md",
+  "packages/core/package.json",
+  "packages/core/tsconfig.json",
+  "packages/core/turbo.json",
+  "packages/sdk-ts/NOTICE",
+  "packages/sdk-ts/README.md",
+  "packages/sdk-ts/package.json",
+  "packages/sdk-ts/tsconfig.json",
+  "packages/sdk-ts/turbo.json",
+  "sdks/python/NOTICE",
+  "sdks/python/README.md",
+  "sdks/python/pyproject.toml",
+  "sdks/python/uv.lock",
+]
+SPDX-FileCopyrightText = "2026 <legal entity>"
+SPDX-License-Identifier = "Apache-2.0"
