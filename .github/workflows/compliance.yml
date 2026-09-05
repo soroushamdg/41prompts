@@ -1,0 +1,89 @@
+name: Compliance
+
+# EPIC-007 decision 7: every compliance check runs on pull requests and on main -- a check that
+# only runs nightly is a check nobody trusts. Split into parallel jobs (decision: "if the whole
+# set exceeds three minutes, split the slow job rather than dropping a check") rather than one
+# long serial job; `pnpm compliance` is the same set, run locally with one command.
+#
+# ADR-002 is the licensing/repo-split decision every one of these checks enforces: packages/core,
+# packages/cli, packages/sdk-ts, sdks/python are the four public packages (Apache-2.0); everything
+# else is LicenseRef-41Prompts-Proprietary.
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  reuse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: fsfe/reuse-action@v5
+
+  boundaries-and-forbidden-words:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm boundaries
+      - run: pnpm exec turbo boundaries
+      - run: pnpm forbidden-words
+
+  license-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/license-gate.mjs --sbom sbom
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom/sbom.cdx.json
+
+  mirror-dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history: this job's own script does its own separate `git clone` from this
+      # checkout, then filters *that* clone with git-filter-repo -- a shallow checkout here
+      # would silently truncate the history the dry-run is supposed to prove survives filtering.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v3
+      - run: pnpm mirror-dry-run
+
+  # SBOM is generated on every run (license-gate above) so the gate and the artifact are always
+  # the same computation; it's only *attached to a release* on an actual v* tag (decision 4).
+  attach-sbom-to-release:
+    needs: license-gate
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: sbom
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" --generate-notes || true
+          gh release upload "${{ github.ref_name }}" sbom/sbom.cdx.json --repo "${{ github.repository }}" --clobber

@@ -62,7 +62,7 @@ files) specifically so the "no hardcoded literal" acceptance criterion is mechan
   different, reproducible ways before that.
 - **`packages/ui` gets no SPDX header comment at all**, matching `packages/db`'s existing
   convention (proprietary packages carry none — only `packages/core` does, being public). First
-  draft invented a `SPDX-License-Identifier: NOASSERTION` comment for the new CSS files; caught by
+  draft invented a <!-- REUSE-IgnoreStart -->`SPDX-License-Identifier: NOASSERTION`<!-- REUSE-IgnoreEnd --> comment for the new CSS files; caught by
   checking sibling proprietary packages before committing, removed.
 - **ADR-003 vocabulary corrections extended to every new UI string, not just the ones the epic
   file names.** `docs/design/README.md`'s corrections list covers "labelled"→"named" and
