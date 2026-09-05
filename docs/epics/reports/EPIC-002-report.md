@@ -278,3 +278,38 @@ nothing.
   behaviour") — `hashApiKey`/`verifyApiKey` exist and are tested, but nothing calls them yet.
   Whichever epic first issues a real key should reuse them rather than re-deriving the same
   logic.
+
+---
+
+## Follow-up (2026-09-05, same day)
+
+Squash-merging PR #8 immediately surfaced a real bug that no local check before merge caught:
+`.github/workflows/build-images.yml`'s `next build` — a separate CI workflow from the one this
+report's Verification section covers, and the only one that actually runs `next build` rather
+than `next dev`/`vitest`/Playwright — failed twice. First attempt was a transient
+corepack/pnpm-download `AssertionError` inside the Docker build sandbox, unrelated to this
+epic's code (confirmed by it not recurring). Second attempt failed for real: `next build`
+imports every route/page module to collect its config and, for anything under `/app/*`,
+attempts to statically prerender it — both run in the GitHub Actions build container, which
+never has `DATABASE_URL`/`BETTER_AUTH_SECRET`/OAuth vars (Coolify runtime env only,
+injected at container start, not present at image-build time). `lib/db.ts` and `lib/auth.ts`
+threw at module-import time by design (fail fast on a missing secret), which is exactly what
+broke the build.
+
+Reproduced locally before touching anything (`env -u DATABASE_URL ... pnpm build` inside
+`apps/web`), fixed with a lazy-singleton pattern (`getDb()`/`getAuth()`, constructed on first
+real call, not at import time) rather than removing the fail-fast checks, and every consumer
+(the `[...all]` route, `requireSession`, both action files, the rate-limit test) updated to
+call the getter instead of importing a top-level constant. Hit a second, more subtle version of
+the same root cause fixing the first: `requireSession`'s `getAuth().api.getSession({ headers:
+await headers() })` called `getAuth()` before `headers()` ever ran, in the same expression —
+`headers()` is the dynamic-API call Next.js needs to see *before* anything throws, to know a
+route can't be prerendered and to skip trying. Reordered to call and await `headers()` on its
+own line first. Confirmed both fixes together: `pnpm build` succeeds locally with none of the
+six auth env vars set, and the build's own route table shows `/app`, `/app/account`,
+`/app/account/delete`, and `/api/auth/[...all]` all marked dynamic (`ƒ`), not static.
+
+Pushed directly to `main` (commit `bd7a562`, no new PR — the epic branch was already deleted
+after the squash-merge, and this is a build-breaking fix, not new scope) under the same
+autonomy as the rest of this epic. Full local `pnpm typecheck && pnpm lint && pnpm test && pnpm
+e2e` re-run clean after the fix, before pushing.
