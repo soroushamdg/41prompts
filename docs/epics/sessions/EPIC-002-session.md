@@ -102,7 +102,7 @@ Soroush's checklist (sent the same session, before the merge) is done. This is a
 outage window on staging (not production — nothing here has been tagged `v*`), not a hypothetical
 follow-up item.
 
-**Open questions.**
+**Open questions (at end of first session).**
 - The staging checklist itself — OAuth apps ×2, Resend account + domain verification, six Coolify
   secrets — sent to Soroush in the same message as this session's summary. Once done: confirm the
   staging `web` container comes back healthy, then run the three sign-in methods for real and the
@@ -110,3 +110,40 @@ follow-up item.
 - `__Host-` vs `__Secure-` — a deliberate trade against the installed library version, not an
   unresolved question, but worth a second look if a future epic ever needs
   `crossSubDomainCookies`.
+
+## Follow-up session (2026-09-05, same day)
+
+**Prompt sent.** All seven values set in staging and production; sender is
+`onboarding@resend.dev` for now; redeploy and run the real Google, GitHub, and magic-link
+verifications.
+
+**What happened.** `apps/web/lib/email.ts` still hard-coded `sign-in@41prompts.ai` as the
+sender — an unverified domain, which would have made every send fail. Fixed to
+`onboarding@resend.dev`, documented as an interim placeholder in `infra/README.md`, pushed
+(`9b0c5f7`), confirmed green, redeployed. Ran the real magic-link flow against staging
+end-to-end — request, read the token from the real `verifications` table over SSH (read-only,
+password never touched by this session per `infra/ACCESS.md` rule 7: the remote shell resolves
+`$POSTGRES_PASSWORD` from the container's own environment, never passed through here), verify,
+confirm the `__Secure-...; Secure; HttpOnly; SameSite=Lax` cookie and `/app` showing the email.
+Initiated real Google and GitHub OAuth sign-in against staging and followed each redirect to
+confirm both land on the provider's real login page (Google's account picker, GitHub's actual
+sign-in form) rather than a client/redirect-uri error — the strongest verification possible
+without a real account's credentials, which this session doesn't have and didn't request.
+Grepped staging web/worker logs for the test address (clean), deleted the test user/session/
+verification rows afterward.
+
+**Decision.** Epic marked done. A full interactive Google/GitHub login is the one thing left
+that only Soroush can complete (real credentials required) — the report's Follow-up section
+says exactly what to check (the resulting `accounts`/`sessions` rows, read-only) if that
+stronger proof is wanted later; it isn't a blocker on marking the epic done, since the
+integration itself — client id/secret, callback URL, the whole request/redirect chain — is
+confirmed correctly wired.
+
+**Verification output (tail).** See `docs/epics/reports/EPIC-002-report.md`'s "Follow-up
+(2026-09-05, staging verification)" section for the full transcript.
+
+**Open questions.**
+- One real Google and one real GitHub login on staging, if Soroush wants the stronger proof —
+  optional, not blocking, see the report.
+- `41prompts.ai` domain verification in Resend, so magic-link email actually reaches real users
+  instead of only the account holder (`infra/README.md`'s Resend step now flags this).
