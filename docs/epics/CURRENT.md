@@ -1,93 +1,86 @@
-# EPIC-002: Data layer and auth
-Stage: 0 · Depends on: EPIC-001, EPIC-008 · Size: M
+# EPIC-003: Design system
+Stage: 0 · Depends on: EPIC-000 · Size: M
 
 ## Goal
-A person signs in to `https://staging.41prompts.ai` with Google, GitHub, or an emailed link, lands on an empty
-authenticated page, and can delete their account. Their row lives in our Postgres. Nothing about a user is stored
-in a third party. The schema baseline every later epic builds on exists, with migrations that run on deploy.
+`packages/ui` holds the Resolution design system: one token set driving light and dark, and the base components
+every later screen is assembled from, each keyboard-operable, touch-sized, screen-reader-correct, and
+reduced-motion-safe. A gallery at `/dev/ui` proves it. No epic after this one invents a colour, a spacing value,
+or a component.
 
-## Division of labour
-Claude Code implements everything in the repo and verifies on staging. Soroush creates the two OAuth apps and the
-Resend account and sets six secrets in Coolify; ask for all of them in **one** checklist message, with exact
-callback URLs, at the moment they are first needed.
+## Source of truth
+`docs/design/41prompts-full-mockup.html` for tokens and every screen; `docs/design/41prompts-neobrutalism-variants.html`
+(V2 Muted Ink = app, V5 Soft = lesson mode, V1 Full Send = marketing only);
+`docs/design/41prompts-illustration-system.html` for empty states, copied verbatim;
+`docs/design/README.md` for the corrections that override the prototypes. When a prototype and this file disagree,
+this file wins; say so in the report.
 
 ## Decisions (do not re-litigate)
-1. **Better Auth**, users in our Postgres, Drizzle adapter. No Clerk, no Auth.js.
-2. **Three methods**: Google, GitHub, and magic link by email via Resend. No passwords anywhere; a password field
-   is a credential to leak and a reset flow to build.
-3. **Session**: cookie, `httpOnly`, `secure`, `sameSite=lax`, `__Host-` prefix where the path allows it, 30-day
-   rolling expiry, rotated on sign-in. Sessions are rows in our database, not JWTs; sign-out must be able to kill
-   a session server-side.
-4. **Schema baseline** (Drizzle, `packages/db`): Better Auth's own tables (`users`, `sessions`, `accounts`,
-   `verifications`) with its id shape; our tables use the prefixed ids from `CLAUDE.md` (`proj_` + 4 hex,
-   `pr_` + 8 hex). Create now, empty of behaviour: `projects` (id, owner, name, slug, created_at, deleted_at),
-   `api_keys` (id, project, name, hashed key, last_four, created_at, last_used_at, revoked_at — no key material
-   in plaintext, ever). Do not create `prompts`, `bloks`, `runs`; those belong to the epics that use them.
-5. **Soft delete + purge**: `users.deleted_at` set immediately on request, session killed, sign-in refused; a
-   daily pg-boss job in `apps/worker` hard-deletes rows older than 30 days, cascading to owned projects and keys.
-   The window is a product promise; make it a named constant, not a literal.
-6. **Route protection**: middleware guards `/app/*`; unauthenticated requests redirect to `/sign-in?next=<path>`
-   and land back on `<path>` after sign-in. `next` is validated as a same-origin relative path — an open
-   redirect here is the classic phishing hole.
-7. **UI is deliberately plain.** EPIC-003 builds the design system and EPIC-016 the real pages; anything styled
-   now is thrown away. Sign-in, sign-up, the empty `/app` page and the account page use semantic HTML, correct
-   labels and focus order, and nothing else. Vocabulary rules (ADR-003) still apply to every string.
-8. **Separate OAuth apps for staging and production**, separate secrets, separate callback URLs. Never one app
-   with two callbacks.
-9. **Rate limits** on the magic-link endpoint (per email and per IP) from day one; an unthrottled email sender is
-   an abuse vector that costs money.
-10. **Email**: Resend, plain-text-first templates, the sender domain verified (SPF/DKIM). Link expires in 15
-    minutes, single use, invalidated on use.
+1. Tokens live in `packages/ui` as Tailwind v4 `@theme` custom properties, defined once and inverted for
+   `[data-theme=dark]`. Extract the exact values from the mockup's `:root`; do not re-pick colours by eye.
+2. Two surface languages, as the prototypes encode: **interactive** elements get a 2px ink border and a hard
+   offset shadow; **data** surfaces get a hairline, no shadow, no radius. A component is one or the other.
+3. Green, red, amber mean pass, fail, drift, and nothing else (rule 10). Every pass/fail is also carried by an
+   icon and text, never colour alone. Amber appears only in drift components; "unsaved" and cost deltas use
+   neutral ink (README correction).
+4. Highlight is ink inversion, not a colour wash. Blok category colours appear only during interaction.
+5. Theme is chosen by the user and stored in a cookie, read server-side so the first paint is correct; default
+   follows `prefers-color-scheme`. No flash of the wrong theme.
+6. `prefers-reduced-motion` shows every animation's end state; it never skips the state change (rule 12).
+7. Touch targets are at least 44px on small viewports for every interactive element; hover is never the only way
+   to reach information.
+8. Components are presentational and typed. No data fetching, no router, no application state in `packages/ui`.
+9. `packages/ui` is proprietary and may never be imported by a public package (rule 11).
+10. Vocabulary (ADR-003) applies to every string, prop name, and variant name: blok, span, check, version, Draft,
+    Live, Publish, Publish anyway, Undo, edited by hand, update from blok. Never block, assertion, label, pointer,
+    artifact, promote, enum, sha, reconcile, drifted.
 
 ## Scope
-- `packages/db`: schema above, generated migration, `db:migrate` already runs at container start (EPIC-001), seed
-  script creating one user and one project for local work only.
-- `apps/web`: Better Auth setup, three providers, `/sign-in`, `/sign-up`, `/app` (authenticated, empty, shows the
-  signed-in email and a sign-out control), `/app/account` with delete, middleware, magic-link rate limit.
-- `apps/worker`: `purge-deleted-users` job, scheduled daily, idempotent, logs counts.
-- `.env.example`: every new variable, commented. `infra/README.md`: the six secrets and where they come from.
-- Tests: Playwright — magic-link sign-up end to end (read the verification token from the database, do not scrape
-  an inbox), unauthenticated `/app` redirect, `next` round-trip, sign-out kills the session. Vitest — purge job
-  with an injected clock at 29 and 31 days, `next` validation rejects absolute and protocol-relative URLs, api key
-  hashing.
+- Tokens: colour, ink, surface, spacing scale, radii, border widths, shadow offsets, typography scale, focus ring.
+- Components: Button (variants and sizes), Pill, Badge with icon variants (pass ✓, fail ✕, drift !), Tag, BlokCard,
+  Table, KpiStrip, Sheet, Switch, Input, Textarea, Tabs (full ARIA tabs pattern, arrow keys, `aria-controls`),
+  Callout, Meter. shadcn primitives only for Dialog, Dropdown, Popover, restyled to these tokens.
+- Motion primitives honouring reduced motion.
+- Theme provider + cookie; `ThemeToggle`.
+- The eight illustrations, copied verbatim, exposed as components for empty states.
+- `/dev/ui` gallery in `apps/web`, every component in every variant and state, both themes; reachable on staging
+  and in development, `noindex`, and not linked from any user-facing navigation.
+- A contrast script in CI that fails on any token pair below WCAG AA for its use.
 
 ## Out of scope
-- Teams, invitations, roles, SSO. (Cut list; v1 is single-user.)
-- Any prompt, blok, or run schema. (EPIC-020 onward.)
-- PostHog identify, Sentry user context. (EPIC-004.)
-- Styling, the real sign-in page, marketing copy. (EPIC-003, EPIC-016.)
-- Billing, plans, quotas. (EPIC-070.)
+- Any product screen, page, or route other than `/dev/ui`. (EPIC-013, EPIC-016, EPIC-021.)
+- The logo animation. (EPIC-016.)
+- Lesson-mode styling beyond noting V5 Soft exists. (EPIC-060.)
+- Charts, heatmaps, diff views. (Stage 3–4, built from these tokens then.)
 
 ## Acceptance criteria
-- [ ] `pnpm db:generate` produces one migration; a fresh database migrates cleanly and a second `db:migrate` is a
-      no-op. Evidence: output.
-- [ ] On staging: sign in with Google, with GitHub, and with a magic link; each lands on `/app` showing the email.
-      Evidence: three screenshots or the session rows queried read-only.
-- [ ] Unauthenticated `GET /app` redirects to `/sign-in?next=/app`; after signing in the browser lands on `/app`.
-      Evidence: Playwright test name.
-- [ ] `next=https://evil.example` and `next=//evil.example` are rejected. Evidence: test name.
-- [ ] Session cookie on staging has `Secure`, `HttpOnly`, `SameSite=Lax`. Evidence: response header, secrets
-      redacted.
-- [ ] Sign-out invalidates the session server-side (the old cookie cannot reach `/app`). Evidence: test name.
-- [ ] Account delete sets `deleted_at`, kills the session, and refuses re-sign-in; the purge job removes the row
-      after 30 days and not before. Evidence: two test names with the injected clock.
-- [ ] Magic-link rate limit returns a clear message after the threshold, per email and per IP. Evidence: test name.
-- [ ] No user email, name, or token appears in any log line. Evidence: grep over the staging web and worker logs
-      for the test account's address, read-only, returning nothing.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `gitleaks` clean; forbidden-word grep over UI strings passes.
-- [ ] Report and session log written; `docs/backlog.md` status updated.
+- [ ] Every token in the mockup's `:root` and `[data-theme=dark]` exists in `packages/ui`, with a test that fails
+      if a component hard-codes a colour, spacing, or radius literal. Evidence: test name.
+- [ ] `/dev/ui` renders every component and variant in both themes. Evidence: screenshots, light and dark.
+- [ ] Visual regression snapshots for `/dev/ui` in both themes, committed and passing in CI. Evidence: job output.
+- [ ] Axe clean on `/dev/ui` in both themes. Evidence: output.
+- [ ] Contrast script passes; it fails when a token is deliberately broken. Evidence: both runs.
+- [ ] Every interactive component is fully operable by keyboard, with a visible focus ring; Tabs implements the
+      ARIA tabs pattern with arrow keys. Evidence: one test per component.
+- [ ] With `prefers-reduced-motion: reduce`, animated components render their end state and the state change is
+      still observable. Evidence: test name and a screenshot pair.
+- [ ] Touch targets are ≥44px at the small breakpoint. Evidence: test name.
+- [ ] Theme survives reload with no flash of the wrong theme on first paint. Evidence: test name.
+- [ ] Badge and every pass/fail surface carry an icon and text, not colour alone. Evidence: test name.
+- [ ] Forbidden-word grep over `packages/ui` strings and identifiers passes.
+- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint` green; dependency-cruiser confirms no public package imports
+      `packages/ui`.
+- [ ] Report and session log written; backlog updated.
 
 ## Verification
 ```
-pnpm db:generate && pnpm db:migrate && pnpm db:migrate    # second run is a no-op
 pnpm test && pnpm typecheck && pnpm lint
-pnpm e2e
-curl -sI https://staging.41prompts.ai/app                 # 307 to /sign-in?next=/app
+pnpm e2e                       # /dev/ui axe + keyboard + visual regression
+open http://localhost:3000/dev/ui
 ```
 
 ## Notes for the implementer
-- Secrets are set by Soroush in Coolify; never in the repo, never printed (`infra/ACCESS.md` rule 7).
-- `BETTER_AUTH_URL` differs per environment; read it from the environment, never hard-code a host.
-- The purge job must be safe to run twice in the same day and safe to run on an empty table.
-- If a decision here contradicts `CLAUDE.md` or an ADR, write `docs/epics/BLOCKER-EPIC-002.md` and stop rather
-  than reinterpreting.
+- Read the mockup's CSS before writing a single component; the values are decided, not up for interpretation.
+- Build the tokens and two components first, put them on `/dev/ui`, and check them against the mockup side by side
+  before building the other thirteen. A wrong token multiplied across fifteen components is the expensive mistake.
+- Do not add a component that no epic has asked for.
+- If a prototype conflicts with ADR-003 vocabulary or the colour rule, the rule wins; note it in the report.
