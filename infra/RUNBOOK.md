@@ -210,6 +210,30 @@ The last line matters as much as the grant itself: without it, a table added by 
 starts with no grant at all, and Studio silently can't read it until this is re-run. Store the
 generated password the same way any other secret is stored (`~/.41prompts/`, never the repo).
 
+## Proving the Sentry pipeline (EPIC-004)
+
+Both triggers refuse to run in production (`DEPLOY_ENV === "production"`) — dev and staging only.
+
+- **Web**: `curl https://staging.41prompts.ai/dev/throw` (a real route,
+  `apps/web/app/dev/throw/route.ts`; 404s instead of throwing in production).
+- **Worker**: no HTTP server to hang a route off, so it's a one-off script instead
+  (`apps/worker/src/dev-throw.ts`), run inside the deployed container — a `docker exec` command,
+  which is mutating per `infra/ACCESS.md` rule 3 and needs a yes shown against the exact command
+  before running it, same as any other:
+  ```
+  docker exec <worker-container> node --import tsx/esm apps/worker/src/dev-throw.ts
+  ```
+  Find `<worker-container>` with `docker ps --format "{{.Names}}"` (staging's is
+  `worker-pboa5wxrnggay30epiq0pmzd-*`, the suffix changes on every redeploy). Exits `1` either
+  way — refused-in-production and successfully-fired-and-flushed both count as "this script's job
+  was to not exit cleanly." `docker logs <worker-container>` shows the JSON log line either way;
+  the actual Sentry issue needs a look at the `41prompts-worker` project itself (no read-scoped
+  Sentry credential is ever held here — see `infra/ACCESS.md`'s "Who").
+
+In both cases: confirm the resulting Sentry issue is tagged with `environment: staging` and a
+`release` matching the deployed commit (`curl .../healthz` on the same host, same moment, gives
+you that commit to compare against).
+
 ## An alert fired, what now (EPIC-004)
 
 1. **Sentry issue:** open it, read the environment and release tags first — they tell you
