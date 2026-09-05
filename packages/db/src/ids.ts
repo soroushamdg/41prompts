@@ -15,3 +15,7 @@ export function newPromptId(): string {
 export function newApiKeyId(): string {
   return newId("key", 8);
 }
+
+export function newRunBudgetId(): string {
+  return newId("bud", 4);
+}

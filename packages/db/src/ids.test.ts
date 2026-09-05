@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { newApiKeyId, newProjectId, newPromptId } from "./ids";
+import { newApiKeyId, newProjectId, newPromptId, newRunBudgetId } from "./ids";
 
 describe("id generation", () => {
   it("formats project ids as proj_ + 4 hex chars", () => {
@@ -12,6 +12,10 @@ describe("id generation", () => {
 
   it("formats api key ids as key_ + 16 hex chars", () => {
     expect(newApiKeyId()).toMatch(/^key_[0-9a-f]{16}$/);
+  });
+
+  it("formats run budget ids as bud_ + 8 hex chars", () => {
+    expect(newRunBudgetId()).toMatch(/^bud_[0-9a-f]{8}$/);
   });
 
   it("draws unique ids across many calls", () => {

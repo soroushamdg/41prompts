@@ -1,5 +1,5 @@
-import { boolean, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { newApiKeyId, newProjectId } from "./ids";
+import { boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { newApiKeyId, newProjectId, newRunBudgetId } from "./ids";
 
 // Better Auth's own tables. Column keys match Better Auth's internal field names exactly
 // (required for the Drizzle adapter to bind); SQL column names are snake_case per CLAUDE.md.
@@ -17,6 +17,10 @@ export const users = pgTable("users", {
   // Soft delete (decision 5): set immediately on account-delete request, read by the
   // session-create hook to refuse sign-in, and by the worker's purge job.
   deletedAt: timestamp("deleted_at"),
+  // EPIC-004 decision 6's substrate for "per-plan defaults" — there is no billing integration
+  // yet (EPIC-070), just a plain string a new `run_budgets` row's default cap is looked up
+  // against in `plan_budget_defaults`. Every account defaults to "free" until Stripe exists.
+  plan: text("plan").notNull().default("free"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -92,4 +96,33 @@ export const apiKeys = pgTable("api_keys", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastUsedAt: timestamp("last_used_at"),
   revokedAt: timestamp("revoked_at"),
+});
+
+// EPIC-004 decision 6: "no user can run up an unbounded provider bill" and "the cap is a number
+// in the database, not a constant in code." This table is that number's home — a new
+// `run_budgets` row is seeded from the caller's plan at creation time, but the cap actually
+// enforced on every increment (`apps/worker/src/budgets/increment-run-budget.ts`) always comes
+// from `run_budgets.capCents`, never from this table or a code constant, directly. Seed values
+// (below, in the generated migration) are placeholders — EPIC-070 owns the real pricing numbers.
+export const planBudgetDefaults = pgTable("plan_budget_defaults", {
+  plan: text("plan").primaryKey(),
+  monthlyCapCents: integer("monthly_cap_cents").notNull(),
+});
+
+// Empty of provider integration on purpose (EPIC-031 wires the actual `amountCents` from a real
+// provider call; this epic only builds the table, the cap enforcement, and its tests). One row
+// per owner — `unique()` is what makes the worker's "get or create" step race-safe via
+// `ON CONFLICT (owner) DO NOTHING`.
+export const runBudgets = pgTable("run_budgets", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newRunBudgetId()),
+  owner: text("owner")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  capCents: integer("cap_cents").notNull(),
+  spentCents: integer("spent_cents").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

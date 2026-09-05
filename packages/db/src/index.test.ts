@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ACCOUNT_PURGE_WINDOW_DAYS, newProjectId, users } from "./index";
+import { ACCOUNT_PURGE_WINDOW_DAYS, newProjectId, planBudgetDefaults, runBudgets, users } from "./index";
 
 describe("@41prompts/db", () => {
   it("exports the schema tables", () => {
     expect(users).toBeDefined();
+  });
+
+  it("exports the run budget tables", () => {
+    expect(runBudgets).toBeDefined();
+    expect(planBudgetDefaults).toBeDefined();
   });
 
   it("exports the purge window constant", () => {
