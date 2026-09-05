@@ -73,8 +73,8 @@ services:
             && apt-get install -y --no-install-recommends awscli \
             && rm -rf /var/lib/apt/lists/*
         WORKDIR /app
-        COPY infra/backup.sh infra/backup-loop.sh ./
-        RUN chmod +x ./backup.sh ./backup-loop.sh
+        COPY infra/backup.sh infra/backup-loop.sh infra/restore.sh ./
+        RUN chmod +x ./backup.sh ./backup-loop.sh ./restore.sh
         CMD ["./backup-loop.sh"]
     restart: unless-stopped
     env_file: .env
