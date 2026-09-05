@@ -212,15 +212,18 @@ explicit that staging and production never share an OAuth app, a secret, or a ca
      confirmation as Google's above.
    - Set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` per environment.
 5. **Resend** — one account covers both environments (it's an email-sending account, not a
-   per-environment credential like the OAuth apps): create it, verify the sending domain used
-   by `apps/web/lib/email.ts` (`41prompts.ai`, in Resend's **Domains** tab, adding the SPF/DKIM
-   DNS records it gives you), then create an API key and set `RESEND_API_KEY` in both
-   environments' Environment Variables tabs. **As of 2026-09-05, `41prompts.ai` isn't verified
-   yet** — `apps/web/lib/email.ts` sends from Resend's shared sandbox address
-   (`onboarding@resend.dev`) as an interim placeholder, which only delivers to the Resend
-   account's own verified email, not arbitrary sign-in addresses. Verify the domain and switch
-   `MAGIC_LINK_FROM` back to a `41prompts.ai` address before magic-link sign-in needs to work for
-   anyone other than the account holder.
+   per-environment credential like the OAuth apps): create it, verify the `mail.41prompts.ai`
+   sending domain (Resend's **Domains** tab, adding the SPF/DKIM DNS records it gives you), then
+   create an API key and set `RESEND_API_KEY` in both environments' Environment Variables tabs.
+   The sender address itself is `RESEND_FROM_ADDRESS` (EPIC-003), read at runtime by
+   `apps/web/lib/email.ts` — never hard-coded, so the two environments can point at different
+   senders without a code change:
+   - **Production**: set `RESEND_FROM_ADDRESS=41Prompts <noreply@mail.41prompts.ai>` once the
+     domain above is verified. Sending from an unverified domain silently fails or lands in spam.
+   - **Staging**: leave `RESEND_FROM_ADDRESS` unset. The code falls back to Resend's shared
+     sandbox address (`onboarding@resend.dev`), which only delivers to the Resend account's own
+     verified email — fine for staging, where the Playwright magic-link test reads the token
+     straight from the database and never needs a real inbox.
 
 None of the four OAuth client-secret/API-key values above are ever pasted into a Claude Code
 session or committed anywhere — Soroush sets all six directly in the Coolify UI.
