@@ -12,8 +12,9 @@ and-repos.md`, `.dependency-cruiser.cjs`, `turbo.json`, `scripts/forbidden-words
   into `pnpm lint` as `turbo boundaries` — decision 2's "Turborepo boundary tags" is not new work.
 - `scripts/forbidden-words.mjs` already exists and is wired into `pnpm lint` with exactly decision
   6's word list.
-- Every public package's `src/` already carries real `SPDX-FileCopyrightText`/
-  `SPDX-License-Identifier: Apache-2.0` headers (confirmed by reading a sample from all four:
+- Every public package's `src/` already carries real
+  <!-- REUSE-IgnoreStart -->`SPDX-FileCopyrightText`/`SPDX-License-Identifier: Apache-2.0`<!-- REUSE-IgnoreEnd -->
+  headers (confirmed by reading a sample from all four:
   `core`, `cli`, `sdk-ts`, `sdks/python`'s `fortyone`/`tests`). `LICENSES/Apache-2.0.txt` and
   `LICENSES/LicenseRef-41Prompts-Proprietary.txt` already exist at root.
 - None of the above needs new code. The real new work is REUSE (no `REUSE.toml` exists yet — a
@@ -34,12 +35,13 @@ and-repos.md`, `.dependency-cruiser.cjs`, `turbo.json`, `scripts/forbidden-words
   real header, so they get the same licence, not the repo-wide proprietary default. Result: 0
   exclusions, 248/248 (later 252/252) files with real copyright+licence, verified with a real
   `reuse lint` run before writing any of the rest.
-- **Two genuine false positives, not real gaps**: `docs/epics/reports/EPIC-000-report.md` and
-  `docs/epics/sessions/EPIC-003-session.md` (later also this epic's own `CONTRIBUTING.md`) mention
-  the literal string `SPDX-License-Identifier: ...` in prose describing past work, which REUSE's
-  text scanner tries to parse as a real tag. Wrapped each mention in `<!-- REUSE-IgnoreStart -->`/
-  `<!-- REUSE-IgnoreEnd -->` — the tool's own sanctioned mechanism for exactly this, not an
-  exclusion of the file from real analysis (everything around those three lines is still checked).
+- **Several genuine false positives, not real gaps**: `docs/epics/reports/EPIC-000-report.md`,
+  `docs/epics/sessions/EPIC-003-session.md`, `CONTRIBUTING.md`, and this plan itself all mention
+  the literal SPDX tag syntax in prose describing past work or this epic's own approach, which
+  REUSE's text scanner tries to parse as a real tag. Wrapped each mention in
+  <!-- REUSE-IgnoreStart -->`REUSE-IgnoreStart`/`REUSE-IgnoreEnd`<!-- REUSE-IgnoreEnd --> comments
+  — the tool's own sanctioned mechanism for exactly this, not an exclusion of the file from real
+  analysis (everything around those lines is still checked).
 - **License gate and SBOM built from `pnpm licenses list --json`, not `@cyclonedx/cyclonedx-npm`.**
   Tried `cyclonedx-npm` first (the obvious off-the-shelf tool); it shells out to `npm ls` internally
   and fails outright on a pnpm-managed `node_modules` (confirmed by actually running it — dozens of
