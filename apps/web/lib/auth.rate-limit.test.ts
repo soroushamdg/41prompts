@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { auth } from "./auth";
+import { getAuth } from "./auth";
 
 async function requestMagicLink(email: string): Promise<void> {
-  await auth.api.signInMagicLink({
+  await getAuth().api.signInMagicLink({
     body: { email, callbackURL: "/app" },
     headers: new Headers({ origin: "http://localhost:3000" }),
   });
@@ -15,7 +15,7 @@ async function requestMagicLink(email: string): Promise<void> {
 // it's exercised correctly above. The IP limit needs a real HTTP request, so this goes through
 // `auth.handler` — the same function `toNextJsHandler` wraps for the real route — instead.
 async function postMagicLinkOverHttp(email: string): Promise<Response> {
-  return auth.handler(
+  return getAuth().handler(
     new Request("http://localhost:3000/api/auth/sign-in/magic-link", {
       method: "POST",
       headers: { "content-type": "application/json", origin: "http://localhost:3000" },

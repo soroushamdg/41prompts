@@ -3,12 +3,12 @@
 import { APIError } from "better-auth/api";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "./auth";
+import { getAuth } from "./auth";
 import { safeNextPath } from "./next-url";
 
 async function signInWithProvider(provider: "google" | "github", formData: FormData): Promise<void> {
   const next = safeNextPath(formData.get("next")?.toString());
-  const result = await auth.api.signInSocial({
+  const result = await getAuth().api.signInSocial({
     body: { provider, callbackURL: next },
     headers: await headers(),
   });
@@ -29,7 +29,7 @@ export async function sendMagicLinkAction(formData: FormData): Promise<void> {
 
   let errorMessage: string | null = null;
   try {
-    await auth.api.signInMagicLink({
+    await getAuth().api.signInMagicLink({
       body: { email, callbackURL: next },
       headers: await headers(),
     });
