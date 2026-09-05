@@ -13,6 +13,13 @@ set -euo pipefail
 export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
 export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
 export AWS_DEFAULT_REGION=auto
+# aws-cli v2 defaults to a CRC32 checksum sent via chunked trailers on S3 uploads; R2's
+# S3-compatible API doesn't support that trailer format the same way real S3 does, which
+# surfaces as a flat "SignatureDoesNotMatch" with no hint it's a checksum issue, not a
+# credential one. Confirmed against a real R2 bucket during EPIC-001's restore-drill
+# verification, not theoretical. See Cloudflare's own R2 docs on this exact error.
+export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
 
 endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 prefix="postgres"

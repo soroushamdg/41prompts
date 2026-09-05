@@ -20,6 +20,11 @@ key="$1"
 export AWS_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID"
 export AWS_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY"
 export AWS_DEFAULT_REGION=auto
+# See infra/backup.sh's matching comment: aws-cli v2's default checksum-trailer behavior on
+# S3 requests isn't compatible with R2, and surfaces as SignatureDoesNotMatch/Unauthorized
+# with no hint it's a checksum setting, not a credential problem.
+export AWS_REQUEST_CHECKSUM_CALCULATION=when_required
+export AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
 
 endpoint="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
 scratch_db="restore_drill_41p"
