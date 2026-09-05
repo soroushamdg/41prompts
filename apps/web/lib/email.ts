@@ -1,6 +1,10 @@
 import { Resend } from "resend";
 
-const MAGIC_LINK_FROM = "41Prompts <sign-in@41prompts.ai>";
+// Resend's shared sandbox sender, until 41prompts.ai is verified in Resend (infra/README.md's
+// "Auth secrets" section) — Resend only lets this address send to the account's own verified
+// email, not arbitrary recipients, so this is a placeholder for real magic-link delivery, not a
+// long-term choice.
+const MAGIC_LINK_FROM = "41Prompts <onboarding@resend.dev>";
 
 // No-op when RESEND_API_KEY is unset (local dev without the secret, and CI): the Playwright
 // magic-link test reads the token straight from the database, so no email ever needs to be

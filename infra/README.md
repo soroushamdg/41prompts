@@ -213,10 +213,14 @@ explicit that staging and production never share an OAuth app, a secret, or a ca
    - Set `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` per environment.
 5. **Resend** — one account covers both environments (it's an email-sending account, not a
    per-environment credential like the OAuth apps): create it, verify the sending domain used
-   by `apps/web/lib/email.ts` (`sign-in@41prompts.ai` — verify `41prompts.ai` itself, or
-   whichever domain that address's domain part actually is by the time this runs, in Resend's
-   **Domains** tab, adding the SPF/DKIM DNS records it gives you), then create an API key and
-   set `RESEND_API_KEY` in both environments' Environment Variables tabs.
+   by `apps/web/lib/email.ts` (`41prompts.ai`, in Resend's **Domains** tab, adding the SPF/DKIM
+   DNS records it gives you), then create an API key and set `RESEND_API_KEY` in both
+   environments' Environment Variables tabs. **As of 2026-09-05, `41prompts.ai` isn't verified
+   yet** — `apps/web/lib/email.ts` sends from Resend's shared sandbox address
+   (`onboarding@resend.dev`) as an interim placeholder, which only delivers to the Resend
+   account's own verified email, not arbitrary sign-in addresses. Verify the domain and switch
+   `MAGIC_LINK_FROM` back to a `41prompts.ai` address before magic-link sign-in needs to work for
+   anyone other than the account holder.
 
 None of the four OAuth client-secret/API-key values above are ever pasted into a Claude Code
 session or committed anywhere — Soroush sets all six directly in the Coolify UI.
