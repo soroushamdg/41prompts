@@ -12,17 +12,21 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@41prompts/db": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "better-auth": "^1.7.2",
+    "drizzle-orm": "^0.45.2",
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "tailwindcss": "^4.3.3",
-    "@tailwindcss/postcss": "^4.3.3",
-    "@41prompts/db": "workspace:*"
+    "resend": "^6.26.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.15.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
-    "@types/node": "^22.15.0",
     "vitest": "^3.2.7"
   }
 }
