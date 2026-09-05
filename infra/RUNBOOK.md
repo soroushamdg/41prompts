@@ -78,6 +78,22 @@ exactly which step it died on — migration or app start). Two causes seen in pr
   container exits before `[entrypoint] migrations complete, starting web` ever appears — `drizzle-kit migrate`
   itself failed. Check `docker logs --tail 40` for the actual SQL/connection error underneath.
 
+## Testing crash recovery (`restart: unless-stopped`)
+
+**`docker kill <container>` does not test this** — found the hard way during EPIC-008. Docker's restart-manager
+treats any container stopped through the Docker API (`docker kill` or `docker stop`) as an *intentional* stop
+and stands down (`"stopping restart-manager"` in `journalctl -u docker`), because `unless-stopped` means exactly
+that: restart unless someone told it to stop. An explicit kill via the API counts as being told.
+
+To actually simulate a crash: find the container's **host PID** (not its container-internal PID) and signal that
+directly, bypassing the Docker API entirely:
+```
+docker inspect --format '{{.State.Pid}}' <container>
+sudo kill -9 <that pid>
+```
+This is a real, unexpected process death from Docker's point of view, so the restart policy engages normally —
+`docker ps -a` shows `Restarting (137)` within a couple of seconds, then `Up ... (healthy)` shortly after.
+
 ## Roll back a deploy
 
 Since EPIC-008, Coolify never builds — it only pulls `:staging`/`:production` from GHCR, so its own
@@ -94,12 +110,12 @@ roll back:
 3. Confirm `curl -s https://{staging.41prompts.ai,app.41prompts.ai}/healthz` (whichever environment) returns the
    sha you rolled back to.
 
-**Timed run:** _(fill in after the first real rollback — see `docs/epics/reports/EPIC-008-report.md` for the
-drill run during the epic itself)._
+**Timed runs** (drill during EPIC-008 itself — full detail in `docs/epics/reports/EPIC-008-report.md`):
 
 | Date | Environment | From sha → To sha | Elapsed |
 |---|---|---|---|
-| | | | |
+| 2026-09-04 | staging | `772184d` → `b62f12b` | 3m34s |
+| 2026-09-04 | staging | `b62f12b` → `772184d` | 2m17s |
 
 ### Rotating the GHCR registry PAT
 

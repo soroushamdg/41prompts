@@ -22,7 +22,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-003 | Design system: Resolution tokens in Tailwind v4 `@theme`, base components with ARIA, light/dark, reduced motion | M | 000 | todo |
 | EPIC-004 | Observability + guardrails: Sentry, PostHog with typed events, uptime, structured logs, run budgets, metrics dashboard | S | 002 | todo |
 | EPIC-007 | Compliance CI: REUSE lint, dependency-cruiser allow-list, Turborepo boundaries, SBOM + licence gate, mirror dry-run | S | 000 | todo |
-| EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | next |
+| EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | done |
 
 ## Stage 1 · Decompiler, soft-public
 

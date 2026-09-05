@@ -228,18 +228,23 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
 - [ ] **Handed to Soroush — `infra/README.md` step 16.** `infra/README.md` read top to bottom by Soroush; every
       console step has a screenshot name or exact menu path.
 - [x] **Amended, per `docs/epics/CURRENT.md`'s "F2 outcome".** `curl https://staging.41prompts.ai/healthz`
-      returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. The `commit` field is a known
-      defect, moved to EPIC-008 — see the Follow-up section below.
-- [ ] ~~Handed to Soroush — `infra/README.md` step 14. A no-op tag `v0.0.1-test` deploys production~~ **Moved to
-      EPIC-008 (2026-09-04).** Building both images on the box took 9 minutes with staging running (Coolify
-      injects per-application `ARG` declarations into the Dockerfile, so the two environments share no layer
-      cache), and Coolify cannot deploy a tag at all; both are exactly what EPIC-008 fixes. The production
-      environment is created and configured in this epic; its first deploy — an image pull, triggered by
-      EPIC-008's Actions workflow calling Coolify's deploy webhook on the `v*` tag, since Coolify's UI has no tag
-      field — is verified there: `https://app.41prompts.ai/healthz` returns HTTP 200, `env: production`, and the
-      tag's `commit`.
-- [ ] **Handed to Soroush — live Coolify UI action, after `infra/README.md` step 14; no dedicated numbered setup
-      step covers this specifically.** Killing the web container in Coolify restarts it within 30 s.
+      returns HTTP 200, `ok: true`, `env: staging`, over a valid certificate. The `commit` field was a known
+      defect, moved to EPIC-008 — see the Follow-up section below — and closed there 2026-09-04: `commit` now
+      matches `git rev-parse origin/main` exactly on every deploy.
+- [x] ~~Handed to Soroush — `infra/README.md` step 14. A no-op tag `v0.0.1-test` deploys production~~ **Moved to
+      EPIC-008 (2026-09-04), closed there 2026-09-04.** Building both images on the box took 9 minutes with
+      staging running (Coolify injects per-application `ARG` declarations into the Dockerfile, so the two
+      environments share no layer cache), and Coolify cannot deploy a tag at all; both are exactly what EPIC-008
+      fixed. Tag `v0.0.1-test` (commit `b62f12b`) produced GHCR `:production` images via
+      `.github/workflows/build-images.yml`; Coolify's deploy webhook pulled them —
+      `https://app.41prompts.ai/healthz` returns HTTP 200, `env: production`, `commit: b62f12b...` (the tag's
+      sha), over a real Let's Encrypt certificate. Full evidence in `docs/epics/reports/EPIC-008-report.md`.
+- [x] **Handed to Soroush — live Coolify UI action, after `infra/README.md` step 14; no dedicated numbered setup
+      step covers this specifically.** Killing the web container in Coolify restarts it within 30 s. **Closed by
+      EPIC-008, 2026-09-04.** `sudo kill -9 <host pid>` on the staging `web` container's process (bypassing
+      Docker's stop API, which a plain `docker kill` goes through and which correctly suppresses
+      `restart: unless-stopped` — see `infra/RUNBOOK.md`'s new "Testing crash recovery" section) restarted the
+      container to `Up ... (healthy)` in 9 seconds. Full evidence in `docs/epics/reports/EPIC-008-report.md`.
 - [ ] **Handed to Soroush — `infra/README.md` step 13 (setup) and step 15 (the drill itself).** Nightly backup
       produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`.
 - [x] `gitleaks detect` on the repo finds nothing. Evidence above.
