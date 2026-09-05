@@ -1,0 +1,517 @@
+/*
+ * Component recipes. Every colour, radius, and shadow value here is `var(--color-*)` /
+ * `var(--radius-card)` / `var(--shadow-offset*)` from tokens.css — never a literal. Padding
+ * numbers that aren't on the s1..s8 scale are copied verbatim from the mockup's own bespoke
+ * per-component padding (the mockup never tokenised those either; extracted as-is, not re-picked
+ * by eye). `token-contract.test.ts` greps this file for raw hex colours, raw `border-radius`, and
+ * raw `box-shadow` values to keep it that way.
+ */
+
+/* ── button ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-s2);
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border-radius: var(--radius-card);
+  padding: 9px 16px;
+  font-weight: 700;
+  font-size: 13.5px;
+  box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+  transition:
+    transform 0.13s var(--ease-brand),
+    box-shadow 0.13s var(--ease-brand);
+}
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+.btn:active {
+  transform: translate(var(--shadow-offset), var(--shadow-offset));
+  box-shadow: none;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+}
+.btn-pri {
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+.btn-sm {
+  padding: 6px 11px;
+  font-size: 12px;
+  box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+}
+.btn-sm:hover {
+  box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+  transform: none;
+}
+.btn-ghost {
+  box-shadow: none;
+  border-color: var(--color-line);
+}
+.btn-ghost:hover {
+  box-shadow: none;
+  transform: none;
+  background: var(--color-sunken);
+}
+.btn[aria-pressed="true"],
+.btn[aria-selected="true"] {
+  background: var(--color-ink);
+  color: var(--color-bg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+  .btn:hover,
+  .btn:active {
+    transform: none;
+  }
+}
+
+/* ── pill ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: var(--border-hairline) solid var(--color-line);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+.pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  flex: none;
+}
+
+/* ── badge (decision 3: colour is never the only signal — StatusIcon is always rendered too) ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border: var(--border-hairline) solid currentColor;
+}
+.badge-pass {
+  color: var(--color-pass);
+  background: var(--color-pass-soft);
+}
+.badge-fail {
+  color: var(--color-fail);
+  background: var(--color-fail-soft);
+}
+.badge-drift {
+  color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+.badge-neutral {
+  color: var(--color-ink-3);
+}
+.status-icon {
+  font-weight: 900;
+  line-height: 1;
+}
+
+/* ── tag: blok-kind label. Ink-only — no per-kind colour (see plan-EPIC-003.md's deviation note);
+   kind is conveyed by the text alone. ── */
+.tag {
+  display: inline-flex;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border: var(--border-hairline) solid var(--color-ink);
+  color: var(--color-ink);
+}
+
+/* ── blok card ── */
+.blok-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  margin-bottom: 9px;
+  padding: 10px 11px 10px 14px;
+  cursor: pointer;
+  transition:
+    transform 0.15s var(--ease-brand),
+    box-shadow 0.15s var(--ease-brand);
+}
+.blok-card:hover,
+.blok-card[data-selected="true"] {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+@media (prefers-reduced-motion: reduce) {
+  .blok-card {
+    transition: none;
+  }
+  .blok-card:hover,
+  .blok-card[data-selected="true"] {
+    transform: none;
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  }
+}
+.blok-card-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 5px;
+}
+.blok-card-body {
+  font-size: 13.5px;
+}
+.blok-card-meta {
+  display: flex;
+  gap: 8px;
+  margin-top: 7px;
+  font-size: 11px;
+  color: var(--color-ink-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* ── kpi strip ── */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+.kpi {
+  padding: var(--spacing-s4);
+  border-right: var(--border-hairline) solid var(--color-line);
+}
+.kpi:last-child {
+  border-right: 0;
+}
+.kpi-key {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.kpi-value {
+  font-size: 27px;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  margin-top: 1px;
+}
+.kpi-sub {
+  font-size: 12px;
+  color: var(--color-ink-3);
+}
+
+/* ── table (data surface: hairline, no shadow, no radius) ── */
+.data-table-wrap {
+  overflow-x: auto;
+  border: var(--border-hairline) solid var(--color-line);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 480px;
+}
+.data-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  border-bottom: var(--border-ink) solid var(--color-ink);
+  white-space: nowrap;
+}
+.data-table td {
+  padding: 10px 14px;
+  border-bottom: var(--border-hairline) solid var(--color-line-2);
+  font-variant-numeric: tabular-nums;
+}
+.data-table tbody tr:hover {
+  background: var(--color-sunken);
+}
+.data-table tbody tr[data-status="fail"] {
+  background: var(--color-fail-soft);
+}
+.cell-pass {
+  color: var(--color-pass);
+  font-weight: 700;
+}
+.cell-fail {
+  color: var(--color-fail);
+  font-weight: 700;
+}
+.cell-drift {
+  color: var(--color-warn);
+  font-weight: 700;
+}
+
+/* ── meter ── */
+.meter-track {
+  height: 9px;
+  border: var(--border-hairline) solid var(--color-ink);
+  min-width: 78px;
+  overflow: hidden;
+}
+.meter-fill {
+  display: block;
+  height: 100%;
+  width: var(--meter-value, 0%);
+  background: var(--color-ink);
+  transition: width 1.05s var(--ease-brand);
+}
+.meter-fill.cell-pass {
+  background: var(--color-pass);
+}
+.meter-fill.cell-fail {
+  background: var(--color-fail);
+}
+.meter-fill.cell-drift {
+  background: var(--color-warn);
+}
+@media (prefers-reduced-motion: reduce) {
+  .meter-fill {
+    transition: none;
+  }
+}
+
+/* ── switch ── */
+.switch {
+  width: 44px;
+  height: 24px;
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+  position: relative;
+  flex: none;
+  border-radius: var(--radius-card);
+}
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--color-ink);
+  transition: transform 0.2s var(--ease-brand);
+}
+.switch[aria-checked="true"] {
+  background: var(--color-ink);
+}
+.switch[aria-checked="true"] .switch-thumb {
+  transform: translateX(20px);
+  background: var(--color-surface);
+}
+@media (prefers-reduced-motion: reduce) {
+  .switch-thumb {
+    transition: none;
+  }
+}
+
+/* ── input / textarea ── */
+.field-input {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  color: var(--color-ink);
+  padding: 8px 11px;
+  font-size: 13px;
+  width: 100%;
+}
+.field-input:focus {
+  border-color: var(--color-ink);
+  background: var(--color-surface);
+}
+.field-textarea {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.75;
+  padding: 12px;
+  min-height: 150px;
+  resize: vertical;
+  width: 100%;
+}
+.field-textarea:focus {
+  border-color: var(--color-ink);
+}
+
+/* ── tabs ── */
+.tabs-list {
+  display: flex;
+  gap: 2px;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  overflow-x: auto;
+}
+.tab {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-ink-3);
+  border-bottom: 3px solid transparent;
+  white-space: nowrap;
+}
+.tab[aria-selected="true"] {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-ink);
+}
+.tab-panel:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 4px;
+}
+
+/* ── callout ── */
+.callout {
+  display: flex;
+  gap: var(--spacing-s3);
+  align-items: flex-start;
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  padding: var(--spacing-s4);
+}
+.callout-icon {
+  width: 24px;
+  height: 24px;
+  border: var(--border-ink) solid currentColor;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  font-size: 12px;
+  flex: none;
+}
+.callout-fail {
+  border-color: var(--color-fail);
+}
+.callout-fail .callout-icon {
+  border-color: var(--color-fail);
+  color: var(--color-fail);
+  background: var(--color-fail-soft);
+}
+.callout-warn {
+  border-color: var(--color-warn);
+}
+.callout-warn .callout-icon {
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+.callout-info .callout-icon {
+  color: var(--color-ink);
+}
+.callout-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+.callout-body {
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+}
+
+/* ── sheet (Radix Dialog, restyled) ── */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  z-index: 100;
+}
+.sheet-content {
+  position: fixed;
+  z-index: 101;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(620px, calc(100vw - 32px));
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset-xl) var(--shadow-offset-xl) 0 var(--color-plate);
+  max-height: 88vh;
+  overflow: auto;
+}
+.sheet-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s3);
+  padding: 12px var(--spacing-s4);
+  border-bottom: var(--border-ink) solid var(--color-ink);
+}
+.sheet-body {
+  padding: var(--spacing-s4);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-overlay,
+  .sheet-content {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── dropdown / popover (Radix, restyled) ── */
+.dropdown-content,
+.popover-content {
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  padding: 4px;
+  min-width: 180px;
+}
+.dropdown-item {
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--color-ink);
+  cursor: pointer;
+  border-radius: var(--radius-card);
+}
+.dropdown-item[data-highlighted] {
+  background: var(--color-sunken);
+  outline: none;
+}
+.popover-content {
+  padding: var(--spacing-s3);
+  font-size: 13px;
+}
+
+/* ── touch targets (decision 7): ≥44px on small viewports for every interactive control. The
+   mockup's own compact desktop sizing (btn ~38px, switch 44x24, tab/dropdown-item smaller still)
+   is kept everywhere above this breakpoint — this only grows the hit area on a touch-sized
+   screen, never the desktop chrome. */
+@media (max-width: 640px) {
+  .btn,
+  .switch,
+  .tab,
+  .field-input,
+  .dropdown-item,
+  .blok-card {
+    min-height: 44px;
+  }
+  .btn {
+    min-width: 44px;
+  }
+}
