@@ -245,8 +245,29 @@ change to `infra/docker-compose.yml` itself, which still publishes `127.0.0.1:54
       Docker's stop API, which a plain `docker kill` goes through and which correctly suppresses
       `restart: unless-stopped` — see `infra/RUNBOOK.md`'s new "Testing crash recovery" section) restarted the
       container to `Up ... (healthy)` in 9 seconds. Full evidence in `docs/epics/reports/EPIC-008-report.md`.
-- [ ] **Handed to Soroush — `infra/README.md` step 13 (setup) and step 15 (the drill itself).** Nightly backup
-      produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`.
+- [x] **Handed to Soroush — `infra/README.md` step 13 (setup) and step 15 (the drill itself).** Nightly backup
+      produced a file in R2; restore drill completed and timed in `infra/RUNBOOK.md`. **Closed 2026-09-05**, once
+      R2 credentials were set in Coolify for staging (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+      `R2_BUCKET_BACKUPS=41p-backups`). Ran `infra/backup.sh` manually inside the staging `backup` container
+      rather than waiting for the 03:00 UTC schedule; found and fixed two real bugs along the way, neither a
+      credential problem despite three rounds of re-checking tokens:
+      1. `aws-cli/2.23.6`'s default CRC32-checksum-via-chunked-trailers behavior on S3 uploads isn't compatible
+         with R2's S3-compatible API, surfacing as `SignatureDoesNotMatch`/`Unauthorized` with no hint it was a
+         checksum setting rather than the credential itself — fixed by exporting
+         `AWS_REQUEST_CHECKSUM_CALCULATION`/`AWS_RESPONSE_CHECKSUM_VALIDATION=when_required` in `infra/backup.sh`
+         and `infra/restore.sh` (Cloudflare's own documented fix for this exact error).
+      2. The backup image's inline Dockerfile never `COPY`'d `restore.sh` at all, in any of the three compose
+         files — a gap dating to the original EPIC-001 implementation, never exercised until this drill actually
+         tried to run it. Fixed by adding it to the `COPY`/`chmod` lines.
+      Evidence: bucket listing shows both the manual test object and the clean post-fix run —
+      `2026-09-05 01:51:53  3214  41p-20260905T015152Z.dump` and
+      `2026-09-05 01:58:42  3214  41p-20260905T015840Z.dump`. Restore drill against the second object: downloaded,
+      recreated `restore_drill_41p`, restored, printed row counts (`__drizzle_migrations | 0` — the only table
+      that exists pre-EPIC-002), **3 seconds elapsed**, recorded in `infra/RUNBOOK.md`. Scratch database dropped
+      afterward. `infra/RUNBOOK.md`'s restore-drill and secret-rotation and box-is-down sections were also
+      corrected to use `docker exec <container-name>` directly instead of `docker compose -f
+      infra/docker-compose.yml exec/run`, which — found the hard way this session — targets a different Compose
+      project namespace than what Coolify actually runs and never reaches the real containers at all.
 - [x] `gitleaks detect` on the repo finds nothing. Evidence above.
 - [x] This report and `docs/epics/sessions/EPIC-001-session.md` written.
 
@@ -365,17 +386,18 @@ Staging `POSTGRES_PASSWORD`, caused by this session running `docker inspect --fo
 unfiltered. Password rotated by Soroush (Coolify variable changed, data volume dropped, redeployed). `infra/ACCESS.md`
 and `CLAUDE.md` rule 7 (F3) exists because of both.
 
-### Open items still owed by Soroush
+### Open items — all closed as of 2026-09-05
 
-- **`commit` on `/healthz`**: no longer an action item here — owned by EPIC-008 (`docs/epics/CURRENT.md`), which
-  builds images in GitHub Actions with `github.sha` passed explicitly, sidestepping Coolify's build/runtime
-  injection entirely.
-- **Domains `redirect` fix**: set staging's Direction to non-www (`infra/README.md` step 11) to stop the recurring
-  ACME failure shown above; repeat for the production resource once it exists.
-- **Production environment**: not yet created. Its first deploy is no longer this epic's criterion — see the
-  tag-deploy outcome above — but the environment and configuration steps in `infra/README.md` are still owed.
-- **R2 bucket + backup evidence**: R2 bucket/token setup (`infra/README.md` step 12) and a file actually landing
-  in it are still unconfirmed.
-- **Restore drill**: not yet run/timed in `infra/RUNBOOK.md`.
-- **Kill-container test**: killing `web` in Coolify's UI and confirming a restart within 30s is still unconfirmed
-  against real Coolify behavior (only plain `docker kill` was tested locally, in the original epic).
+- **`commit` on `/healthz`**: closed by EPIC-008 — GitHub Actions passes `github.sha` explicitly, sidestepping
+  Coolify's build/runtime injection entirely. `commit` now matches `git rev-parse origin/main` on every deploy.
+- **Domains `redirect` fix**: done for staging (non-www) during F3; production's domain was in fact already
+  configured correctly when checked during EPIC-008 (a transient pre-first-deploy TLS state briefly looked like a
+  missing step but wasn't one).
+- **Production environment**: created and deployed for real by EPIC-008 — first deploy is a GHCR image pull on a
+  `v*` tag, not a build.
+- **R2 bucket + backup evidence**: closed 2026-09-05 (this session) — see the ticked criterion above for the full
+  story, including two real bugs found and fixed (an aws-cli/R2 checksum incompatibility, and `restore.sh`
+  missing from the backup image entirely).
+- **Restore drill**: run and timed 2026-09-05, 3 seconds — see `infra/RUNBOOK.md`.
+- **Kill-container test**: closed by EPIC-008 — a real crash (host-PID `kill -9`, not `docker kill`, which
+  Docker's restart-manager correctly treats as an intentional stop) restarted the container in 9 seconds.

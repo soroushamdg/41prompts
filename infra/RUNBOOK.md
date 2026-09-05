@@ -18,21 +18,35 @@ actually applies migrations while the others wait.
 
 Run this after first setup, and periodically after (record the time each run).
 
-1. Confirm you have a recent backup key: check the R2 bucket (`41p-backups`, prefix `postgres/`) via the
-   Cloudflare dashboard, or `docker compose --project-directory . -f infra/docker-compose.yml exec backup aws --endpoint-url
-   https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com s3 ls s3://41p-backups/postgres/`.
+**Use `docker exec <container-name>` directly, not `docker compose -f infra/docker-compose.yml exec/run`.**
+Since EPIC-008, Coolify deploys `infra/docker-compose.{staging,production}.yml` under its own project name (the
+application's uuid) — a bare `docker compose -f infra/docker-compose.yml ...` run by hand over SSH computes a
+*different* default project name and won't find the real running containers at all. Find the actual container
+name first: `docker ps --filter "name=backup-<app-uuid>" --format "{{.Names}}"` (staging's app uuid is
+`pboa5wxrnggay30epiq0pmzd`, production's is `d180rye1i9dtab789t9jyjmh` — see `.github/workflows/build-images.yml`
+for both).
+
+1. Confirm you have a recent backup key:
+   `docker exec <backup-container> sh -c 'export AWS_ACCESS_KEY_ID=$R2_ACCESS_KEY_ID; export AWS_SECRET_ACCESS_KEY=$R2_SECRET_ACCESS_KEY; export AWS_DEFAULT_REGION=auto; aws --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com s3 ls s3://$R2_BUCKET_BACKUPS/postgres/'`
+   (the `export`s matter — `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` are only ever set *inside* `backup.sh`/
+   `restore.sh` themselves from the container's real `R2_*` vars, never as container-level env; a bare `aws`
+   command run any other way has no credentials and silently falls back to whatever else botocore finds — on
+   this box, that turned out to be a real but wrong-for-R2 Lightsail/EC2 instance-metadata credential, surfacing
+   as a baffling `Credential access key has length 20, should be 32` that has nothing to do with the R2 token).
 2. Start timing.
 3. Run the restore into a scratch database (never the real one):
-   `docker compose --project-directory . -f infra/docker-compose.yml run --rm backup ./restore.sh postgres/<the-key>.dump`
+   `docker exec <backup-container> /app/restore.sh postgres/<the-key>.dump`
 4. Confirm the row counts printed at the end look right for what you expect to be in the backup.
 5. Stop timing. Record the elapsed time and the date here:
 
-   | Date | Elapsed | Notes |
-   |---|---|---|
-   | _(fill in after the first real drill)_ | | |
+   | Date | Environment | Elapsed | Notes |
+   |---|---|---|---|
+   | 2026-09-05 | staging | 3s | First real drill, run during EPIC-001 closeout. Tiny dump (schema-only, pre-EPIC-002 — just the empty `__drizzle_migrations` table) so this is a lower bound, not representative of restore time once real data exists. |
 
 6. The scratch database (`restore_drill_41p`) is left in place for inspection — drop it manually when done:
-   `docker compose --project-directory . -f infra/docker-compose.yml exec postgres psql -U <user> -c "DROP DATABASE restore_drill_41p;"`
+   `docker exec <postgres-container> sh -c 'psql -U "$POSTGRES_USER" -d postgres -c "DROP DATABASE IF EXISTS restore_drill_41p;"'`
+   (using `$POSTGRES_USER` from the container's own environment this way means the username never has to be
+   typed or read by a human/agent running this drill).
 
 ## Generating or rotating `POSTGRES_PASSWORD`
 
@@ -56,9 +70,10 @@ If the password needs to change **after** the database has already started once,
 2. Redeploy the affected service (Coolify's **Redeploy** button on the resource) so the container picks up the
    new value — env var changes don't apply to already-running containers.
 3. For `POSTGRES_PASSWORD` on a live database specifically: changing it in Coolify's env vars does **not** change
-   the actual Postgres role password. You also need to run, inside the running `postgres` container:
-   `ALTER USER <user> WITH PASSWORD '<new password>';` via `docker compose --project-directory . -f
-   infra/docker-compose.yml exec postgres psql -U <user> -c "ALTER USER <user> WITH PASSWORD '...';"` — then
+   the actual Postgres role password. You also need to run, inside the running `postgres` container (find its
+   name with `docker ps --filter "name=postgres-<app-uuid>"` — see the note above the restore drill for why a
+   bare `docker compose -f infra/docker-compose.yml exec` won't find it):
+   `docker exec <postgres-container> psql -U <user> -c "ALTER USER <user> WITH PASSWORD '...';"` — then
    update `POSTGRES_PASSWORD`/`DATABASE_URL` in Coolify and
    redeploy `web`/`worker`/`backup` so they reconnect with the new password. If the database is still empty, the
    drop-the-volume path above is simpler.
@@ -132,9 +147,16 @@ PAT on GitHub afterward.
    snapshot** (enabled in `infra/README.md` step 1) is the fallback if the instance itself is unrecoverable —
    restore a snapshot into a new instance and re-point the static IP.
 2. Once the instance is reachable again: `ssh -i <key> ubuntu@<ip>` and check `docker ps` — if containers aren't
-   running, `docker compose --project-directory . -f infra/docker-compose.yml up -d` inside Coolify's project directory (path shown in
-   the Coolify UI for the resource) brings them back; Coolify itself should also auto-start on boot (it installs
-   as a systemd-managed stack).
+   running, Coolify itself should auto-start on boot (it installs as a systemd-managed stack) and redeploy on its
+   own. If it doesn't: easiest is pressing **Redeploy** in the Coolify UI once it's back, which reuses Coolify's
+   own project name and the correct per-environment file (`docker-compose.staging.yml` /
+   `.production.yml` since EPIC-008). Only fall back to a manual `docker compose up -d` from inside Coolify's
+   project directory (path shown in the Coolify UI for the resource) as a last resort, and pass `-p <the
+   project's uuid-based name, matching what's already in that directory>` — a bare `docker compose -f
+   infra/docker-compose.staging.yml up -d` without `-p` computes its own default project name and creates a
+   second, separate stack instead of resuming the one Coolify manages (confirmed the hard way during EPIC-001's
+   restore-drill session: `docker compose -f infra/docker-compose.yml exec/run` from the repo root never reaches
+   Coolify's actual containers at all).
 3. If Coolify's own UI is unreachable but the containers are healthy, application traffic is unaffected — this
    only blocks new deploys/config changes until Coolify comes back.
 

@@ -231,3 +231,79 @@ or F3 changes.
 recorded in the report's acceptance criteria, the backlog, and the roadmap. `docs/epics/CURRENT.md` now holds
 EPIC-008 in full; planning and implementing it is explicitly out of scope for this session per Soroush's
 instruction ("do not plan or implement EPIC-008 yet").
+
+## Closeout session (2026-09-05) — backup + restore drill, EPIC-001's actual last two criteria
+
+**Prompt.** Close EPIC-001's last two open criteria (nightly backup to R2, restore drill) with the same autonomy
+as EPIC-008, one batched pause for anything box-mutating. R2 credentials already set in Coolify for both
+environments. Verify the backup path end to end now rather than waiting for 03:00 UTC: run `infra/backup.sh`
+manually inside the staging backup container, confirm the object landed, run the restore drill into a scratch
+database, time it. Then tick both criteria, finish this report, mark EPIC-001 done in the backlog, confirm
+`CURRENT.md` is EPIC-002.
+
+**What actually happened — three real bugs, zero of them the credential problem everyone assumed.**
+
+1. First `backup.sh` run: `SignatureDoesNotMatch` on the R2 upload. Ruled out clock skew (container/box/local all
+   matched exactly). Asked Soroush to re-check the token; he did — no change, same error, because no redeploy had
+   actually happened (env var edits don't apply to a running container without one — confirmed by container
+   creation timestamps staying identical across the "recheck").
+2. New R2 token issued, both environments, confirmed via new container names (redeploy did happen this time):
+   different error, `Unauthorized`, on the same `PutObject` call — signature now validated, but write access was
+   refused. Screenshot from Soroush showed the token correctly scoped **Object Read & Write** on `41p-backups`.
+   Retried once (in case of token-propagation delay) — got a third error, `SignatureDoesNotMatch` again, on yet
+   another new container generation. Realized mid-loop that Soroush was actively regenerating tokens between my
+   attempts faster than I could usefully retry against a moving target; said so and asked him to confirm once
+   settled, plus suggested he test the credentials standalone (outside Coolify/Docker) to isolate the layer.
+3. **Soroush came back with "account id and credentials are correct; check against your own code."** That
+   reframing was the actual unlock. Checked the installed `aws-cli` version (`2.23.6`) and recognized a
+   well-documented Cloudflare R2 compatibility issue: recent `aws-cli`/botocore versions default to computing an
+   S3 upload's checksum via chunked trailers, which R2's S3-compatible API doesn't support the same way real S3
+   does — surfacing as exactly the signature errors seen, with nothing in the error text suggesting it's a
+   checksum setting rather than the credential. Verified the fix (`AWS_REQUEST_CHECKSUM_CALCULATION`/
+   `AWS_RESPONSE_CHECKSUM_VALIDATION=when_required`) with a one-off `docker exec -e ...` override *before*
+   committing to a code change — it worked immediately. Added both exports to `infra/backup.sh` and
+   `infra/restore.sh`, pushed, let the existing EPIC-008 pipeline redeploy staging (no new mechanism needed — any
+   push to `main` already rebuilds and redeploys via `build-images.yml`).
+4. Clean re-run of `backup.sh` (no manual override, just the fixed script) succeeded. Went to list the bucket for
+   evidence and hit a *fourth*, unrelated red herring: `docker exec <container> aws ... s3 ls ...` failed with
+   `Credential access key has length 20, should be 32` — looked like yet another credential issue, but the
+   dimensions gave it away (20 chars is a classic AWS `AKIA...` access key, not an R2 key). Root cause:
+   `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` are only ever `export`ed *inside* `backup.sh`/`restore.sh`
+   themselves, never as real container-level env vars — a bare `docker exec ... aws ...` run by me directly has
+   no credentials at all and silently falls through botocore's chain to whatever it finds next, which on this
+   AWS-kernel Lightsail box turned out to be a real (but useless-for-R2) instance-metadata credential. Not a bug
+   in the shipped scripts — just my own diagnostic command not replicating what the scripts do. Fixed by exporting
+   the same three vars myself before calling `aws` directly.
+5. Restore drill: `docker exec <backup-container> /app/restore.sh postgres/<key>.dump` failed —
+   `/app/restore.sh: no such file or directory`. The backup image's inline Dockerfile (identical in all three
+   compose files, dating to the *original* EPIC-001 implementation) only ever `COPY`'d `backup.sh` and
+   `backup-loop.sh` — `restore.sh` was never in the image at all. This had apparently never been caught because
+   nothing had exercised the restore path against a real deploy before. Fixed the `COPY`/`chmod` lines in all
+   three compose files, pushed, redeployed.
+6. Restore drill, for real this time: 3 seconds, `__drizzle_migrations | 0` (the only table that exists
+   pre-EPIC-002), scratch database dropped afterward. Recorded in `infra/RUNBOOK.md`.
+
+**Also fixed while in there:** `infra/RUNBOOK.md`'s restore-drill, secret-rotation, and box-is-down sections all
+still told the reader to run `docker compose --project-directory . -f infra/docker-compose.yml exec/run` — which,
+since EPIC-008 moved Coolify to `docker-compose.staging.yml`/`.production.yml` under Coolify's own uuid-based
+project name, computes a *different* default Compose project and never reaches the real running containers at
+all. Confirmed this the hard way mid-session (an early attempt at the bucket-listing command silently target
+nothing). Rewrote all three sections to use `docker exec <container-name>` directly, with the container-naming
+lookup spelled out.
+
+**Why none of this was actually a credential problem, in hindsight:** every symptom pointed at credentials
+because that's what had just changed (a brand-new R2 setup, being configured for the first time), but the actual
+chain was: aws-cli version incompatibility → my own diagnostic command not matching script behavior → a Dockerfile
+gap four commits old. Three rounds of "please re-check the token" cost real time that a `docker exec -e
+AWS_REQUEST_CHECKSUM_CALCULATION=when_required ...` one-off test — tried *before* asking Soroush to touch anything
+in Cloudflare a second or third time — would have caught in the first attempt. Worth remembering: when a
+freshly-issued, freshly-scoped, dashboard-confirmed credential still fails the exact same way after being
+regenerated, the credential is probably not the bug.
+
+**EPIC-001 is now fully closed** — every acceptance criterion checked with evidence in the report, `docs/backlog.md`
+status `done`. `docs/epics/CURRENT.md` copied over to EPIC-002 (the advisor had already written
+`docs/epics/EPIC-002-data-and-auth.md` and reconciled EPIC-008's `${...}`-wording conflict in
+`EPIC-001-infrastructure.md`/`roadmap.md` before this session ended — committed as-is, not authored by Claude
+Code). One item remains open and is not one of "the last two criteria": `infra/README.md` read top-to-bottom by
+Soroush himself, per the report's still-unchecked line — that's his own confirmation to give, not something
+closeable from this side.
