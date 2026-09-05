@@ -92,6 +92,8 @@ jobs:
           file: apps/worker/Dockerfile
           push: true
           tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
           cache-from: type=gha,scope=worker
           cache-to: type=gha,mode=max,scope=worker
 

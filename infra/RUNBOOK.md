@@ -160,6 +160,78 @@ PAT on GitHub afterward.
 3. If Coolify's own UI is unreachable but the containers are healthy, application traffic is unaffected — this
    only blocks new deploys/config changes until Coolify comes back.
 
+## Drizzle Studio against staging or production (EPIC-004)
+
+Studio is a local dev tool that opens a browser UI against whatever `DATABASE_URL` it's given —
+it is never deployed on the box, and no database port is ever reachable from the internet (both
+compose files bind postgres to `127.0.0.1` only). To point it at a real environment from your own
+machine, tunnel that loopback port out over SSH first.
+
+**Production contains real user data.** Treat every row you see as someone's actual account.
+Close the tunnel the moment you're done (step 4) — leaving it open is the only way this becomes a
+standing risk instead of a five-minute one.
+
+1. Ask Soroush, once, to create a **read-only** Postgres role (see "Creating the read-only role"
+   below) — use it instead of the app's own role whenever the query is just "look at the data."
+   Studio can still edit rows through the app role if you genuinely need to fix something by hand;
+   that's a mutating action and gets the one-command-one-yes treatment like any other.
+2. Open the tunnel, staging or production (ports per `docs/epics/reports/EPIC-008-report.md`'s
+   port map — staging's postgres is `5432` on the box, production's is `5433`, chosen precisely so
+   both can run on one Lightsail instance without colliding):
+   ```
+   ssh -L 5432:127.0.0.1:5432 41p-box        # staging
+   ssh -L 5433:127.0.0.1:5433 41p-box        # production
+   ```
+   Leave this running in its own terminal — it's your tunnel, not a background job to forget about.
+3. In a second terminal, point Studio at the forwarded port through the read-only role and start
+   it (`packages/db`'s `drizzle.config.ts` reads `DATABASE_URL`):
+   ```
+   DATABASE_URL="postgres://readonly_studio:<password>@localhost:5432/<db>" \
+     pnpm --filter @41prompts/db db:studio
+   ```
+   (`5433` and production's db name for that environment.) It opens `local.drizzle.studio` in your
+   browser, proxying queries through your own local process — no data leaves your machine except
+   through your own screen.
+4. **Close the tunnel when done:** `Ctrl+C` the `ssh -L ...` from step 2 (or `kill` it if it's
+   backgrounded). Studio itself has nothing to reach once the tunnel is gone.
+
+### Creating the read-only role (one-time, mutating — needs Soroush's yes)
+
+Run inside the running `postgres` container (`docker exec <postgres-container> psql -U <user> -d
+<db>` — see the restore drill above for finding the container name):
+```sql
+CREATE ROLE readonly_studio LOGIN PASSWORD '<generate with: openssl rand -hex 24>';
+GRANT CONNECT ON DATABASE <db> TO readonly_studio;
+GRANT USAGE ON SCHEMA public TO readonly_studio;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_studio;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly_studio;
+```
+The last line matters as much as the grant itself: without it, a table added by a later migration
+starts with no grant at all, and Studio silently can't read it until this is re-run. Store the
+generated password the same way any other secret is stored (`~/.41prompts/`, never the repo).
+
+## An alert fired, what now (EPIC-004)
+
+1. **Sentry issue:** open it, read the environment and release tags first — they tell you
+   staging vs. production and the exact deployed commit before you read a single stack frame.
+   Check whether it's new or a recurrence (event count, first/last seen). Cross-reference with
+   `docker logs --tail 100 <web-or-worker-container>` around the same timestamp for the JSON log
+   line carrying the same request id (web) or job id (worker) — that line has the method/path/
+   status or job name the issue alone doesn't.
+2. **Uptime alert (`/healthz` down):** check `docker ps` first — is the container actually down,
+   or is it `Up (healthy)` and the check itself is the problem (DNS, TLS, a transient network
+   blip)? If the container is unhealthy or restarting, see "Web container restart loop" and "The
+   box is down" above. If `/healthz` is genuinely fine and the alert was a false positive, don't
+   silently ignore a repeat — three or more in a week against one host is worth adjusting the
+   monitor's retry/timeout settings, not just re-acknowledging each one.
+3. **Decide severity:** a Sentry issue with a handled error and no user-facing symptom can wait
+   for the next normal working session. A `/healthz` outage or an unhandled error on a hot path
+   (sign-in, a paying user's action once billing exists) gets fixed now, following whichever
+   runbook section above matches the actual cause once found — this section is triage, not a fix.
+4. **Once resolved:** resolve the Sentry issue (or let it auto-resolve on the next release if the
+   fix is already shipped) and note anything genuinely new about the failure mode in this file, the
+   way every other section here started as one incident.
+
 ## Resize the instance
 
 1. AWS Console → Lightsail → the instance → **Stop** it (brief downtime).

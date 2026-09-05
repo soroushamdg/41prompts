@@ -5,6 +5,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { and, eq, gte, sql } from "drizzle-orm";
+import { captureEvent, identifyUser } from "./analytics/posthog-server";
 import { getDb } from "./db";
 import { sendMagicLinkEmail } from "./email";
 
@@ -76,6 +77,17 @@ function buildAuth() {
     // The immediate half of decision 5 (set deletedAt, kill the current session) happens in the
     // account-delete server action, not here.
     databaseHooks: {
+      user: {
+        create: {
+          // Fires once, on account creation — before the sign-in that immediately follows it
+          // fires its own "login" below (decision 2's `signup` and `login` are deliberately
+          // distinct events, both real for a brand-new user's first request).
+          after: async (user) => {
+            identifyUser(user.id);
+            captureEvent(user.id, "signup");
+          },
+        },
+      },
       session: {
         create: {
           before: async (session) => {
@@ -86,6 +98,12 @@ function buildAuth() {
             if (user?.deletedAt) {
               return false;
             }
+          },
+          // User id only, never the email (decision 3) — identify+capture happen here, not
+          // client-side, so a sign-in is tracked even if the browser never runs any JS after.
+          after: async (session) => {
+            identifyUser(session.userId);
+            captureEvent(session.userId, "login");
           },
         },
       },

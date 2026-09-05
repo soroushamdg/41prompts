@@ -228,6 +228,61 @@ explicit that staging and production never share an OAuth app, a secret, or a ca
 None of the four OAuth client-secret/API-key values above are ever pasted into a Claude Code
 session or committed anywhere — Soroush sets all six directly in the Coolify UI.
 
+## Observability secrets (EPIC-004, 2026-09-05)
+
+Sentry, PostHog, and the uptime monitor all need real accounts Claude Code cannot create — every
+value below is set the same way as "Auth secrets" above: **Coolify UI → that environment's
+application → Environment Variables tab**, never in the repo. `.env.example` lists every name.
+
+1. **Sentry** — two projects (one JavaScript/Next.js, one Node), so web and worker issues stay in
+   separate issue streams:
+   - Create the org if one doesn't exist yet, then **Projects → Create Project** twice: platform
+     **Next.js** named `41prompts-web`, platform **Node.js** named `41prompts-worker`.
+   - Each project's **Settings → Client Keys (DSN)** gives you its DSN. Set
+     `NEXT_PUBLIC_SENTRY_DSN` (the web project's DSN) on the web application, `SENTRY_DSN` (the
+     worker project's DSN) on the worker application — both staging and production, same values in
+     both (one Sentry org, environment/release tags are what distinguish a staging issue from a
+     production one, not separate projects per environment).
+   - `SENTRY_ORG` (the org slug) and `SENTRY_PROJECT_WEB` (`41prompts-web`) — plain config, not
+     secret, but still only ever set through the same Environment Variables tab. These drive
+     source-map upload at build time, not runtime, so they only need to exist as **GitHub Actions
+     repository variables/secrets** (Settings → Secrets and variables → Actions), not in Coolify.
+   - `SENTRY_AUTH_TOKEN` — **Settings → Auth Tokens → Create New Token**, scope `project:releases`
+     (the minimum the source-map upload plugin needs). GitHub Actions secret only, never in
+     Coolify, never in the repo (`apps/web/next.config.ts`'s own comment on this).
+2. **PostHog** — one project covers both environments (events carry their own environment
+   distinction via `DEPLOY_ENV`-tagged properties if a later epic needs it, same reasoning as
+   Sentry above not needing two):
+   - Create the project (EU or US host — pick once; `NEXT_PUBLIC_POSTHOG_HOST` in `.env.example`
+     defaults to US). **Project Settings → API Keys** gives the public **Project API Key** — set
+     `NEXT_PUBLIC_POSTHOG_KEY` on the web application, both environments.
+   - A **personal API key** (top-right account menu → **Personal API Keys** → scope it to
+     `dashboard:write` and `insight:write` only) is separately needed, once, to run
+     `scripts/create-posthog-dashboard.mjs` (below) — this one is never set in Coolify at all,
+     it's passed on the command line the one time the script runs.
+3. **Uptime monitor** — any provider whose free tier can alert a phone (SMS or a phone call, not
+   just email/Slack) works; recorded here once chosen rather than prescribing one in advance.
+   Configure two HTTPS checks, `https://app.41prompts.ai/healthz` and
+   `https://staging.41prompts.ai/healthz`, both expecting `200` and a JSON body containing
+   `"ok":true`. Add a phone-reachable alert contact. Trigger one real test alert (most providers
+   have a "send test notification" button) and confirm it actually reaches the phone before
+   considering this done — a monitor that's configured but never tested is a monitor you don't
+   actually know works.
+
+## PostHog dashboard (EPIC-004)
+
+Once the personal API key from step 2 above exists, run once from the repo root:
+```
+POSTHOG_PERSONAL_API_KEY=<the key> \
+POSTHOG_PROJECT_ID=<project id, from the project's Settings URL> \
+POSTHOG_HOST=https://us.i.posthog.com \
+  node scripts/create-posthog-dashboard.mjs
+```
+Creates one dashboard, "41Prompts milestones," with one insight per milestone metric in
+`docs/roadmap.md`'s table (M0–M7) — each shows zero until the product actually produces the events
+it counts, which is expected and correct this early. Re-running the script is safe: it looks up
+existing insights by name before creating a duplicate.
+
 ## Why some things are the way they are
 
 - **`postgres`, `web`, and its published ports are bound to `127.0.0.1`, not the open internet.** `ufw` (step 4)

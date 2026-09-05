@@ -17,6 +17,7 @@ ICP: an AI engineer at a company of 10–500 people who owns a production prompt
 - `packages/core`: pure TS, **zero dependencies, no DOM, no IO**. Segmenter, classifier, clustering, detectors, compiler, checks, deterministic graders, artifact schema. Public (Apache-2.0).
 - `packages/ui`: design tokens + components. Proprietary.
 - `packages/db`: Drizzle schema + migrations. Proprietary.
+- `packages/logger`: shared pino logger for `apps/web` and `apps/worker` — JSON to stdout, redaction, request/job id via `AsyncLocalStorage`. Proprietary.
 - `packages/cli`: `41p` (link, pull, check, run, decompile). Public.
 - `packages/sdk-ts`: published as `@41prompts/sdk`. Runtime `resolve()`. Zero dependencies. Public.
 - `sdks/python`: `fortyone-prompts`, import `fortyone`. Zero dependencies. Public.
@@ -48,7 +49,7 @@ pnpm e2e            # playwright, needs dev running
 8. The SDK never blocks a call on the network and never throws. Resolve order: memory → disk → bundled → network. Telemetry is off by default.
 9. Publishing to Live is blocked when checks fail on the target model. "Publish anyway" requires a typed reason and is audited.
 10. Colour: green, red, amber mean pass, fail, drift. Nothing else may use them. Pass/fail is never shown by colour alone.
-11. Public packages (`core`, `cli`, `sdk-ts`, `sdks/python`) import only each other, Node builtins, or their own declared dependencies. Never `apps/*`, `packages/db`, `packages/ui`.
+11. Public packages (`core`, `cli`, `sdk-ts`, `sdks/python`) import only each other, Node builtins, or their own declared dependencies. Never `apps/*`, `packages/db`, `packages/ui`, `packages/logger`.
 12. Every interactive element works by keyboard and by touch; `prefers-reduced-motion` shows end states, never skips them.
 
 ## Vocabulary (ADR-003)

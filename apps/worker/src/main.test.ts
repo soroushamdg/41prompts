@@ -25,6 +25,20 @@ vi.mock("pg-boss", () => {
 
 vi.mock("./db", () => ({ db: {} }));
 
+const { logger } = vi.hoisted(() => ({
+  logger: { info: vi.fn(), error: vi.fn() },
+}));
+
+vi.mock("@41prompts/logger", () => ({
+  createLogger: () => logger,
+  withRequestId: async (fn: (id: string) => unknown) => fn("test-request-id"),
+}));
+
+vi.mock("./sentry", () => ({
+  initSentry: vi.fn(),
+  Sentry: { captureException: vi.fn() },
+}));
+
 const { main } = await import("./main");
 
 describe("worker main", () => {
@@ -32,18 +46,16 @@ describe("worker main", () => {
     process.removeAllListeners("SIGTERM");
     process.removeAllListeners("SIGINT");
     vi.useRealTimers();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     bossInstances.length = 0;
   });
 
   it('logs "worker up"', async () => {
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     await main();
-    expect(spy).toHaveBeenCalledWith("worker up");
+    expect(logger.info).toHaveBeenCalledWith("worker up");
   });
 
   it("starts pg-boss and registers the daily purge job", async () => {
-    vi.spyOn(console, "log").mockImplementation(() => {});
     await main();
 
     expect(bossInstances).toHaveLength(1);
@@ -56,34 +68,29 @@ describe("worker main", () => {
 
   it("logs a heartbeat every 60 seconds and stays alive", async () => {
     vi.useFakeTimers();
-    const spy = vi.spyOn(console, "log").mockImplementation(() => {});
     await main();
 
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining("worker heartbeat"));
+    expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("worker heartbeat"));
 
-    spy.mockClear();
+    logger.info.mockClear();
     await vi.advanceTimersByTimeAsync(60_000);
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(logger.info).toHaveBeenCalledTimes(1);
   });
 
-  it.each(["SIGTERM", "SIGINT"] as const)(
-    "exits cleanly on %s and stops the heartbeat",
-    async (signal) => {
-      vi.useFakeTimers();
-      const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-      const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
-      await main();
+  it.each(["SIGTERM", "SIGINT"] as const)("exits cleanly on %s and stops the heartbeat", async (signal) => {
+    vi.useFakeTimers();
+    const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
+    await main();
 
-      process.emit(signal);
+    process.emit(signal);
 
-      expect(logSpy).toHaveBeenCalledWith(`worker received ${signal}, shutting down`);
-      expect(exitSpy).toHaveBeenCalledWith(0);
-      expect(exitSpy).toHaveBeenCalledTimes(1);
+    expect(logger.info).toHaveBeenCalledWith(`worker received ${signal}, shutting down`);
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(exitSpy).toHaveBeenCalledTimes(1);
 
-      logSpy.mockClear();
-      await vi.advanceTimersByTimeAsync(120_000);
-      expect(logSpy).not.toHaveBeenCalled();
-    },
-  );
+    logger.info.mockClear();
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(logger.info).not.toHaveBeenCalled();
+  });
 });
