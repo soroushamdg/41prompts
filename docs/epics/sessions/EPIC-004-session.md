@@ -111,3 +111,70 @@ the one mutating box command still needing a yes (creating the read-only Postgre
 Studio, `infra/RUNBOOK.md`'s new section) — nothing else in this epic needed approval, and nothing
 was run against the box beyond the read-only commands `infra/ACCESS.md` rule 2 already permits
 (`ufw status`, the external `nc` check from this machine, not the box).
+
+## Second session, same day — box mutations and real-deploy verification
+
+**Prompt sent.** First, twice: rotate both `readonly_studio` passwords with `ALTER ROLE`, one
+command per environment, new URLs only into `~/.41prompts/studio.env` (mode 600), never in chat.
+Then: Sentry/PostHog/uptime are live, keys are in Coolify — verify EPIC-004's four open criteria
+against a real deploy.
+
+**Mutating commands run, each shown in chat with its reason before running, per
+`infra/ACCESS.md` rule 3** (the auto-mode classifier itself enforced this once, blocking a first
+attempt at reading `POSTGRES_DB`/`POSTGRES_USER` via `docker exec` until an explicit chat "yes"
+against the exact command list existed):
+- `CREATE ROLE readonly_studio ...` against both staging's and production's postgres containers
+  (first ask).
+- `ALTER ROLE readonly_studio WITH PASSWORD ...` against both, twice — once per the first rotation
+  request, once more for the second (the prompt repeated the same instruction verbatim in the
+  next turn; treated as a genuine re-ask rather than a no-op, since rotating again is harmless and
+  the instruction was unambiguous both times). The second rotation had to route around a real
+  surprise: both postgres containers had been recreated (new name suffixes) between the two asks —
+  a stack redeploy for the new Sentry/PostHog env vars recreates every service in the compose
+  file, postgres included, even though postgres itself had no env change. Confirmed the
+  `readonly_studio` role survived (the named volume, not the container, is where Postgres data
+  actually lives) before rotating against the new container names.
+
+**Decisions made and why.**
+- **Used a local Node script with the `pg` package (run from `packages/db`, over the same SSH
+  tunnel `infra/RUNBOOK.md` documents) instead of `docker exec ... psql` to read the verification
+  token during the real-staging signup test.** This is exactly the read-only path the Drizzle
+  Studio runbook section describes and is meant to prove out — using it here was both the correct
+  tool for a read query and free verification that the tunnel/role/`DATABASE_URL` mechanism
+  actually works end to end, not just on paper.
+- **Did not attempt to fix the Sentry/PostHog Coolify misconfigurations found during
+  verification.** Both are one-line env var fixes in Coolify, but require either the actual DSN
+  values (masked by Coolify's env-list API, never exposed to this session) or the correct PostHog
+  project API key (a value only visible in PostHog's own UI) — nothing this session has access to.
+  Documented precisely in the report instead of guessing.
+- **Did not add a `BUG-004-*` row to `docs/backlog.md`.** `CLAUDE.md`'s "Never touch without an
+  explicit instruction" list reserves `docs/backlog.md` for the advisor; this session's job was to
+  verify and report, not to triage and file. The report's new "Post-merge verification" section is
+  written so it can be pasted to the advisor and filed correctly, per `docs/PROCESS.md`'s own bug
+  workflow.
+
+**What was found.** Real, working end-to-end: `/dev/throw` on staging, a full magic-link
+signup+login round trip against staging producing a real session, JSON request-id logs for both
+with zero PII across a 500-line tail, and the `readonly_studio` role/tunnel mechanism. Real and
+blocking, discovered by triggering those same real requests and reading the real logs (not
+inferred): Sentry's Coolify env vars are named `SENTRY_DSN_WEB`/`SENTRY_DSN_WORKER`, not what the
+code reads (`NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN`); `NEXT_PUBLIC_POSTHOG_KEY` is a PostHog
+*personal* API key, not the *project* key `posthog-node`'s ingestion endpoint requires — confirmed
+by two real `401 API key is not valid: personal_api_key` errors in the staging web logs, one for
+each event a real signup+login actually tried to send. Also noticed: `SENTRY_AUTH_TOKEN` sitting
+in Coolify (production) where it's never read (it's a GitHub Actions build-time secret); and
+`posthog-node`'s own flush-failure path logs a raw object dump via `console.error`, bypassing
+`packages/logger` — not this epic's code, and expected to stop entirely once the key is fixed.
+
+**Verification output (tail).** `curl https://staging.41prompts.ai/healthz` → commit `853a966`
+(confirms staging runs EPIC-004; `app.41prompts.ai` is still `b62f12b`, pre-EPIC-004 — production
+deploys only on a `v*` tag, none pushed since the merge). `curl .../dev/throw` → 500. A real
+magic-link signup+login → 302 + session cookie, `users` row created. `docker logs --tail 500` on
+the real web container: 2 clean `{"msg":"auth request",...}` JSON lines with distinct
+`requestId`s, 2 `PostHogFetchHttpError` 401s, zero occurrences of the test email. Worker container
+logs: clean JSON heartbeats, no errors.
+
+**Open questions.** Everything needed to close the four remaining criteria is now precisely
+scoped and sitting on Soroush's side (two Coolify value fixes + a redeploy, and either an uptime
+status-page URL or his own confirmation of a received test alert) — no more code or investigation
+needed here, just the values.

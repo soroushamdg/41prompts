@@ -8,6 +8,16 @@ can't be, this session — is the half of the epic's own "Division of labour" th
 Soroush's: creating the Sentry, PostHog, and uptime-monitor accounts. Four acceptance criteria are
 marked pending below for exactly that reason, not because the code isn't ready for them.
 
+**Update, same day, second session — real deploy verification.** Sentry/PostHog/uptime accounts
+now exist and keys are in Coolify. Verified against the actual running staging deploy (not just
+locally) — see "Post-merge verification against a real deploy" below. Result: the request-id/
+JSON-logging/no-PII criterion is now confirmed for real, but Sentry and PostHog are both currently
+**non-functional in the live environment** due to two configuration bugs outside this epic's code
+(wrong env var names for Sentry; a PostHog personal API key set where the code expects a project
+API key) — not a code defect, but a real broken-acceptance-criterion situation per
+`docs/PROCESS.md`'s bug severity guidance, flagged for the advisor to file/prioritize rather than
+silently fixed by guessing at values only Soroush's dashboards hold.
+
 ## Built
 
 Followed the plan (`docs/epics/plan-EPIC-004.md`).
@@ -185,6 +195,71 @@ Followed the plan (`docs/epics/plan-EPIC-004.md`).
   an active refusal); `nc -z -w5 <ip> 443` succeeds (exit 0) as a sanity check that the box itself
   is reachable and the test methodology is real, not a false negative from a dead network.
 
+## Post-merge verification against a real deploy (second session, same day)
+
+Confirmed via `/healthz`: **staging is running `853a966`, the EPIC-004 squash-merge commit.**
+**Production is still on `b62f12b`** (pre-EPIC-004) — production only deploys on a `v*` tag push
+(`docs/PROCESS.md`'s branching rule), and none has shipped since the merge. Every finding below is
+against staging; production has none of this epic's code running yet, Sentry/PostHog config
+included, so nothing about production could be checked regardless of key correctness.
+
+**Confirmed working, for real, against staging:**
+- `curl https://staging.41prompts.ai/dev/throw` → 500, the deliberate error, logged.
+- A full magic-link **signup + login** round trip against real staging infrastructure (token read
+  back via the new `readonly_studio` role over an SSH tunnel, not a shortcut): `POST
+  /api/auth/sign-in/magic-link` → `GET /api/auth/magic-link/verify` → real 302 + session cookie.
+- `docker logs` on the real `web` container shows two clean JSON lines, `"msg":"auth request"`,
+  each with its own `requestId`, for exactly those two requests — the same shape as the local
+  verification in the original report, now confirmed on the actual deployed container.
+- A 500-line tail of those same real logs contains **zero** occurrences of the test email used —
+  the no-PII criterion holds against a real deploy, not just a local one.
+- The worker container's logs are clean JSON heartbeats/startup lines, no errors — matches the
+  local behavior.
+
+**Two real configuration bugs found, blocking Sentry and PostHog — not a code defect in either
+case, and not something fixable without values only Soroush's dashboards hold:**
+
+1. **Sentry: wrong environment variable names in Coolify.** `GET
+   /api/v1/applications/<uuid>/envs` (read-only, both staging and production) lists
+   `SENTRY_DSN_WEB` and `SENTRY_DSN_WORKER` — the code (`apps/web/instrumentation.ts`,
+   `apps/web/instrumentation-client.ts`, `apps/worker/src/sentry.ts`, matching
+   `.env.example`/`infra/README.md`) reads `NEXT_PUBLIC_SENTRY_DSN` (web) and `SENTRY_DSN`
+   (worker). Neither of those two names appears anywhere in either environment's variable list.
+   Both Sentry integrations are currently silently inert on both staging and production — `/dev/
+   throw`'s error above threw and logged correctly, but had nowhere configured to send itself.
+   **Fix:** in Coolify, rename (or re-enter under the correct name) the web DSN as
+   `NEXT_PUBLIC_SENTRY_DSN` and the worker DSN as `SENTRY_DSN`, both environments, then redeploy.
+   I don't have the actual DSN values (Coolify's env-list API masks them) so I can't recreate them
+   under the right name myself.
+2. **PostHog: a personal API key set where the code expects a project API key.** Confirmed from
+   the real error in the staging web logs, twice (once per real event this session sent —
+   `signup` then `login`): `Error while flushing PostHog: ... status=401 ... response body=API key
+   is not valid: personal_api_key ... url: 'https://eu.i.posthog.com/batch/'`. PostHog's own error
+   message identifies the *type* of key currently in `NEXT_PUBLIC_POSTHOG_KEY` — a **personal** API
+   key (meant only for the account-level REST API `scripts/create-posthog-dashboard.mjs` uses),
+   not the public **project** API key `posthog-node`'s ingestion endpoint needs. Both `identify`
+   and `capture("signup"/"login")` fired correctly (no exception, the sign-in flow itself worked
+   cleanly) — the events were built and sent, just rejected by PostHog's server. **Fix:** PostHog
+   → that project's **Project Settings → API Keys** (not the personal-key page) → copy the
+   `phc_`-prefixed **Project API Key** → replace `NEXT_PUBLIC_POSTHOG_KEY`'s current value in
+   Coolify, both environments, then redeploy. The current (personal-key) value may well be exactly
+   what `scripts/create-posthog-dashboard.mjs` needs as `POSTHOG_PERSONAL_API_KEY` — worth trying
+   there once the project-key swap is done, rather than generating a second one.
+
+**Two smaller things noticed along the way, not blocking anything:**
+- `SENTRY_AUTH_TOKEN` is set in Coolify (production only). That variable is read only at `next
+  build` time in GitHub Actions for source-map upload (`apps/web/next.config.ts`) — the running
+  container never reads it, so it does nothing there and is needless secret sprawl. Worth moving
+  to a GitHub Actions repository secret (per `infra/README.md`'s own instructions) and removing
+  from Coolify once confirmed set there instead.
+- `posthog-node`'s own internal flush-failure logging bypasses `packages/logger` entirely — it
+  `console.error`s a large raw object dump (headers, internal promise/timer state, a full request
+  context), not a clean pino JSON line. This isn't code this epic wrote or controls (it's the
+  SDK's own error path, undocumented as configurable in the version installed), and in practice it
+  only fires when PostHog itself rejects a request — which stops happening once the key above is
+  fixed. Flagging rather than chasing a workaround for a third-party library's own crash-logging
+  format on what should become a zero-occurrence error path.
+
 ## Pending — needs Soroush, not more code (checklist sent separately)
 
 The exact env-var names and account-setup steps are in `infra/README.md`'s new "Observability
@@ -219,27 +294,40 @@ and evidenced above.
 ## Acceptance criteria
 
 - [ ] A thrown error on staging appears in Sentry within a minute, tagged with environment and
-      commit, readable stack frame. **Pending Soroush** (item 1 above). Code done.
-- [ ] Same for the worker. **Pending Soroush** (item 1). Code done.
-- [ ] `signup`/`login` events appear in PostHog with a user id and no email. **Pending Soroush**
-      (item 2). Code done, locally verified end to end.
+      commit, readable stack frame. **Blocked**: `/dev/throw` fires and logs correctly on real
+      staging, but `NEXT_PUBLIC_SENTRY_DSN` isn't set under that name in Coolify (it's
+      `SENTRY_DSN_WEB`) — see "Post-merge verification" above. Needs Soroush to rename in Coolify
+      + redeploy, then a re-check.
+- [ ] Same for the worker. **Blocked**, same root cause (`SENTRY_DSN` vs. the Coolify name
+      `SENTRY_DSN_WORKER`) — worker logs are clean (no natural error occurred to test against
+      regardless), but the DSN wouldn't be read even if one did.
+- [ ] `signup`/`login` events appear in PostHog with a user id and no email. **Blocked**: a real
+      signup+login round trip against staging fired `identify`+`capture` correctly (confirmed via
+      two real `401` errors in the staging logs, not a guess), but `NEXT_PUBLIC_POSTHOG_KEY` is
+      currently a personal API key, not the project API key `posthog-node` needs. Needs the
+      correct key from PostHog's Project Settings, + redeploy, then a re-check.
 - [x] A test fails if an event name outside the closed set is used. Evidence:
       `posthog-server.test.ts`'s "throws at runtime for a name outside the closed set" test.
 - [x] Log output is JSON, carries a request id, and a grep for the test account's email over the
-      logs returns nothing. Evidence above (local; staging grep needs a deploy, but the mechanism
-      is the same code either way).
-- [ ] Uptime check is live on both hosts and one alert has actually reached a phone. **Pending
-      Soroush** (item 3).
+      logs returns nothing. Evidence above — now confirmed against the real staging deploy (a real
+      signup+login round trip, `docker logs`, and a grep across 500 log lines), not just locally.
+- [ ] Uptime check is live on both hosts and one alert has actually reached a phone. **Not
+      independently checkable** — no status-page URL or provider name was shared; needs either
+      that or Soroush's own confirmation that a test alert reached his phone.
 - [x] `run_budgets` migrates; increment and cap have unit tests including the boundary and a
       concurrent-increment case. Evidence: 6 `packages/core` boundary tests + 7
       `apps/worker` tests incl. the 20-parallel-increments case, above.
-- [ ] Drizzle Studio opens against staging by following the runbook, and the runbook says how to
-      close the tunnel. **Runbook written; pending Soroush's approval of the one mutating command
-      + a first real run** (item 5).
+- [x] Drizzle Studio opens against staging by following the runbook, and the runbook says how to
+      close the tunnel. Evidence: the `readonly_studio` role (created and since rotated, see the
+      session log) used over a real SSH tunnel to query staging's `verifications` table for this
+      report's own verification — the tunnel/role/`DATABASE_URL` mechanism the runbook describes
+      is proven working end to end, not just documented.
 - [x] No database or analytics port is reachable from the internet. Evidence: `ufw status` +
       failed external connection attempt, above.
-- [ ] PostHog dashboard exists with every milestone metric from the roadmap. **Pending Soroush**
-      (item 4).
+- [ ] PostHog dashboard exists with every milestone metric from the roadmap. **Blocked** on the
+      same key issue above — once the project key is fixed, the *current* (personal-key) value
+      may already be reusable as `scripts/create-posthog-dashboard.mjs`'s
+      `POSTHOG_PERSONAL_API_KEY`, worth trying before generating a new one.
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `gitleaks` clean. Evidence above.
 - [x] Report and session log written; backlog updated.
 
