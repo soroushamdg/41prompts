@@ -44,3 +44,11 @@ Accessibility the prototypes get wrong and the build must get right: one tab sto
 arrow keys inside, not one per span; keyboard pin from the span side; real ARIA tabs; heatmap cells as focusable,
 labelled buttons with a shape difference; pass/fail icons alongside colour; `aria-valuetext` on sliders; 44px
 touch targets; reduced motion shows the end state of the hero and the logo, it does not skip them.
+
+**`--color-ink-3` (EPIC-003, accepted).** The mockup's literal values — light `#77736a` on `bg`/`surface`/
+`sunken`, dark `#807d76` on the same — fail WCAG AA: axe-core's `color-contrast` rule measured 4.03:1 and 4.485:1
+against the 4.5:1 bar on real rendered text (an unselected `Tab`, an `eyebrow` caption), not a subjective read.
+`packages/ui`'s nudged values win: `#6f6b62` (light) / `#817e77` (dark). Blok category colour staying unshipped
+(EPIC-003's deviation 1 — the mockup's `--kc` reuses `--pass`/`--warn` verbatim, conflicting with "green/red/amber
+mean pass/fail/drift and nothing else") is also accepted; EPIC-020 owns picking a real per-kind mapping, or
+confirming ink-only is permanent.

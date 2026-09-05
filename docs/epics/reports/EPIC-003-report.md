@@ -281,3 +281,11 @@ heatmaps, diff views (Stage 3–4).
    example names `Badge` explicitly; a dense results matrix with an icon in every cell felt like it
    would defeat scannability at width, and the differing numbers (`40/40` vs `37/40`) are already
    non-colour information. Flagging this specific call rather than assuming it's obviously right.
+
+## Advisor resolution (recorded 2026-09-05, during EPIC-004)
+
+Both open questions above are accepted as-is. The `--color-ink-3` hex nudge stands: the mockup's literals fail
+WCAG AA (axe-core "serious", not a judgement call) and `packages/ui`'s values win — recorded in
+`docs/design/README.md`'s corrections section so it isn't re-litigated by a later epic reading the prototype
+directly. Blok category colour also stays unshipped until EPIC-020 defines the real taxonomy/mapping (or confirms
+ink-only is permanent) — same file.
