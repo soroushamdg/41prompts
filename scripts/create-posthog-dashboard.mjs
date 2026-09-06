@@ -4,10 +4,11 @@
 // existing dashboard/insight by name before creating a duplicate) — see infra/README.md's
 // "PostHog dashboard" section for how and when to run this.
 //
-// NOT RUN AGAINST A REAL POSTHOG ACCOUNT — there wasn't one to run it against when this was
-// written (EPIC-004's own division of labour: Soroush creates the PostHog project). Written
-// against PostHog's documented dashboard/insight REST API; dry-run it once real credentials
-// exist and fix anything the API has since changed before trusting its output blindly.
+// Run for real against the live 41prompts PostHog project (EU region) during EPIC-004's
+// closeout, after an earlier version of this script (written before a real account existed to
+// test against) turned out to be wrong in two ways once it hit a real API: no default region
+// (see HOST below) and the legacy `filters` insight shape PostHog has since deprecated (see
+// getOrCreateInsight below). Both fixed and re-verified against the real dashboard.
 //
 // Four of the eight milestones below (M0, M5a, M6, M7) aren't PostHog-trackable at all — M0 is a
 // CI deploy count, M5a comes from CDN access logs, M6 from Stripe, M7 has no event in the closed
@@ -19,11 +20,18 @@ import { env, exit } from "node:process";
 
 const PERSONAL_API_KEY = env.POSTHOG_PERSONAL_API_KEY;
 const PROJECT_ID = env.POSTHOG_PROJECT_ID;
-const HOST = env.POSTHOG_HOST ?? "https://us.i.posthog.com";
+// No default: this repo's own project is EU (NEXT_PUBLIC_POSTHOG_HOST is
+// https://eu.i.posthog.com in Coolify), but .env.example's own documented default is US --
+// guessing wrong here fails hard with an unhelpful 401, not a clear error, so it's a required
+// value instead of a silently-wrong default (found the hard way: an earlier version of this
+// script assumed the US host and every request against the real EU-region account failed).
+const HOST = env.POSTHOG_HOST;
 const DASHBOARD_NAME = "41Prompts milestones";
 
-if (!PERSONAL_API_KEY || !PROJECT_ID) {
-  console.error("Usage: POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... node scripts/create-posthog-dashboard.mjs");
+if (!PERSONAL_API_KEY || !PROJECT_ID || !HOST) {
+  console.error(
+    "Usage: POSTHOG_PERSONAL_API_KEY=... POSTHOG_PROJECT_ID=... POSTHOG_HOST=https://eu.posthog.com|https://us.posthog.com node scripts/create-posthog-dashboard.mjs",
+  );
   exit(1);
 }
 
@@ -83,15 +91,24 @@ async function getOrCreateInsight(dashboardId, insightName, eventName) {
     console.log(`  insight "${insightName}" already exists (id ${existing.id}), reusing it.`);
     return existing;
   }
+  // The legacy `filters` shape (insight/events/display) is rejected outright by current PostHog
+  // instances ("Creating or updating insights with legacy filters is not available... Send a
+  // query object instead") -- found by actually running this against a real account. This is
+  // the modern query-node shape instead, confirmed against PostHog's own schema source
+  // (frontend/src/queries/schema/schema-general.ts's TrendsQuery/InsightVizNode/EventsNode,
+  // frontend/src/types.ts's BaseMathType.UniqueUsers = "dau").
   const created = await posthog("/insights/", {
     method: "POST",
     body: JSON.stringify({
       name: insightName,
       dashboards: [dashboardId],
-      filters: {
-        insight: "TRENDS",
-        events: [{ id: eventName, math: "dau" }],
-        display: "BoldNumber"
+      query: {
+        kind: "InsightVizNode",
+        source: {
+          kind: "TrendsQuery",
+          series: [{ kind: "EventsNode", event: eventName, math: "dau" }],
+          trendsFilter: { display: "BoldNumber" }
+        }
       }
     })
   });

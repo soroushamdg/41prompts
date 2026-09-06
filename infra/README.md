@@ -275,13 +275,23 @@ Once the personal API key from step 2 above exists, run once from the repo root:
 ```
 POSTHOG_PERSONAL_API_KEY=<the key> \
 POSTHOG_PROJECT_ID=<project id, from the project's Settings URL> \
-POSTHOG_HOST=https://us.i.posthog.com \
+POSTHOG_HOST=https://eu.posthog.com \
   node scripts/create-posthog-dashboard.mjs
 ```
+**`POSTHOG_HOST` must match this project's actual region** (EU for the real `41prompts` project,
+as of this writing — check which host the project's own UI URL uses, `eu.posthog.com` vs.
+`us.posthog.com`; getting it wrong fails every request with an unhelpful 401, not a clear error,
+which is exactly what happened the first time this was run for real). Note this is the app host
+(`eu.posthog.com`), not the ingestion host client libraries use (`eu.i.posthog.com`,
+`NEXT_PUBLIC_POSTHOG_HOST`'s value) — both happen to accept this script's API calls, but the app
+host is the documented one.
+
 Creates one dashboard, "41Prompts milestones," with one insight per milestone metric in
 `docs/roadmap.md`'s table (M0–M7) — each shows zero until the product actually produces the events
-it counts, which is expected and correct this early. Re-running the script is safe: it looks up
-existing insights by name before creating a duplicate.
+it counts, which is expected and correct this early (verified against the real dashboard: each
+insight's `?refresh=true` result genuinely computes to `count: 0`, not just "created without
+erroring"). Re-running the script is safe: it looks up existing insights by name before creating a
+duplicate.
 
 ## Why some things are the way they are
 

@@ -2,12 +2,12 @@
 
 Branch `epic/004-observability`, PR #10. 2026-09-05.
 
-**Status: code-complete; 10 of 12 acceptance criteria confirmed as of the fifth session below.**
+**Status: done. All 12 acceptance criteria confirmed**, as of the sixth session below.
 Originally code-complete with four criteria pending Soroush's half of the epic's own "Division of
 labour" (creating the Sentry, PostHog, and uptime-monitor accounts); closed incrementally across
-five sessions as real keys, a real tag, and real on-box triggers became available. Two remain
-open: the uptime monitor (no provider/status-page has been shared) and the PostHog dashboard
-script (needs a personal API key on the command line, never shared or run).
+six sessions as real keys, a real tag, and real on-box triggers became available — see the dated
+updates immediately below for exactly what changed in each one, and "Post-merge verification"
+further down for two real bugs the last session found and fixed along the way (not just verified).
 
 **Update, same day, second session — real deploy verification.** Sentry/PostHog/uptime accounts
 now exist and keys are in Coolify. Verified against the actual running staging deploy (not just
@@ -45,9 +45,26 @@ server to hang a `/dev/throw`-equivalent route off, so `apps/worker/src/dev-thro
 deployed staging worker container (`docker exec ...`, one mutating command, approved separately
 per `infra/ACCESS.md` rule 3), confirmed to throw/log/exit correctly, and Soroush confirmed the
 resulting issue in the `41prompts-worker` Sentry project. **10 of 12 acceptance criteria are now
-confirmed.** The two still open — the uptime monitor and the PostHog dashboard script — are
-unrelated to Sentry/worker work and need their own separate action from Soroush (see "Pending"
-below); this epic's report stays open until those close too.
+confirmed.** The two still open — the uptime monitor and the PostHog dashboard script — needed
+their own separate action from Soroush.
+
+**Update, sixth session — the last two criteria closed, one of them by finding and fixing two real
+bugs, not just checking a box.** Soroush confirmed the uptime monitor is live and a test alert
+reached his phone directly (no status page or provider access was ever shared, so this is his
+confirmation the same way both Sentry criteria closed). For the PostHog dashboard, he shared the
+personal API key and project id; a real API call before touching anything found only PostHog's own
+default "Your starter dashboard" — the milestone dashboard did not actually exist, despite an
+earlier belief that it did. Running `scripts/create-posthog-dashboard.mjs` for the first time
+against the real account surfaced two real bugs: it had no default host matching this project's
+EU region (and `infra/README.md`'s own documented example command hardcoded the wrong one, US —
+running it verbatim would have failed with an opaque 401, not a helpful error), and PostHog now
+rejects the legacy `filters` insight shape the script used, requiring the current
+`query`/`InsightVizNode`/`TrendsQuery` object instead (confirmed against PostHog's own frontend
+schema source on GitHub, not guessed). Fixed both in the script and the README, re-ran
+successfully, and confirmed for real: the dashboard now has all 8 milestone tiles, and a direct
+API call against one insight with `?refresh=true` returned a genuinely computed `count: 0`, not
+just "accepted at creation." **All 12 of 12 acceptance criteria are now confirmed. This epic is
+done.**
 
 ## Built
 
@@ -291,26 +308,11 @@ case, and not something fixable without values only Soroush's dashboards hold:**
   fixed. Flagging rather than chasing a workaround for a third-party library's own crash-logging
   format on what should become a zero-occurrence error path.
 
-## Pending — needs Soroush, not more code
+## Pending
 
-Ten of the twelve acceptance criteria are done. Two remain, both needing an account-level action
-only Soroush can take — `infra/README.md`'s "Observability secrets" section has the exact steps
-for both:
-
-1. **Uptime check live on both hosts, one alert reached a phone** — needs a monitor account
-   Soroush creates (any provider with phone-capable free-tier alerting); `infra/README.md`
-   documents exactly what to configure and to test-fire one alert before considering it done.
-2. **PostHog dashboard exists with every milestone metric** — `scripts/create-posthog-dashboard.mjs`
-   is ready; needs a PostHog personal API key on the command line to actually run (and a first real
-   dry-run against a live account, flagged in the script itself, since it was never run against
-   one). The personal API key mistakenly set as `NEXT_PUBLIC_POSTHOG_KEY` earlier in this epic
-   (see "Post-merge verification" above) may well be exactly the right value to reuse here.
-
-Everything else in the epic's acceptance criteria list — both Sentry criteria, PostHog signup/
-login, the closed-event-set test, `run_budgets` migrating with boundary + concurrent-increment
-tests, no PII in logs, Drizzle Studio, no reachable DB/analytics port, `pnpm test`/`typecheck`/
-`lint`/`gitleaks` clean, this report and the session log — is done
-and evidenced above.
+Nothing. All 12 acceptance criteria are done and evidenced above — the uptime monitor and the
+PostHog dashboard (the last two open items, both needing an account-level action only Soroush
+could take) closed in the sixth session.
 
 ## Acceptance criteria
 
@@ -339,10 +341,10 @@ and evidenced above.
 - [x] Log output is JSON, carries a request id, and a grep for the test account's email over the
       logs returns nothing. Confirmed twice now against the real staging deploy (two separate real
       signup+login round trips, `docker logs`, zero occurrences of either test email both times).
-- [ ] Uptime check is live on both hosts and one alert has actually reached a phone. **Still not
-      independently checkable** — no status-page URL, provider name, or API token has been shared
-      in either verification pass; needs one of those, or Soroush's own confirmation that a test
-      alert reached his phone.
+- [x] Uptime check is live on both hosts and one alert has actually reached a phone. **Confirmed**
+      by Soroush directly — no status page or provider API access was ever shared with this
+      session, so this is his confirmation, not an independent check, the same evidentiary basis
+      the two Sentry criteria closed on.
 - [x] `run_budgets` migrates; increment and cap have unit tests including the boundary and a
       concurrent-increment case. Evidence: 6 `packages/core` boundary tests + 7
       `apps/worker` tests incl. the 20-parallel-increments case, above.
@@ -353,21 +355,30 @@ and evidenced above.
       runbook describes is proven working end to end, twice, not just documented.
 - [x] No database or analytics port is reachable from the internet. Evidence: `ufw status` +
       failed external connection attempt, above.
-- [ ] PostHog dashboard exists with every milestone metric from the roadmap. **Still not run** —
-      `scripts/create-posthog-dashboard.mjs` needs a personal API key on the command line; not
-      shared or run in either verification pass. Everything else the script needs (a live project,
-      a working project key confirming the project exists and is reachable) is now in place.
+- [x] PostHog dashboard exists with every milestone metric from the roadmap. **Confirmed, and run
+      by this session directly** — Soroush shared the personal API key and project id; a real API
+      call found only PostHog's own default "Your starter dashboard," meaning the milestone
+      dashboard did not actually exist yet despite an earlier belief that it had been created.
+      Running `scripts/create-posthog-dashboard.mjs` for real then surfaced two real bugs in the
+      script itself (see "Post-merge verification" below): no default matches this project's EU
+      region (`infra/README.md`'s own documented example command used the wrong host and would
+      have failed with an opaque 401), and PostHog now rejects the legacy `filters` insight shape
+      the script used, requiring the current `query`/`InsightVizNode`/`TrendsQuery` object instead
+      (confirmed against PostHog's own schema source, not guessed). Fixed both, re-ran
+      successfully: dashboard "41Prompts milestones" now has all 8 milestone tiles (M0–M7), and a
+      direct `GET .../insights/:id/?refresh=true` on one of them returned a real computed
+      `count: 0` — genuinely evaluating live data, not merely accepted at creation time.
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `gitleaks` clean. Evidence above.
 - [x] Report and session log written; backlog updated.
 
-**Summary after five verification passes:** 10 of 12 criteria fully confirmed (up from 7 at the
-end of the first session). PostHog signup/login is definitively closed. Both Sentry criteria are
-closed too — web via `/dev/throw`, worker via the new `apps/worker/src/dev-throw.ts` fired for
-real against the deployed staging container — each confirmed by Soroush looking at the
-corresponding Sentry project directly, since this session never held a read-scoped Sentry
-credential to check either one itself. Uptime and the PostHog dashboard remain exactly where they
-started: both need one concrete action (check a phone / run one script with a key) that only
-Soroush can supply.
+**Summary after six verification passes: 12 of 12 criteria fully confirmed** (up from 7 at the end
+of the first session). PostHog signup/login and both Sentry criteria (web via `/dev/throw`, worker
+via `apps/worker/src/dev-throw.ts`) closed on Soroush's direct confirmation, since this session
+never held a read-scoped Sentry credential. The uptime monitor closed the same way. The PostHog
+dashboard is the one criterion this session verified independently, end to end, once given
+credentials: found the dashboard didn't actually exist yet (only PostHog's own default one did),
+found and fixed two real bugs in `scripts/create-posthog-dashboard.mjs` against PostHog's current
+API, and confirmed a real computed `count: 0` from a live insight — not just "the script exited 0."
 
 ## Verification
 
