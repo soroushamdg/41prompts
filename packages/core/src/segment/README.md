@@ -154,7 +154,14 @@ and breaks rule 5. One changed snapshot, changed for exactly the reason predicte
 
 `fixtures/` holds 25 prompts and `fixtures/snapshots/` a committed snapshot of each. It is the
 shared truth for every later epic (EPIC-011a's clustering tests, EPIC-013's UI fixtures) so a
-boundary change shows up in one diff rather than in three drifting copies of sample text.
+boundary change shows up in one diff rather than in three drifting copies of sample text:
+
+```ts
+import { SEGMENT_FIXTURES } from "@41prompts/core/fixtures";
+```
+
+A subpath rather than the package root, because it is test data and the root is the surface
+EPIC-052 freezes.
 
 The prompts are TypeScript modules, not `.txt` files, for three reasons: `packages/core` does no
 IO, so a loader would break its own boundary rule; the invisible cases (CRLF, a BOM, a lone

@@ -159,3 +159,46 @@ should classify and cluster the `Segment`s this produces and read its fixtures f
 epic that slices, merges or re-anchors ranges can check itself against the same five promises.
 `docs/epics/CURRENT.md` still mirrors EPIC-010 and the backlog has it `done`, awaiting the
 advisor's next epic.
+
+---
+
+## Fix-up session — 2026-09-09, after the advisor's rulings
+
+**Prompt sent.** The five open questions ruled on: (1) keep `SEGMENT_FIXTURES` exported but move it
+to a subpath `@41prompts/core/fixtures`, off the surface EPIC-052 freezes; (2) keep both
+`LIST_MIN_ITEMS` and `SENTENCE_SPLIT_THRESHOLD` exported; (3) non-goals accepted as written;
+(4) the 1 MB gate is wrong, real prompts are 1–20 KB — replace it with 100 KB under 100 ms as the
+failing gate and keep the 1 MB timing reported but never failing, with `Segment.text` staying the
+verbatim source slice; (5) the list lead-in stays its own segment and EPIC-011a decides whether it
+merges. Apply 1 and 4 in one commit, update the epic file's criteria and the report, PR, merge.
+Then stop — EPIC-011a's epic file does not exist yet.
+
+**What was applied.** Rulings 1 and 4. Rulings 2, 3 and 5 needed no code and are recorded against
+their questions in the report. The `exports` map was verified by resolving both specifiers from an
+isolated consumer with `node`'s own resolver rather than by reading the manifest — and it turns out
+to block deep imports into core's internals as a side effect, so rule 11's module boundary is now
+enforced by the resolver instead of by reviewer attention.
+
+**What went wrong and was caught.** Two things, both in the timing tests again.
+
+- The replacement 100 KB gate was under-warmed: its first reading was 9.3 ms against a 100 ms bar,
+  which looked like ten times the headroom and was not. A smaller input puts a tenth of the work
+  through the same loops per call, so it reaches steady state later in wall-clock terms. Three
+  warm-ups and a fastest-of-ten put it at 1.9 ms, and the difference was most of the margin the
+  bar would have had on a slow runner.
+- The growth check failed once under `pnpm test`'s eight parallel suites with an exponent of 2.48,
+  which reads as quadratic and was not: it measured its small input three times, then its large
+  input three times, and a burst of contention landed entirely in the second block. Measuring
+  fastest-of-three twice does not fix that; measuring the two inputs *interleaved* does, because a
+  stall then has to hit every run of the same input and a uniform slowdown cancels out of the
+  ratio. Under the same load it now reads 0.99–1.17.
+
+This is the third timing flake in this epic, and the lesson each time was the same: a timing
+assertion is a measurement, and a measurement needs to be designed. The three that stuck are
+warm-not-cold, fastest-of-N, and interleaved-when-comparing.
+
+**Verification.** 152 tests pass; `pnpm typecheck`, `pnpm lint` and `pnpm compliance` clean, the
+last including `reuse lint` at 305/305 and the mirror dry-run. `dependency-cruiser` now cruises 49
+dependencies rather than 50, which is the corpus no longer being reachable from the package root.
+
+**Next.** EPIC-011a, once the advisor's epic file exists. `CURRENT.md` still mirrors EPIC-010.

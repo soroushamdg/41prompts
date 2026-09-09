@@ -66,7 +66,11 @@ is not, and waits.
 - [x] Fenced code and matched tag blocks are never split, including a fence containing blank lines and a fence
       containing what looks like a heading. Evidence: two test names.
 - [x] Offsets are correct when the same sentence appears twice in one prompt. Evidence: test name.
-- [x] A 1 MB input segments in under 200 ms on CI. Evidence: timing output.
+- [x] A 100 KB input segments in under 100 ms on CI; the 1 MB timing is reported on every run but
+      never gates a build. Evidence: timing output. (Advisor ruling, 2026-09-09: real prompts are
+      1–20 KB, so a 1 MB gate was two orders of magnitude past anything a user pastes and cleared
+      by between 1.2× and 2.8× depending on the runner. `Segment.text` stays the verbatim source
+      slice; it is not made lazy.)
 - [x] No regex in the module backtracks catastrophically; an adversarial input test completes in under 100 ms.
       Evidence: test name and the input used.
 - [x] Rule order is documented in the source and the README, and adding a rule to the middle of the order is shown

@@ -6,6 +6,7 @@
     "baseUrl": ".",
     "paths": {
       "@41prompts/core": ["packages/core/src/index.ts"],
+      "@41prompts/core/fixtures": ["packages/core/src/segment/fixtures/index.ts"],
       "@41prompts/db": ["packages/db/src/index.ts"],
       "@41prompts/ui": ["packages/ui/src/index.ts"],
       "@41prompts/cli": ["packages/cli/src/index.ts"],
