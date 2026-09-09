@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# long-paragraph-sentences — A paragraph a little over the threshold, holding a quoted sentence, an ellipsis and an abbreviation. Shows exactly where rule 6 cuts and where it deliberately does not.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 324 code units, 6 segment(s)
+
+0 0 42 "You review pull requests for a small team."
+1 43 97 "Say what is wrong, then say what you would do instead."
+2 98 175 "If the author wrote \"this is temporary.\" in a comment, ask when it comes out."
+3 176 226 "Do not review formatting; the formatter owns that."
+4 227 281 "Prefer one concrete example over three abstractions..."
+5 282 323 "and never end a review without a verdict."

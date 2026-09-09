@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# few-shot-examples — Input/Output pairs written as plain paragraphs, the way most people write few-shot examples before they discover tags.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 331 code units, 5 segment(s)
+
+0 0 74 "Classify the sentiment of a product review as positive, negative or mixed."
+1 76 160 "Input: This thing arrived broken and support ignored me for a week.\nOutput: negative"
+2 162 232 "Input: Battery life is great, but the app crashes daily.\nOutput: mixed"
+3 234 290 "Input: Exactly what I needed, no notes.\nOutput: positive"
+4 292 330 "Answer with one word and nothing else."

@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# short-paragraphs — Several paragraphs, each comfortably under the threshold and each holding more than one sentence. None of them may be split: under the threshold, a paragraph is one thing.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 165 code units, 3 segment(s)
+
+0 0 64 "You are a changelog editor. Keep every entry under twenty words."
+1 66 109 "Write in the past tense. Start with a verb."
+2 111 164 "Never write \"various improvements\". Say what changed."

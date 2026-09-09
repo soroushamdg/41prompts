@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# tab-indented — Tabs for indentation, inside a list and inside a fence. Tab-nested items stay with their parent item; a tab-indented line is not a fence.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 229 code units, 4 segment(s)
+
+0 0 28 "Checklist before you answer:"
+1 30 87 "-\tRead the whole thread.\n\t-\tIncluding the quoted replies."
+2 88 195 "-\tCheck the account tier.\n\t-\tFree accounts get the short answer.\n\t-\tPaid accounts get the full walkthrough."
+3 197 228 "Then answer in under 120 words."

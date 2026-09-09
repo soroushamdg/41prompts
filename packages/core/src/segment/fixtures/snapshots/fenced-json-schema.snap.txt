@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# fenced-json-schema — A fence holding a blank line and a line that looks like a markdown heading. Neither may split it (rule 1 over rules 3 and 4).
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 256 code units, 4 segment(s)
+
+0 0 42 "You extract structured data from invoices."
+1 44 70 "Return exactly this shape:"
+2 72 209 "```json\n{\n  \"vendor\": \"string\",\n  \"total_cents\": 0,\n\n  \"# not a heading\": \"the hash above is inside the fence\",\n\n  \"line_items\": []\n}\n```"
+3 211 255 "Never add fields that are not in the schema."

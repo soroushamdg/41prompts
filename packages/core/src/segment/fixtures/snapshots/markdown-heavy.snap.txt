@@ -1,0 +1,22 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# markdown-heavy — Headings, lists and a fence together. Headings separate; each heading line is its own segment (rule 3).
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 374 code units, 14 segment(s)
+
+0 0 25 "# Release notes assistant"
+1 27 86 "You turn a list of merged pull requests into release notes."
+2 88 96 "## Voice"
+3 98 144 "Plain, short sentences. No marketing language."
+4 146 157 "## Sections"
+5 159 166 "- Added"
+6 167 176 "- Changed"
+7 177 184 "- Fixed"
+8 186 200 "### Skip these"
+9 202 248 "- Dependency bumps with no user-visible effect"
+10 249 269 "- Internal refactors"
+11 271 280 "## Output"
+12 282 324 "```markdown\n## v1.4.0\n\n### Added\n- ...\n```"
+13 326 373 "Never invent a change that is not in the input."
