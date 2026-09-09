@@ -83,37 +83,39 @@ describe("throughput", () => {
  * regex problem at all — matching every unmatched opener by scanning forward for its closer,
  * which is O(n²) and is why `tags.ts` matches with a stack instead.
  *
- * Sizes are chosen so the *slowest* of them takes single-digit milliseconds on a developer
- * machine, which leaves the 100 ms bar real headroom on a shared CI runner — measured at roughly
- * five to nine times slower than a laptop, which is how four of these first arrived on CI at
- * 130–180 ms having taken 20–37 ms locally.
+ * Sizes are chosen so the *slowest* of them takes a few milliseconds on a developer machine,
+ * which is what leaves the 100 ms bar real headroom on a shared runner. Two rounds of CI say why
+ * that margin has to be generous: four of these first arrived at 130–180 ms having taken 20–37 ms
+ * locally, and after resizing, two consecutive green runs on different runners disagreed with
+ * each other by about a factor of two (169 ms against 85 ms on the same 1 MB input). A gate whose
+ * headroom is thinner than the variance between two runners is a coin toss, not a test.
  *
  * Shrinking them costs nothing this suite was measuring. What blows up on a hostile shape blows
- * up exponentially, so it is just as visible at 12,500 repetitions as at 50,000; whether the
- * cost *grows* with input is the linearity test's job, and it compares a ratio, which no runner
- * speed can move. Raw throughput on a big realistic input is the 1 MB test's job, and it passes.
+ * up exponentially, so it is just as visible at 6,000 repetitions as at 50,000; whether the cost
+ * *grows* with input is the growth-exponent test's job, and an exponent is scale-free. Raw
+ * throughput on a big realistic input is the 1 MB test's job, and it passes.
  */
 const ADVERSARIAL: ReadonlyArray<readonly [string, string]> = [
-  ["12,500 unmatched tag openers", "<a>\n".repeat(12_500)],
-  ["12,500 unmatched closing tags", "</a>\n".repeat(12_500)],
-  ["12,500 alternating open and close on one line", "<a></a>".repeat(12_500)],
-  ["a 50,000-character run of `<`", "<".repeat(50_000)],
-  ["an unterminated tag followed by 50,000 characters", `<a ${"b".repeat(50_000)}`],
-  ["50,000 characters of attributes with no closing bracket", `<a ${"x=y ".repeat(12_500)}`],
-  ["a 50,000-character backtick run", "`".repeat(50_000)],
-  ["10,000 fence openers", "```\n".repeat(10_000)],
-  ["10,000 tilde fences that never close", "~~~x\n".repeat(10_000)],
-  ["a 50,000-character hash run", "#".repeat(50_000)],
-  ["20,000 heading lines", "# h\n".repeat(20_000)],
-  ["20,000 list markers", "- \n".repeat(20_000)],
-  ["2,500 deeply indented list items", `${" ".repeat(60)}- x\n`.repeat(2_500)],
-  ["40,000 sentence terminators", ". ".repeat(40_000)],
-  ["50,000 terminators with no whitespace", ".".repeat(50_000)],
-  ["a 100,000-character run of spaces", " ".repeat(100_000)],
-  ["a 100,000-character run of tabs", "\t".repeat(100_000)],
-  ["50,000 empty CRLF lines", "\r\n".repeat(50_000)],
-  ["a 50,000-character run of digits and dots", "1.".repeat(25_000)],
-  ["50,000 lone surrogates", "\uD800".repeat(50_000)]
+  ["6,000 unmatched tag openers", "<a>\n".repeat(6_000)],
+  ["6,000 unmatched closing tags", "</a>\n".repeat(6_000)],
+  ["6,000 alternating open and close on one line", "<a></a>".repeat(6_000)],
+  ["a 25,000-character run of `<`", "<".repeat(25_000)],
+  ["an unterminated tag followed by 25,000 characters", `<a ${"b".repeat(25_000)}`],
+  ["25,000 characters of attributes with no closing bracket", `<a ${"x=y ".repeat(6_250)}`],
+  ["a 25,000-character backtick run", "`".repeat(25_000)],
+  ["5,000 fence openers", "```\n".repeat(5_000)],
+  ["5,000 tilde fences that never close", "~~~x\n".repeat(5_000)],
+  ["a 25,000-character hash run", "#".repeat(25_000)],
+  ["10,000 heading lines", "# h\n".repeat(10_000)],
+  ["10,000 list markers", "- \n".repeat(10_000)],
+  ["1,250 deeply indented list items", `${" ".repeat(60)}- x\n`.repeat(1_250)],
+  ["20,000 sentence terminators", ". ".repeat(20_000)],
+  ["25,000 terminators with no whitespace", ".".repeat(25_000)],
+  ["a 50,000-character run of spaces", " ".repeat(50_000)],
+  ["a 50,000-character run of tabs", "\t".repeat(50_000)],
+  ["25,000 empty CRLF lines", "\r\n".repeat(25_000)],
+  ["a 25,000-character run of digits and dots", "1.".repeat(12_500)],
+  ["25,000 lone surrogates", "\uD800".repeat(25_000)]
 ];
 
 describe("adversarial input", () => {
@@ -121,9 +123,9 @@ describe("adversarial input", () => {
     // The 100 ms bar only means something if the inputs are a comparable size. An input three
     // times bigger than its neighbours that takes 110 ms is not evidence of backtracking, it is
     // evidence of being three times bigger — and a test that fails for that reason teaches the
-    // next reader nothing. 256 KB keeps the slowest case in single-digit milliseconds locally.
+    // next reader nothing. 128 KB keeps the slowest case in single-digit milliseconds locally.
     for (const [name, input] of ADVERSARIAL) {
-      expect(input.length, `${name} is ${input.length} code units`).toBeLessThanOrEqual(262_144);
+      expect(input.length, `${name} is ${input.length} code units`).toBeLessThanOrEqual(131_072);
     }
   });
 

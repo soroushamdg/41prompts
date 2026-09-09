@@ -92,6 +92,11 @@ one per rule group; the property test written first, against an invariant a stub
   measurable. At 1 MB the segmenter produces 11,506 segments and `Segment.text` is the verbatim
   slice, so the time is 11,506 `String.slice` calls, not an inefficiency. Shipping a refactor
   whose justifying comment I had just measured to be false was the wrong trade.
+- **Two green CI runs disagreed with each other by a factor of two** on the same 1 MB input — 169
+  ms warm on one runner, 85 ms on the next. That is the number that matters for every timing gate
+  here: headroom thinner than the variance between runners is a coin toss. The adversarial budget
+  came down again, to 128 KB, which buys 30× headroom locally and costs the suite nothing it was
+  measuring.
 - **The growth test now reports an exponent, not a ratio.** "Under 8×" means nothing on its own
   and changes meaning if the 4× ever becomes 3×. 1.0 is linear, 2.0 is quadratic, the forward-scan
   implementation this replaced would sit at 2.0, and it measures 1.19 here and 1.32 on CI.
@@ -117,17 +122,17 @@ one per rule group; the property test written first, against an invariant a stub
  Test Files  6 passed (6)
       Tests  151 passed (151)
 
-1 MB (1048576 code units): 59.7 ms cold, 17.1 ms warm
-adversarial:    6.8 ms  (14.8x headroom)  2,500 deeply indented list items
-adversarial:    6.1 ms  (16.3x headroom)  12,500 unmatched tag openers
-adversarial:    6.1 ms  (16.4x headroom)  20,000 list markers
-growth exponent 1.19 (3.9 ms -> 20.2 ms for 4x input; 1.0 linear, 2.0 quadratic)
+1 MB (1048576 code units): 59.8 ms cold, 16.2 ms warm
+adversarial:    3.3 ms  (30.0x headroom)  1,250 deeply indented list items
+adversarial:    3.0 ms  (33.9x headroom)  6,000 unmatched tag openers
+adversarial:    2.9 ms  (35.0x headroom)  10,000 list markers
+growth exponent 1.17 (3.9 ms -> 19.5 ms for 4x input; 1.0 linear, 2.0 quadratic)
 
 and the same three lines from the CI runner, which is what the 1 MB criterion asks for:
 
-1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm
-adversarial:   42.5 ms  (2.4x headroom)  2,500 deeply indented list items
-growth exponent 1.32
+1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm   (one runner)
+1 MB (1048576 code units): 335.6 ms cold,  85.0 ms warm   (the next runner, same commit range)
+growth exponent 1.32 / 1.11
 
 ✔ no dependency violations found (33 modules, 50 dependencies cruised)
 Checked 140 files in 8 packages, no issues found

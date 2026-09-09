@@ -182,18 +182,19 @@ nonsense.
       only job is to notice a hang. Both numbers print on every run. **See open question 5** —
       the warm number clears the bar by 1.2×, which is thinner than it should be.
 - [x] **No catastrophic backtracking; adversarial input under 100 ms.** Twenty adversarial inputs,
-      each named in its test — `adversarial input > survives '12,500 unmatched tag openers' in under 100 ms`
-      and nineteen more, covering runs of `<`, an unterminated tag with 50,000 characters of
+      each named in its test — `adversarial input > survives '6,000 unmatched tag openers' in under 100 ms`
+      and nineteen more, covering runs of `<`, an unterminated tag with 25,000 characters of
       attributes, backtick and tilde runs, hash runs, list markers, deep indentation, sentence
-      terminators, CRLF, digits and lone surrogates. Every input sits inside one 256 KB budget
+      terminators, CRLF, digits and lone surrogates. Every input sits inside one 128 KB budget
       (`keeps every adversarial input inside one budget`) so the bar compares like with like, and
       `reports the slowest adversarial cases and the headroom left` prints the three slowest with
-      their headroom on every run, CI included — 6.8 ms at 15× headroom here, 42.5 ms at 2.4× on
-      `ubuntu-latest`. Plus
+      their headroom on every run, CI included — 3.3 ms at 30× headroom here, and 30× is
+      deliberate: two consecutive green CI runs on different runners disagreed with each other by
+      a factor of two, so a gate needs headroom wider than the variance between runners. Plus
       `grows no faster than input^1.6 when an adversarial input grows four times larger`, stated
       as a growth exponent because that is the figure anyone actually wants and it reads the same
       on any machine: 1.0 is linear, 2.0 is quadratic, the forward-scan implementation this
-      replaced would sit at 2.0, and it measures 1.19 here and 1.32 on CI. Plus the structural
+      replaced would sit at 2.0, and it measures 1.17 here and 1.11–1.32 on CI. Plus the structural
       regex checks under `regex safety (epic decision 7)`.
 - [x] **Rule order documented in the source and the README; adding a rule shown to change exactly
       the snapshots it should.** `packages/core/src/segment/README.md` — "The rule order", "Why
