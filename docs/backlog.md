@@ -1,6 +1,6 @@
 # Backlog
 
-Status: `todo` · `current` · `done` · `blocked` · `cut`
+Status: `todo` · `current` · `done` · `blocked` · `deferred` · `cut`
 Sizes: S one session · M two to three · L must be split
 Gates: ▣ marks a go/no-go checkpoint; nothing after it starts until it passes (criteria in `roadmap.md`).
 
@@ -15,7 +15,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-000 | Repo scaffold: monorepo, TS strict, lint, Vitest, CI, Apache-2.0 + SPDX on public packages, boundary allow-list | M | — | done |
-| EPIC-005 | Customer discovery: 10 interviews with ICP engineers, 5 written use cases, pricing check, activation definition | S | — | todo |
+| EPIC-005 | Customer discovery: 10 interviews with ICP engineers, 5 written use cases, pricing check, activation definition | S | — | deferred |
 | EPIC-006 | Namespaces and marks: npm org, GitHub org, PyPI names, trademark knockout search, domain check | S | — | todo |
 | EPIC-001 | Infra: AWS Lightsail Montréal + Coolify, Compose (postgres, web, worker), staging + prod, TLS, nightly backups to R2, restore drill; infra as code, no agent SSH | M | 000 | done |
 | EPIC-002 | Data + auth: Drizzle baseline, migrations, Better Auth (Google, GitHub, email), protected routes, account purge window | M | 001 | done |
@@ -28,8 +28,8 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
-| EPIC-080 | research: one 12-participant study on the decompiler prototype; "blok" comprehension, touch discoverability, summary trust | S | — | current |
-| EPIC-010 | core: deterministic segmenter with exact offsets, fixture corpus, property tests | M | 000 | todo |
+| EPIC-080 | research: one 12-participant study on the decompiler prototype; "blok" comprehension, touch discoverability, summary trust | S | — | deferred |
+| EPIC-010 | core: deterministic segmenter with exact offsets, fixture corpus, property tests | M | 000 | current |
 | EPIC-011a | core: blok classifier with labelled table; deterministic clustering into multi-range bloks | M | 010, 080 | todo |
 | EPIC-011b | core: summariser interface (heuristic in core, model-backed in worker, cached); topic keys as data | S | 011a | todo |
 | EPIC-012a | core: detectors — repeated, contradiction, untestable, padding, too-long; Finding schema, severity | M | 011b | todo |
@@ -41,6 +41,10 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | todo |
 | EPIC-084 | research: read the live funnel and the blok-count distribution; size the canvas problem | S | 015 | todo |
 | ▣ GATE 1 | Stage 1 exit: criteria in roadmap | — | 084 | — |
+
+Stage 1 runs out of backlog order. **EPIC-080** (prototype study) and **EPIC-005** (interviews) are
+`deferred`, not `cut`: their findings arrive mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013.
+EPIC-010 is interview-proof — no research finding moves where a paragraph ends — so it goes first.
 
 ## Stage 2 · Bloks and compiler
 
