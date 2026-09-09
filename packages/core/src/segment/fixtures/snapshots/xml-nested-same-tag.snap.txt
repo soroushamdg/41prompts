@@ -1,0 +1,11 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# xml-nested-same-tag — A tag region nesting the same tag name inside itself. The outer pair matches the outer close, not the inner one.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 218 code units, 3 segment(s)
+
+0 0 27 "Follow the worked examples."
+1 29 186 "<examples>\n<example>\nInput: I was charged twice.\nOutput: billing\n</example>\n<example>\nInput: The app will not start.\nOutput: technical\n</example>\n</examples>"
+2 188 217 "Now classify the email below."

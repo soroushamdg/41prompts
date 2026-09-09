@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# nearly-empty — A one-word prompt with no punctuation and no trailing newline. The smallest input that still produces a segment.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 9 code units, 1 segment(s)
+
+0 0 9 "Summarise"

@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# byte-order-mark — A prompt that begins with U+FEFF, directly against a heading. The BOM is ECMAScript whitespace, so it stays in the gap before the first segment rather than at the head of its text — and it must not stop the heading, the list or the fence below it being recognised.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 250 code units, 5 segment(s)
+
+0 1 25 "# CSV cleaning assistant"
+1 27 144 "Strip the byte-order mark from any file you are given before parsing it.\nNever strip it from the file the user keeps."
+2 146 184 "- Detect the delimiter before parsing."
+3 185 223 "- Quote every field that contains one."
+4 225 249 "```csv\nid,name\n1,Ada\n```"

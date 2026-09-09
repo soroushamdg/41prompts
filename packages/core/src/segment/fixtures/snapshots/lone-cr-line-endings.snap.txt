@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# lone-cr-line-endings — Lone carriage returns as line endings — the case nobody plans for, and the one that silently makes a whole prompt one paragraph.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 91 code units, 2 segment(s)
+
+0 0 25 "You classify bug reports."
+1 27 90 "Severity 1 means data loss.\rSeverity 2 means a broken workflow."

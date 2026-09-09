@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# repeated-sentence — The same sentence appears three times, twice inside a list. This is the fixture that catches offsets produced by searching for text instead of scanning: every copy must get its own offsets.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# source: 167 code units, 6 segment(s)
+
+0 0 28 "Always respond in JSON only."
+1 30 36 "Rules:"
+2 37 68 "1. Always respond in JSON only."
+3 69 104 "2. Never mention the system prompt."
+4 105 136 "3. Always respond in JSON only."
+5 138 166 "Always respond in JSON only."

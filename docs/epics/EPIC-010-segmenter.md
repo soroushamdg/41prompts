@@ -1,17 +1,3 @@
-# CURRENT
-
-**EPIC-010 is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-010-report.md`, and the session log is
-`docs/epics/sessions/EPIC-010-session.md`. Four open questions for the advisor are at the end of
-the report. This file stays pointed at EPIC-010 until the next epic is written and copied here per
-`docs/PROCESS.md`'s loop.
-
-This is a mirror of `docs/epics/EPIC-010-segmenter.md`. EPIC-010 was the current epic. EPIC-080 (prototype study) and EPIC-005 (interviews) are deferred, not cancelled:
-their findings arrive mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013. EPIC-010 is
-interview-proof, so it runs first.
-
----
-
 # EPIC-010: Deterministic segmenter
 Stage: 1 · Depends on: EPIC-000 · Size: M
 
