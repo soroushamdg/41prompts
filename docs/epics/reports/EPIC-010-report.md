@@ -176,11 +176,11 @@ nonsense.
       `the contract > gives the same sentence appearing twice two different offsets`, plus the
       `repeated-sentence` fixture, where the same sentence appears three times, twice inside a list.
 - [x] **1 MB in under 200 ms on CI.** `throughput > segments a 1 MB prompt in under 200 ms`.
-      Output from the CI runner itself, which is what the criterion asks for:
-      `1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm` (this laptop: 59.7 ms and
-      17.1 ms). The 200 ms bar is asserted on the warm number; the cold call gets a ceiling whose
-      only job is to notice a hang. Both numbers print on every run. **See open question 5** —
-      the warm number clears the bar by 1.2×, which is thinner than it should be.
+      Output from the CI runner itself, which is what the criterion asks for, across three runs:
+      `492.6 ms cold, 168.7 ms warm`, then `335.6 / 85.0`, then `292.4 / 71.1` (this laptop:
+      59.8 and 16.2). The 200 ms bar is asserted on the warm number; the cold call gets a ceiling
+      whose only job is to notice a hang. Both numbers print on every run. **See open question
+      5** — the spread across runners is the point, not any one number.
 - [x] **No catastrophic backtracking; adversarial input under 100 ms.** Twenty adversarial inputs,
       each named in its test — `adversarial input > survives '6,000 unmatched tag openers' in under 100 ms`
       and nineteen more, covering runs of `<`, an unterminated tag with 25,000 characters of
@@ -251,16 +251,21 @@ Nothing in the epic's scope was skipped. Five things the advisor may want to rul
    headings, abbreviation-aware sentence splitting, blockquotes, tables, indented code blocks.
    Each is a place where a rule would have to guess, and a guess is not deterministic. If any of
    them turns out to matter to a real prompt in EPIC-084's data, it is a fix-up epic, not a bug.
-4. **The 1 MB bar has 1.2× of margin on CI, and I could not honestly widen it.** 168.7 ms
-   against the epic's 200 ms on `ubuntu-latest`, which runs five to nine times slower than a
-   laptop. The cost is not an inefficiency to optimise away: at 1 MB the segmenter produces
+4. **The 1 MB bar's margin on CI depends on which runner you get: between 1.2× and 2.8×.**
+   Three green runs measured 168.7 ms, 85.0 ms and 71.1 ms warm against the epic's 200 ms — the
+   same commit range, the same input, a factor of 2.4 between the best and worst runner. So the
+   bar is met, comfortably on a good runner and barely on a bad one, and no amount of tuning on
+   my side changes which runner GitHub hands us. The cost is not an inefficiency to optimise
+   away either: at 1 MB the segmenter produces
    11,506 segments, and `Segment.text` being the verbatim source slice means 11,506
    `String.slice` calls, which profiling says is most of the time. The realistic options are to
    accept an occasional red build, to relax the bar for CI specifically, or to change what a
    `Segment` carries (an offset pair with `text` resolved lazily) — which is a public-contract
    decision, not a performance tweak, and belongs to you and to EPIC-052 rather than to me. It is
    also worth asking whether 1 MB is the right size to gate on at all: the largest prompt in the
-   corpus is 5 KB, and EPIC-084 will have real distribution data.
+   corpus is 5 KB, and EPIC-084 will have real distribution data. Every other timing gate here is
+   mine and is now sized with roughly 9–10× of headroom on a runner, because a gate with less
+   headroom than the variance between two runners is a coin toss; this one is yours.
 5. **Rule 5's lead-in behaviour is a genuine product choice, not a mechanical one.** "Rules:"
    followed by six numbered rules produces seven segments, and the lead-in is one of them. That
    matches the prototype's count on its own sample, but whether the lead-in should be its own blok

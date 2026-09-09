@@ -130,9 +130,11 @@ growth exponent 1.17 (3.9 ms -> 19.5 ms for 4x input; 1.0 linear, 2.0 quadratic)
 
 and the same three lines from the CI runner, which is what the 1 MB criterion asks for:
 
-1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm   (one runner)
-1 MB (1048576 code units): 335.6 ms cold,  85.0 ms warm   (the next runner, same commit range)
-growth exponent 1.32 / 1.11
+1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm   (runner 1)
+1 MB (1048576 code units): 335.6 ms cold,  85.0 ms warm   (runner 2, same commit range)
+1 MB (1048576 code units): 292.4 ms cold,  71.1 ms warm   (runner 3)
+adversarial:   11.1 ms  (9.0x headroom)  6,000 unmatched tag openers
+growth exponent 1.32 / 1.11 / 1.07
 
 ✔ no dependency violations found (33 modules, 50 dependencies cruised)
 Checked 140 files in 8 packages, no issues found
