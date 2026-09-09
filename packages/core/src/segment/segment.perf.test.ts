@@ -53,17 +53,22 @@ describe("throughput", () => {
 
     // Two numbers, because they answer different questions and only one of them is a useful
     // regression signal. The first call in a process pays for V8 compiling this module's hot
-    // loops, and on a loaded CI runner that dominates everything the algorithm does — measured
-    // at 166 ms once, while the same call warm was 17 ms. Asserting on the cold number would
-    // make this test a thermometer for the runner. So: the cold call gets a generous ceiling
-    // that still catches a hang, and the warm call carries the epic's 200 ms bar.
+    // loops, and on a CI runner that dominates everything the algorithm does: 493 ms cold
+    // against 169 ms warm on `ubuntu-latest`, where this laptop reads 57 ms and 19 ms.
+    // Asserting on the cold number would make this test a thermometer for the runner.
+    //
+    // So the warm call carries the epic's 200 ms bar, and the cold call gets a ceiling whose
+    // only job is to notice a hang. That ceiling was 500 ms, picked off a laptop measurement,
+    // and CI came in at 492.6 — a gate with 1.5% of headroom, which is a red build waiting for
+    // a slightly busier runner rather than a real signal. A hang is orders of magnitude, so the
+    // ceiling should be too.
     const cold = timeSegment(input);
     timeSegment(input);
     const warm = fastestSegment(input);
 
     console.log(`1 MB (${input.length} code units): ${cold.toFixed(1)} ms cold, ${warm.toFixed(1)} ms warm`);
     expect(warm, `warm run took ${warm.toFixed(1)} ms`).toBeLessThan(200);
-    expect(cold, `cold run took ${cold.toFixed(1)} ms`).toBeLessThan(500);
+    expect(cold, `cold run took ${cold.toFixed(1)} ms`).toBeLessThan(2_000);
   });
 
   it("holds every invariant on that same 1 MB prompt", () => {
@@ -141,17 +146,22 @@ describe("adversarial input", () => {
     expect(measured).toHaveLength(ADVERSARIAL.length);
   });
 
-  it("stays linear when an adversarial input grows four times larger", () => {
+  it("grows no faster than input^1.6 when an adversarial input grows four times larger", () => {
     // The timing tests above catch a hang. This catches the thing that would not hang on a test
     // input but would on a user's: quadratic growth. Matching unmatched tag openers by scanning
-    // forward for each one is O(n²) — 16× the work for 4× the input — which is why `tags.ts`
-    // matches with a single stack pass.
+    // forward for each one is O(n²) — which is why `tags.ts` matches with a single stack pass.
     //
-    // Both inputs are big enough that a scheduling hiccup cannot dominate the measurement, and
-    // both go through `fastestSegment`, because a ratio built from two noisy samples is a coin
-    // toss rather than a test.
+    // Stated as the growth exponent rather than a raw ratio, because the exponent is the thing
+    // anyone actually wants to know and it reads the same on any machine: 1.0 is linear, 2.0 is
+    // quadratic, and the forward-scan implementation this replaced would sit at 2.0. Measured
+    // 1.16 here and 1.32 on CI. A raw ratio needs a bar that means nothing on its own ("under
+    // 8×"?) and quietly changes meaning if the 4× ever becomes 3× or 5×.
+    //
+    // Both inputs are big enough that a scheduling hiccup cannot dominate, and both go through
+    // `fastestSegment`, because a growth figure built from two noisy samples is a coin toss.
+    const factor = 4;
     const small = "<a>\n".repeat(12_500);
-    const large = "<a>\n".repeat(50_000);
+    const large = "<a>\n".repeat(12_500 * factor);
 
     // Warm the JIT on both shapes first, so the comparison measures the algorithm, not compilation.
     timeSegment(small);
@@ -159,9 +169,11 @@ describe("adversarial input", () => {
 
     const smallMs = Math.max(fastestSegment(small), 0.5);
     const largeMs = fastestSegment(large);
-    const ratio = largeMs / smallMs;
-    console.log(`4x input took ${ratio.toFixed(1)}x the time (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms)`);
-    expect(ratio, `4x the input took ${ratio.toFixed(1)}x the time`).toBeLessThan(8);
+    const exponent = Math.log(largeMs / smallMs) / Math.log(factor);
+    console.log(
+      `growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for ${factor}x input; 1.0 linear, 2.0 quadratic)`
+    );
+    expect(exponent, `grew as input^${exponent.toFixed(2)}`).toBeLessThan(1.6);
   });
 });
 

@@ -85,6 +85,16 @@ one per rule group; the property test written first, against an invariant a stub
   epic's 100 ms bar was not moved: what these tests measure is whether a hostile *shape* blows up,
   which is exponential and just as visible at a quarter of the size, while growth is the linearity
   test's job (a ratio, immune to runner speed) and throughput is the 1 MB test's, which passed.
+- **The cold-start ceiling then passed CI by 1.5%** — 492.6 ms against a 500 ms limit picked off
+  a laptop. Its only job is to notice a hang, and a hang is orders of magnitude, so it is 2,000 ms
+  now. Chasing the warm number instead, I profiled the 1 MB path and removed the intermediate
+  range layer between the paragraph rules and the emitter, then reverted it: it changed nothing
+  measurable. At 1 MB the segmenter produces 11,506 segments and `Segment.text` is the verbatim
+  slice, so the time is 11,506 `String.slice` calls, not an inefficiency. Shipping a refactor
+  whose justifying comment I had just measured to be false was the wrong trade.
+- **The growth test now reports an exponent, not a ratio.** "Under 8×" means nothing on its own
+  and changes meaning if the 4× ever becomes 3×. 1.0 is linear, 2.0 is quadratic, the forward-scan
+  implementation this replaced would sit at 2.0, and it measures 1.19 here and 1.32 on CI.
 - **Two timing tests were measuring the machine, not the code.** The 1 MB test read 166 ms on a
   loaded box and 17 ms warm — the first call in a process is paying for V8 compiling the hot
   loops. And one adversarial case failed once under `pnpm test`'s eight parallel suites at just
@@ -107,11 +117,17 @@ one per rule group; the property test written first, against an invariant a stub
  Test Files  6 passed (6)
       Tests  151 passed (151)
 
-1 MB (1048576 code units): 57.3 ms cold, 18.9 ms warm
-adversarial:    6.6 ms  (15.2x headroom)  2,500 deeply indented list items
-adversarial:    5.7 ms  (17.5x headroom)  20,000 list markers
-adversarial:    5.6 ms  (18.0x headroom)  12,500 unmatched tag openers
-4x input took 5.0x the time (4.0 ms -> 19.7 ms)
+1 MB (1048576 code units): 59.7 ms cold, 17.1 ms warm
+adversarial:    6.8 ms  (14.8x headroom)  2,500 deeply indented list items
+adversarial:    6.1 ms  (16.3x headroom)  12,500 unmatched tag openers
+adversarial:    6.1 ms  (16.4x headroom)  20,000 list markers
+growth exponent 1.19 (3.9 ms -> 20.2 ms for 4x input; 1.0 linear, 2.0 quadratic)
+
+and the same three lines from the CI runner, which is what the 1 MB criterion asks for:
+
+1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm
+adversarial:   42.5 ms  (2.4x headroom)  2,500 deeply indented list items
+growth exponent 1.32
 
 ✔ no dependency violations found (33 modules, 50 dependencies cruised)
 Checked 140 files in 8 packages, no issues found
@@ -122,12 +138,13 @@ Congratulations! Your project is compliant with version 3.3 of the REUSE Specifi
 [mirror-dry-run] OK -- the public-only tree installs and tests standalone
 ```
 
-**Open questions for the advisor.** Four, all in the report: whether the corpus should be exported
+**Open questions for the advisor.** Five, all in the report: whether the corpus should be exported
 from the public package entry point; whether `LIST_MIN_ITEMS` belongs in the public surface
 alongside `SENTENCE_SPLIT_THRESHOLD`; whether any of the documented non-goals (setext headings,
 abbreviation-aware splitting, blockquotes, tables, indented code) needs to become a rule; and
-whether a list's lead-in line ("Rules:") should be its own blok — a product question EPIC-080
-would have answered.
+whether the 1 MB throughput bar, which clears by only 1.2× on CI for reasons that are contract
+rather than inefficiency, should be relaxed or re-sized; and whether a list's lead-in line
+("Rules:") should be its own blok — a product question EPIC-080 would have answered.
 
 **Context for the next session.** `segment()` and its offsets are a public contract now. EPIC-011a
 should classify and cluster the `Segment`s this produces and read its fixtures from

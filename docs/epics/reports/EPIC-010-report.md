@@ -3,7 +3,7 @@
 Branch `epic/010-segmenter`. 2026-09-09.
 
 **Status: done.** `segment()` ships in `packages/core` with the documented signature, zero new
-dependencies, a 25-prompt committed corpus with a snapshot each, and 150 tests covering the
+dependencies, a 25-prompt committed corpus with a snapshot each, and 151 tests covering the
 contract, every rule, 1,000 generated inputs, throughput and adversarial input. `pnpm test`,
 `pnpm typecheck`, `pnpm lint` and `pnpm compliance` are clean.
 
@@ -135,6 +135,14 @@ nonsense.
   move, and raw throughput on a big realistic input is the 1 MB test's job, which passed on CI.
   A new test now prints the three slowest cases and their headroom on every run, so the next
   person tightening this suite reads a number instead of finding out from a red build.
+- **The cold-start ceiling passed CI by 1.5% and would have failed the next PR.** 492.6 ms
+  against a 500 ms limit I had picked off a laptop measurement. That limit's only job is to
+  notice a hang, and a hang is orders of magnitude, so it is now 2,000 ms and says so. Chasing
+  the *warm* number instead, I profiled the 1 MB path pass by pass and then removed the
+  intermediate range layer between the paragraph rules and the emitter — and reverted it, because
+  it changed nothing measurable. The 1 MB cost is 11,506 real `String.slice` calls producing the
+  verbatim text the contract requires, not an inefficiency; there is no cheap win here, and a
+  refactor justified by a comment I had just measured to be false was not worth shipping.
 - **The first 1 MB measurement was a thermometer for the machine.** 166 ms on a loaded box, 17 ms
   warm. The cold call is paying for V8 compiling the hot loops. The test now reports both and
   asserts the warm number against the epic's 200 ms bar with a 500 ms ceiling on the cold one, and
@@ -167,9 +175,12 @@ nonsense.
 - [x] **Offsets correct when the same sentence appears twice.**
       `the contract > gives the same sentence appearing twice two different offsets`, plus the
       `repeated-sentence` fixture, where the same sentence appears three times, twice inside a list.
-- [x] **1 MB in under 200 ms.** `throughput > segments a 1 MB prompt in under 200 ms`. Output:
-      `1 MB (1048576 code units): 97.0 ms cold, 20.9 ms warm`. The 200 ms bar is asserted on the
-      warm number and a 500 ms ceiling on the cold one; both numbers are printed on every run.
+- [x] **1 MB in under 200 ms on CI.** `throughput > segments a 1 MB prompt in under 200 ms`.
+      Output from the CI runner itself, which is what the criterion asks for:
+      `1 MB (1048576 code units): 492.6 ms cold, 168.7 ms warm` (this laptop: 59.7 ms and
+      17.1 ms). The 200 ms bar is asserted on the warm number; the cold call gets a ceiling whose
+      only job is to notice a hang. Both numbers print on every run. **See open question 5** —
+      the warm number clears the bar by 1.2×, which is thinner than it should be.
 - [x] **No catastrophic backtracking; adversarial input under 100 ms.** Twenty adversarial inputs,
       each named in its test — `adversarial input > survives '12,500 unmatched tag openers' in under 100 ms`
       and nineteen more, covering runs of `<`, an unterminated tag with 50,000 characters of
@@ -177,10 +188,13 @@ nonsense.
       terminators, CRLF, digits and lone surrogates. Every input sits inside one 256 KB budget
       (`keeps every adversarial input inside one budget`) so the bar compares like with like, and
       `reports the slowest adversarial cases and the headroom left` prints the three slowest with
-      their headroom on every run, CI included. Plus
-      `stays linear when an adversarial input grows four times larger` (4× the input took 5.0× the
-      time; quadratic would be 16×) and the structural regex checks under
-      `regex safety (epic decision 7)`.
+      their headroom on every run, CI included — 6.8 ms at 15× headroom here, 42.5 ms at 2.4× on
+      `ubuntu-latest`. Plus
+      `grows no faster than input^1.6 when an adversarial input grows four times larger`, stated
+      as a growth exponent because that is the figure anyone actually wants and it reads the same
+      on any machine: 1.0 is linear, 2.0 is quadratic, the forward-scan implementation this
+      replaced would sit at 2.0, and it measures 1.19 here and 1.32 on CI. Plus the structural
+      regex checks under `regex safety (epic decision 7)`.
 - [x] **Rule order documented in the source and the README; adding a rule shown to change exactly
       the snapshots it should.** `packages/core/src/segment/README.md` — "The rule order", "Why
       that order", "What 'order' actually means here", "Adding a rule", "A worked example". The
@@ -223,7 +237,7 @@ them.
 
 ## Skipped, and open questions for the advisor
 
-Nothing in the epic's scope was skipped. Four things the advisor may want to rule on:
+Nothing in the epic's scope was skipped. Five things the advisor may want to rule on:
 
 1. **The corpus is exported from `packages/core`'s public entry point** as `SEGMENT_FIXTURES`.
    Decision 8 says it is the shared truth for later epics, and a deep path import across packages
@@ -236,7 +250,17 @@ Nothing in the epic's scope was skipped. Four things the advisor may want to rul
    headings, abbreviation-aware sentence splitting, blockquotes, tables, indented code blocks.
    Each is a place where a rule would have to guess, and a guess is not deterministic. If any of
    them turns out to matter to a real prompt in EPIC-084's data, it is a fix-up epic, not a bug.
-4. **Rule 5's lead-in behaviour is a genuine product choice, not a mechanical one.** "Rules:"
+4. **The 1 MB bar has 1.2× of margin on CI, and I could not honestly widen it.** 168.7 ms
+   against the epic's 200 ms on `ubuntu-latest`, which runs five to nine times slower than a
+   laptop. The cost is not an inefficiency to optimise away: at 1 MB the segmenter produces
+   11,506 segments, and `Segment.text` being the verbatim source slice means 11,506
+   `String.slice` calls, which profiling says is most of the time. The realistic options are to
+   accept an occasional red build, to relax the bar for CI specifically, or to change what a
+   `Segment` carries (an offset pair with `text` resolved lazily) — which is a public-contract
+   decision, not a performance tweak, and belongs to you and to EPIC-052 rather than to me. It is
+   also worth asking whether 1 MB is the right size to gate on at all: the largest prompt in the
+   corpus is 5 KB, and EPIC-084 will have real distribution data.
+5. **Rule 5's lead-in behaviour is a genuine product choice, not a mechanical one.** "Rules:"
    followed by six numbered rules produces seven segments, and the lead-in is one of them. That
    matches the prototype's count on its own sample, but whether the lead-in should be its own blok
    or belong to the list is the sort of thing EPIC-080's study would answer if it had run.
@@ -248,5 +272,5 @@ pnpm --filter @41prompts/core test
 pnpm compliance
 ```
 
-Expected: 150 tests pass; `reuse lint` reports 305/305 files with copyright and licence;
+Expected: 151 tests pass; `reuse lint` reports 305/305 files with copyright and licence;
 dependency-cruiser finds no violations; the mirror dry-run installs and tests the public-only tree.
