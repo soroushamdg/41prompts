@@ -3,7 +3,7 @@
 Branch `epic/010-segmenter`. 2026-09-09.
 
 **Status: done.** `segment()` ships in `packages/core` with the documented signature, zero new
-dependencies, a 25-prompt committed corpus with a snapshot each, and 151 tests covering the
+dependencies, a 25-prompt committed corpus with a snapshot each, and 152 tests covering the
 contract, every rule, 1,000 generated inputs, throughput and adversarial input. `pnpm test`,
 `pnpm typecheck`, `pnpm lint` and `pnpm compliance` are clean.
 
@@ -29,9 +29,12 @@ It reproduces the decompiler prototype's output on the prototype's own sample pr
 | `fixtures/` | 25 prompts as TypeScript modules, `fixtures/snapshots/` one snapshot each |
 | `README.md` | the rule order, why it is that order, and how to add a rule |
 
-Exported from `packages/core`: `segment`, `Segment`, `SegmentFixture`, `SENTENCE_SPLIT_THRESHOLD`,
-`LIST_MIN_ITEMS`, `checkSegmentInvariants`, `InvariantViolation`, `SEGMENT_FIXTURES`,
-`findSegmentFixture`.
+Exported from `@41prompts/core`: `segment`, `Segment`, `SENTENCE_SPLIT_THRESHOLD`,
+`LIST_MIN_ITEMS`, `checkSegmentInvariants`, `InvariantViolation`.
+
+Exported from `@41prompts/core/fixtures`: `SEGMENT_FIXTURES`, `findSegmentFixture`,
+`SegmentFixture`. A subpath, not the root, per the advisor's ruling on open question 1: the corpus
+is real and shared, but it is test data and the root is the surface EPIC-052 freezes.
 
 ### The contract, and why it is checked rather than asserted
 
@@ -135,6 +138,21 @@ nonsense.
   move, and raw throughput on a big realistic input is the 1 MB test's job, which passed on CI.
   A new test now prints the three slowest cases and their headroom on every run, so the next
   person tightening this suite reads a number instead of finding out from a red build.
+- **The growth check was measuring its two inputs in two consecutive blocks, and that is a
+  measurement bug, not noise.** It read an exponent of 2.48 — quadratic territory — under
+  `pnpm test`'s eight parallel suites, from a small input at 4.8 ms and a large one at 147.9 ms
+  whose honest reading is a fifth of that. Each measurement was already the fastest of three, but
+  a burst of contention landing entirely inside the second block survives that. The two inputs are
+  now measured interleaved, so a stall has to hit every run of the same input to matter, and any
+  uniform slowdown cancels out of the ratio. Under the same parallel load it now reads 0.99–1.17,
+  including one run where both timings scaled up together (15.8 → 79.4 ms) and the ratio held —
+  which is the property that was missing.
+- **The replacement 100 KB gate was under-warmed and nearly repeated the same mistake.** Its
+  first reading was 9.3 ms against a 100 ms bar, which looked like ten times the headroom and
+  was not: a smaller input puts a tenth of the work through the same loops per call, so it reaches
+  steady state later in wall-clock terms. Three warm-up calls and a fastest-of-ten put it at
+  1.9 ms — the real number, and the difference was most of the margin the bar would have had on a
+  slow runner. Ten calls over 100 KB is a megabyte of work; the measurement is free.
 - **The cold-start ceiling passed CI by 1.5% and would have failed the next PR.** 492.6 ms
   against a 500 ms limit I had picked off a laptop measurement. That limit's only job is to
   notice a hang, and a hang is orders of magnitude, so it is now 2,000 ms and says so. Chasing
@@ -175,12 +193,20 @@ nonsense.
 - [x] **Offsets correct when the same sentence appears twice.**
       `the contract > gives the same sentence appearing twice two different offsets`, plus the
       `repeated-sentence` fixture, where the same sentence appears three times, twice inside a list.
-- [x] **1 MB in under 200 ms on CI.** `throughput > segments a 1 MB prompt in under 200 ms`.
-      Output from the CI runner itself, which is what the criterion asks for, across three runs:
-      `492.6 ms cold, 168.7 ms warm`, then `335.6 / 85.0`, then `292.4 / 71.1` (this laptop:
-      59.8 and 16.2). The 200 ms bar is asserted on the warm number; the cold call gets a ceiling
-      whose only job is to notice a hang. Both numbers print on every run. **See open question
-      5** — the spread across runners is the point, not any one number.
+- [x] **100 KB in under 100 ms on CI; the 1 MB timing reported but never gating.**
+      `throughput > segments a 100 KB prompt in under 100 ms` and
+      `throughput > reports the 1 MB timing without gating on it`. Local output:
+      `100 KB (102400 code units): 23.7 ms cold, 1.9 ms warm` and
+      `1 MB (1048576 code units): 23.3 ms cold, 17.4 ms warm (reported, not gated)`. Both numbers
+      print on every run, CI included.
+
+      This replaces the epic's original 1 MB / 200 ms gate per the advisor's ruling on open
+      question 4. The original was met on CI across three runs — 168.7 ms, 85.0 ms and 71.1 ms
+      warm — but by between 1.2× and 2.8× depending on which runner GitHub handed us, on an input
+      two orders of magnitude past anything a user pastes. 100 KB is still five times the top of
+      the real 1–20 KB range, and at 1.9 ms warm it has 53× of headroom locally and roughly 7× on
+      the slowest runner observed. `Segment.text` stays the verbatim source slice; the lazy-text
+      option raised in that question was declined.
 - [x] **No catastrophic backtracking; adversarial input under 100 ms.** Twenty adversarial inputs,
       each named in its test — `adversarial input > survives '6,000 unmatched tag openers' in under 100 ms`
       and nineteen more, covering runs of `<`, an unterminated tag with 25,000 characters of
@@ -236,21 +262,43 @@ from its parent and breaks rule 5. That four-line diff is the whole argument aga
 it is now the README's worked example. Both experiments were reverted; the tree is unchanged by
 them.
 
-## Skipped, and open questions for the advisor
+## Skipped, and the advisor's rulings on the open questions
 
-Nothing in the epic's scope was skipped. Five things the advisor may want to rule on:
+Nothing in the epic's scope was skipped. Five questions were raised for the advisor; all five were
+ruled on 2026-09-09, and the two that needed code were applied in the same fix-up PR. Each ruling
+is recorded under the question it answers.
 
 1. **The corpus is exported from `packages/core`'s public entry point** as `SEGMENT_FIXTURES`.
    Decision 8 says it is the shared truth for later epics, and a deep path import across packages
    would be worse; it is tree-shaken out of any consumer that does not name it. If the public
    package should not ship 6 KB of sample prompts, say so before EPIC-052 freezes the surface.
+
+   **Ruling: keep it exported, but move it off the root.** It is now
+   `@41prompts/core/fixtures`, a subpath declared in `packages/core/package.json`'s `exports` map,
+   so the corpus stays the shared truth EPIC-011a and EPIC-013 read from without sitting on the
+   surface EPIC-052 freezes. `SegmentFixture` moved with it — the type is only useful to someone
+   who already has the fixtures. Verified by resolving both specifiers from an isolated consumer
+   with `node`'s own resolver, not by reading the manifest: `@41prompts/core` →
+   `src/index.ts`, `@41prompts/core/fixtures` → `src/segment/fixtures/index.ts`. A useful side
+   effect is that declaring `exports` at all now blocks deep imports into core's internals —
+   `@41prompts/core/src/segment/segment.ts` returns `ERR_PACKAGE_PATH_NOT_EXPORTED` — so the
+   module boundary rule 11 asks for is enforced by the resolver rather than by reviewer attention.
+   **Applied.**
+
 2. **`LIST_MIN_ITEMS` is exported alongside `SENTENCE_SPLIT_THRESHOLD`.** The epic names only the
    latter. Both are tuning judgements inherited from the prototype and both will want revisiting
    once EPIC-084 can read a real blok-count distribution; exporting both makes that one change.
+
+   **Ruling: keep both exported.** No change.
+
 3. **Deliberate non-goals**, listed in the README so nobody thinks they were forgotten: setext
    headings, abbreviation-aware sentence splitting, blockquotes, tables, indented code blocks.
    Each is a place where a rule would have to guess, and a guess is not deterministic. If any of
    them turns out to matter to a real prompt in EPIC-084's data, it is a fix-up epic, not a bug.
+
+   **Ruling: accepted as written.** No change. If EPIC-084's data says one of them matters, it is a
+   fix-up epic rather than a bug.
+
 4. **The 1 MB bar's margin on CI depends on which runner you get: between 1.2× and 2.8×.**
    Three green runs measured 168.7 ms, 85.0 ms and 71.1 ms warm against the epic's 200 ms — the
    same commit range, the same input, a factor of 2.4 between the best and worst runner. So the
@@ -266,10 +314,19 @@ Nothing in the epic's scope was skipped. Five things the advisor may want to rul
    corpus is 5 KB, and EPIC-084 will have real distribution data. Every other timing gate here is
    mine and is now sized with roughly 9–10× of headroom on a runner, because a gate with less
    headroom than the variance between two runners is a coin toss; this one is yours.
+
+   **Ruling: the 1 MB gate is wrong; real prompts are 1–20 KB.** The failing gate is now 100 KB
+   under 100 ms, and the 1 MB timing is reported on every run but never fails a build.
+   `Segment.text` stays the verbatim source slice — the lazy-text option is declined, so the
+   public contract is unchanged. **Applied**; the epic file's criterion was updated to match.
+
 5. **Rule 5's lead-in behaviour is a genuine product choice, not a mechanical one.** "Rules:"
    followed by six numbered rules produces seven segments, and the lead-in is one of them. That
    matches the prototype's count on its own sample, but whether the lead-in should be its own blok
    or belong to the list is the sort of thing EPIC-080's study would answer if it had run.
+
+   **Ruling: the lead-in stays its own segment.** Whether it merges with the list is EPIC-011a's
+   decision, where clustering can see both. No change here.
 
 ## Verify
 
@@ -278,5 +335,5 @@ pnpm --filter @41prompts/core test
 pnpm compliance
 ```
 
-Expected: 151 tests pass; `reuse lint` reports 305/305 files with copyright and licence;
+Expected: 152 tests pass; `reuse lint` reports 305/305 files with copyright and licence;
 dependency-cruiser finds no violations; the mirror dry-run installs and tests the public-only tree.

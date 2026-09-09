@@ -16,9 +16,11 @@ export { segment } from "./segment/segment.js";
 export { LIST_MIN_ITEMS, SENTENCE_SPLIT_THRESHOLD } from "./segment/constants.js";
 export { checkSegmentInvariants } from "./segment/invariants.js";
 export type { InvariantViolation } from "./segment/invariants.js";
-export type { Segment, SegmentFixture } from "./segment/types.js";
+export type { Segment } from "./segment/types.js";
 
-// The committed corpus, exported so EPIC-011a's clustering tests and EPIC-013's UI fixtures read
-// the same 25 prompts these snapshots were built from rather than three drifting copies
-// (epic decision 8). Tree-shaken out of any consumer that does not name it.
-export { SEGMENT_FIXTURES, findSegmentFixture } from "./segment/fixtures/index.js";
+// The committed 25-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
+// clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots were built
+// from, rather than three drifting copies (epic decision 8) — but it is test data, and this
+// module is the surface EPIC-052 freezes. It lives one subpath away:
+//
+//     import { SEGMENT_FIXTURES } from "@41prompts/core/fixtures";

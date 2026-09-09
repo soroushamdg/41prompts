@@ -27,6 +27,12 @@ export const SEGMENT_FIXTURES: readonly SegmentFixture[] = [
   ...PROSE_FIXTURES
 ];
 
+/**
+ * The shape of a corpus prompt. Exported from here rather than from the package root: it is only
+ * useful to someone who already has the fixtures, and the root is the surface EPIC-052 freezes.
+ */
+export type { SegmentFixture } from "../types.js";
+
 /** Look up one corpus prompt by name. Returns `undefined` rather than throwing. */
 export function findSegmentFixture(name: string): SegmentFixture | undefined {
   return SEGMENT_FIXTURES.find((fixture) => fixture.name === name);

@@ -2,13 +2,15 @@
 
 **EPIC-010 is done** — every acceptance criterion below is checked with evidence in
 `docs/epics/reports/EPIC-010-report.md`, and the session log is
-`docs/epics/sessions/EPIC-010-session.md`. Five open questions for the advisor are at the end of
-the report. This file stays pointed at EPIC-010 until the next epic is written and copied here per
-`docs/PROCESS.md`'s loop.
+`docs/epics/sessions/EPIC-010-session.md`. The five open questions have been ruled on by the
+advisor and the rulings are recorded at the end of the report; the two that needed code
+(the fixtures subpath and the 100 KB throughput gate) are applied. This file stays pointed at
+EPIC-010 until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
 
-This is a mirror of `docs/epics/EPIC-010-segmenter.md`. EPIC-010 was the current epic. EPIC-080 (prototype study) and EPIC-005 (interviews) are deferred, not cancelled:
-their findings arrive mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013. EPIC-010 is
-interview-proof, so it runs first.
+This is a mirror of `docs/epics/EPIC-010-segmenter.md`. EPIC-010 was the current epic. EPIC-080
+(prototype study) and EPIC-005 (interviews) are deferred, not cancelled: their findings arrive
+mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013. EPIC-010 is interview-proof, so it
+ran first.
 
 ---
 
@@ -80,7 +82,11 @@ is not, and waits.
 - [x] Fenced code and matched tag blocks are never split, including a fence containing blank lines and a fence
       containing what looks like a heading. Evidence: two test names.
 - [x] Offsets are correct when the same sentence appears twice in one prompt. Evidence: test name.
-- [x] A 1 MB input segments in under 200 ms on CI. Evidence: timing output.
+- [x] A 100 KB input segments in under 100 ms on CI; the 1 MB timing is reported on every run but
+      never gates a build. Evidence: timing output. (Advisor ruling, 2026-09-09: real prompts are
+      1–20 KB, so a 1 MB gate was two orders of magnitude past anything a user pastes and cleared
+      by between 1.2× and 2.8× depending on the runner. `Segment.text` stays the verbatim source
+      slice; it is not made lazy.)
 - [x] No regex in the module backtracks catastrophically; an adversarial input test completes in under 100 ms.
       Evidence: test name and the input used.
 - [x] Rule order is documented in the source and the README, and adding a rule to the middle of the order is shown
