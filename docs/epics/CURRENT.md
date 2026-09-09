@@ -2,7 +2,7 @@
 
 **EPIC-010 is done** — every acceptance criterion below is checked with evidence in
 `docs/epics/reports/EPIC-010-report.md`, and the session log is
-`docs/epics/sessions/EPIC-010-session.md`. Four open questions for the advisor are at the end of
+`docs/epics/sessions/EPIC-010-session.md`. Five open questions for the advisor are at the end of
 the report. This file stays pointed at EPIC-010 until the next epic is written and copied here per
 `docs/PROCESS.md`'s loop.
 
