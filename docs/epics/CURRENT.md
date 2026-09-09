@@ -1,98 +1,97 @@
 # CURRENT
 
-**EPIC-010 is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-010-report.md`, and the session log is
-`docs/epics/sessions/EPIC-010-session.md`. The five open questions have been ruled on by the
-advisor and the rulings are recorded at the end of the report; the two that needed code
-(the fixtures subpath and the 100 KB throughput gate) are applied. This file stays pointed at
-EPIC-010 until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
-
-This is a mirror of `docs/epics/EPIC-010-segmenter.md`. EPIC-010 was the current epic. EPIC-080
-(prototype study) and EPIC-005 (interviews) are deferred, not cancelled: their findings arrive
-mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013. EPIC-010 is interview-proof, so it
-ran first.
+A mirror of `docs/epics/EPIC-011a-classifier-clustering.md`, per `docs/PROCESS.md`. EPIC-011a is
+the current epic. EPIC-010 is done (`docs/epics/reports/EPIC-010-report.md`), including the
+advisor's rulings on its five open questions; the one carry-over is in this epic's Scope — flatten
+the allocation in `tags.ts` so the growth-exponent gate has real headroom. EPIC-080 and EPIC-005
+are still deferred: per the standing note below, their findings are a data change here, not a
+rewrite.
 
 ---
 
-# EPIC-010: Deterministic segmenter
-Stage: 1 · Depends on: EPIC-000 · Size: M
+# EPIC-011a: Classifier and clustering
+Stage: 1 · Depends on: EPIC-010 · Size: M
 
 ## Goal
-`segment(text)` cuts any prompt into segments with exact character offsets, identically on every run, on every
-machine. This is the foundation the decompiler, the blok model, and span linking all stand on: if offsets drift by
-one character, every highlight in the product is wrong.
+Every segment gets a **kind**, and fragments of the same rule scattered across a prompt become **one blok owning
+several ranges**. This is the step that turns a flat list of segments into the thing the product is named after.
 
-## Why this ships before the research epics
-EPIC-080's study and the customer interviews can change what a blok is *called*, how summaries are presented, and
-which findings matter. None of that changes where a paragraph ends. This epic is interview-proof; EPIC-011a onward
-is not, and waits.
+## Standing note on research
+EPIC-080 and EPIC-005 have not run. Their findings can change the *word* "blok", the *presentation* of kinds, and
+which merges feel right ; they cannot change that clustering must be deterministic, or that a blok owns a set of
+ranges. Build so those findings are a data change, not a rewrite: the labelled table, the topic keys and the merge
+threshold are all data files, and the kind names are one exported union edited in one place.
 
 ## Decisions (do not re-litigate)
-1. `packages/core`, pure TypeScript, zero dependencies, no DOM, no IO (rule 11). No model call anywhere near a
-   boundary decision (rule 2).
-2. Signature: `segment(text: string): Segment[]` where `Segment = { text: string; start: number; end: number }`.
-   `start` inclusive, `end` exclusive, both in **UTF-16 code units** (JavaScript string indices), documented
-   explicitly because a Python SDK will later read the same offsets and must convert.
-3. **Reconstruction is the contract**: concatenating every segment's source slice in order, plus the gaps between
-   them, reproduces the input byte for byte. A property test enforces this on every fixture and on generated
-   input. Nothing is normalised, trimmed, or dropped ; not whitespace, not CRLF, not a BOM.
-4. Rule order, applied top down, documented in the source and in the report:
-   1. Fenced code blocks (``` and ~~~) are atomic; never split inside one.
-   2. XML/HTML-style tag blocks whose open and close tags match are atomic.
-   3. Markdown headings are separators; the heading line is its own segment.
-   4. Blank lines separate paragraphs.
-   5. List items (`-`, `*`, `+`, `1.`) are one segment each; a nested list stays with its parent item.
-   6. A paragraph longer than `SENTENCE_SPLIT_THRESHOLD` characters is split at sentence boundaries; shorter
-      paragraphs are never split. The threshold is a named exported constant, not a literal.
-5. Offsets are produced by **scanning with an index**, never by `indexOf` on segment text ; identical text
-   appearing twice must not collapse to the same offset.
-6. Determinism is absolute: no `Date`, no `Math.random`, no locale-sensitive comparison, no object-key iteration
-   that could vary. Same input, same output, forever.
-7. No catastrophic backtracking: every regex is linear on adversarial input. Nested quantifiers over the same
-   character class are a build failure, not a code review comment.
-8. The fixture corpus is committed and is the shared truth for every later epic; EPIC-011a's clustering tests and
-   EPIC-013's UI fixtures read from it.
+1. `packages/core`, pure, zero dependencies, deterministic (rules 2 and 11). No model call decides a kind or a
+   merge. Models label and summarise later, from the worker, and only as metadata.
+2. Kinds are exactly the six in `CLAUDE.md`: `context | constraint | example | expected | image_ref |
+   image_input`. `classify()` returns one kind plus a confidence in `[0,1]`; low confidence is `context`, which is
+   the safe default because it changes nothing about how the text compiles.
+3. `classify(segment: Segment): { kind: BlokKind; confidence: number; matched: string }` ; `matched` names the
+   heuristic that fired, so a wrong classification is debuggable without a debugger.
+4. Heuristics are **ordered and data-driven**: an ordered list of patterns in a committed data file, first match
+   wins, each entry carrying its kind and a stable id. Adding a heuristic is a data edit plus a snapshot update.
+5. A **labelled table of 60 examples** is committed as the accuracy fixture: segment text plus expected kind,
+   drawn from the EPIC-010 corpus and the decompiler prototype's sample. Accuracy target ≥90%; the test prints
+   every miss with its `matched` value so failures are actionable.
+6. `cluster(segments): Blok[]` where `Blok = { id: string; kind: BlokKind; ranges: Range[] }` and
+   `Range = { start: number; end: number }`. **A blok always carries `ranges` as an array**, even when it has one
+   (rule 5). Ranges are sorted by `start`, never overlap, and are never merged into a span that covers text the
+   blok does not own.
+7. Merge rule: two segments join the same blok when they share a **kind** and either a **topic key** or a
+   normalised-token overlap of **≥ 0.6**. The threshold is an exported named constant. Topic keys live in a
+   committed `topics.json`; normalisation is lowercase, strip punctuation, split on whitespace, drop a committed
+   stop-word list. No stemming ; it is locale-sensitive and not worth the non-determinism.
+8. Blok order is deterministic: by the `start` of each blok's first range. Blok ids are stable for the same input
+   and are derived from content, not from a counter, so re-running produces identical ids.
+9. Non-adjacent merging is the point. A rule stated in the opening paragraph and repeated in a numbered list at
+   the end is one blok with two ranges. Prove it with a fixture built for exactly that shape.
+10. Wrong merges are worse than missed merges. When in doubt, do not merge; a user can join two bloks, but a bad
+    merge hides text inside a blok they did not expect to own it.
 
 ## Scope
-- `packages/core/src/segment/`: `segment.ts`, the rule implementations, `types.ts`, and the exported constant.
-- `packages/core/src/segment/fixtures/`: 25 real prompts, each with a committed snapshot of its segmentation.
-  Include at minimum: a system prompt with fenced code, one with XML tags, one with a numbered list of rules, one
-  markdown-heavy, one single 4,000-character wall of text, one with CRLF line endings, one with tabs, one with
-  emoji and combining characters, one with right-to-left text, one with a BOM, one nearly empty, one that is only
-  whitespace.
-- Property tests, generated-input tests, idempotence test, performance test.
-- A short `packages/core/src/segment/README.md`: the rule order, why it is that order, and how to add a rule
-  without breaking existing snapshots.
+- `packages/core/src/classify/`: `classify.ts`, `heuristics.json`, kind union in `types.ts`.
+- `packages/core/src/cluster/`: `cluster.ts`, `topics.json`, `stopwords.json`, the exported threshold constant.
+- Fixtures: the 60-example labelled table; at least five whole-prompt clustering fixtures with committed snapshots,
+  including one built specifically to produce a multi-range blok and one built to tempt a false merge and not fall
+  for it.
+- A `README.md` in each module: what fires in what order, how to add a heuristic or a topic key, and the
+  false-merge test that any new topic key must not break.
+- **Carry-over from EPIC-010**: flatten the allocation in `tags.ts` (parallel arrays rather than one object per
+  tag, avoid per-line slicing) so the growth-exponent gate has real headroom. Keep the bar at 1.6; report the new
+  exponent in this epic's report. Same module, same session, so it happens here rather than as its own epic.
 
 ## Out of scope
-- Classification of what a segment *is*. (EPIC-011a.)
-- Clustering segments into bloks. (EPIC-011a.)
-- Summaries. (EPIC-011b.)
-- Findings and detectors. (EPIC-012a.)
-- Any UI. (EPIC-013.)
+- Summaries of any kind. (EPIC-011b.)
+- Findings, diagnostics, severity. (EPIC-012a.)
+- Compiling bloks back to text. (EPIC-020.)
+- Any UI, colour, or interaction. (EPIC-013.)
+- Model-backed classification. Not now, and not later without an ADR.
 
 ## Acceptance criteria
-- [x] `segment()` is exported from `packages/core` with the documented signature and no dependencies added.
-      Evidence: `package.json` diff showing zero new deps.
-- [x] Reconstruction property: for 1,000 generated inputs (including empty string, whitespace only, no newline at
-      end, CRLF, lone surrogates, 10,000-character lines), segments plus gaps reproduce the input exactly.
-      Evidence: test name and the generator's seed strategy.
-- [x] Idempotence: segmenting the same input 100 times produces byte-identical output. Evidence: test name.
-- [x] Every fixture has a committed snapshot; all 25 pass. Evidence: test output.
-- [x] Fenced code and matched tag blocks are never split, including a fence containing blank lines and a fence
-      containing what looks like a heading. Evidence: two test names.
-- [x] Offsets are correct when the same sentence appears twice in one prompt. Evidence: test name.
-- [x] A 100 KB input segments in under 100 ms on CI; the 1 MB timing is reported on every run but
-      never gates a build. Evidence: timing output. (Advisor ruling, 2026-09-09: real prompts are
-      1–20 KB, so a 1 MB gate was two orders of magnitude past anything a user pastes and cleared
-      by between 1.2× and 2.8× depending on the runner. `Segment.text` stays the verbatim source
-      slice; it is not made lazy.)
-- [x] No regex in the module backtracks catastrophically; an adversarial input test completes in under 100 ms.
-      Evidence: test name and the input used.
-- [x] Rule order is documented in the source and the README, and adding a rule to the middle of the order is shown
-      to change exactly the snapshots it should. Evidence: the README section.
-- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [x] Report and session log written; backlog updated.
+- [ ] `classify()` and `cluster()` exported from `packages/core` with the documented signatures; zero new
+      dependencies. Evidence: `package.json` diff.
+- [ ] Accuracy on the 60-example labelled table is ≥90%, and the test output names every miss with its `matched`
+      heuristic. Evidence: test output.
+- [ ] Every blok carries `ranges` as an array; a type-level and a runtime test both fail if a single-range blok is
+      ever represented as a bare range. Evidence: two test names.
+- [ ] The multi-range fixture produces exactly the expected blok with two non-adjacent ranges at the expected
+      offsets. Evidence: snapshot.
+- [ ] The false-merge fixture produces two separate bloks, and the test says which threshold or topic key would
+      have to change to break it. Evidence: snapshot and the test's comment.
+- [ ] Determinism: 100 runs over every fixture produce byte-identical bloks, including ids and order. Evidence:
+      test name.
+- [ ] Ranges within a blok are sorted, non-overlapping, and within the input's bounds, checked as an invariant
+      over all fixtures and 1,000 generated inputs. Evidence: test name.
+- [ ] The decompiler prototype's sample prompt clusters into the same bloks the prototype produces, or the
+      deviation is named and justified in the report. Evidence: snapshot plus a paragraph.
+- [ ] Adding a topic key to `topics.json` changes exactly the snapshots it should; show the diff. Evidence:
+      README worked example.
+- [ ] `tags.ts` allocation flattened; growth exponent reported for local and CI with the new headroom, and the
+      100 KB gate still passes. Evidence: timing output before and after.
+- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [ ] Report and session log written; backlog updated.
 
 ## Verification
 ```
@@ -101,9 +100,10 @@ pnpm compliance
 ```
 
 ## Notes for the implementer
-- `docs/design/41prompts-decompiler.html` contains a reference implementation of this algorithm in its JavaScript.
-  Read it, port the rules and its sample prompt into the fixture corpus with its known segment count, and say in
-  the report where you deviated and why. The prototype is the spec until it conflicts with a rule above.
-- Write the property test before the rules; it will catch the off-by-one you would otherwise ship.
-- If a rule cannot be made deterministic or linear, write `docs/epics/BLOCKER-EPIC-010.md` and stop.
-- The offsets are a public contract from the moment the SDK exists; get the units and the inclusivity right now.
+- Read the decompiler prototype's clustering JavaScript first; it is the reference, and its sample prompt has a
+  known blok count. Say in the report where you deviated and why.
+- Build the false-merge fixture before the merge rule. It is the test that stops this epic shipping something that
+  feels clever and is wrong.
+- Confidence is not a probability; it is an ordering device. Do not invent calibration for it.
+- If EPIC-080's or EPIC-005's findings arrive mid-epic, stop and ask; do not guess at what they imply.
+- If a rule cannot be made deterministic, write `docs/epics/BLOCKER-EPIC-011a.md` and stop.
