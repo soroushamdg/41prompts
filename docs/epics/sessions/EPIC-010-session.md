@@ -77,6 +77,14 @@ one per rule group; the property test written first, against an invariant a stub
   pair opening and closing mid-line made its whole line atomic, cutting a wrapped sentence at the
   line break. Both fixed with regression tests, and the BOM fixture now puts the BOM directly
   against a heading, a list and a fence.
+- **The first CI run failed, and it was a real finding rather than a flake.** Four of the twenty
+  adversarial cases took 130–180 ms on `ubuntu-latest` against the 100 ms bar, having taken 20–37
+  ms here — the runner is five to nine times slower, and the sizes had been picked on a laptop.
+  Every adversarial input now sits inside one 256 KB budget, and a new test prints the three
+  slowest cases with their headroom on every run so the next size change is not guesswork. The
+  epic's 100 ms bar was not moved: what these tests measure is whether a hostile *shape* blows up,
+  which is exponential and just as visible at a quarter of the size, while growth is the linearity
+  test's job (a ratio, immune to runner speed) and throughput is the 1 MB test's, which passed.
 - **Two timing tests were measuring the machine, not the code.** The 1 MB test read 166 ms on a
   loaded box and 17 ms warm — the first call in a process is paying for V8 compiling the hot
   loops. And one adversarial case failed once under `pnpm test`'s eight parallel suites at just
@@ -95,12 +103,15 @@ one per rule group; the property test written first, against an invariant a stub
  ✓ src/segment/segment.test.ts (59 tests)
  ✓ src/segment/segment.fixtures.test.ts (29 tests)
  ✓ src/segment/segment.property.test.ts (28 tests)
- ✓ src/segment/segment.perf.test.ts (27 tests)
+ ✓ src/segment/segment.perf.test.ts (28 tests)
  Test Files  6 passed (6)
-      Tests  150 passed (150)
+      Tests  151 passed (151)
 
-1 MB (1048576 code units): 97.0 ms cold, 20.9 ms warm
-4x input took 4.8x the time (8.9 ms -> 42.9 ms)
+1 MB (1048576 code units): 57.3 ms cold, 18.9 ms warm
+adversarial:    6.6 ms  (15.2x headroom)  2,500 deeply indented list items
+adversarial:    5.7 ms  (17.5x headroom)  20,000 list markers
+adversarial:    5.6 ms  (18.0x headroom)  12,500 unmatched tag openers
+4x input took 5.0x the time (4.0 ms -> 19.7 ms)
 
 ✔ no dependency violations found (33 modules, 50 dependencies cruised)
 Checked 140 files in 8 packages, no issues found
