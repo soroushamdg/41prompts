@@ -1,7 +1,12 @@
 # CURRENT
 
-This is a mirror of `docs/epics/EPIC-010-segmenter.md`, per `docs/PROCESS.md`. EPIC-010 is the
-current epic. EPIC-080 (prototype study) and EPIC-005 (interviews) are deferred, not cancelled:
+**EPIC-010 is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-010-report.md`, and the session log is
+`docs/epics/sessions/EPIC-010-session.md`. Four open questions for the advisor are at the end of
+the report. This file stays pointed at EPIC-010 until the next epic is written and copied here per
+`docs/PROCESS.md`'s loop.
+
+This is a mirror of `docs/epics/EPIC-010-segmenter.md`. EPIC-010 was the current epic. EPIC-080 (prototype study) and EPIC-005 (interviews) are deferred, not cancelled:
 their findings arrive mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013. EPIC-010 is
 interview-proof, so it runs first.
 
@@ -65,23 +70,23 @@ is not, and waits.
 - Any UI. (EPIC-013.)
 
 ## Acceptance criteria
-- [ ] `segment()` is exported from `packages/core` with the documented signature and no dependencies added.
+- [x] `segment()` is exported from `packages/core` with the documented signature and no dependencies added.
       Evidence: `package.json` diff showing zero new deps.
-- [ ] Reconstruction property: for 1,000 generated inputs (including empty string, whitespace only, no newline at
+- [x] Reconstruction property: for 1,000 generated inputs (including empty string, whitespace only, no newline at
       end, CRLF, lone surrogates, 10,000-character lines), segments plus gaps reproduce the input exactly.
       Evidence: test name and the generator's seed strategy.
-- [ ] Idempotence: segmenting the same input 100 times produces byte-identical output. Evidence: test name.
-- [ ] Every fixture has a committed snapshot; all 25 pass. Evidence: test output.
-- [ ] Fenced code and matched tag blocks are never split, including a fence containing blank lines and a fence
+- [x] Idempotence: segmenting the same input 100 times produces byte-identical output. Evidence: test name.
+- [x] Every fixture has a committed snapshot; all 25 pass. Evidence: test output.
+- [x] Fenced code and matched tag blocks are never split, including a fence containing blank lines and a fence
       containing what looks like a heading. Evidence: two test names.
-- [ ] Offsets are correct when the same sentence appears twice in one prompt. Evidence: test name.
-- [ ] A 1 MB input segments in under 200 ms on CI. Evidence: timing output.
-- [ ] No regex in the module backtracks catastrophically; an adversarial input test completes in under 100 ms.
+- [x] Offsets are correct when the same sentence appears twice in one prompt. Evidence: test name.
+- [x] A 1 MB input segments in under 200 ms on CI. Evidence: timing output.
+- [x] No regex in the module backtracks catastrophically; an adversarial input test completes in under 100 ms.
       Evidence: test name and the input used.
-- [ ] Rule order is documented in the source and the README, and adding a rule to the middle of the order is shown
+- [x] Rule order is documented in the source and the README, and adding a rule to the middle of the order is shown
       to change exactly the snapshots it should. Evidence: the README section.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [ ] Report and session log written; backlog updated.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [x] Report and session log written; backlog updated.
 
 ## Verification
 ```
