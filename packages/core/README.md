@@ -3,4 +3,14 @@
 Pure TypeScript core of 41Prompts: the segmenter, classifier, clustering, detectors, compiler, checks,
 deterministic graders, and artifact schema. Zero dependencies, no DOM, no IO. Apache-2.0.
 
-This package is a stub as of EPIC-000; the algorithms above land in Stage 1 and Stage 2.
+## What is here today
+
+- **`segment(text)`** — cuts a prompt into segments with exact source offsets, deterministically.
+  Offsets are UTF-16 code units, `start` inclusive and `end` exclusive; segments plus the gaps
+  between them reproduce the input byte for byte. See [`src/segment/README.md`](src/segment/README.md)
+  for the rule order and how to change it.
+- **`SEGMENT_FIXTURES`** — the committed 25-prompt segmentation corpus, with a snapshot per prompt.
+- **`applyBudgetIncrement()`** — the pure decision behind the per-run cost cap.
+
+The classifier, clustering, detectors, compiler, checks, graders and artifact schema land in the
+rest of Stage 1 and Stage 2.
