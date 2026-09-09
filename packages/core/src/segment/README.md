@@ -46,8 +46,8 @@ Applied top down, one line at a time:
 |---|---|---|
 | 1 | Fenced code blocks (`` ``` `` and `~~~`) are atomic | `fences.ts` |
 | 2 | Tag blocks whose open and close tags match are atomic | `tags.ts` |
-| 3 | A markdown heading line is its own segment | `blocks.ts` |
-| 4 | Blank lines separate paragraphs | `blocks.ts` |
+| 3 | A markdown heading line is its own segment | `units.ts` |
+| 4 | Blank lines separate paragraphs | `units.ts` |
 | 5 | List items are one segment each; a nested list stays with its parent item | `paragraphs.ts` |
 | 6 | A paragraph longer than `SENTENCE_SPLIT_THRESHOLD` splits at sentence boundaries | `paragraphs.ts` |
 
@@ -113,7 +113,7 @@ These are absences, not oversights:
    position in the order. If the rule cannot be stated as "this line/range is claimed by X", it
    is not a segmentation rule.
 2. **Put it in the right pass.** A rule that suspends other rules belongs in `fences.ts`/`tags.ts`
-   and produces an atomic unit. A rule that separates belongs in `blocks.ts`. A rule that cuts
+   and produces an atomic unit. A rule that separates belongs in `units.ts`. A rule that cuts
    inside a paragraph belongs in `paragraphs.ts`.
 3. **Keep it linear and index-carrying.** No `indexOf` on segment text — offsets come from the
    scan, or the same sentence appearing twice collapses onto one offset. No nested quantifier

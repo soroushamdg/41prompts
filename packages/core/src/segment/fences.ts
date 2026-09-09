@@ -8,7 +8,7 @@
 // shell example is not a heading, and a blank line in a JSON sample does not end a paragraph.
 // Running this pass first means no later rule has to know that.
 
-import { isBlankRange, isSpace } from "./chars.js";
+import { indentWidth, isBlankRange, skipIndent } from "./chars.js";
 import type { Line } from "./lines.js";
 
 const BACKTICK = 0x60;
@@ -32,17 +32,12 @@ export interface FenceMap {
 }
 
 /**
- * A fence marker at the start of a line: up to three spaces of indentation, then three or more
- * backticks or tildes. A tab-indented line is code, not a fence, so only spaces are skipped.
+ * A fence marker at the start of a line: up to three columns of indentation, then three or more
+ * backticks or tildes. A tab counts as four columns, so a tab-indented line is code, not a fence.
  */
 function fenceMarkerAt(text: string, line: Line): FenceMarker | null {
-  let i = line.start;
-  let indent = 0;
-  while (i < line.contentEnd && isSpace(text.charCodeAt(i))) {
-    indent += 1;
-    if (indent > 3) return null;
-    i += 1;
-  }
+  if (indentWidth(text, line.start, line.contentEnd) > 3) return null;
+  const i = skipIndent(text, line.start, line.contentEnd);
 
   const code = text.charCodeAt(i);
   if (code !== BACKTICK && code !== TILDE) return null;

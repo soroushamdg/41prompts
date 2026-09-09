@@ -81,12 +81,20 @@ export const ENCODING_FIXTURES: readonly SegmentFixture[] = [
   {
     name: "byte-order-mark",
     describes:
-      "A prompt that begins with U+FEFF. The BOM is ECMAScript whitespace, so it stays in the gap before the first segment rather than at the head of the first segment's text.",
+      "A prompt that begins with U+FEFF, directly against a heading. The BOM is ECMAScript whitespace, so it stays in the gap before the first segment rather than at the head of its text — and it must not stop the heading, the list or the fence below it being recognised.",
     text: `\uFEFF${lf(
-      "You are a CSV cleaning assistant.",
+      "# CSV cleaning assistant",
       "",
       "Strip the byte-order mark from any file you are given before parsing it.",
       "Never strip it from the file the user keeps.",
+      "",
+      "- Detect the delimiter before parsing.",
+      "- Quote every field that contains one.",
+      "",
+      "```csv",
+      "id,name",
+      "1,Ada",
+      "```",
       ""
     )}`
   },

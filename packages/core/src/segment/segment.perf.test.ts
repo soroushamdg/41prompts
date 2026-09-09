@@ -21,6 +21,24 @@ function timeSegment(input: string): number {
   return elapsed;
 }
 
+/**
+ * The fastest of several runs.
+ *
+ * Every timing assertion below uses this rather than a single measurement, because a single
+ * measurement on a shared runner is not a measurement of this code. `pnpm test` runs eight
+ * packages' suites at once and CI runs on whatever `ubuntu-latest` gives it; one of these tests
+ * failed exactly once that way, at 100-something milliseconds, having passed at a tenth of that
+ * moments earlier. The question these tests exist to answer is "can this input be segmented in
+ * under 100 ms", and a run stolen by another process is not evidence against it — while a real
+ * regression, or catastrophic backtracking, is slow in *every* run and the minimum catches it
+ * just as well as the mean.
+ */
+function fastestSegment(input: string, runs = 3): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (let run = 0; run < runs; run++) best = Math.min(best, timeSegment(input));
+  return best;
+}
+
 /** A realistic megabyte: the whole corpus repeated, so it exercises every rule, not one cheap path. */
 function oneMegabyte(): string {
   const corpus = SEGMENT_FIXTURES.map((f) => f.text).join("\n\n");
@@ -41,7 +59,7 @@ describe("throughput", () => {
     // that still catches a hang, and the warm call carries the epic's 200 ms bar.
     const cold = timeSegment(input);
     timeSegment(input);
-    const warm = Math.min(timeSegment(input), timeSegment(input));
+    const warm = fastestSegment(input);
 
     console.log(`1 MB (${input.length} code units): ${cold.toFixed(1)} ms cold, ${warm.toFixed(1)} ms warm`);
     expect(warm, `warm run took ${warm.toFixed(1)} ms`).toBeLessThan(200);
@@ -94,27 +112,31 @@ describe("adversarial input", () => {
   });
 
   it.each(ADVERSARIAL.map(([name, input]) => ({ name, input })))("survives $name in under 100 ms", ({ input }) => {
-    const elapsed = timeSegment(input);
-    expect(elapsed, `took ${elapsed.toFixed(1)} ms`).toBeLessThan(100);
+    const elapsed = fastestSegment(input);
+    expect(elapsed, `fastest of three runs took ${elapsed.toFixed(1)} ms`).toBeLessThan(100);
   });
 
   it("stays linear when an adversarial input grows four times larger", () => {
     // The timing tests above catch a hang. This catches the thing that would not hang on a test
     // input but would on a user's: quadratic growth. Matching unmatched tag openers by scanning
     // forward for each one is O(n²) — 16× the work for 4× the input — which is why `tags.ts`
-    // matches with a single stack pass. Anything under 8× is comfortably not quadratic.
-    const small = "<a>\n".repeat(12_500);
-    const large = "<a>\n".repeat(50_000);
+    // matches with a single stack pass.
+    //
+    // Both inputs are big enough that a scheduling hiccup cannot dominate the measurement, and
+    // both go through `fastestSegment`, because a ratio built from two noisy samples is a coin
+    // toss rather than a test.
+    const small = "<a>\n".repeat(25_000);
+    const large = "<a>\n".repeat(100_000);
 
     // Warm the JIT on both shapes first, so the comparison measures the algorithm, not compilation.
     timeSegment(small);
     timeSegment(large);
 
-    const smallMs = Math.max(timeSegment(small), 1);
-    const largeMs = timeSegment(large);
+    const smallMs = Math.max(fastestSegment(small), 0.5);
+    const largeMs = fastestSegment(large);
     const ratio = largeMs / smallMs;
     console.log(`4x input took ${ratio.toFixed(1)}x the time (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms)`);
-    expect(ratio).toBeLessThan(8);
+    expect(ratio, `4x the input took ${ratio.toFixed(1)}x the time`).toBeLessThan(8);
   });
 });
 

@@ -8,7 +8,7 @@
 // attribute a later failure to half a rule.
 
 import { LIST_MIN_ITEMS, SENTENCE_SPLIT_THRESHOLD } from "./constants.js";
-import { indentWidth, isDigit, isSentenceTerminator, isSpaceOrTab, isWhitespaceAt, skipSpacesAndTabs } from "./chars.js";
+import { indentWidth, isDigit, isSentenceTerminator, isWhitespaceAt, skipIndent } from "./chars.js";
 import type { Line } from "./lines.js";
 
 /** A half-open `[start, end)` range of the source, before trimming. */
@@ -33,12 +33,12 @@ interface ListMarker {
 }
 
 /**
- * A list marker at the start of a line: `-`, `*`, `+`, `•`, `1.` or `1)`, followed by a space, a
- * tab, or end of line. The bullet set and the `1.`/`1)` pair both come from the prototype.
+ * A list marker at the start of a line: `-`, `*`, `+`, `•`, `1.` or `1)`, followed by whitespace
+ * or end of line. The bullet set and the `1.`/`1)` pair both come from the prototype.
  */
 function listMarkerAt(text: string, line: Line): ListMarker | null {
   const width = indentWidth(text, line.start, line.contentEnd);
-  let i = skipSpacesAndTabs(text, line.start, line.contentEnd);
+  let i = skipIndent(text, line.start, line.contentEnd);
   if (i >= line.contentEnd) return null;
 
   const code = text.charCodeAt(i);
@@ -61,7 +61,7 @@ function listMarkerAt(text: string, line: Line): ListMarker | null {
     return null;
   }
 
-  if (i < line.contentEnd && !isSpaceOrTab(text.charCodeAt(i))) return null;
+  if (i < line.contentEnd && !isWhitespaceAt(text, i)) return null;
   return { width };
 }
 

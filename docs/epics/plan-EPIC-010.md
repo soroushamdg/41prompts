@@ -81,6 +81,10 @@ BOM therefore sits in a gap rather than at the head of the first segment; docume
 
 All linear, all index-carrying, no `indexOf` on segment text.
 
+> Written before implementation. One name changed on the way: `blocks.ts` shipped as
+> `units.ts` — it exports `Unit`/`buildUnits`, and ADR-003 keeps "block" out of code
+> identifiers. See the report.
+
 1. **`lines.ts`** — one scan over the input producing, per line, `start`, `contentEnd` (before the
    terminator) and `end` (after it). Terminators: `\r\n`, `\n`, lone `\r`.
 2. **`fences.ts`** — rule 1. ``^ {0,3}(`{3,}|~{3,})`` opens; the same character, at least as

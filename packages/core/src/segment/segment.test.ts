@@ -175,6 +175,17 @@ describe("rule 2 — matched tag regions are atomic", () => {
   it("closes a single-line region on the same line", () => {
     expect(texts("<answer>42</answer>\n\ntail")).toEqual(["<answer>42</answer>", "tail"]);
   });
+
+  it("does not open a region when the closing tag is not the last thing on its line", () => {
+    // Found in self-review. `<task>…</task>` here is an inline tag inside a sentence that
+    // happens to wrap; making its line atomic would cut the sentence at the wrap.
+    const input = "<task>Summarise the email</task> and reply in under\n120 words, in plain language.";
+    expect(texts(input)).toEqual(["<task>Summarise the email</task> and reply in under\n120 words, in plain language."]);
+  });
+
+  it("does not open a region indented more than three columns", () => {
+    expect(texts("\t<x>\n\t</x>")).toEqual(["<x>\n\t</x>"]);
+  });
 });
 
 describe("rule 3 — headings separate", () => {
@@ -361,5 +372,30 @@ describe("whitespace handling", () => {
 
   it("keeps whitespace inside a segment untouched", () => {
     expect(texts("one   two\tthree")).toEqual(["one   two\tthree"]);
+  });
+
+  // These four are one bug, found in self-review: the structural rules used to skip only spaces
+  // and tabs as indentation while everything else used the full ECMAScript whitespace set. A
+  // byte-order mark glued to the front of a prompt — which is exactly where a byte-order mark
+  // lives — then stopped a fence *opener* being recognised while the closer still was, so the
+  // closer was read as a new unterminated opener and swallowed the rest of the prompt.
+  it("recognises a fence whose opener is preceded by a byte-order mark", () => {
+    const input = '\uFEFF```json\n{ "a": 1 }\n```\n\nAfter the fence.\n\nAnother paragraph.';
+    expect(texts(input)).toEqual(['```json\n{ "a": 1 }\n```', "After the fence.", "Another paragraph."]);
+  });
+
+  it("recognises a heading preceded by a byte-order mark or a non-breaking space", () => {
+    expect(texts("\uFEFF# Role\n\nBody text.")).toEqual(["# Role", "Body text."]);
+    expect(texts("\u00A0## Voice\n\nBody text.")).toEqual(["## Voice", "Body text."]);
+  });
+
+  it("recognises list items preceded by a byte-order mark or a non-breaking space", () => {
+    expect(texts("\uFEFF- one\n- two")).toEqual(["- one", "- two"]);
+    expect(texts("\u00A01. one\n2. two")).toEqual(["1. one", "2. two"]);
+  });
+
+  it("still treats a tab-indented line as code rather than a fence or a heading", () => {
+    expect(texts("\t```\n\tstill code")).toEqual(["```\n\tstill code"]);
+    expect(texts("\t# not a heading\n\tsame paragraph")).toEqual(["# not a heading\n\tsame paragraph"]);
   });
 });

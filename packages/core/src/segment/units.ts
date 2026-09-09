@@ -8,7 +8,7 @@
 // a fence claims its lines before a tag can, a tag before a heading, a heading before a blank
 // line, and whatever is left accumulates into a paragraph for rules 5 and 6 to finish.
 
-import { isBlankRange, isSpace, isSpaceOrTab } from "./chars.js";
+import { indentWidth, isBlankRange, isWhitespaceAt, skipIndent } from "./chars.js";
 import type { FenceMap } from "./fences.js";
 import type { Line } from "./lines.js";
 import type { TagMap } from "./tags.js";
@@ -31,20 +31,16 @@ export interface Unit {
 const HASH = 0x23;
 
 /**
- * An ATX heading: up to three spaces, one to six `#`, then a space, a tab, or end of line.
+ * An ATX heading: up to three columns of indentation, one to six `#`, then whitespace or end
+ * of line.
  *
  * Setext headings (`===` or `---` underneath a line) are deliberately not recognised. `---` is
  * also a thematic break and, in a prompt, most often a divider the author drew by hand; a rule
  * that has to guess between the two is a rule whose output depends on the guess. See README.
  */
 function isHeadingLine(text: string, line: Line): boolean {
-  let i = line.start;
-  let indent = 0;
-  while (i < line.contentEnd && isSpace(text.charCodeAt(i))) {
-    indent += 1;
-    if (indent > 3) return false;
-    i += 1;
-  }
+  if (indentWidth(text, line.start, line.contentEnd) > 3) return false;
+  let i = skipIndent(text, line.start, line.contentEnd);
 
   let hashes = 0;
   while (i < line.contentEnd && text.charCodeAt(i) === HASH) {
@@ -54,7 +50,7 @@ function isHeadingLine(text: string, line: Line): boolean {
   }
   if (hashes === 0) return false;
 
-  return i >= line.contentEnd || isSpaceOrTab(text.charCodeAt(i));
+  return i >= line.contentEnd || isWhitespaceAt(text, i);
 }
 
 /** Group lines into units, applying rules 1–4 in order. */

@@ -11,7 +11,7 @@
 // an angle bracket, and is left to the paragraph rules — which is the honest reading, because a
 // prompt with an unclosed tag has no block for us to keep together.
 
-import { isBlankRange } from "./chars.js";
+import { indentWidth, isBlankRange } from "./chars.js";
 import type { FenceMap } from "./fences.js";
 import type { Line } from "./lines.js";
 
@@ -33,8 +33,10 @@ interface TagToken {
   readonly line: number;
   readonly name: string;
   readonly kind: TagKind;
-  /** True when this is the line's first tag and nothing but ≤ 3 spaces precedes it. */
+  /** True when this is the line's first tag and only ≤ 3 columns of whitespace precede it. */
   readonly opensLine: boolean;
+  /** True when nothing but whitespace follows this tag on its line. */
+  readonly endsLine: boolean;
 }
 
 /** For each line: the last line index of the tag block opening here, or -1. */
@@ -72,9 +74,13 @@ function tokenize(text: string, lines: readonly Line[], fences: FenceMap): TagTo
       const closing = match[1] === "/";
       const attributes = match[3] ?? "";
       const kind: TagKind = closing ? "close" : attributes.endsWith("/") ? "self-closing" : "open";
-      const opensLine = first && match.index <= 3 && isBlankRange(text, line.start, line.start + match.index);
+      const opensLine =
+        first &&
+        isBlankRange(text, line.start, line.start + match.index) &&
+        indentWidth(text, line.start, line.contentEnd) <= 3;
+      const endsLine = isBlankRange(text, line.start + match.index + match[0].length, line.contentEnd);
 
-      tokens.push({ line: li, name: match[2]!, kind, opensLine });
+      tokens.push({ line: li, name: match[2]!, kind, opensLine, endsLine });
       first = false;
       match = pattern.exec(content);
     }
@@ -97,6 +103,7 @@ export function scanTagRegions(text: string, lines: readonly Line[], fences: Fen
   const tokens = tokenize(text, lines, fences);
   const openStacks = new Map<string, number[]>();
   const closesOnLine: number[] = new Array<number>(tokens.length).fill(-1);
+  const closerEndsLine: boolean[] = new Array<boolean>(tokens.length).fill(false);
 
   for (let t = 0; t < tokens.length; t++) {
     const token = tokens[t]!;
@@ -110,14 +117,21 @@ export function scanTagRegions(text: string, lines: readonly Line[], fences: Fen
     } else if (token.kind === "close") {
       const stack = openStacks.get(token.name);
       const opener = stack?.pop();
-      if (opener !== undefined) closesOnLine[opener] = token.line;
+      if (opener !== undefined) {
+        closesOnLine[opener] = token.line;
+        closerEndsLine[opener] = token.endsLine;
+      }
     }
   }
 
   const opensAt: number[] = new Array<number>(lines.length).fill(-1);
   for (let t = 0; t < tokens.length; t++) {
     const token = tokens[t]!;
-    if (token.kind !== "open" || !token.opensLine) continue;
+    // A region has to span whole lines: the opener starts one and the closer finishes one. A
+    // pair that opens and closes mid-line — `<task>Summarise this</task> and reply in under 120
+    // words.` — is an inline tag inside a sentence, and making its line atomic would cut that
+    // sentence at the line wrap. Prose is what the paragraph rules are for.
+    if (token.kind !== "open" || !token.opensLine || !closerEndsLine[t]) continue;
     const close = closesOnLine[t]!;
     if (close >= 0 && opensAt[token.line]! < 0) opensAt[token.line] = close;
   }
