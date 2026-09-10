@@ -1,9 +1,9 @@
 # CURRENT
 
 **EPIC-013 is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-013-report.md`, except the staging deployment, which waits on this branch
-being merged since `main` deploys to staging automatically. The session log is
-`docs/epics/sessions/EPIC-013-session.md`.
+`docs/epics/reports/EPIC-013-report.md`, including the staging deployment: `/decompile` is live at
+<https://staging.41prompts.ai/decompile>, driven by hand with **zero range mismatches** against the
+deployed build. The session log is `docs/epics/sessions/EPIC-013-session.md`.
 
 370 tests in `packages/core`, 38 in `apps/web`, 67 in `packages/ui`, 28 end to end, axe clean in both
 themes and on the empty state. Both carried debts are paid: EPIC-011a's fixture gap (corpus 25 → 29,
@@ -114,8 +114,7 @@ discoverability question, which this epic answers by making touch the default ra
       Evidence: the number, before and after.
 - [x] Forbidden-word grep passes over every string on the route.
 - [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm e2e`, `pnpm compliance`, `pnpm binary-files` clean.
-- [ ] Deployed to staging and driven by hand once; paste the URL and a screenshot into the report.
-      (Pending merge — `main` deploys to staging automatically; lands as a follow-up commit to the report.)
+- [x] Deployed to staging and driven by hand once; paste the URL and a screenshot into the report.
 - [x] Report and session log written; backlog updated.
 
 ## Verification
