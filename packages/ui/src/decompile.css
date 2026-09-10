@@ -1,0 +1,322 @@
+/*
+ * The decompiler surfaces (EPIC-013).
+ *
+ * Ported from `docs/design/41prompts-decompiler.html`'s CSS, with three deliberate departures, all
+ * of them corrections rather than taste:
+ *
+ * 1. **No per-kind colour.** The prototype defines a `--kc` scale keyed on `[data-k=...]` whose
+ *    values reuse `--pass` / `--warn` verbatim, which collides with "green, red and amber mean pass,
+ *    fail and drift and nothing else". `docs/design/README.md` records EPIC-003's deviation on this
+ *    as accepted, with EPIC-020 owning a real per-kind mapping or confirming ink-only is permanent.
+ *    So the leading marker is ink.
+ * 2. **No colour on severity.** The prototype paints `high` with `--fail` and `med` with `--warn`.
+ *    Findings are not pass/fail; severity travels by position, weight and a word.
+ * 3. **The fragment badge is generated content**, not a DOM child, so a highlighted span's
+ *    `textContent` is exactly the range it covers.
+ *
+ * Highlight is ink inversion, never a colour wash — the design rule the whole system rests on.
+ */
+
+.decompile {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: var(--spacing-s6) var(--spacing-s4) var(--spacing-s8);
+}
+
+.decompile-head {
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset-lg) var(--shadow-offset-lg) 0 var(--color-plate);
+  padding: var(--spacing-s5);
+  margin-bottom: var(--spacing-s5);
+}
+.decompile-head h1 {
+  font-size: clamp(22px, 4.2vw, 34px);
+  font-weight: 900;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+.decompile-head p {
+  margin: var(--spacing-s3) 0 0;
+  max-width: 72ch;
+  color: var(--color-ink-2);
+}
+
+/* ── the form ── */
+.decompile-form {
+  display: block;
+  margin-bottom: var(--spacing-s5);
+}
+.decompile-form .eyebrow {
+  display: block;
+  margin-bottom: var(--spacing-s2);
+}
+.decompile-actions {
+  display: flex;
+  gap: var(--spacing-s2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-s3);
+}
+.decompile-limit {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+}
+.decompile-notice {
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  padding: var(--spacing-s4);
+  margin: 0 0 var(--spacing-s5);
+  font-weight: 600;
+}
+
+/* ── empty state ── */
+.decompile-empty {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  padding: var(--spacing-s8) var(--spacing-s5);
+  text-align: center;
+  color: var(--color-ink-2);
+}
+.decompile-empty svg {
+  max-width: 260px;
+  height: auto;
+}
+.decompile-empty-title {
+  margin: var(--spacing-s5) 0 var(--spacing-s2);
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--color-ink);
+}
+.decompile-empty-body {
+  margin: 0 auto;
+  max-width: 56ch;
+}
+
+/* ── two columns, stacking below md (epic decision 2: the map stays reachable by scrolling, it is
+      never hidden behind a tab) ── */
+.decompile-columns {
+  display: grid;
+  gap: var(--spacing-s4);
+  grid-template-columns: 1fr;
+  margin-top: var(--spacing-s5);
+}
+@media (min-width: 1020px) {
+  .decompile-columns {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+}
+.decompile-panel {
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.decompile-section-heading {
+  margin: 0;
+  padding: var(--spacing-s3) var(--spacing-s4);
+  border-bottom: var(--border-ink) solid var(--color-ink);
+}
+
+/* ── the mapped source ── */
+.source-map {
+  padding: var(--spacing-s4) var(--spacing-s4) var(--spacing-s4) var(--spacing-s5);
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.9;
+  background: var(--color-sunken);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  max-height: 640px;
+  min-height: 420px;
+  position: relative;
+}
+
+.source-span {
+  border-bottom: var(--border-hairline) solid transparent;
+  padding: 1px 0;
+  position: relative;
+  cursor: pointer;
+  transition:
+    background 0.14s var(--ease-brand),
+    color 0.14s var(--ease-brand),
+    border-color 0.14s var(--ease-brand);
+}
+.source-map:hover .source-span {
+  border-bottom-color: var(--color-line);
+}
+
+/* Ink inversion, not a colour wash. */
+.source-span[data-highlighted="true"] {
+  background: var(--color-ink);
+  color: var(--color-surface);
+  border-bottom-color: var(--color-ink);
+}
+
+/* The leading marker: absolutely placed so it never reflows the paragraph, and ink rather than a
+   category colour until EPIC-020 picks a real per-kind mapping. */
+.source-span::before {
+  content: "";
+  position: absolute;
+  left: -11px;
+  top: 0.22em;
+  width: 5px;
+  height: 1.05em;
+  background: transparent;
+  transform: scaleY(0.4);
+  transform-origin: top;
+  transition:
+    background 0.14s var(--ease-brand),
+    transform 0.18s var(--ease-brand);
+}
+.source-span[data-highlighted="true"]::before {
+  background: var(--color-ink);
+  transform: scaleY(1);
+}
+.source-span[data-pinned="true"]::before {
+  background: var(--color-ink);
+  transform: scaleY(1);
+}
+
+/* Generated content, so the span's own text stays exactly the range it covers. Its accessible name
+   comes from `aria-describedby`, which adds to a description instead of replacing the content. */
+.source-span[data-fragment]::after {
+  content: attr(data-fragment);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 9px;
+  font-weight: 800;
+  vertical-align: super;
+  border: var(--border-hairline) solid currentColor;
+  padding: 0 3px;
+  margin-left: 3px;
+  opacity: 0.55;
+}
+.source-span[data-highlighted="true"][data-fragment]::after {
+  opacity: 1;
+}
+
+/* ── blok cards ── */
+.blok-list {
+  padding: var(--spacing-s3);
+  overflow: auto;
+  max-height: 640px;
+  min-height: 420px;
+  background: var(--color-sunken);
+}
+
+/* ── findings ── */
+.findings {
+  margin-top: var(--spacing-s5);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+.findings-none {
+  margin: 0;
+  padding: var(--spacing-s4);
+  color: var(--color-ink-2);
+}
+.finding-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.finding {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  padding: var(--spacing-s3) var(--spacing-s4);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.finding-list li:last-child .finding {
+  border-bottom: 0;
+}
+.finding:hover,
+.finding[data-selected="true"] {
+  background: var(--color-sunken);
+}
+.finding-top {
+  display: flex;
+  gap: var(--spacing-s2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-s1);
+}
+/* Severity: a word, in weight, in a fixed position. No hue — findings are not pass/fail. */
+.finding-severity {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border: var(--border-hairline) solid currentColor;
+  min-width: 62px;
+  text-align: center;
+  color: var(--color-ink-3);
+}
+.finding[data-severity="high"] .finding-severity {
+  color: var(--color-ink);
+  font-weight: 900;
+}
+.finding[data-severity="medium"] .finding-severity {
+  color: var(--color-ink-2);
+}
+.finding-message {
+  display: block;
+  font-size: 13.5px;
+}
+.finding-suggestion {
+  display: block;
+  margin-top: var(--spacing-s1);
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+}
+
+/* The closing section: the call to action, set apart from the findings above it. */
+.findings-closing {
+  border-top: var(--border-ink) solid var(--color-ink);
+  background: var(--color-sunken);
+}
+.findings-closing-heading {
+  margin: 0;
+  padding: var(--spacing-s4) var(--spacing-s4) var(--spacing-s2);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+/* Touch is the default interaction, not a degraded hover (epic decision 3). At the small
+   breakpoint every target clears 44px. */
+@media (max-width: 1019px) {
+  .source-span {
+    padding: 10px 0;
+  }
+  .finding {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-span,
+  .source-span::before {
+    transition: none;
+  }
+  /* End state, not a skipped one: a highlighted span still inverts and its marker is still full
+     height — only the tween is gone. */
+  .source-span[data-highlighted="true"]::before {
+    transform: scaleY(1);
+  }
+}

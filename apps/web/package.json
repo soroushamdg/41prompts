@@ -4,6 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "predev": "pnpm --filter @41prompts/core build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
