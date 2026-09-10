@@ -194,6 +194,44 @@ describe("adversarial input", () => {
     expect(measured).toHaveLength(ADVERSARIAL.length);
   });
 
+  it("costs no more per tag than the same document shape without tags", () => {
+    // The differential version of the growth check, and the one that actually isolates what this
+    // suite is here to protect: the cost of *tag matching*.
+    //
+    // The absolute exponent below cannot do that on its own. Measuring four shapes shows it is
+    // dominated by how many segments come out, not by what the rules did to produce them — one
+    // paragraph grows at exponent 0.996 and plain lines at 1.026, while any shape that yields one
+    // segment per line sits near 1.15 whether or not a single tag is involved. That floor is
+    // per-segment allocation, and `Segment.text` being the verbatim source slice is a ruled
+    // decision, so the floor stays.
+    //
+    // So compare like with like. Both inputs here are the same byte count, the same line count and
+    // the same segment count; only one of them has tags in it. If tag matching ever went quadratic
+    // — one forward scan per unmatched opener, the shape `tags.ts` uses a stack to avoid — the
+    // tagged exponent would climb towards 2.0 while the control stayed where it is, and the
+    // difference is what fails. Runner speed and GC pressure move both together and cancel.
+    const tagged = (n: number): string => "<a>\n".repeat(n);
+    const control = (n: number): string => "# a\n".repeat(n);
+
+    const exponentOf = (make: (n: number) => string): number => {
+      const small = make(12_500);
+      const large = make(50_000);
+      timeSegment(small);
+      timeSegment(large);
+      const [smallMs, largeMs] = fastestInterleaved(small, large);
+      return Math.log(largeMs / Math.max(smallMs, 0.5)) / Math.log(4);
+    };
+
+    const taggedExponent = exponentOf(tagged);
+    const controlExponent = exponentOf(control);
+    const excess = taggedExponent - controlExponent;
+    console.log(
+      `tag-matching excess ${excess.toFixed(2)} (tagged ${taggedExponent.toFixed(2)}, control ${controlExponent.toFixed(2)})`
+    );
+    // Quadratic tag matching would put the excess near 0.85. Anything under 0.5 is not that.
+    expect(excess, `tags cost input^${excess.toFixed(2)} more than the same shape without them`).toBeLessThan(0.5);
+  });
+
   it("grows no faster than input^1.6 when an adversarial input grows four times larger", () => {
     // The timing tests above catch a hang. This catches the thing that would not hang on a test
     // input but would on a user's: quadratic growth. Matching unmatched tag openers by scanning
@@ -232,11 +270,15 @@ describe("adversarial input", () => {
 // cannot prove that, because catastrophic backtracking needs the *right* input and the next
 // person to add a regex will not think of it. So the module's patterns are enumerated here: a
 // new one fails this test until it is added to the list, which forces the thought.
+//
+// The list is down to two. `tags.ts` used to hold the third and now scans by hand — the tag
+// grammar is small enough to write out, and writing it out removed an allocation per tag. The
+// patterns that decide a *kind* live in committed JSON now and are checked by the same detector
+// from `src/pattern-shape.ts`, in `src/cluster/cluster.test.ts`.
 
 const EXPECTED_PATTERNS: ReadonlyArray<readonly [string, string]> = [
   ["chars.ts", "\\s"],
-  ["invariants.ts", "\\s"],
-  ["tags.ts", "<(/?)([A-Za-z][A-Za-z0-9._:-]*)([^<>]*)>"]
+  ["invariants.ts", "\\s"]
 ];
 
 function moduleSources(): Array<{ file: string; source: string }> {
