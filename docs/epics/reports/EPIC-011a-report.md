@@ -141,8 +141,8 @@ match result and a token object — plus a sliced copy of every line containing 
 into parallel arrays and compares tag names in the source rather than extracting them, so fifty
 thousand tags produce zero strings. The segmenter is down to two regular expressions, both `\s`.
 
-**It bought about 10% of absolute time and did not move the growth exponent**, so I measured four
-shapes to find out why:
+**It bought about 10% of absolute time and, measured locally, did not move the growth exponent** —
+so I measured four shapes to find out why:
 
 | Shape | Exponent |
 |---|---|
@@ -161,7 +161,28 @@ was always for: the same byte count, line count and segment count, with and with
 measures **0.04**, against a 0.5 bar, and runner speed and GC pressure move both sides together and
 cancel out.
 
-Exponents, local: tag shape 1.09–1.27, absolute gate 1.6. CI numbers are in the PR once it runs.
+### The correction CI made
+
+Locally the flattening moved the exponent not at all, and the paragraph above was written on that
+basis. **On CI it moved from 1.35 to 1.19**, against the untouched 1.6 bar — headroom from 1.19× to
+1.34×. So the ruling did buy something after all; a laptop with spare memory bandwidth simply could
+not see it, and the runner where the gate actually fails could.
+
+That does not change the diagnosis — the exponent is still dominated by per-segment allocation, and
+the four shapes above still say so — but it does change the conclusion I would have handed over.
+"Flattening `tags.ts` achieved nothing" would have been wrong, and only measuring on the machine that
+runs the gate showed it.
+
+| Gate | CI | Bar | Headroom |
+|---|---|---|---|
+| `segment()` 100 KB warm | 8.2 ms | 100 ms | 12× |
+| `segment()` growth exponent | 1.19 (was 1.35) | 1.6 | 1.34× |
+| tag-matching excess | 0.06 | 0.5 | 8× |
+| `cluster()` 100 KB warm | 18.9 ms | 100 ms | 5.3× |
+| `cluster()` 2,000 distinct segments | 14.8 ms | 100 ms | 6.8× |
+| `cluster()` growth exponent | 1.07 | 1.6 | 1.5× |
+
+`segment()` 1 MB reports 142.3 ms and `cluster()` 1 MB reports 207.5 ms, neither gated.
 
 ## Acceptance criteria
 

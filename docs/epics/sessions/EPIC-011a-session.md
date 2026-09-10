@@ -79,6 +79,11 @@ key.
   allocation — and `Segment.text` staying the verbatim slice is a ruled decision, so that floor stays.
   The bar is untouched; a differential test that compares the same shape with and without tags is
   added, and measures 0.04 against a 0.5 bar.
+- **And then CI corrected me.** The exponent there went 1.35 to 1.19 — the flattening *did* help, on
+  the machine where the gate actually fails, and a laptop with spare memory bandwidth could not see
+  it. I had written "moved the exponent not at all" and would have handed the advisor a wrong
+  conclusion off a local measurement. The lesson is the same one this session kept teaching: measure
+  on the machine that runs the gate.
 - **The first fixture edit made `false-merge` do two jobs.** The polarity-order shape's neutral and
   positive fragments genuinely should merge, which broke that fixture's blunt "nothing here merges"
   assertion — the assertion that makes an unexpected merge fail loudly rather than only in the case
@@ -105,6 +110,11 @@ cluster 1 MB (11506 segments): 189.0 ms cold, 146.1 ms warm (reported, not gated
 cluster 2,000 distinct segments: 12.0 ms cold, 7.9 ms warm
 cluster growth exponent 1.09 (3.7 ms -> 16.8 ms for 4x segments)
       Tests  247 passed (247)
+
+and from the CI runner, which is where the gates actually bind:
+
+100 KB: 8.2 ms warm | growth exponent 1.19 (was 1.35 before the tags rewrite) | tag excess 0.06
+cluster 100 KB: 18.9 ms warm | cluster 2,000 distinct: 14.8 ms | cluster exponent 1.07
 
 ✔ no dependency violations found (54 modules, 92 dependencies cruised)
 Forbidden-word grep clean (packages/ui/src, apps/web/app, apps/web/lib).
