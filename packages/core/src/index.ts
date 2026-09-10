@@ -48,7 +48,7 @@ export { checkSummaryContract, MAX_REASONABLE_SUMMARY } from "./summarise/contra
 export type { ContractViolation } from "./summarise/contract.js";
 export type { AsyncSummariser, Summariser, Summary } from "./summarise/types.js";
 
-// The committed 25-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
+// The committed 29-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
 // clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots were built
 // from, rather than three drifting copies (epic decision 8) — but it is test data, and this
 // module is the surface EPIC-052 freezes. It lives one subpath away:

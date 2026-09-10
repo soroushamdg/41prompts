@@ -290,6 +290,27 @@ describe("rule_without_check", () => {
     expect(bloks.map((blok) => blok.kind)).toContain("constraint");
   });
 
+  it("stays silent on a corpus prompt where an expected blok covers the rule", () => {
+    // The coverage path, exercised on a real prompt rather than only on its own fixture.
+    //
+    // `expected-output-sheet` states "Always respond in JSON only." — the same sentence that fires
+    // this finding in four other corpus prompts — beside "Expected output: JSON only, with no text
+    // around it." Both carry EPIC-011a's `json-only` topic key, so the rule is covered and this stays
+    // quiet. Worth pinning: before EPIC-013 added it, not one of the 25 corpus prompts contained an
+    // `expected` blok at all, so nothing but a synthetic fixture had ever taken this branch.
+    const fixture = SEGMENT_FIXTURES.find((f) => f.name === "expected-output-sheet")!;
+    const bloks = cluster(segment(fixture.text));
+    expect(bloks.map((blok) => blok.kind)).toContain("expected");
+
+    const jsonRule = bloks.find((blok) =>
+      blok.kind === "constraint" && blok.ranges.some((r) => fixture.text.slice(r.start, r.end).includes("JSON only"))
+    );
+    expect(jsonRule, "the fixture must still state the JSON rule as a constraint").toBeDefined();
+
+    const found = findingsFor(fixture.text).filter((finding) => finding.kind === "rule_without_check");
+    expect(found.map((finding) => finding.message)).toEqual([]);
+  });
+
   it("is high only for a machine-checkable shape, and medium otherwise", () => {
     // Decision 5, asserted against the data file rather than against a hand-written list, so a new
     // shape cannot quietly arrive at the wrong severity.
@@ -359,7 +380,7 @@ describe("rule_without_check", () => {
 });
 
 describe("the false-positive audit", () => {
-  it("reports every finding fired across the 25 EPIC-010 fixtures", () => {
+  it("reports every finding fired across the 29 corpus fixtures", () => {
     // Not an assertion so much as the report's raw material: the count is printed and every finding
     // listed, so a human can judge each one. The number is asserted only to stop it growing
     // silently — a change that doubles it should have to say so.
@@ -377,14 +398,17 @@ describe("the false-positive audit", () => {
     }
     console.log(`false-positive audit: ${total} finding(s) across ${SEGMENT_FIXTURES.length} fixtures`);
     for (const line of lines) console.log(`  ${line}`);
-    expect(total).toBeLessThanOrEqual(20);
+    // Was 20 against a 25-prompt corpus, and stood at exactly 20 when EPIC-013 grew the corpus to 29
+    // to pay EPIC-011a's fixture debt. Raised to 25 to restore the headroom the number is for: it
+    // exists so a change that floods the panel has to say so, not so that adding a fixture trips it.
+    expect(total).toBeLessThanOrEqual(25);
 
-    // EPIC-012b asks for this number by name: how many of the 25 corpus prompts produce the sixth
+    // EPIC-012b asks for this number by name: how many of the corpus prompts produce the sixth
     // finding at all, because that is the proxy for how often the pitch lands on a real prompt.
     console.log(
       `rule_without_check: ${unchecked} finding(s) across ${uncheckedFixtures} of ${SEGMENT_FIXTURES.length} fixtures`
     );
-    expect(unchecked).toBeLessThanOrEqual(15);
+    expect(unchecked).toBeLessThanOrEqual(20);
     expect(uncheckedFixtures).toBeGreaterThan(0);
   });
 });

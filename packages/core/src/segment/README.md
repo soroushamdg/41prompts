@@ -152,7 +152,7 @@ and breaks rule 5. One changed snapshot, changed for exactly the reason predicte
 
 ## The corpus
 
-`fixtures/` holds 25 prompts and `fixtures/snapshots/` a committed snapshot of each. It is the
+`fixtures/` holds 29 prompts and `fixtures/snapshots/` a committed snapshot of each. It is the
 shared truth for every later epic (EPIC-011a's clustering tests, EPIC-013's UI fixtures) so a
 boundary change shows up in one diff rather than in three drifting copies of sample text:
 

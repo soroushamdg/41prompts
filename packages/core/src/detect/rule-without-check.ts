@@ -19,7 +19,7 @@ import { untestablePhraseIn } from "./untestable.js";
 // for the publish gate, made about the reader's own prompt before they have signed up for anything.
 //
 // **The measurement that shaped every decision here:** not one of the 25 EPIC-010 corpus prompts
-// contains a single `expected` blok. "No check covers this rule" is therefore true of every rule in
+// contained a single `expected` blok when this was written (EPIC-013 later added two that do). "No check covers this rule" is therefore true of every rule in
 // every real prompt, and a detector that reported it once per rule would produce sixty findings on
 // the corpus and turn the panel into a wall. So the useful question is not *which rules lack
 // checks* — all of them do — but **which rules are worth naming**.

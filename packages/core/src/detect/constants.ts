@@ -32,12 +32,12 @@ export { MERGE_OVERLAP_THRESHOLD as REPEAT_OVERLAP_THRESHOLD } from "../cluster/
  * How many `rule_without_check` findings one prompt may produce.
  *
  * Three, and the number matters more here than anywhere else in this module. Measured on the 25
- * EPIC-010 fixtures, **not one contains an `expected` blok** — so "nothing checks this rule" is true
+ * EPIC-010 fixtures as they stood when this was written, **not one contained an `expected` blok** — so "nothing checks this rule" is true
  * of every rule in every real prompt, and an uncapped detector reports sixty findings on the corpus
  * and turns the panel into a wall. Three is enough to show the reader the gap is systemic and few
  * enough that the rest of the panel is still readable.
  *
- * It binds on exactly one of the 25 fixtures today (support-email-router: five candidates, three
+ * It binds on exactly one corpus fixture (support-email-router: five candidates, three
  * shown), which is the behaviour intended — a guard against the wall-of-rules prompt, not a routine
  * truncation. Exported and revisitable once EPIC-084 has the real distribution.
  */
