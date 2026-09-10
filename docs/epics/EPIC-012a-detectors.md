@@ -1,19 +1,3 @@
-# CURRENT
-
-**EPIC-012a is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-012a-report.md`; the session log is
-`docs/epics/sessions/EPIC-012a-session.md`. The false-positive audit stands at 4 findings across all
-25 EPIC-010 fixtures, each judged in the report, and four open questions are at the end. This file
-stays pointed at EPIC-012a until the next epic is written and copied here per `docs/PROCESS.md`'s
-loop.
-
-A mirror of `docs/epics/EPIC-012a-detectors.md`. EPIC-012a was the current epic. EPIC-010, EPIC-011a and EPIC-011b are done, and their open questions are ruled — including
-EPIC-011b's cache key, which keeps the blok's kind. Two requirements carried forward land in later
-epics, not this one: EPIC-020 finishes the compiler tripwire, EPIC-031 supplies the model transport.
-EPIC-080 and EPIC-005 remain deferred.
-
----
-
 # EPIC-012a: Five detectors
 Stage: 1 · Depends on: EPIC-011b · Size: M
 

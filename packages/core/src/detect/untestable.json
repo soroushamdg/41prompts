@@ -1,0 +1,42 @@
+[
+  {
+    "id": "be-helpful",
+    "flags": "i",
+    "pattern": "\\bbe (?:helpful|nice|friendly|natural|creative|thoughtful)\\b(?![^.!?]{0,30}\\bby\\b)"
+  },
+  {
+    "id": "sound-natural",
+    "flags": "i",
+    "pattern": "\\bsound (?:natural|human|conversational|professional)\\b"
+  },
+  {
+    "id": "best-judgement",
+    "flags": "i",
+    "pattern": "\\b(?:use )?(?:your |good )?best (?:judgement|judgment)\\b"
+  },
+  {
+    "id": "as-appropriate",
+    "flags": "i",
+    "pattern": "\\bas (?:appropriate|needed|necessary|required)\\b"
+  },
+  {
+    "id": "reasonably-adverb",
+    "flags": "i",
+    "pattern": "\\breasonably\\s+(?:short|long|brief|concise|detailed|quick|fast)\\b"
+  },
+  {
+    "id": "where-possible",
+    "flags": "i",
+    "pattern": "\\b(?:where|when|if) possible\\b"
+  },
+  {
+    "id": "high-quality",
+    "flags": "i",
+    "pattern": "\\bhigh[- ]quality\\b(?![^.!?]{0,40}\\b(?:means|is defined|defined as)\\b)"
+  },
+  {
+    "id": "make-sure-its-good",
+    "flags": "i",
+    "pattern": "\\bmake (?:sure|it) (?:good|great|nice|clean)\\b"
+  }
+]

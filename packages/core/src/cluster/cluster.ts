@@ -4,8 +4,14 @@
 import { classify } from "../classify/classify.js";
 import type { BlokKind } from "../classify/types.js";
 import type { Range, Segment } from "../segment/types.js";
-import polarityData from "./polarity.json" with { type: "json" };
-import stopwordsData from "./stopwords.json" with { type: "json" };
+import { contradicts, polarityOf, polarityPatterns, type Polarity } from "./polarity.js";
+import {
+  MAX_VOCABULARY_RATIO,
+  MERGE_OVERLAP_THRESHOLD,
+  MIN_OVERLAP_TOKENS,
+  normalise,
+  overlap
+} from "./similarity.js";
 import topicsData from "./topics.json" with { type: "json" };
 import type { Blok } from "./types.js";
 
@@ -14,87 +20,6 @@ import type { Blok } from "./types.js";
  * is allowed to merge them (decision 7). Not configurable at run time on purpose: a threshold that
  * varies per caller is a threshold no snapshot can pin down.
  */
-export const MERGE_OVERLAP_THRESHOLD = 0.6;
-
-const STOPWORDS: ReadonlySet<string> = new Set(stopwordsData);
-
-/** Words this short carry no topic. The prototype's rule, kept as-is. */
-const MIN_TOKEN_LENGTH = 3;
-
-/**
- * How many normalised tokens the smaller of two segments must have before token overlap is allowed
- * to merge them at all.
- *
- * Added because the false-merge fixture proved it necessary, not on principle. Normalisation drops
- * words of three characters or fewer, so "Use markdown." reduces to the single token `{markdown}`,
- * and one shared token out of one scores 1.0 — the highest the measure can produce, on the least
- * evidence it can have. At 1 this files a heading-style rule inside a "use markdown" blok.
- */
-const MIN_OVERLAP_TOKENS = 2;
-
-/**
- * How many times larger one segment's vocabulary may be than the other's before token overlap is
- * allowed to merge them.
- *
- * `overlap()` divides by the *smaller* vocabulary, which is the prototype's measure and which means
- * containment scores a perfect 1.0: a three-token rule whose every word appears somewhere in a
- * forty-word paragraph is "100% overlapping" with it. Found in self-review — "Always use JSON
- * format." swallowed an entire audit-logging paragraph — and `MIN_OVERLAP_TOKENS` does not help,
- * because the smaller side still has two tokens.
- *
- * A restatement of the same rule is roughly the same length as the rule. A vocabulary three times
- * the size is elaborating on a subject, not repeating an instruction.
- */
-const MAX_VOCABULARY_RATIO = 3;
-
-/** `negative` beats `positive`, so "must not" is negative rather than positive. */
-type Polarity = "negative" | "positive" | "neutral";
-
-const NEGATIVE: readonly RegExp[] = polarityData.negative.map((row) => new RegExp(row.pattern, row.flags));
-const POSITIVE: readonly RegExp[] = polarityData.positive.map((row) => new RegExp(row.pattern, row.flags));
-
-/**
- * Whether a segment asserts something, forbids something, or neither.
- *
- * Checked negative-first, so "must not" is negative and not positive. Anything without a modal is
- * `neutral`, and neutral never blocks a merge — this guard exists to stop a rule merging with its
- * own contradiction, not to demand that every fragment declare a polarity.
- */
-function polarityOf(text: string): Polarity {
-  for (const pattern of NEGATIVE) {
-    if (pattern.test(text)) return "negative";
-  }
-  for (const pattern of POSITIVE) {
-    if (pattern.test(text)) return "positive";
-  }
-  return "neutral";
-}
-
-/**
- * True when a segment is on the opposite side of a rule from anything already in the group.
- *
- * Checked against **every** fragment's polarity, not the first one's. Found in self-review: with
- * only the first fragment consulted, a neutral opening fragment let a positive and a negative rule
- * both join it, and "Always respond in JSON only." ended up in the same blok as "Never respond in
- * JSON when the caller asked for plain text." — the exact merge this guard, the false-merge fixture
- * and the README all say is impossible.
- *
- * The false-merge fixture's second case: "Always respond in JSON only." and "Never respond in JSON
- * when the caller asked for plain text." share {respond, json} out of three tokens — 0.667, over
- * the threshold — and both classify as `constraint`. Merging them hides a contradiction inside one
- * blok, where EPIC-012a's detector compares bloks and will never see it.
- *
- * The cost is real and is the cost decision 10 asks us to pay: "Always respond in JSON only" no
- * longer merges with "Do not include any explanation outside the JSON", which are two phrasings of
- * one intent. A missed merge is a blok a user can join in one gesture; a wrong merge is text hiding
- * somewhere they will not look.
- */
-function contradicts(incoming: Polarity, present: ReadonlySet<Polarity>): boolean {
-  if (incoming === "positive") return present.has("negative");
-  if (incoming === "negative") return present.has("positive");
-  return false;
-}
-
 interface Topic {
   readonly key: string;
   readonly test: RegExp;
@@ -104,31 +29,6 @@ const TOPICS: readonly Topic[] = topicsData.map((row) => ({
   key: row.key,
   test: new RegExp(row.pattern, row.flags)
 }));
-
-/**
- * Lowercase, drop everything that is not a letter, digit or underscore, split on whitespace, drop
- * short words and stop words. The prototype's normalisation, kept as-is.
- *
- * No stemming. It is locale-sensitive, and a merge that depends on which locale the process happens
- * to be running in is not deterministic (decision 7).
- */
-function normalise(text: string): Set<string> {
-  const words = new Set<string>();
-  for (const word of text.toLowerCase().replace(/[^a-z0-9_\s]/g, " ").split(/\s+/)) {
-    if (word.length > MIN_TOKEN_LENGTH && !STOPWORDS.has(word)) words.add(word);
-  }
-  return words;
-}
-
-/** Shared vocabulary as a fraction of the smaller segment's, in `[0, 1]`. */
-function overlap(left: Set<string>, right: Set<string>): number {
-  if (left.size === 0 || right.size === 0) return 0;
-  let shared = 0;
-  for (const word of left) {
-    if (right.has(word)) shared += 1;
-  }
-  return shared / Math.min(left.size, right.size);
-}
 
 /** The first topic key that matches, or `null`. File order is precedence. */
 function topicOf(text: string): string | null {
@@ -288,7 +188,7 @@ function finish(groups: readonly Group[]): Blok[] {
     for (const { range, text } of fragments) parts.push(`${range.start}:${range.end}:${text}`);
 
     return {
-      id: `blok_${hash(parts.join(" "))}`,
+      id: `blok_${hash(parts.join("\u0000"))}`,
       kind: group.kind,
       ranges: fragments.map(({ range }) => range)
     };
@@ -298,11 +198,12 @@ function finish(groups: readonly Group[]): Blok[] {
   return bloks;
 }
 
+export { MERGE_OVERLAP_THRESHOLD };
+
 /** Every committed pattern in this module, for the pattern-safety test. */
 export function clusterPatterns(): ReadonlyArray<{ id: string; pattern: string; flags: string }> {
   return [
     ...topicsData.map((row) => ({ id: `topic:${row.key}`, pattern: row.pattern, flags: row.flags })),
-    ...polarityData.negative.map((row) => ({ id: `negative:${row.id}`, pattern: row.pattern, flags: row.flags })),
-    ...polarityData.positive.map((row) => ({ id: `positive:${row.id}`, pattern: row.pattern, flags: row.flags }))
+    ...polarityPatterns()
   ];
 }

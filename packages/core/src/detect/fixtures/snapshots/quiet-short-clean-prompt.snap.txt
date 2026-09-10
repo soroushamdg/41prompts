@@ -1,0 +1,8 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# quiet-short-clean-prompt — A short, well-formed prompt with nothing wrong with it at all. Every detector must stay silent.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 0 finding(s)
+

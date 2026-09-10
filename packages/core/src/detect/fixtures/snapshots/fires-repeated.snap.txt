@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# fires-repeated — The same instruction said twice in two registers — once as role context, once as a numbered rule — which clustering keeps apart because their kinds differ.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 1 finding(s)
+
+[medium] repeated find_495880f21a9795a0 bloks=2
+      Two bloks say the same thing: "You are a support assistant. You should alway…" and "2. Always be professional and friendly in the…". Editing one leaves the other in place.
+      -> Keep one of them and delete the other, or join them into one blok.
+      0..76 "You are a support assistant. You should always be professional and friendly."
+      135..195 "2. Always be professional and friendly in the summary field."

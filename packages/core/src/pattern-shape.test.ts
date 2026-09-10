@@ -85,9 +85,19 @@ describe("checkPattern", () => {
 
 const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
   ["classify/classify.ts", "^[ \\t]*(?:[-*+\u2022][ \\t]+|\\d{1,9}[.)][ \\t]+)"],
-  ["cluster/cluster.ts", "[^a-z0-9_\\s]"],
-  ["cluster/cluster.ts", "\\s+"],
   ["cluster/invariants.ts", "^blok_[0-9a-f]{16}$"],
+  // Moved out of cluster.ts in EPIC-012a so the detectors reuse one similarity measure rather than
+  // inventing a second — a pair of rules must not be "similar enough to merge" and "not similar
+  // enough to report" at the same time.
+  ["cluster/similarity.ts", "[^a-z0-9_\\s]"],
+  ["cluster/similarity.ts", "\\s+"],
+  // EPIC-012a. Both collapse whitespace: one to count words, one to quote a span on a single line
+  // inside a finding's message. Single quantifiers over a single class.
+  // The scoping conjunctions that turn a negation into a precondition rather than a contradiction.
+  // A single alternation of literals, no quantifier at all.
+  ["detect/contradiction.ts", "\\b(?:until|unless|before|after|except|while|whenever|once|when|if)\\b"],
+  ["detect/shared.ts", "\\s+"],
+  ["detect/shared.ts", "\\s+"],
   ["segment/chars.ts", "\\s"],
   ["segment/invariants.ts", "\\s"],
   // EPIC-011b. The first is the same leading-list-marker pattern `classify.ts` uses, for the same
