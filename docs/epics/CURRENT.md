@@ -1,7 +1,12 @@
 # CURRENT
 
-A mirror of `docs/epics/EPIC-011b-summariser.md`, per `docs/PROCESS.md`. EPIC-011b is the current
-epic. EPIC-010 and EPIC-011a are done, and all of EPIC-011a's open questions are ruled — three of
+**EPIC-011b is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-011b-report.md`; the session log is
+`docs/epics/sessions/EPIC-011b-session.md`. Three open questions for the advisor, and two
+requirements carried into EPIC-020 and EPIC-031, are at the end of the report. This file stays
+pointed at EPIC-011b until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
+
+A mirror of `docs/epics/EPIC-011b-summariser.md`. EPIC-011b was the current epic. EPIC-010 and EPIC-011a are done, and all of EPIC-011a's open questions are ruled — three of
 them recorded as requirements on EPIC-012a and EPIC-013 at the end of
 `docs/epics/reports/EPIC-011a-report.md`. EPIC-080 and EPIC-005 remain deferred.
 
@@ -63,29 +68,29 @@ Getting the seam right matters more than the summary quality, which will be tune
 - Translation or multilingual summaries.
 
 ## Acceptance criteria
-- [ ] `Summariser`, `Summary`, the heuristic implementation and the hash function are exported from
+- [x] `Summariser`, `Summary`, the heuristic implementation and the hash function are exported from
       `packages/core`; zero new dependencies. Evidence: `package.json` diff.
-- [ ] A shared contract test suite runs against both the core heuristic and the worker's model-backed
+- [x] A shared contract test suite runs against both the core heuristic and the worker's model-backed
       implementation, and both pass. Evidence: test names and the file both import.
-- [ ] `source` is always present and correct; a test fails if an implementation returns a summary without it.
+- [x] `source` is always present and correct; a test fails if an implementation returns a summary without it.
       Evidence: test name.
-- [ ] The heuristic is deterministic: 100 runs over every EPIC-011a clustering fixture produce identical
+- [x] The heuristic is deterministic: 100 runs over every EPIC-011a clustering fixture produce identical
       summaries. Evidence: test name.
-- [ ] `inputHash` changes when the blok text changes and when the summariser version changes, and does not change
+- [x] `inputHash` changes when the blok text changes and when the summariser version changes, and does not change
       otherwise. Evidence: three test names.
-- [ ] A boundary test proves `packages/core`'s summariser touches no network, filesystem, timer, or model.
+- [x] A boundary test proves `packages/core`'s summariser touches no network, filesystem, timer, or model.
       Evidence: test name and the dependency-cruiser rule.
-- [ ] A multi-range blok whose ranges say different things produces a summary that does not assert either one.
+- [x] A multi-range blok whose ranges say different things produces a summary that does not assert either one.
       Evidence: fixture and snapshot.
-- [ ] Empty, whitespace-only, single-word and 10,000-character bloks all return a valid `Summary` without
+- [x] Empty, whitespace-only, single-word and 10,000-character bloks all return a valid `Summary` without
       throwing. Evidence: test name.
-- [ ] The worker's model summariser falls back to the heuristic when the model call fails, and the returned
+- [x] The worker's model summariser falls back to the heuristic when the model call fails, and the returned
       `Summary` says `source: "heuristic"`. Evidence: test name with the failure injected.
-- [ ] The judge/summariser model is pinned by version, not a floating alias (rule 7). Evidence: the constant.
-- [ ] The placeholder test asserting a summary never becomes compiled output exists and is referenced from
+- [x] The judge/summariser model is pinned by version, not a floating alias (rule 7). Evidence: the constant.
+- [x] The placeholder test asserting a summary never becomes compiled output exists and is referenced from
       EPIC-020's future scope. Evidence: test name.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [ ] Report and session log written; backlog updated.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [x] Report and session log written; backlog updated.
 
 ## Verification
 ```
