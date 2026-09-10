@@ -32,6 +32,21 @@ const MIN_TOKEN_LENGTH = 3;
  */
 const MIN_OVERLAP_TOKENS = 2;
 
+/**
+ * How many times larger one segment's vocabulary may be than the other's before token overlap is
+ * allowed to merge them.
+ *
+ * `overlap()` divides by the *smaller* vocabulary, which is the prototype's measure and which means
+ * containment scores a perfect 1.0: a three-token rule whose every word appears somewhere in a
+ * forty-word paragraph is "100% overlapping" with it. Found in self-review — "Always use JSON
+ * format." swallowed an entire audit-logging paragraph — and `MIN_OVERLAP_TOKENS` does not help,
+ * because the smaller side still has two tokens.
+ *
+ * A restatement of the same rule is roughly the same length as the rule. A vocabulary three times
+ * the size is elaborating on a subject, not repeating an instruction.
+ */
+const MAX_VOCABULARY_RATIO = 3;
+
 /** `negative` beats `positive`, so "must not" is negative rather than positive. */
 type Polarity = "negative" | "positive" | "neutral";
 
@@ -56,7 +71,13 @@ function polarityOf(text: string): Polarity {
 }
 
 /**
- * True when two segments are on opposite sides of a rule, which is a reason never to merge them.
+ * True when a segment is on the opposite side of a rule from anything already in the group.
+ *
+ * Checked against **every** fragment's polarity, not the first one's. Found in self-review: with
+ * only the first fragment consulted, a neutral opening fragment let a positive and a negative rule
+ * both join it, and "Always respond in JSON only." ended up in the same blok as "Never respond in
+ * JSON when the caller asked for plain text." — the exact merge this guard, the false-merge fixture
+ * and the README all say is impossible.
  *
  * The false-merge fixture's second case: "Always respond in JSON only." and "Never respond in JSON
  * when the caller asked for plain text." share {respond, json} out of three tokens — 0.667, over
@@ -68,8 +89,10 @@ function polarityOf(text: string): Polarity {
  * one intent. A missed merge is a blok a user can join in one gesture; a wrong merge is text hiding
  * somewhere they will not look.
  */
-function contradicts(left: Polarity, right: Polarity): boolean {
-  return (left === "negative" && right === "positive") || (left === "positive" && right === "negative");
+function contradicts(incoming: Polarity, present: ReadonlySet<Polarity>): boolean {
+  if (incoming === "positive") return present.has("negative");
+  if (incoming === "negative") return present.has("positive");
+  return false;
 }
 
 interface Topic {
@@ -115,14 +138,26 @@ function topicOf(text: string): string | null {
   return null;
 }
 
-/** FNV-1a, 32 bit. Small, dependency-free, and stable across engines and versions. */
+/**
+ * Sixteen hex digits of FNV-1a, run twice from different offset bases and concatenated. Small,
+ * dependency-free, and stable across engines and versions.
+ *
+ * Two rounds rather than one because eight hex digits is 32 bits, and a 1 MB prompt produces about
+ * 11,500 bloks — a birthday collision chance near 1.5%, which is not "unique by construction", it is
+ * a coin flip that trips `checkBlokInvariants` once in every few dozen big prompts. Sixty-four bits
+ * puts it past 1 in 10^10.
+ */
 function hash(input: string): string {
-  let value = 0x811c9dc5;
+  let low = 0x811c9dc5;
+  let high = 0x01000193;
   for (let i = 0; i < input.length; i++) {
-    value ^= input.charCodeAt(i);
-    value = Math.imul(value, 0x01000193) >>> 0;
+    const code = input.charCodeAt(i);
+    low ^= code;
+    low = Math.imul(low, 0x01000193) >>> 0;
+    high ^= code + i;
+    high = Math.imul(high, 0x85ebca6b) >>> 0;
   }
-  return value.toString(16).padStart(8, "0");
+  return high.toString(16).padStart(8, "0") + low.toString(16).padStart(8, "0");
 }
 
 interface Group {
@@ -130,8 +165,8 @@ interface Group {
   readonly topic: string | null;
   /** The normalised vocabulary of the group's first fragment, computed once. */
   readonly vocabulary: Set<string>;
-  /** The polarity of the group's first fragment. */
-  readonly polarity: Polarity;
+  /** Every polarity present in the group, so a contradiction with any fragment blocks a merge. */
+  readonly polarities: Set<Polarity>;
   readonly ranges: Range[];
   readonly texts: string[];
 }
@@ -150,24 +185,60 @@ interface Group {
 export function cluster(segments: readonly Segment[]): Blok[] {
   const groups: Group[] = [];
 
+  // Two indexes, so a segment does not have to be compared against every group that came before it.
+  // Without them this is O(n^2) in segment count — measured at 57 ms for 1,000 mutually distinct
+  // segments and 726 ms for 4,000 — and EPIC-013 runs this in a browser tab on whatever somebody
+  // pastes. Both indexes only ever *narrow* the candidate list; the candidates are then evaluated in
+  // group-creation order against exactly the conditions the unindexed loop used, so the result is
+  // identical, which the committed snapshots check.
+  const byTopic = new Map<string, number[]>();
+  const byToken = new Map<string, number[]>();
+
+  const push = (index: Map<string, number[]>, key: string, value: number): void => {
+    const bucket = index.get(key);
+    if (bucket === undefined) index.set(key, [value]);
+    else bucket.push(value);
+  };
+
   for (const segment of segments) {
     const { kind } = classify(segment);
     const topic = topicOf(segment.text);
     const vocabulary = normalise(segment.text);
     const polarity = polarityOf(segment.text);
 
+    // A merge on token overlap needs at least `ceil(0.6 * MIN_OVERLAP_TOKENS)` = 2 shared tokens,
+    // so any group that could possibly qualify appears in at least two of this segment's token
+    // buckets. Counting occurrences is a sound way to skip the rest.
+    const shared = new Map<number, number>();
+    for (const word of vocabulary) {
+      for (const candidate of byToken.get(word) ?? []) {
+        shared.set(candidate, (shared.get(candidate) ?? 0) + 1);
+      }
+    }
+
+    const candidates = new Set<number>();
+    if (topic !== null) {
+      for (const candidate of byTopic.get(`${kind}\u0000${topic}`) ?? []) candidates.add(candidate);
+    }
+    for (const [candidate, count] of shared) {
+      if (count >= 2) candidates.add(candidate);
+    }
+
     let joined: Group | undefined;
-    for (const group of groups) {
+    for (const index of [...candidates].sort((left, right) => left - right)) {
+      const group = groups[index]!;
       if (group.kind !== kind) continue;
       // Checked before either merge path, so a contradiction is never merged however strong the
       // other evidence looks.
-      if (contradicts(polarity, group.polarity)) continue;
+      if (contradicts(polarity, group.polarities)) continue;
 
       const sameTopic = topic !== null && group.topic === topic;
       // Compared against the group's first fragment, not its most recent, so the result does not
       // depend on the order a group happened to grow in.
-      const enoughTokens = Math.min(vocabulary.size, group.vocabulary.size) >= MIN_OVERLAP_TOKENS;
-      const similar = enoughTokens && overlap(vocabulary, group.vocabulary) >= MERGE_OVERLAP_THRESHOLD;
+      const smaller = Math.min(vocabulary.size, group.vocabulary.size);
+      const larger = Math.max(vocabulary.size, group.vocabulary.size);
+      const comparable = smaller >= MIN_OVERLAP_TOKENS && larger <= smaller * MAX_VOCABULARY_RATIO;
+      const similar = comparable && overlap(vocabulary, group.vocabulary) >= MERGE_OVERLAP_THRESHOLD;
       if (sameTopic || similar) {
         joined = group;
         break;
@@ -177,15 +248,21 @@ export function cluster(segments: readonly Segment[]): Blok[] {
     if (joined) {
       joined.ranges.push({ start: segment.start, end: segment.end });
       joined.texts.push(segment.text);
+      joined.polarities.add(polarity);
     } else {
+      const index = groups.length;
       groups.push({
         kind,
         topic,
         vocabulary,
-        polarity,
+        polarities: new Set([polarity]),
         ranges: [{ start: segment.start, end: segment.end }],
         texts: [segment.text]
       });
+      // Indexed by the first fragment's vocabulary and topic, which is what a later segment is
+      // compared against.
+      if (topic !== null) push(byTopic, `${kind}\u0000${topic}`, index);
+      for (const word of vocabulary) push(byToken, word, index);
     }
   }
 

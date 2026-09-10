@@ -38,6 +38,34 @@ export const CLUSTER_FIXTURES: readonly SegmentFixture[] = [
       "Use markdown.",
       "",
       "Markdown headings must be sentence case.",
+      "",
+      // Found in self-review. `overlap()` divides by the smaller vocabulary, so a short rule whose
+      // every word appears somewhere in a long paragraph scores a perfect 1.0 and swallows it.
+      "Always use YAML format.",
+      "",
+      "The audit trail must use YAML format for every entry so downstream consumers can parse it without guessing, and each record has to carry a timestamp, an actor, a resource identifier and the outcome of the attempted operation.",
+      ""
+    )
+  },
+  {
+    name: "polarity-order",
+    describes:
+      "A neutral rule, then the same rule asserted, then the same rule forbidden — in that order. The first two are one blok; the third may never join them however the blok was opened.",
+    text: lf(
+      // Found in self-review, and the order is the whole fixture. The polarity guard used to consult
+      // only a group's *first* fragment, so a neutral opener let a positive and a negative rule both
+      // join it and all three became one blok — the merge the guard exists to prevent, reachable by
+      // arranging the fragments so the guard never saw a polarity to disagree with.
+      //
+      // This one does not belong in `false-merge`: the neutral and the positive are genuine
+      // restatements and *should* merge. Keeping it separate lets `false-merge` keep its blunt
+      // "nothing here merges at all" assertion, which is what makes an unexpected merge there fail
+      // loudly rather than only in the case somebody thought of.
+      "Reply in French.",
+      "",
+      "Always reply in French, every time.",
+      "",
+      "Never reply in French on the audit channel.",
       ""
     )
   },

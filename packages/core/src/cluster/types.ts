@@ -23,9 +23,11 @@ export type { Range };
  */
 export interface Blok {
   /**
-   * `blok_` plus eight hex digits of a content hash over the kind and the ranges' offsets and text.
+   * `blok_` plus sixteen hex digits of a content hash over the kind and the ranges' offsets and text.
    * Derived from content rather than a counter, so re-running over the same input produces the same
-   * ids and a diff of two runs is empty rather than renumbered.
+   * ids and a diff of two runs is empty rather than renumbered. Sixty-four bits rather than
+   * thirty-two, because a 1 MB prompt yields about 11,500 bloks and thirty-two bits makes a
+   * collision a 1.5% coin flip rather than an impossibility.
    */
   readonly id: string;
   readonly kind: BlokKind;

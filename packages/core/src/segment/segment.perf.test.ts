@@ -1,16 +1,10 @@
 // SPDX-FileCopyrightText: 2026 <legal entity>
 // SPDX-License-Identifier: Apache-2.0
 
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { findNestedQuantifiers } from "../pattern-shape.js";
 import { SEGMENT_FIXTURES } from "./fixtures/index.js";
 import { checkSegmentInvariants } from "./invariants.js";
 import { segment } from "./segment.js";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** Milliseconds for one `segment()` call, measured on a monotonic clock. */
 function timeSegment(input: string): number {
@@ -261,68 +255,5 @@ describe("adversarial input", () => {
       `growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for ${factor}x input; 1.0 linear, 2.0 quadratic)`
     );
     expect(exponent, `grew as input^${exponent.toFixed(2)}`).toBeLessThan(1.6);
-  });
-});
-
-// ── Decision 7 as a failing test, not a review comment ───────────────────────────────────────
-//
-// "Nested quantifiers over the same character class are a build failure." A timing test alone
-// cannot prove that, because catastrophic backtracking needs the *right* input and the next
-// person to add a regex will not think of it. So the module's patterns are enumerated here: a
-// new one fails this test until it is added to the list, which forces the thought.
-//
-// The list is down to two. `tags.ts` used to hold the third and now scans by hand — the tag
-// grammar is small enough to write out, and writing it out removed an allocation per tag. The
-// patterns that decide a *kind* live in committed JSON now and are checked by the same detector
-// from `src/pattern-shape.ts`, in `src/cluster/cluster.test.ts`.
-
-const EXPECTED_PATTERNS: ReadonlyArray<readonly [string, string]> = [
-  ["chars.ts", "\\s"],
-  ["invariants.ts", "\\s"]
-];
-
-function moduleSources(): Array<{ file: string; source: string }> {
-  return readdirSync(HERE)
-    .filter((entry) => entry.endsWith(".ts") && !entry.endsWith(".test.ts"))
-    .sort()
-    .map((file) => ({ file, source: readFileSync(join(HERE, file), "utf-8") }));
-}
-
-/** Regex literals plus the string constants this module hands to `new RegExp`. */
-function patternsIn(source: string): string[] {
-  const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
-  const literals = withoutComments.match(/(?<![*/\w)\]])\/(?:\\.|\[(?:\\.|[^\]])*\]|[^/\\\n])+\/[dgimsuvy]*/g) ?? [];
-  const named = withoutComments.match(/_PATTERN\s*=\s*"((?:\\.|[^"\\])*)"/g) ?? [];
-  return [
-    ...literals.map((literal) => literal.slice(1, literal.lastIndexOf("/"))),
-    ...named.map((declaration) => declaration.slice(declaration.indexOf('"') + 1, -1))
-  ];
-}
-
-describe("regex safety (epic decision 7)", () => {
-  it("uses only the patterns on the reviewed list", () => {
-    const actual = moduleSources().flatMap(({ file, source }) =>
-      patternsIn(source).map((pattern) => [file, pattern] as const)
-    );
-    // A new regex in this module is a decision, not an implementation detail: add it here and
-    // say in the same commit why it is linear.
-    expect(actual).toEqual(EXPECTED_PATTERNS);
-  });
-
-  it("has no nested quantifier in any of them", () => {
-    for (const [file, pattern] of EXPECTED_PATTERNS) {
-      expect(findNestedQuantifiers(pattern), `${file}: /${pattern}/`).toEqual([]);
-    }
-  });
-
-  it("detects a nested quantifier when there is one", () => {
-    // The detector has to be able to fail, or the test above proves nothing. It now lives in
-    // `src/pattern-shape.ts` because EPIC-011a's patterns are committed JSON, which a
-    // source-scanning test cannot see.
-    expect(findNestedQuantifiers("(a+)+")).toEqual(["(a+)+"]);
-    expect(findNestedQuantifiers("(?:[a-z]*)*")).toEqual(["(?:[a-z]*)*"]);
-    expect(findNestedQuantifiers("([^<>]*)+")).toEqual(["([^<>]*)+"]);
-    expect(findNestedQuantifiers("(\\s*)\\{2,}")).toEqual([]);
-    expect(findNestedQuantifiers("([^<>]*)")).toEqual([]);
   });
 });

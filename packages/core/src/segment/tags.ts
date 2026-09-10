@@ -91,11 +91,14 @@ function scanTag(text: string, start: number, limit: number): ScannedTag | null 
 
   // Attributes: anything up to the closing `>`, with `<` ending the attempt exactly as `[^<>]*`
   // did. A `<` here means the tag never closed and the next one starts.
-  let lastNonSpace = -1;
   while (i < limit) {
     const code = text.charCodeAt(i);
     if (code === GREATER_THAN) {
-      const selfClosing = lastNonSpace >= 0 && text.charCodeAt(lastNonSpace) === SLASH;
+      // Self-closing when the character *immediately* before `>` is a slash, which is what the
+      // regular expression's `attributes.endsWith("/")` tested. Using the last non-space character
+      // instead makes `<a/ >` self-closing where the regular expression read it as an opener — a
+      // divergence a differential fuzz over 300,000 generated inputs found, and the only one.
+      const selfClosing = i > nameEnd && text.charCodeAt(i - 1) === SLASH;
       return {
         kind: closing ? KIND_CLOSE : selfClosing ? KIND_SELF_CLOSING : KIND_OPEN,
         nameStart,
@@ -104,7 +107,6 @@ function scanTag(text: string, start: number, limit: number): ScannedTag | null 
       };
     }
     if (code === LESS_THAN) return null;
-    if (code !== 0x20 && code !== 0x09) lastNonSpace = i;
     i += 1;
   }
 

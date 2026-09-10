@@ -62,7 +62,7 @@ describe("cluster()", () => {
 
   it("gives every blok its ranges as an array, even when there is exactly one", () => {
     // Rule 5 and decision 6, checked at run time. The type-level half of this criterion is in
-    // `types.test-d.ts`, which fails to compile if a bare range is ever assignable.
+    // `ranges-are-plural.ts`, which stops compiling if a bare range is ever assignable.
     for (const fixture of CLUSTER_FIXTURES) {
       for (const blok of cluster(segment(fixture.text))) {
         expect(Array.isArray(blok.ranges), `${fixture.name} ${blok.id}`).toBe(true);
@@ -81,7 +81,7 @@ describe("cluster()", () => {
     for (const fixture of CLUSTER_FIXTURES) {
       const bloks = cluster(segment(fixture.text));
       for (const blok of bloks) {
-        expect(blok.id).toMatch(/^blok_[0-9a-f]{8}$/);
+        expect(blok.id).toMatch(/^blok_[0-9a-f]{16}$/);
         ids.add(blok.id);
       }
       // Within one prompt, ids must never collide: the id covers each range's offsets, and two

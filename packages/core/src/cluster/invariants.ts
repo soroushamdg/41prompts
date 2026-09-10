@@ -24,8 +24,8 @@ export function checkBlokInvariants(segments: readonly Segment[], bloks: readonl
   for (const blok of bloks) {
     const at = `blok ${blok.id}`;
 
-    if (!/^blok_[0-9a-f]{8}$/.test(blok.id)) {
-      violations.push({ rule: "id-shape", detail: `${at}: not blok_ plus eight hex digits` });
+    if (!/^blok_[0-9a-f]{16}$/.test(blok.id)) {
+      violations.push({ rule: "id-shape", detail: `${at}: not blok_ plus sixteen hex digits` });
     }
     if (ids.has(blok.id)) {
       violations.push({ rule: "unique-ids", detail: `${at}: appears twice` });

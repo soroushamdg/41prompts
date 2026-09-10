@@ -61,6 +61,19 @@ describe("the false-merge fixture", () => {
     expect(useMarkdown!.id).not.toBe(headings!.id);
   });
 
+  it("keeps a short rule from swallowing a long paragraph that contains its words", () => {
+    // Trip wire: MAX_VOCABULARY_RATIO. `overlap()` divides by the smaller vocabulary, so a
+    // three-token rule whose every word appears somewhere in a forty-word paragraph scores 1.0.
+    // Found in self-review; the minimum token count does not help, because the smaller side still
+    // has two tokens.
+    const shortRule = bloks.find((b) => text(b) === "Always use YAML format.");
+    const paragraph = bloks.find((b) => text(b).includes("audit trail"));
+
+    expect(shortRule, "no blok owns the short YAML rule").toBeDefined();
+    expect(paragraph, "no blok owns the audit-trail paragraph").toBeDefined();
+    expect(shortRule!.id).not.toBe(paragraph!.id);
+  });
+
   it("merges nothing at all in this fixture", () => {
     // The blunt version of the three tests above, which is what makes an unexpected merge
     // anywhere in this prompt fail loudly rather than only in the case somebody thought of.
@@ -75,4 +88,30 @@ describe("the false-merge fixture", () => {
   function text(blok: { ranges: readonly { start: number; end: number }[] }): string {
     return blok.ranges.map((range) => falseMerge.text.slice(range.start, range.end)).join("\n");
   }
+});
+
+describe("the polarity-order fixture", () => {
+  const fixture = CLUSTER_FIXTURES.find((f) => f.name === "polarity-order")!;
+  const bloks = cluster(segment(fixture.text));
+  const text = (blok: { ranges: readonly { start: number; end: number }[] }): string =>
+    blok.ranges.map((range) => fixture.text.slice(range.start, range.end)).join("\n");
+
+  it("never lets a forbidding rule join a blok a neutral fragment opened", () => {
+    // Trip wire: the polarity guard consulting every fragment rather than only the group's first.
+    // Found in self-review, and reachable only by ordering the fragments so the guard had nothing to
+    // disagree with when the second one arrived.
+    const negative = bloks.find((b) => text(b).includes("Never reply"));
+    expect(negative, "no blok owns the forbidding rule").toBeDefined();
+    expect(negative!.ranges).toHaveLength(1);
+    expect(text(negative!)).not.toContain("Always reply");
+    expect(text(negative!)).not.toContain("Reply in French.");
+  });
+
+  it("still merges the neutral rule with its own restatement", () => {
+    // The other half, and the reason this is a separate fixture: the guard has to stop a
+    // contradiction without also refusing an ordinary restatement.
+    const merged = bloks.filter((blok) => blok.ranges.length > 1);
+    expect(merged).toHaveLength(1);
+    expect(text(merged[0]!)).toBe("Reply in French.\nAlways reply in French, every time.");
+  });
 });

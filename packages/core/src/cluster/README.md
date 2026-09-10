@@ -75,7 +75,7 @@ this shape.
 
 ## Blok ids and order
 
-Ids are `blok_` plus eight hex digits of FNV-1a over the kind and every range's offsets and exact
+Ids are `blok_` plus sixteen hex digits of FNV-1a over the kind and every range's offsets and exact
 text. Derived from content rather than a counter, so re-running over the same input produces the same
 ids and a diff of two runs is empty rather than renumbered. Including the offsets makes ids unique
 within a prompt by construction — two bloks cannot share a first range — so there is no collision
