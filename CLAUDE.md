@@ -94,6 +94,11 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
 - New behaviour has tests in the package that owns it.
 - No new dependency without a one-line reason in the PR description.
 - Forbidden-word grep over UI strings passes.
+- **Every changed file's diff was actually visible during self-review.** Git shows no diff for a file
+  it considers binary — one stray NUL byte is enough — so a review that could not see a file's diff
+  is not a review of that file, whatever it reported. `pnpm binary-files` fails the build when a
+  tracked source file under `packages/` or `apps/` is binary; `.gitattributes` forces a textual diff
+  so the mistake surfaces rather than hides.
 - This file is still accurate; update it in the same PR if a convention changed.
 - `docs/epics/reports/EPIC-xxx-report.md` written: built, skipped, open questions, exact verify commands.
 - `docs/epics/sessions/EPIC-xxx-session.md` written per PROCESS.md.

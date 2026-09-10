@@ -35,6 +35,10 @@ jobs:
       - run: pnpm boundaries
       - run: pnpm exec turbo boundaries
       - run: pnpm forbidden-words
+      # A file git considers binary shows no diff, so review skips it silently. This fails the build
+      # when a tracked source file under packages/ or apps/ contains a NUL byte -- the defect that
+      # hid packages/core/src/cluster/cluster.ts from two self-reviews.
+      - run: pnpm binary-files
 
   license-gate:
     runs-on: ubuntu-latest

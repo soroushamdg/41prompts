@@ -292,6 +292,24 @@ EPIC-013 should read this section before writing their Scope.
    contradiction at 0.667 token overlap, both sides the same kind. **Ruling: accepted, the fixture
    justified it** (2026-09-10).
 
+## Correction: this epic's self-review coverage was narrower than reported
+
+`packages/core/src/cluster/cluster.ts` contains a literal NUL byte from this epic — written by the
+generator script I used to build it. Git decides a file is binary by sniffing for a NUL in its first
+8000 bytes and shows **no diff at all** for a file it calls binary, so this file was invisible to the
+self-review that ran here, and to EPIC-011b's.
+
+Nothing was wrong with the code: the file was covered by its tests and its snapshots throughout, and
+the byte itself was inert. But this report's account of what the review examined is wrong. "What went
+wrong, and was caught" above lists what the review found *in the files it could see*, and
+`cluster.ts` — the file this epic's central change lives in — was not one of them. Discovered during
+EPIC-012a's review, 2026-09-10.
+
+Guarded since: `pnpm binary-files` fails the build when a tracked source file under `packages/` or
+`apps/` is binary, `.gitattributes` forces a textual diff so the mistake surfaces rather than hides,
+and `CLAUDE.md`'s Definition of Done now says a review that cannot see a file's diff is not a review
+of that file.
+
 ## Verify
 
 ```
