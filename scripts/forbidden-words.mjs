@@ -5,7 +5,12 @@
 // identifier — this file's own comments would otherwise flag themselves). The `<label>` HTML
 // element and `aria-label`/`aria-labelledby` are real, unrenameable platform accessibility APIs,
 // not product vocabulary, so a bare `label` match fully accounted for by one of those is exempt —
-// everything else is a real violation.
+// everything else is a real violation. `scrollIntoView({ block: ... })` is the same category and
+// is exempt on the same terms: a DOM option name we cannot rename, on a line that does nothing
+// else. Both exemptions are deliberately narrow — they require the platform API on the same line
+// AND every match on that line to be the one word — because the point of this check is that
+// "blok" and "block" one letter apart was a naming defect (ADR-003), and an exemption broad
+// enough to hide a real `block` would give that back.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, join } from "node:path";
 
@@ -19,7 +24,16 @@ const SKIP_FILES = new Set(["contrast.ts", "contrast-cli.ts", "contrast.test.ts"
 // s? catches the plain plural too (assertions, blocks, labels, ...) — CLAUDE.md lists base forms
 // but plainly means the word, not just its exact singular spelling.
 const WORD_RE = new RegExp(`\\b(${FORBIDDEN.join("|")})s?\\b`, "gi");
-const EXEMPT_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|htmlFor=/i;
+const LABEL_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|htmlFor=/i;
+const BLOCK_CONTEXT_RE = /scrollIntoView\s*\(/;
+
+/** True when every forbidden match on this line is a platform API name we cannot rename. */
+function isPlatformApi(line, matches) {
+  const words = matches.map((match) => match.toLowerCase());
+  if (LABEL_CONTEXT_RE.test(line) && words.every((word) => word === "label")) return true;
+  if (BLOCK_CONTEXT_RE.test(line) && words.every((word) => word === "block")) return true;
+  return false;
+}
 
 function blank(match) {
   return match.replace(/[^\n]/g, " ");
@@ -62,7 +76,7 @@ for (const root of ROOTS) {
     lines.forEach((line, index) => {
       const matches = line.match(WORD_RE);
       if (!matches) return;
-      if (EXEMPT_CONTEXT_RE.test(line) && matches.every((m) => m.toLowerCase() === "label")) return;
+      if (isPlatformApi(line, matches)) return;
       violations.push({ file: file.replace(repoRoot, ""), line: index + 1, text: originalLines[index].trim(), matches });
     });
   }
