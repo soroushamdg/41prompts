@@ -344,13 +344,23 @@ test.describe("/decompile", () => {
       await decompile(page, MIXED);
       const card = page.locator(".blok-card").first();
 
-      // Persistent: present without hovering, focusing or pinning anything.
-      const marker = await card.evaluate((el) => {
-        const before = getComputedStyle(el, "::before");
-        return { background: before.backgroundColor, width: before.width };
+      // Persistent: present without hovering, focusing or pinning anything, and drawn in ink.
+      //
+      // The marker is a **shape in the leading rail**, not a coloured bar. An ink bar was tried first
+      // — the prototype's shape — and is invisible against the card's own ink border; the prototype
+      // gets away with it only because its bar is coloured per kind, which is exactly what is
+      // unshipped. Asserting the rail rather than a `::before` is the point, not an accommodation.
+      const rail = card.locator(".blok-card-rail");
+      await expect(rail).toBeVisible();
+      const marker = await rail.locator(".blok-kind-glyph").evaluate((el) => {
+        const style = getComputedStyle(el);
+        const box = el.getBoundingClientRect();
+        return { stroke: style.stroke, width: box.width, height: box.height };
       });
-      expect(marker.background).not.toBe("rgba(0, 0, 0, 0)");
-      expect(marker.width).not.toBe("0px");
+      expect(marker.stroke).not.toBe("rgba(0, 0, 0, 0)");
+      expect(marker.stroke).not.toBe("none");
+      expect(marker.width).toBeGreaterThan(8);
+      expect(marker.height).toBeGreaterThan(8);
 
       // Shape, not hue: a glyph per kind, and the kind's name in words beside it.
       await expect(card.locator(".blok-kind-glyph")).toHaveCount(1);
