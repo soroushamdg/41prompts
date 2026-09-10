@@ -24,7 +24,11 @@ const CORE_SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
  * does**, with instructions, so that finishing the assertion is part of building the compiler rather
  * than something to remember afterwards.
  */
-const COMPILER_PATHS = ["compile", "compiler", "artifact"];
+// Not "artifact": `CLAUDE.md` already plans `packages/core/src/artifact/schema.ts` for Stage 5a,
+// and that is the build artifact's schema rather than the compiler. Including it would have failed
+// CI for an epic with nothing to do with this rule — and a tripwire that cries wolf gets deleted,
+// taking the rule it was holding open with it. Caught in review.
+const COMPILER_PATHS = ["compile", "compiler"];
 
 const WHAT_TO_DO = `
 A compiler now exists in packages/core, and this placeholder from EPIC-011b has done its job.

@@ -124,14 +124,19 @@ function firstSentence(text: string): string {
   return collapse(cleaned);
 }
 
-/** One line, single-spaced. A card has one line; newlines and runs of spaces are not information. */
+/**
+ * One line, single-spaced. A card has one line; newlines and runs of spaces are not information.
+ *
+ * "Newline" means every character that starts a new line in something — vertical tab, form feed,
+ * U+0085, U+2028, U+2029 — not just `\n`. Found in review: a summary that renders on two lines
+ * breaks a card layout whatever the character responsible happened to be called.
+ */
 function collapse(text: string): string {
   let out = "";
   let inWhitespace = false;
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
-    const isWhitespace = code === 0x20 || code === 0x09 || code === 0x0a || code === 0x0d;
-    if (isWhitespace) {
+    if (isLineBreakOrSpace(code)) {
       inWhitespace = true;
       continue;
     }
@@ -146,12 +151,38 @@ function collapse(text: string): string {
 function truncate(text: string): string {
   if (text.length <= SUMMARY_MAX_LENGTH) return text;
 
-  const cut = text.slice(0, SUMMARY_MAX_LENGTH - 1);
+  const cut = text.slice(0, safeCut(text, SUMMARY_MAX_LENGTH - 1));
   const lastSpace = cut.lastIndexOf(" ");
   // A long unbroken run — a URL, a wall of one word — has no word boundary to cut on, so it gets
   // cut mid-word rather than losing the whole summary to a search that found nothing.
   const body = lastSpace > SUMMARY_MAX_LENGTH / 2 ? cut.slice(0, lastSpace) : cut;
   return `${body}…`;
+}
+
+/**
+ * `at`, moved back one if it would land between a surrogate pair.
+ *
+ * Slicing counts UTF-16 code units, and an astral character is two of them, so a cut at the wrong
+ * index leaves half of one behind — which renders as a replacement glyph and makes the summary's own
+ * text look like the bug. Found in review, on a case the suite had to be rebuilt to reach.
+ */
+function isLineBreakOrSpace(code: number): boolean {
+  return (
+    code === 0x20 ||
+    code === 0x09 ||
+    code === 0x0a ||
+    code === 0x0b || // vertical tab
+    code === 0x0c || // form feed
+    code === 0x0d ||
+    code === 0x85 || // next line
+    code === 0x2028 || // line separator
+    code === 0x2029 // paragraph separator
+  );
+}
+
+function safeCut(text: string, at: number): number {
+  const code = text.charCodeAt(at - 1);
+  return code >= 0xd800 && code <= 0xdbff ? at - 1 : at;
 }
 
 function capitalise(text: string): string {

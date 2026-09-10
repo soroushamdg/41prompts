@@ -71,6 +71,17 @@ describe("what the heuristic actually produces", () => {
     expect(summarise("Keep it short\nand tidy")).not.toContain("\n");
   });
 
+  it("collapses the line separators that are not \\n", () => {
+    // Found in review: the contract only rejected `\n`, and neither collapse nor the worker's
+    // sanitiser touched `\v`, `\f`, U+0085, U+2028 or U+2029 — every one of which starts a new line
+    // in something. A summary that renders on two lines breaks a card whatever the character was
+    // called.
+    for (const separator of ["\v", "\f", "\u0085", "\u2028", "\u2029"]) {
+      const text = summarise(`Keep it short${separator}and tidy`);
+      expect(text, JSON.stringify(separator)).not.toMatch(/[\n\r\v\f\u0085\u2028\u2029]/);
+    }
+  });
+
   it(`truncates at ${SUMMARY_MAX_LENGTH} characters, on a word boundary, and says so`, () => {
     const long = `${"a very long clause that keeps going ".repeat(6)}end`;
     const text = summarise(long);
