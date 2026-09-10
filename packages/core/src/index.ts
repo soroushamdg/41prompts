@@ -18,6 +18,17 @@ export { checkSegmentInvariants } from "./segment/invariants.js";
 export type { InvariantViolation } from "./segment/invariants.js";
 export type { Segment } from "./segment/types.js";
 
+// The classifier and clustering (EPIC-011a). `classify()` gives a segment a kind; `cluster()`
+// turns a flat list of segments into bloks, each owning a *set* of ranges — the step that makes a
+// rule stated in three places one thing the user edits once.
+export { classify } from "./classify/classify.js";
+export { BLOK_KINDS } from "./classify/types.js";
+export type { BlokKind, Classification } from "./classify/types.js";
+export { cluster, MERGE_OVERLAP_THRESHOLD } from "./cluster/cluster.js";
+export { checkBlokInvariants } from "./cluster/invariants.js";
+export type { Blok } from "./cluster/types.js";
+export type { Range } from "./segment/types.js";
+
 // The committed 25-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
 // clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots were built
 // from, rather than three drifting copies (epic decision 8) — but it is test data, and this

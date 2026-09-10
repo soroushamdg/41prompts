@@ -1,0 +1,26 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# false-merge — Three temptations to merge, none of which may be taken: unrelated rules that all mention a field, a contradiction with high token overlap, and a one-token overlap at 1.0.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 9 blok(s), 0 of them multi-range
+
+[0] blok_611d156a context ranges=1
+      0..49 "You are a support triage assistant for Northwind."
+[1] blok_0373ca9d context ranges=1
+      51..57 "Rules:"
+[2] blok_b58e2e60 constraint ranges=1
+      58..101 "1. Keep the summary field reasonably short."
+[3] blok_d4fa7d67 constraint ranges=1
+      102..166 "2. If the customer sounds angry, set the priority field to high."
+[4] blok_bf7c4ea5 constraint ranges=1
+      167..227 "3. Always be professional and friendly in the summary field."
+[5] blok_678fad1e constraint ranges=1
+      229..257 "Always respond in JSON only."
+[6] blok_ccd28030 constraint ranges=1
+      259..318 "Never respond in JSON when the caller asked for plain text."
+[7] blok_ecbaf358 constraint ranges=1
+      320..333 "Use markdown."
+[8] blok_e7ced83f constraint ranges=1
+      335..375 "Markdown headings must be sentence case."

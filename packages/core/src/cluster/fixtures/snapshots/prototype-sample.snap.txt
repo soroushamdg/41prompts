@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# prototype-sample — The decompiler prototype's sample prompt, the parity case for criterion 8. The prototype clusters it into 10 bloks, three of them multi-range and all three false merges.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 14 blok(s), 1 of them multi-range
+
+[0] blok_072398c4 context ranges=1
+      0..157 "You are a helpful customer support assistant for Northwind, a B2B SaaS company that sells inventory software. You should always be professional and friendly."
+[1] blok_8ea7e5b9 context ranges=1
+      159..232 "Your job is to read an incoming support email and decide how to route it."
+[2] blok_cbbe27d2 context ranges=1
+      234..240 "Rules:"
+[3] blok_ceca5258 constraint ranges=1
+      241..352 "1. Always classify the email into one of these categories: billing, technical, onboarding, cancellation, other."
+[4] blok_6bda098f constraint ranges=2
+      353..435 "2. You must respond in JSON only. Do not include any explanation outside the JSON."
+      1227..1294 "Remember: respond in JSON only, with no extra text before or after."
+[5] blok_dfff0065 constraint ranges=1
+      436..478 "3. Never mention that you are an AI model."
+[6] blok_ddab9e76 constraint ranges=1
+      479..551 "4. Keep the summary field reasonably short and use appropriate language."
+[7] blok_f6ec5a65 constraint ranges=1
+      552..616 "5. If the customer sounds angry, set the priority field to high."
+[8] blok_48514621 constraint ranges=1
+      617..677 "6. Always be professional and friendly in the summary field."
+[9] blok_9398691d constraint ranges=1
+      679..809 "The JSON should have these fields: category, priority, summary, needs_human.\nPlease make sure the output is valid JSON. Thank you!"
+[10] blok_8614652c example ranges=1
+      811..936 "For example, if the email says 'I was charged twice this month', you would return {\"category\":\"billing\",\"priority\":\"medium\"}."
+[11] blok_ca9e6857 constraint ranges=1
+      938..1007 "When the email mentions a chargeback, always set needs_human to true."
+[12] blok_22fedcda constraint ranges=1
+      1009..1132 "Do not use markdown formatting in your response. Format the summary as a markdown bullet list if there are multiple issues."
+[13] blok_4d786e80 constraint ranges=1
+      1134..1225 "If you are unsure about the category, use your best judgement and pick the most likely one."
