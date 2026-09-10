@@ -56,7 +56,11 @@ pnpm e2e            # playwright, needs dev running
 
 Use: blok, span, check, version, Draft, Live, Publish, Publish anyway, Undo, edited by hand, update from blok.
 Never in UI strings, schema, or code identifiers: **block**, assertion (UI only; the type may be `Check`), label, pointer, artifact (UI only), promote, enum, sha, reconcile, override, drifted.
-Check kinds display as plain phrases: "valid JSON shape", "one of the allowed values", "word limit", "must contain".
+Check kinds display as plain phrases. The six `rule_without_check` names are "valid JSON shape",
+"one of the allowed values", "word limit", "character limit", "must contain", "must not contain"; ADR-003
+adds "matches a pattern" and "refuses to answer". This list was four until EPIC-012b needed a phrase for a
+prohibition and found none among them (ruling 2, 2026-09-10) — ADR-003 always had eight and this file was
+showing a sample as though it were the set.
 
 ## Naming
 

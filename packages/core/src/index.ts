@@ -32,6 +32,10 @@ export type { Range } from "./segment/types.js";
 // Findings (EPIC-012a) — the visible value of the decompiler, and advisory only: nothing here
 // blocks and nothing is auto-fixed. Blocking belongs to publishing (`CLAUDE.md` rule 9).
 export { detect } from "./detect/detect.js";
+// The panel's closing count (EPIC-013 decision 5) names every rule nothing checks, including the ones
+// `MAX_RULES_WITHOUT_CHECKS` kept off the list. It is not recoverable from `detect()`'s output,
+// which states the remainder in prose, so it is its own export sharing the detector's candidate set.
+export { uncheckedRuleCount } from "./detect/rule-without-check.js";
 export {
   MAX_BLOK_WORDS,
   MAX_PROMPT_WORDS,
@@ -48,7 +52,7 @@ export { checkSummaryContract, MAX_REASONABLE_SUMMARY } from "./summarise/contra
 export type { ContractViolation } from "./summarise/contract.js";
 export type { AsyncSummariser, Summariser, Summary } from "./summarise/types.js";
 
-// The committed 25-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
+// The committed 29-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
 // clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots were built
 // from, rather than three drifting copies (epic decision 8) — but it is test data, and this
 // module is the surface EPIC-052 freezes. It lives one subpath away:

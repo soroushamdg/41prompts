@@ -19,7 +19,7 @@ import { untestablePhraseIn } from "./untestable.js";
 // for the publish gate, made about the reader's own prompt before they have signed up for anything.
 //
 // **The measurement that shaped every decision here:** not one of the 25 EPIC-010 corpus prompts
-// contains a single `expected` blok. "No check covers this rule" is therefore true of every rule in
+// contained a single `expected` blok when this was written (EPIC-013 later added two that do). "No check covers this rule" is therefore true of every rule in
 // every real prompt, and a detector that reported it once per rule would produce sixty findings on
 // the corpus and turn the panel into a wall. So the useful question is not *which rules lack
 // checks* — all of them do — but **which rules are worth naming**.
@@ -75,11 +75,17 @@ const SILENCING_KINDS: ReadonlySet<string> = new Set(["untestable", "contradicti
 /** The same order `detect()` sorts the panel by, so the two never disagree about what comes last. */
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = { high: 0, medium: 1, low: 2 };
 
-export function detectRuleWithoutCheck(
+/**
+ * Every rule in this prompt that nothing checks, ranked.
+ *
+ * Shared by `detectRuleWithoutCheck` and `uncheckedRuleCount` so the panel's closing count and the
+ * findings beneath it can never disagree about which rules count.
+ */
+function collectCandidates(
   bloks: readonly Blok[],
   source: string,
-  found: readonly Finding[] = []
-): Finding[] {
+  found: readonly Finding[]
+): Candidate[] {
   const claimed: Range[] = found
     .filter((finding) => SILENCING_KINDS.has(finding.kind))
     .flatMap((finding) => finding.ranges.map((range) => ({ start: range.start, end: range.end })));
@@ -163,7 +169,6 @@ export function detectRuleWithoutCheck(
     ranges.sort((left, right) => left.start - right.start);
     candidates.push({ blok, shape: best, rank: bestRank, quoted, ranges });
   }
-
   // Decision 7: a prompt with twenty rules and no checks must not produce twenty findings. Ranked
   // by severity, then by how machine-checkable the rule is (shape precedence), then by position, so
   // the three that survive are the three whose checks are most obviously writable today.
@@ -174,6 +179,34 @@ export function detectRuleWithoutCheck(
     if (left.rank !== right.rank) return left.rank - right.rank;
     return left.quoted.start - right.quoted.start;
   });
+
+  return candidates;
+}
+
+/**
+ * How many rules in this prompt nothing checks — **including the ones the cap kept off the panel**.
+ *
+ * EPIC-013's findings panel closes with a single line naming that number, and the number is not
+ * recoverable from `detect()`'s output: the cap reports at most `MAX_RULES_WITHOUT_CHECKS` findings
+ * and states the remainder in prose, inside a sentence. Reading a count back out of a message with a
+ * regular expression would make a headline depend on the wording of a message, so it is exported
+ * instead — and it shares `collectCandidates` with the detector, so there is one answer to "which
+ * rules count", not two that can drift apart.
+ *
+ * `found` is `detect()`'s output, needed for the same reason the detector needs it: a rule that a
+ * `contradiction` or an `untestable` finding already claims is not counted here either, or the panel
+ * would promise more than it lists.
+ */
+export function uncheckedRuleCount(bloks: readonly Blok[], source: string, found: readonly Finding[] = []): number {
+  return collectCandidates(bloks, source, found).length;
+}
+
+export function detectRuleWithoutCheck(
+  bloks: readonly Blok[],
+  source: string,
+  found: readonly Finding[] = []
+): Finding[] {
+  const candidates = collectCandidates(bloks, source, found);
 
   const shown = candidates.slice(0, MAX_RULES_WITHOUT_CHECKS);
   const remainder = candidates.length - shown.length;

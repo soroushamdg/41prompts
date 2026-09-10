@@ -4,6 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "predev": "pnpm --filter @41prompts/core build",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -12,6 +13,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@41prompts/core": "workspace:*",
     "@41prompts/db": "workspace:*",
     "@41prompts/logger": "workspace:*",
     "@41prompts/ui": "workspace:*",

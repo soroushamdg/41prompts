@@ -38,9 +38,12 @@ function renderSnapshot(fixture: SegmentFixture, segments: readonly Segment[]): 
 }
 
 describe("the committed fixture corpus", () => {
-  it("holds exactly 25 prompts with unique names", () => {
-    expect(SEGMENT_FIXTURES).toHaveLength(25);
-    expect(new Set(SEGMENT_FIXTURES.map((f) => f.name)).size).toBe(25);
+  it("holds exactly 29 prompts with unique names", () => {
+    // 25 from EPIC-010, plus the four EPIC-013 added to pay EPIC-011a's fixture debt: two
+    // multimodal prompts and two written as expectations, for the three blok kinds the original
+    // corpus never contained.
+    expect(SEGMENT_FIXTURES).toHaveLength(29);
+    expect(new Set(SEGMENT_FIXTURES.map((f) => f.name)).size).toBe(29);
   });
 
   it("covers every case the epic names", () => {

@@ -13,7 +13,7 @@ function classifyText(text: string) {
 }
 
 describe("classify() against the labelled table", () => {
-  it(`is at least ${ACCURACY_TARGET * 100}% accurate on the 60-example labelled table`, () => {
+  it(`is at least ${ACCURACY_TARGET * 100}% accurate on the ${labelled.length}-example labelled table`, () => {
     const misses: string[] = [];
     for (const row of labelled) {
       const got = classifyText(row.text);
@@ -32,14 +32,17 @@ describe("classify() against the labelled table", () => {
 });
 
 /**
- * The EPIC-010 corpus contains no image segment and no expectation segment — 25 real prompts, and
- * not one of them multimodal or written as a check. So three of the six kinds get no coverage from
- * the accuracy table, and padding that table with text written to match my own patterns would only
- * make the headline number dishonest.
+ * A second, small labelled set of single sentences — kept after EPIC-013 paid the debt below.
  *
- * They get their own labelled set instead, kept deliberately small and marked for what it is. The
- * gap itself is a finding: EPIC-013's fixtures will need multimodal prompts, and until then these
- * heuristics have never seen a prompt somebody actually wrote.
+ * **The debt, and how it was paid.** EPIC-011a wrote here: "The EPIC-010 corpus contains no image
+ * segment and no expectation segment — 25 real prompts, and not one of them multimodal or written as
+ * a check. So three of the six kinds get no coverage from the accuracy table... these heuristics have
+ * never seen a prompt somebody actually wrote." EPIC-013 added four whole prompts to the corpus
+ * (`segment/fixtures/multimodal.ts`) and 32 of their segments to the table above, so `image_ref`,
+ * `image_input` and `expected` are now scored on real prompts rather than only on the sentences here.
+ *
+ * These stay because they are a different test: isolated sentences with no surrounding prompt to lean
+ * on, which is the harder case and the one that catches a heuristic that only works in context.
  */
 const MULTIMODAL: ReadonlyArray<readonly [string, string]> = [
   ["image_ref", "Compare the layout to the reference: ![current homepage](./shots/home.png)"],

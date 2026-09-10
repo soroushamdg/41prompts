@@ -159,7 +159,7 @@ have signed up for anything.
 
 ### The measurement it is built on
 
-**Not one of the 25 EPIC-010 corpus prompts contains a single `expected` blok.** So the coverage half
+**Not one of the 25 EPIC-010 corpus prompts contained a single `expected` blok** when this detector was written; EPIC-013 added two that do. So the coverage half
 of this detector is always true on a real prompt, and "which of your rules lack checks" has the same
 answer every time: all of them. An uncapped version reports sixty findings on the corpus.
 
@@ -215,7 +215,7 @@ false positive that matters; a loose match only costs a missed pitch.
 
 **Tuning:** add shapes to `rule-shapes.json`, each with the ADR-003 phrase for the check it names —
 never an internal identifier, and never a phrase that is not a check kind the product will have. The
-cap is `MAX_RULES_WITHOUT_CHECKS`, exported; it binds on exactly one of the 25 fixtures today. Every
+cap is `MAX_RULES_WITHOUT_CHECKS`, exported; it binds on exactly one corpus fixture. Every
 addition must leave the quiet set free of new findings.
 
 **Known limit:** the phrase lists are English. `right-to-left`'s "أجب دائماً بصيغة JSON فقط." is a
@@ -242,7 +242,7 @@ Product copy, for a senior engineer who is busy and slightly sceptical.
    pnpm --filter @41prompts/core exec vitest run -u
    git diff packages/core/src/detect/fixtures/snapshots/
    ```
-4. **Read the false-positive audit.** It prints every finding fired across all 25 EPIC-010 fixtures.
+4. **Read the false-positive audit.** It prints every finding fired across the whole corpus.
    A finding you cannot defend in one line is a detector that needs narrowing — that is exactly how
    the `too_long` summing bug and the AI-identity padding false positive were caught.
 5. A **seventh** `FindingKind` is an epic, not a patch. EPIC-012a's decision 3 said "exactly five"

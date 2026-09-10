@@ -8,6 +8,7 @@ import { SEGMENT_FIXTURES } from "../segment/fixtures/index.js";
 import { segment } from "../segment/segment.js";
 import { MAX_RULES_WITHOUT_CHECKS } from "./constants.js";
 import { detect } from "./detect.js";
+import { uncheckedRuleCount } from "./rule-without-check.js";
 import { DETECT_FIXTURES, LIMIT_FIXTURES, NOISY_FIXTURES, QUIET_FIXTURES } from "./fixtures/prompts.js";
 import ruleShapesData from "./rule-shapes.json" with { type: "json" };
 import type { Finding, FindingKind } from "./types.js";
@@ -290,6 +291,27 @@ describe("rule_without_check", () => {
     expect(bloks.map((blok) => blok.kind)).toContain("constraint");
   });
 
+  it("stays silent on a corpus prompt where an expected blok covers the rule", () => {
+    // The coverage path, exercised on a real prompt rather than only on its own fixture.
+    //
+    // `expected-output-sheet` states "Always respond in JSON only." — the same sentence that fires
+    // this finding in four other corpus prompts — beside "Expected output: JSON only, with no text
+    // around it." Both carry EPIC-011a's `json-only` topic key, so the rule is covered and this stays
+    // quiet. Worth pinning: before EPIC-013 added it, not one of the 25 corpus prompts contained an
+    // `expected` blok at all, so nothing but a synthetic fixture had ever taken this branch.
+    const fixture = SEGMENT_FIXTURES.find((f) => f.name === "expected-output-sheet")!;
+    const bloks = cluster(segment(fixture.text));
+    expect(bloks.map((blok) => blok.kind)).toContain("expected");
+
+    const jsonRule = bloks.find((blok) =>
+      blok.kind === "constraint" && blok.ranges.some((r) => fixture.text.slice(r.start, r.end).includes("JSON only"))
+    );
+    expect(jsonRule, "the fixture must still state the JSON rule as a constraint").toBeDefined();
+
+    const found = findingsFor(fixture.text).filter((finding) => finding.kind === "rule_without_check");
+    expect(found.map((finding) => finding.message)).toEqual([]);
+  });
+
   it("is high only for a machine-checkable shape, and medium otherwise", () => {
     // Decision 5, asserted against the data file rather than against a hand-written list, so a new
     // shape cannot quietly arrive at the wrong severity.
@@ -345,6 +367,40 @@ describe("rule_without_check", () => {
     expect(3 + 17).toBe(20);
   });
 
+  it("counts every unchecked rule, including the ones the cap kept off the panel", () => {
+    // The panel's closing line names this number; the findings beneath it name at most three. The
+    // two come from one candidate set, so they can never disagree about which rules count.
+    const fixture = NOISY_FIXTURES.find((f) => f.name === "fires-rule-without-check-capped")!;
+    const bloks = cluster(segment(fixture.text));
+    const found = detect(bloks, fixture.text);
+    const shown = found.filter((finding) => finding.kind === "rule_without_check");
+
+    expect(shown).toHaveLength(MAX_RULES_WITHOUT_CHECKS);
+    expect(uncheckedRuleCount(bloks, fixture.text, found)).toBe(20);
+    // …and the prose remainder agrees with the difference, or one of the two is lying.
+    const remainder = uncheckedRuleCount(bloks, fixture.text, found) - shown.length;
+    expect(shown.some((finding) => finding.message.includes(`${remainder} more rules here`))).toBe(true);
+  });
+
+  it("counts nothing where every rule is checked, or where there are no rules", () => {
+    for (const name of ["quiet-rule-with-covering-check", "quiet-context-only", "quiet-unverifiable-rules"]) {
+      const fixture = QUIET_FIXTURES.find((f) => f.name === name)!;
+      const bloks = cluster(segment(fixture.text));
+      expect(uncheckedRuleCount(bloks, fixture.text, detect(bloks, fixture.text)), name).toBe(0);
+    }
+  });
+
+  it("agrees with the number of findings on every fixture the cap does not bind", () => {
+    for (const fixture of [...DETECT_FIXTURES, ...SEGMENT_FIXTURES]) {
+      const bloks = cluster(segment(fixture.text));
+      const found = detect(bloks, fixture.text);
+      const shown = found.filter((finding) => finding.kind === "rule_without_check").length;
+      const total = uncheckedRuleCount(bloks, fixture.text, found);
+      expect(total, fixture.name).toBeGreaterThanOrEqual(shown);
+      if (shown < MAX_RULES_WITHOUT_CHECKS) expect(total, fixture.name).toBe(shown);
+    }
+  });
+
   it("reports one finding per blok, however many times the rule is stated", () => {
     // `repeated-sentence` says "Always respond in JSON only." four times, which clustering makes one
     // blok with four ranges. One rule, one check, one finding — pointing at all four places.
@@ -359,7 +415,7 @@ describe("rule_without_check", () => {
 });
 
 describe("the false-positive audit", () => {
-  it("reports every finding fired across the 25 EPIC-010 fixtures", () => {
+  it("reports every finding fired across the 29 corpus fixtures", () => {
     // Not an assertion so much as the report's raw material: the count is printed and every finding
     // listed, so a human can judge each one. The number is asserted only to stop it growing
     // silently — a change that doubles it should have to say so.
@@ -377,14 +433,17 @@ describe("the false-positive audit", () => {
     }
     console.log(`false-positive audit: ${total} finding(s) across ${SEGMENT_FIXTURES.length} fixtures`);
     for (const line of lines) console.log(`  ${line}`);
-    expect(total).toBeLessThanOrEqual(20);
+    // Was 20 against a 25-prompt corpus, and stood at exactly 20 when EPIC-013 grew the corpus to 29
+    // to pay EPIC-011a's fixture debt. Raised to 25 to restore the headroom the number is for: it
+    // exists so a change that floods the panel has to say so, not so that adding a fixture trips it.
+    expect(total).toBeLessThanOrEqual(25);
 
-    // EPIC-012b asks for this number by name: how many of the 25 corpus prompts produce the sixth
+    // EPIC-012b asks for this number by name: how many of the corpus prompts produce the sixth
     // finding at all, because that is the proxy for how often the pitch lands on a real prompt.
     console.log(
       `rule_without_check: ${unchecked} finding(s) across ${uncheckedFixtures} of ${SEGMENT_FIXTURES.length} fixtures`
     );
-    expect(unchecked).toBeLessThanOrEqual(15);
+    expect(unchecked).toBeLessThanOrEqual(20);
     expect(uncheckedFixtures).toBeGreaterThan(0);
   });
 });
