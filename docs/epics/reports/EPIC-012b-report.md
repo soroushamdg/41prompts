@@ -281,29 +281,47 @@ which runs segment → cluster → summarise → detect in one file. It went fro
 
 ---
 
-## Open questions for the advisor
+## The advisor's rulings on the open questions
 
-1. **`contradiction` silences this finding, which is one kind wider than decision 3.** Without it, a
-   two-rule contradiction produces three findings and two of them give advice the reader cannot act on
-   until they have resolved the first. `padding`, `too_long` and `repeated` do not silence it. Is the
-   wider rule right, or should this fire beside a contradiction and let EPIC-013 group them?
+All four ruled 2026-09-10. Recorded here rather than only in the next epic, so the reasoning sits
+beside the question it answers.
+
+1. **`contradiction` silences this finding, one kind wider than decision 3.** Without it, a two-rule
+   contradiction produces three findings and two of them give advice the reader cannot act on until
+   they have resolved the first. `padding`, `too_long` and `repeated` do not silence it.
+
+   **Ruling: confirmed, keep it wider.** The reason, recorded as asked: a finding whose whole content
+   is "add a check for this rule" is not merely redundant beside a contradiction — it is **wrong
+   advice**, because the reader does not yet know which of the two rules is the one to check. Adding a
+   check to a rule that is about to be deleted is work thrown away, and a panel that recommends it
+   reads as though it did not understand what it just said one line above. The other three kinds carry
+   no such implication: a rule that is wordy, long or duplicated is still a rule you would want
+   checked, so `padding`, `too_long` and `repeated` correctly leave this finding alone. The asymmetry
+   is between findings that question **whether the rule should stand** and findings that question
+   **how it is written**.
 
 2. **Six check phrases where `CLAUDE.md` lists four.** ADR-003 lists eight; `CLAUDE.md`'s vocabulary
-   section shows four of them as illustration. I used six — the four plus "character limit" and "must
-   not contain" — because a prohibition has no honest home among the four. Confirm, or narrow the
-   detector to the four and drop the `must-not-contain` shape (which would remove 5 of the 13 corpus
-   findings).
+   section shows four of them as illustration. The detector uses six — the four plus "character limit"
+   and "must not contain" — because a prohibition has no honest home among the four.
+
+   **Ruling: keep the six, and `CLAUDE.md` is the file that was wrong.** Its vocabulary section is
+   updated to list all six so the file is accurate rather than illustrative; done in the EPIC-013
+   branch.
 
 3. **The weakest of the thirteen: `unmatched-tag`'s "Do not show this to the user."** The finding is
    true and a "must not contain" check is what you would write, but this detector cannot name *what*
    must not appear. Several corpus rules already carry their target in quotes —
    `Never write "various improvements"` — and extracting it would make the suggestion much stronger.
-   That is a second parser and it was left out of this epic. Worth an epic, or leave it?
 
-4. **A prompt with rules and no checks is now the normal reading of `/decompile`.** 9 of 25 corpus
-   prompts produce this finding, and every real pasted prompt will have zero `expected` bloks. EPIC-013
-   should know that this finding will be present on most pastes, often at `high`, and decide whether it
-   is presented as a finding among the others or as the panel's closing call to action.
+   **Ruling: not worth an epic now. Parked.** EPIC-030 builds checks from expected bloks and will
+   decide there, where the extracted object would actually become a check argument rather than a
+   better sentence.
+
+4. **A prompt with rules and no checks is the normal reading of `/decompile`.** 9 of 25 corpus prompts
+   produce this finding, and every real pasted prompt will have zero `expected` bloks.
+
+   **Ruling: it closes the findings panel as the call to action**, in its own section with a count
+   line, not mixed among the other five. Written into EPIC-013's decision 5.
 
 ---
 
