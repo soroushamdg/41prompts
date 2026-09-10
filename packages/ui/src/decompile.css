@@ -117,6 +117,11 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* The height cap lives on the panel, not on the scrolling surface inside it. With it on the
+     inside, `flex: 1` and `max-height` fight and the shorter column stops at 640px, leaving a band
+     of panel background below its own sunken surface — visible in the first staging capture, and
+     the reason this comment exists. */
+  max-height: 720px;
 }
 .decompile-section-heading {
   margin: 0;
@@ -140,6 +145,9 @@
   /* Fills the panel: the two columns are the same height, and without this the shorter one shows a
      band of panel background below its own sunken surface — visible in the first capture. */
   flex: 1;
+  /* `min-height: 0` is what lets a flex child actually shrink and scroll; without it the child's
+     content sets the floor and the panel grows instead of the surface scrolling. */
+  min-height: 0;
   padding: var(--spacing-s4) var(--spacing-s4) var(--spacing-s4) var(--spacing-s5);
   font-family: var(--font-mono, monospace);
   font-size: 12.5px;
@@ -148,8 +156,6 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   overflow: auto;
-  max-height: 640px;
-  min-height: 420px;
   position: relative;
 }
 
@@ -219,10 +225,9 @@
 /* ── blok cards ── */
 .blok-list {
   flex: 1;
+  min-height: 0;
   padding: var(--spacing-s3);
   overflow: auto;
-  max-height: 640px;
-  min-height: 420px;
   background: var(--color-sunken);
 }
 
@@ -323,6 +328,15 @@
  * lines would overlap each other. The map is taller on a phone, which is the right trade when touch
  * is the default rather than the fallback. */
 @media (max-width: 1019px) {
+  /* Stacked, so the page scrolls rather than each panel scrolling inside itself — epic decision 2:
+     the source map stays reachable by scrolling, never hidden behind a tab. */
+  .decompile-panel {
+    max-height: none;
+  }
+  .source-map,
+  .blok-list {
+    max-height: 60vh;
+  }
   .source-map {
     line-height: 3.6;
   }
