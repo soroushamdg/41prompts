@@ -32,6 +32,10 @@ export type { Range } from "./segment/types.js";
 // Findings (EPIC-012a) — the visible value of the decompiler, and advisory only: nothing here
 // blocks and nothing is auto-fixed. Blocking belongs to publishing (`CLAUDE.md` rule 9).
 export { detect } from "./detect/detect.js";
+// The panel's closing count (EPIC-013 decision 5) names every rule nothing checks, including the ones
+// `MAX_RULES_WITHOUT_CHECKS` kept off the list. It is not recoverable from `detect()`'s output,
+// which states the remainder in prose, so it is its own export sharing the detector's candidate set.
+export { uncheckedRuleCount } from "./detect/rule-without-check.js";
 export {
   MAX_BLOK_WORDS,
   MAX_PROMPT_WORDS,

@@ -8,6 +8,7 @@ import { SEGMENT_FIXTURES } from "../segment/fixtures/index.js";
 import { segment } from "../segment/segment.js";
 import { MAX_RULES_WITHOUT_CHECKS } from "./constants.js";
 import { detect } from "./detect.js";
+import { uncheckedRuleCount } from "./rule-without-check.js";
 import { DETECT_FIXTURES, LIMIT_FIXTURES, NOISY_FIXTURES, QUIET_FIXTURES } from "./fixtures/prompts.js";
 import ruleShapesData from "./rule-shapes.json" with { type: "json" };
 import type { Finding, FindingKind } from "./types.js";
@@ -364,6 +365,40 @@ describe("rule_without_check", () => {
 
     // 20 rules, 3 shown, 17 counted — and every one of the twenty really is a candidate.
     expect(3 + 17).toBe(20);
+  });
+
+  it("counts every unchecked rule, including the ones the cap kept off the panel", () => {
+    // The panel's closing line names this number; the findings beneath it name at most three. The
+    // two come from one candidate set, so they can never disagree about which rules count.
+    const fixture = NOISY_FIXTURES.find((f) => f.name === "fires-rule-without-check-capped")!;
+    const bloks = cluster(segment(fixture.text));
+    const found = detect(bloks, fixture.text);
+    const shown = found.filter((finding) => finding.kind === "rule_without_check");
+
+    expect(shown).toHaveLength(MAX_RULES_WITHOUT_CHECKS);
+    expect(uncheckedRuleCount(bloks, fixture.text, found)).toBe(20);
+    // …and the prose remainder agrees with the difference, or one of the two is lying.
+    const remainder = uncheckedRuleCount(bloks, fixture.text, found) - shown.length;
+    expect(shown.some((finding) => finding.message.includes(`${remainder} more rules here`))).toBe(true);
+  });
+
+  it("counts nothing where every rule is checked, or where there are no rules", () => {
+    for (const name of ["quiet-rule-with-covering-check", "quiet-context-only", "quiet-unverifiable-rules"]) {
+      const fixture = QUIET_FIXTURES.find((f) => f.name === name)!;
+      const bloks = cluster(segment(fixture.text));
+      expect(uncheckedRuleCount(bloks, fixture.text, detect(bloks, fixture.text)), name).toBe(0);
+    }
+  });
+
+  it("agrees with the number of findings on every fixture the cap does not bind", () => {
+    for (const fixture of [...DETECT_FIXTURES, ...SEGMENT_FIXTURES]) {
+      const bloks = cluster(segment(fixture.text));
+      const found = detect(bloks, fixture.text);
+      const shown = found.filter((finding) => finding.kind === "rule_without_check").length;
+      const total = uncheckedRuleCount(bloks, fixture.text, found);
+      expect(total, fixture.name).toBeGreaterThanOrEqual(shown);
+      if (shown < MAX_RULES_WITHOUT_CHECKS) expect(total, fixture.name).toBe(shown);
+    }
   });
 
   it("reports one finding per blok, however many times the rule is stated", () => {
