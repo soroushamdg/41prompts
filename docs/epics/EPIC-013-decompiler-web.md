@@ -1,29 +1,3 @@
-# CURRENT
-
-**EPIC-013 is the current epic.** A mirror of `docs/epics/EPIC-013-decompiler-web.md`; when the two
-disagree, that file wins.
-
-Stage 1's core work is done: EPIC-010 (segmenter), EPIC-011a (classifier and clustering), EPIC-011b
-(summariser seam), EPIC-012a (five detectors) and EPIC-012b (`rule_without_check`) are all shipped
-with reports, and every open question is ruled. This is the first web epic of the stage and the whole
-of M1.
-
-**Rulings carried in from EPIC-012b** (2026-09-10, all four recorded in that epic's report):
-`rule_without_check` closes the findings panel as the call to action — decision 5 below; the
-`contradiction` silencing rule stays one kind wider than EPIC-012b asked; `CLAUDE.md`'s vocabulary
-section is corrected to list all six check phrases **in this branch**; extracting the quoted object of
-a "must contain" rule is parked for EPIC-030.
-
-**Two debts land here**, both in the Scope: EPIC-011a's missing multimodal and expectation fixtures
-(three of six blok kinds have no coverage in the accuracy table), and EPIC-012a's cross-kind
-`repeated` presentation.
-
-**EPIC-005 and EPIC-080 are `cut`**, not deferred — Soroush's decision, 2026-09-10. The prototypes in
-`docs/design/` are the spec, corrected by `docs/design/README.md`, and the per-milestone kill criteria
-are the only feedback mechanism before Stage 2.
-
----
-
 # EPIC-013: Public decompiler
 Stage: 1 · Depends on: EPIC-003, EPIC-012b · Size: M
 
