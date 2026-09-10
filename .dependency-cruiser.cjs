@@ -45,6 +45,16 @@ module.exports = {
       to: { dependencyTypes: ["npm-no-pkg", "npm-unknown"] }
     },
     {
+      name: "web-uses-core-through-its-public-surface",
+      severity: "error",
+      comment:
+        "apps/web imports packages/core and never reimplements it (CLAUDE.md rule 1, EPIC-013 " +
+        "decision 10). Reaching past the package root into core's internals would sidestep the " +
+        "surface EPIC-052 freezes and make a refactor inside core a broken web app.",
+      from: { path: "^apps/web" },
+      to: { path: "^packages/core/src/(?!index\\.ts$|fixtures\\.ts$)" }
+    },
+    {
       name: "layering-core-sdk-never-import-cli",
       severity: "error",
       comment: "cli may depend on core; core and sdk-ts never import cli.",

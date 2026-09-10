@@ -14,7 +14,7 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint && pnpm boundaries && turbo boundaries && pnpm forbidden-words",
-    "boundaries": "depcruise --config .dependency-cruiser.cjs packages/core/src packages/cli/src packages/sdk-ts/src",
+    "boundaries": "depcruise --config .dependency-cruiser.cjs packages/core/src packages/cli/src packages/sdk-ts/src apps/web/app apps/web/lib",
     "forbidden-words": "node scripts/forbidden-words.mjs",
     "binary-files": "node scripts/binary-files.mjs",
     "reuse-lint": "uvx --with charset-normalizer reuse lint",
