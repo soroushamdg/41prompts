@@ -37,17 +37,40 @@ See ADR-003.
 | M6 Revenue | 6 | Charge money, stay legal, be found | 5 paying customers, $1,000 MRR within 60 days of Stripe | Under $500 MRR at 90 days: pause features, 30 days of customer calls |
 | M7 Lessons | 7 | Teach a junior member of an ICP team inside the product | ≥50% completion of Lesson 02 by invited testers | Under 25%: rework format before Lessons 04–09 |
 
+### These kill criteria are now the only feedback mechanism before Stage 2
+
+Soroush's decision, 2026-09-10: **EPIC-005** (ten ICP interviews) and **EPIC-080** (the 12-participant
+prototype study) are **cut**, not deferred. The prototypes in `docs/design/` and this document are the
+spec from here.
+
+That removes every planned way of hearing from a person before Stage 2 ships, so the column on the
+right of this table stops being a formality and becomes the mechanism. Concretely, before Stage 2
+begins there is exactly one measured signal: **M1's** — 300 unique decompiles in the first 30 days
+without an announcement, and ≥15% share-or-waitlist. Under 100 decompiles in 30 days, the wedge is
+not findable and EPIC-015 is reworked before Stage 2 starts. EPIC-084 is the read-out that produces
+the number, and GATE 1 is where it is checked.
+
+Two consequences worth stating rather than discovering:
+
+- **A missed kill criterion is now the first news we get.** There is no interview that would have
+  warned us earlier, so the criteria have to be checked on the date they name, not when convenient.
+- **Anything that was waiting on research now rests on this document's own numbers.** Where a cut
+  epic owed a later epic an output, the debt is listed under that epic's section below.
+
+The two survey responses that did arrive are committed at `docs/research/discovery/survey/`, marked
+n=2 and explicitly not actionable. They are not evidence and are not a substitute for EPIC-005.
+
 ---
 
 ## Stage 0 · Foundation
 
-**Stage goal.** A repository, a pipeline, a database, a login, a monitor, ten customer conversations, and the names
-reserved. Nothing a user sees; everything a user depends on.
+**Stage goal.** A repository, a pipeline, a database, a login, a monitor, and the names reserved. Nothing a user sees; everything a user depends on.
 
 **Exit state.** `main` deploys to staging on merge and production on tag. A user signs in with Google, GitHub or
 email and lands on an empty authenticated page. An intentional error appears in Sentry. A PostHog event fires on
 login. Nightly backups land in R2 and a restore has been rehearsed. Compliance CI is green. The npm and GitHub
-orgs and the PyPI names are ours. Ten ICP interviews are written up.
+orgs and the PyPI names are ours. (EPIC-005's ten interviews were an exit condition here until the epic was
+cut on 2026-09-10; Stage 0 no longer waits on them.)
 
 **Demo.** Sign in on staging, throw a test error, show it in Sentry, show the backup in R2, show the compliance job.
 
@@ -57,11 +80,25 @@ orgs and the PyPI names are ours. Ten ICP interviews are written up.
 **Tests.** Fresh-clone install, lint, typecheck, test pass. A proprietary import in core fails lint with the boundary rule name. Second Turborepo run reports cache hits. `41p --version` prints.
 **Review.** Layout matches ADR-001. Nothing beyond a stub in any package. No "will be needed later" additions.
 
-### EPIC-005 Customer discovery · S
-**Goal.** Ten conversations with the ICP, written up, before the editor is designed in code.
-**Tasks.** Recruit 10 engineers who own a production prompt (MLOps Community, Latent Space, LinkedIn, warm intros); 30-minute interviews on: how a prompt change gets shipped today, the last time one broke, what they pay for, what they would pay to never have that happen again; five written use cases; pricing reaction to $29/$79 per seat; define "activated" for EPIC-034.
-**Tests.** Ten transcripts or notes in `docs/research/discovery/`. One page of patterns.
-**Review.** Soroush reads all ten. Anything contradicting the roadmap becomes a written decision, not a silent drift.
+### EPIC-005 Customer discovery · S — **cut, 2026-09-10**
+**Cut, not deferred.** Soroush's decision: the prototypes and this roadmap are the spec; the
+per-milestone kill criteria above are the feedback mechanism. Stage 1 no longer waits on this, and no
+epic may be blocked on it. What it was: ten 30-minute interviews with ICP engineers, five written use
+cases, a pricing reaction to $29/$79 per seat, and a definition of "activated".
+
+**Debts this cut leaves, and who now carries them.** Each is a place where a later epic's task list
+still names research that will not happen:
+
+- **EPIC-034** loses its research-backed definition of "activated". It now takes the roadmap's own
+  number: signup → first passing run in under five minutes on a seeded prompt, measured in PostHog.
+- **EPIC-070** loses its price validation. $29/$79 per seat stands on this document alone until
+  M6 measures it, and M6's kill criterion is the check.
+- **EPIC-035** loses its outreach list of 20 engineers. It has no recruitment source; the launch
+  reaches whoever Stage 1 and Stage 3 have already attracted.
+
+Two survey responses arrived before the cut and are committed at `docs/research/discovery/survey/`,
+marked n=2 and not actionable. `docs/research/discovery/README.md` describes the interview process
+that was cut; it stays as the format if this is ever reopened.
 
 ### EPIC-006 Namespaces and marks · S
 **Goal.** Nobody else can take the names.
@@ -115,11 +152,22 @@ orgs and the PyPI names are ours. Ten ICP interviews are written up.
 
 **Demo.** Paste the Northwind prompt on production from a phone; tap blok 3; three spans invert; contradiction finding visible; share the link; open it in a private window; confirm `noindex`.
 
-### EPIC-080 research: decompiler prototype study · S
-**Goal.** Three assumptions tested before Stage 1 code: "blok" is learnable, span linking is discoverable on touch, generated summaries are trusted the right amount.
-**Tasks.** Recruit 12 (8 junior engineers on ICP teams, 4 prompt owners; Discords, bootcamp alumni, LinkedIn; $30–40 each). Script: 60 s free exploration of the decompiler prototype on their own phone, then: define "blok" in your own words; find which source text belongs to blok 3 without instructions; review findings including two seeded-wrong summaries and say which rules you would keep. Record where they stall.
-**Tests.** ≥80% restate what a blok is; ≥70% find tap-to-pin within 30 s; ≥70% verify at least one summary against source before acting.
-**Review.** Failures change EPIC-011a (term), EPIC-013 (touch default), EPIC-011b (summary affordance) before those epics start. Write-up in `docs/research/`.
+### EPIC-080 research: decompiler prototype study · S — **cut, 2026-09-10**
+**Cut, not deferred.** Soroush's decision, same as EPIC-005. What it was: 12 participants testing
+three assumptions — that "blok" is learnable, that span linking is discoverable on touch, and that
+generated summaries are trusted the right amount.
+
+**Debts this cut leaves, and who now carries them.** All three assumptions are now taken as settled
+by the prototypes, and the first real test of any of them is EPIC-084's live read:
+
+- **The term "blok"** is settled. EPIC-011a shipped with it and it is written into ADR-003, the
+  schema, and `packages/core`'s public types. Changing it after Stage 1 is a rename across a public
+  package, so this is effectively irreversible now.
+- **Touch discoverability** falls entirely to EPIC-013's own decision: first blok pinned with a
+  one-line hint on small screens, tested by Playwright mobile emulation rather than by a person.
+- **Summary trust** falls to EPIC-011b's shipped answer: every summary carries its `source`
+  (`heuristic` or `model`) and the card shows it. Whether an "unverified" cue is *also* needed was
+  EPIC-080's question and now has no owner; EPIC-013 decides it or it does not get decided.
 
 ### EPIC-010 core: deterministic segmenter · M
 **Goal.** Any text cut into segments with exact offsets, identically every time.
@@ -131,13 +179,13 @@ orgs and the PyPI names are ours. Ten ICP interviews are written up.
 **Goal.** Segments get a kind, and fragments of one rule become one multi-range blok.
 **Tasks.** `classify(segment)` via ordered heuristics with a 60-example labelled table; `cluster(segments)` → bloks with `ranges[]`, merge on topic key or normalised-token overlap ≥ 0.6 with same kind, deterministic order; topic keys in `topics.json`.
 **Tests.** ≥90% on the labelled table; Northwind yields the expected multi-range bloks; 100 runs identical.
-**Review.** Topic keys checked for false merges. Term "blok" confirmed or changed by EPIC-080 before this ships.
+**Review.** Topic keys checked for false merges. The term "blok" was EPIC-080's to confirm or change; with that epic cut it is settled as shipped, and it is now written into ADR-003, the schema and `packages/core`'s public types.
 
 ### EPIC-011b core: summariser interface · S
 **Goal.** A summary for every blok, heuristic in core, model-backed in the worker, never confused with source.
 **Tasks.** `Summariser` interface; heuristic implementation in core; model-backed implementation in `apps/worker` (prompt stays proprietary) cached by content hash; summaries carry `source: "heuristic" | "model"`.
 **Tests.** Interface contract; core never reaches a model (boundary test).
-**Review.** Summary card shows the source flag; EPIC-080 result decides whether an "unverified" cue is required.
+**Review.** Summary card shows the source flag. Whether an "unverified" cue is *also* required was EPIC-080's question; with that epic cut it has no owner unless EPIC-013 takes it.
 
 ### EPIC-012a core: five detectors · M
 **Goal.** Repeated instruction, contradiction, untestable language, politeness padding, over-long blok.
@@ -267,7 +315,7 @@ Go: all present. No-go: a fix-up epic (S) closes gaps, then re-gate. Soroush dec
 
 ### EPIC-034 Activation onboarding · S
 **Goal.** Signup to first passing run in under five minutes, measured.
-**Tasks.** Post-signup path: pick a seeded prompt (three templates, one already has a failing check) → run → see failure → fix → pass; progress indicator; `run_passed` event with time-from-signup; dashboard panel; the definition of "activated" from EPIC-005.
+**Tasks.** Post-signup path: pick a seeded prompt (three templates, one already has a failing check) → run → see failure → fix → pass; progress indicator; `run_passed` event with time-from-signup; dashboard panel; "activated" defined as the roadmap's own number — first passing run within five minutes of signup — since EPIC-005 is cut.
 **Tests.** Playwright timed path under five minutes with mocked provider. Event carries elapsed time.
 **Review.** Five real users observed; stalls recorded.
 
@@ -277,7 +325,7 @@ Go: proceed to EPIC-035 and Stage 4. No-go: fix-up epic (M) or a two-week onboar
 
 ### EPIC-035 Loud launch · S
 **Goal.** Announce, now that a paste leads somewhere.
-**Tasks.** Show HN; Product Hunt; one content piece from our own run data; outreach to 20 engineers from EPIC-005.
+**Tasks.** Show HN; Product Hunt; one content piece from our own run data; outreach to whoever Stage 1 and Stage 3 have attracted (EPIC-005's list of 20 engineers is cut and has no replacement source).
 **Tests.** Signups by source on the dashboard.
 **Review.** Provider terms re-read before any published comparison. Rate limits tightened for the day. Cloudflare cache on the landing page.
 
@@ -385,10 +433,10 @@ Go to 5b: ≥5 apps and ≥2 explicit asks. No-go: ship YAML/CI export as a smal
 
 **Stage goal.** Money, legality at scale, and distribution.
 
-**Exit state.** Free, Pro, Team enforced through Stripe with prices validated in EPIC-005. Full legal review done. Full site up with real numbers. A second launch with content from our own data.
+**Exit state.** Free, Pro, Team enforced through Stripe at the prices this document names, validated by M6's kill criterion rather than by EPIC-005, which is cut. Full legal review done. Full site up with real numbers. A second launch with content from our own data.
 
 ### EPIC-070 Stripe · M
-**Tasks.** Products and prices from EPIC-005; checkout, portal, webhooks (idempotent); `run_budgets` by plan; BYO-key unlock on Pro; usage meter; dunning via Resend; refund path documented.
+**Tasks.** Products and prices as this roadmap names them ($29/$79 per seat, unvalidated — EPIC-005 is cut); checkout, portal, webhooks (idempotent); `run_budgets` by plan; BYO-key unlock on Pro; usage meter; dunning via Resend; refund path documented.
 **Tests.** Webhook replay; downgrade at period end.
 **Review.** Pricing page equals Stripe.
 

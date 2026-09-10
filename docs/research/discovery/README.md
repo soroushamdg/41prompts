@@ -1,10 +1,18 @@
 # Customer discovery interviews
 
-Ten of these gate Stage 1. `docs/backlog.md`'s Stage 0 rule is literal: "Nothing in a later stage
-starts until the stage before has a report for every epic," and EPIC-005 (customer discovery — 10
-interviews with ICP engineers, 5 written use cases, pricing check, activation definition) is a
-Stage 0 epic. Stage 1 — the public decompiler — does not start until EPIC-005 has its report, and
-EPIC-005's report does not exist until ten of these interviews do.
+> **EPIC-005 is cut** (Soroush's decision, 2026-09-10). These interviews gate nothing. Stage 1 does
+> not wait on them, and no epic may be blocked on them; the prototypes in `docs/design/` and
+> `docs/roadmap.md` are the spec, and the per-milestone kill criteria in `docs/roadmap.md` are the
+> feedback mechanism before Stage 2. The two survey responses that did arrive are in `survey/`,
+> marked n=2 and not actionable.
+>
+> The rest of this page is kept as the **format**, so that reopening the epic is a decision about
+> whether to run interviews and not also a decision about how to write them up.
+
+Ten of these were, until the cut, a Stage 0 exit condition: `docs/backlog.md`'s stage rule is
+literal — "Nothing in a later stage starts until the stage before has a report for every epic" — and
+EPIC-005 (10 interviews with ICP engineers, 5 written use cases, pricing check, activation
+definition) was a Stage 0 epic.
 
 ICP, from `CLAUDE.md`: an AI engineer at a company of 10–500 people who owns a production prompt.
 Screen for that before booking the call, not during it.
