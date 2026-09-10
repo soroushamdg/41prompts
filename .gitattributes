@@ -33,6 +33,7 @@
 *.toml     diff
 *.py       diff
 *.txt      diff
+*.csv      diff
 *.license  diff
 LICENSE    diff
 NOTICE     diff
