@@ -4,8 +4,12 @@
 # fires-padding — Courtesy language and a restatement of what the model is, both costing tokens and changing nothing.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 2 finding(s)
+# 3 finding(s)
 
+[high] rule_without_check find_fe57dacf1563caef bloks=1
+      Nothing checks this rule: "Please make sure the output is valid JSON." If the model stops following it, nothing fails.
+      -> Add a "valid JSON shape" check.
+      73..115 "Please make sure the output is valid JSON."
 [low] padding find_76f42871023fae24 bloks=1
       "please" costs tokens and changes nothing about the output.
       -> Delete it.

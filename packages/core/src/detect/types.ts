@@ -4,10 +4,20 @@
 import type { Range } from "../segment/types.js";
 
 /**
- * Exactly five (decision 3). Not four, not six — adding a sixth is an epic, not a patch, because
- * every kind is a promise to the reader about what this panel does and does not look for.
+ * Six, and the sixth was an epic rather than a patch.
+ *
+ * EPIC-012a's decision 3 said "exactly five", scoped to that epic; EPIC-012b's decision 2 adds
+ * `rule_without_check` as the planned sixth and the last one in Stage 1. Every kind is a promise to
+ * the reader about what this panel does and does not look for, which is why the count is defended
+ * at all: a seventh is another epic.
  */
-export type FindingKind = "repeated" | "contradiction" | "untestable" | "padding" | "too_long";
+export type FindingKind =
+  | "repeated"
+  | "contradiction"
+  | "untestable"
+  | "padding"
+  | "too_long"
+  | "rule_without_check";
 
 /**
  * How likely the finding is to be **real and costly** — not how confident the detector feels.

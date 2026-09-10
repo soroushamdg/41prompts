@@ -4,5 +4,17 @@
 # fires-rule-without-check — Three rules a check could verify — a shape, a set of allowed values, a required substring — in a prompt with no `expected` blok at all. The common case, and the one this finding exists for.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
+# 3 finding(s)
 
+[high] rule_without_check find_5ab90de8b4981db1 bloks=1
+      Nothing checks this rule: "Always respond in JSON only." If the model stops following it, nothing fails.
+      -> Add a "valid JSON shape" check.
+      37..65 "Always respond in JSON only."
+[high] rule_without_check find_f22a23967cefc73e bloks=1
+      Nothing checks this rule: "Classify the email into one of these categori…" If the model stops following it, nothing fails.
+      -> Add a "one of the allowed values" check.
+      69..144 "Classify the email into one of these categories: billing, technical, other."
+[medium] rule_without_check find_735c020242697a11 bloks=1
+      Nothing checks this rule: "Always include the ticket number." If the model stops following it, nothing fails.
+      -> Add a "must contain" check.
+      148..181 "Always include the ticket number."

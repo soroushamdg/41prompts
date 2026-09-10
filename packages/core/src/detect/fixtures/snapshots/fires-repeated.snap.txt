@@ -4,8 +4,12 @@
 # fires-repeated — The same instruction said twice in two registers — once as role context, once as a numbered rule — which clustering keeps apart because their kinds differ.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 1 finding(s)
+# 2 finding(s)
 
+[high] rule_without_check find_1dd4b6ce4b3a4bb2 bloks=1
+      Nothing checks this rule: "Classify the email into one of the categories." If the model stops following it, nothing fails.
+      -> Add a "one of the allowed values" check.
+      88..134 "Classify the email into one of the categories."
 [medium] repeated find_495880f21a9795a0 bloks=2
       Two bloks say the same thing: "You are a support assistant. You should alway…" and "2. Always be professional and friendly in the…". Editing one leaves the other in place.
       -> Keep one of them and delete the other, or join them into one blok.
