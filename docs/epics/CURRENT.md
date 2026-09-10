@@ -1,12 +1,21 @@
 # CURRENT
 
-**EPIC-012b is the current epic.** A mirror of `docs/epics/EPIC-012b-rules-without-checks.md`; when
-the two disagree, that file wins.
+**EPIC-012b is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-012b-report.md`; the session log is
+`docs/epics/sessions/EPIC-012b-session.md`. The audit stands at **13 `rule_without_check` findings
+across 9 of the 25 EPIC-010 fixtures**, each judged in the report and none of them a false positive,
+and 17 findings in total. Four open questions are at the end of the report. This file stays pointed at
+EPIC-012b until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
 
-EPIC-010, EPIC-011a, EPIC-011b and EPIC-012a are done, and their open questions are ruled. Two
-requirements carried forward land in later epics, not this one: EPIC-020 finishes the compiler
-tripwire, EPIC-031 supplies the model transport. EPIC-013 owns showing both kinds on a `repeated`
-card, carried from EPIC-012a.
+A mirror of `docs/epics/EPIC-012b-rules-without-checks.md`; when the two disagree, that file wins.
+
+**Stage 1's core work is finished.** EPIC-010, EPIC-011a, EPIC-011b, EPIC-012a and EPIC-012b are done
+and their open questions ruled — the segmenter, the classifier, clustering, the summariser seam and
+all six detectors. EPIC-013 is next and is the first web epic in the stage. It inherits two
+presentation requirements — showing both kinds on a `repeated` card (EPIC-012a), and deciding where
+`rule_without_check` sits in the panel now that it will be present on most real pastes, often at
+`high` (this epic) — plus one orphan from the EPIC-080 cut: whether a summary needs an "unverified"
+cue. EPIC-020 still finishes the compiler tripwire and EPIC-031 still supplies the model transport.
 
 **EPIC-005 and EPIC-080 are `cut`**, not deferred — Soroush's decision, 2026-09-10. The prototypes in
 `docs/design/` and `docs/roadmap.md` are the spec, and the per-milestone kill criteria are the only
@@ -66,22 +75,22 @@ change.
 - A seventh finding kind.
 
 ## Acceptance criteria
-- [ ] `rule_without_check` added to `FindingKind`; `detect()` signature unchanged; zero new dependencies.
-- [ ] Fires on a constraint with no covering expected blok; does not fire when one covers it. Evidence: two
+- [x] `rule_without_check` added to `FindingKind`; `detect()` signature unchanged; zero new dependencies.
+- [x] Fires on a constraint with no covering expected blok; does not fire when one covers it. Evidence: two
       fixtures and snapshots.
-- [ ] Mutual exclusion with `untestable` proven: no input produces both for the same range, checked over all
+- [x] Mutual exclusion with `untestable` proven: no input produces both for the same range, checked over all
       fixtures and 1,000 generated inputs. Evidence: test name.
-- [ ] The cap works: twenty uncovered rules produce at most the cap, ranked, with the remainder counted in the
+- [x] The cap works: twenty uncovered rules produce at most the cap, ranked, with the remainder counted in the
       message. Evidence: fixture and snapshot.
-- [ ] `high` severity only for machine-checkable shapes; a test asserts the mapping. Evidence: test name.
-- [ ] Every suggestion uses the plain check phrasing from the vocabulary section; forbidden-word grep passes.
+- [x] `high` severity only for machine-checkable shapes; a test asserts the mapping. Evidence: test name.
+- [x] Every suggestion uses the plain check phrasing from the vocabulary section; forbidden-word grep passes.
       Evidence: the compliance job.
-- [ ] Determinism: 100 runs, byte-identical findings. Evidence: test name.
-- [ ] False-positive audit over the 25 fixtures, each fired finding judged in the report, plus the count of
+- [x] Determinism: 100 runs, byte-identical findings. Evidence: test name.
+- [x] False-positive audit over the 25 fixtures, each fired finding judged in the report, plus the count of
       fixtures that produce this finding at all. Evidence: report table.
-- [ ] The 100 KB performance gate still passes with six detectors. Evidence: timing.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm binary-files` clean.
-- [ ] Report and session log written; backlog updated.
+- [x] The 100 KB performance gate still passes with six detectors. Evidence: timing.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm binary-files` clean.
+- [x] Report and session log written; backlog updated.
 
 ## Notes for the implementer
 - Write the "must not fire" fixtures first. Third epic running; it has caught a real defect every time.
