@@ -1,7 +1,7 @@
 "use client";
 
 import { Button, EmptyCanvasIllustration, KpiStrip, Textarea } from "@41prompts/ui";
-import { useActionState, useCallback, useMemo, useState } from "react";
+import { useActionState, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { INITIAL_STATE, kilobytes, MAX_INPUT_BYTES, tooLongMessage, type DecompileState } from "@/lib/decompile/limits";
 import { decompile } from "./actions";
 import { BlokList } from "./blok-list";
@@ -27,6 +27,41 @@ export function DecompileView() {
   const onHover = useCallback((blokId: string | null) => setHoveredBlokId(blokId), []);
   const onPin = useCallback((blokId: string) => setPinnedBlokId(blokId), []);
   const onUnpin = useCallback(() => setPinnedBlokId(null), []);
+
+  /**
+   * **Touch is the default interaction, not a degraded hover** (epic decision 3, and the roadmap's
+   * "touch default: first blok pinned with a one-line hint on small screens").
+   *
+   * A phone has no hover, so a source map whose linking is only discoverable by pointing is a source
+   * map a phone user never learns is interactive at all. On a small screen the first blok arrives
+   * already pinned, with one line saying what that means — the affordance is demonstrated rather
+   * than described.
+   *
+   * This is also where EPIC-080's cut lands: that study would have measured whether tap-to-pin is
+   * discoverable within 30 seconds, and with it gone this is the answer taken on the prototypes'
+   * authority. Read against the funnel in EPIC-084, not before.
+   *
+   * In an effect rather than in render, because `matchMedia` does not exist on the server and a
+   * pin decided during render would differ between the server's HTML and the client's first paint.
+   */
+  const [isSmall, setIsSmall] = useState(false);
+  const autoPinnedFor = useRef<string | null>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia("(max-width: 1019px)");
+    const update = () => setIsSmall(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!isSmall || state.status !== "ok") return;
+    const first = state.view.bloks[0];
+    if (!first || autoPinnedFor.current === state.source) return;
+    autoPinnedFor.current = state.source;
+    setPinnedBlokId(first.id);
+  }, [isSmall, state]);
 
   /**
    * What assistive technology is told when the highlight moves (epic decision 8). The change must be
@@ -92,6 +127,12 @@ export function DecompileView() {
           <p className="sr-only" role="status" aria-live="polite">
             {announcement}
           </p>
+
+          {isSmall && (
+            <p className="decompile-touch-hint">
+              The first blok is pinned. Tap any blok, or any highlighted text, to pin that one instead.
+            </p>
+          )}
 
           <KpiStrip
             items={[

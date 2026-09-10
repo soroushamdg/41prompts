@@ -124,8 +124,22 @@
   border-bottom: var(--border-ink) solid var(--color-ink);
 }
 
+/* The one line that teaches tap-to-pin on a phone. Shown only where there is no hover to discover
+   the linking with. */
+.decompile-touch-hint {
+  margin: var(--spacing-s4) 0 0;
+  padding: var(--spacing-s3) var(--spacing-s4);
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  color: var(--color-ink-2);
+  font-size: 13px;
+}
+
 /* ── the mapped source ── */
 .source-map {
+  /* Fills the panel: the two columns are the same height, and without this the shorter one shows a
+     band of panel background below its own sunken surface — visible in the first capture. */
+  flex: 1;
   padding: var(--spacing-s4) var(--spacing-s4) var(--spacing-s4) var(--spacing-s5);
   font-family: var(--font-mono, monospace);
   font-size: 12.5px;
@@ -204,6 +218,7 @@
 
 /* ── blok cards ── */
 .blok-list {
+  flex: 1;
   padding: var(--spacing-s3);
   overflow: auto;
   max-height: 640px;

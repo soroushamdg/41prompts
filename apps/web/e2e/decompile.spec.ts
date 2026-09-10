@@ -308,6 +308,29 @@ test.describe("/decompile", () => {
     });
   });
 
+  test.describe("touch is the default, not a degraded hover", () => {
+    test("pins the first blok and explains it, on a small screen only", async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await decompile(page, MULTI_RANGE_PROMPT);
+
+      const hint = page.locator(".decompile-touch-hint");
+      await expect(hint).toBeVisible();
+      await expect(page.locator('.source-span[data-pinned="true"]')).not.toHaveCount(0);
+
+      // …and the reader can move the pin off it, which is what the hint promises.
+      await page.locator(".blok-card").filter({ hasText: /categories/ }).first().click();
+      const pinnedText = await page.locator('.source-span[data-pinned="true"]').first().textContent();
+      expect(pinnedText).toContain("categories");
+    });
+
+    test("does not pin anything on a wide screen, where hover teaches it", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await decompile(page, MULTI_RANGE_PROMPT);
+      await expect(page.locator(".decompile-touch-hint")).toHaveCount(0);
+      await expect(page.locator('.source-span[data-pinned="true"]')).toHaveCount(0);
+    });
+  });
+
   test.describe("accessibility", () => {
     test("axe: no violations in light theme", async ({ page }) => {
       await decompile(page, MULTI_RANGE_PROMPT);
