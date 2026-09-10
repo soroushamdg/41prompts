@@ -1,7 +1,12 @@
 # CURRENT
 
-A mirror of `docs/epics/EPIC-011a-classifier-clustering.md`, per `docs/PROCESS.md`. EPIC-011a is
-the current epic. EPIC-010 is done (`docs/epics/reports/EPIC-010-report.md`), including the
+**EPIC-011a is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-011a-report.md`; the session log is
+`docs/epics/sessions/EPIC-011a-session.md`. Five open questions for the advisor are at the end of the
+report. This file stays pointed at EPIC-011a until the next epic is written and copied here per
+`docs/PROCESS.md`'s loop.
+
+A mirror of `docs/epics/EPIC-011a-classifier-clustering.md`. EPIC-011a was the current epic. EPIC-010 is done (`docs/epics/reports/EPIC-010-report.md`), including the
 advisor's rulings on its five open questions; the one carry-over is in this epic's Scope — flatten
 the allocation in `tags.ts` so the growth-exponent gate has real headroom. EPIC-080 and EPIC-005
 are still deferred: per the standing note below, their findings are a data change here, not a
@@ -70,28 +75,28 @@ threshold are all data files, and the kind names are one exported union edited i
 - Model-backed classification. Not now, and not later without an ADR.
 
 ## Acceptance criteria
-- [ ] `classify()` and `cluster()` exported from `packages/core` with the documented signatures; zero new
+- [x] `classify()` and `cluster()` exported from `packages/core` with the documented signatures; zero new
       dependencies. Evidence: `package.json` diff.
-- [ ] Accuracy on the 60-example labelled table is ≥90%, and the test output names every miss with its `matched`
+- [x] Accuracy on the 60-example labelled table is ≥90%, and the test output names every miss with its `matched`
       heuristic. Evidence: test output.
-- [ ] Every blok carries `ranges` as an array; a type-level and a runtime test both fail if a single-range blok is
+- [x] Every blok carries `ranges` as an array; a type-level and a runtime test both fail if a single-range blok is
       ever represented as a bare range. Evidence: two test names.
-- [ ] The multi-range fixture produces exactly the expected blok with two non-adjacent ranges at the expected
+- [x] The multi-range fixture produces exactly the expected blok with two non-adjacent ranges at the expected
       offsets. Evidence: snapshot.
-- [ ] The false-merge fixture produces two separate bloks, and the test says which threshold or topic key would
+- [x] The false-merge fixture produces two separate bloks, and the test says which threshold or topic key would
       have to change to break it. Evidence: snapshot and the test's comment.
-- [ ] Determinism: 100 runs over every fixture produce byte-identical bloks, including ids and order. Evidence:
+- [x] Determinism: 100 runs over every fixture produce byte-identical bloks, including ids and order. Evidence:
       test name.
-- [ ] Ranges within a blok are sorted, non-overlapping, and within the input's bounds, checked as an invariant
+- [x] Ranges within a blok are sorted, non-overlapping, and within the input's bounds, checked as an invariant
       over all fixtures and 1,000 generated inputs. Evidence: test name.
-- [ ] The decompiler prototype's sample prompt clusters into the same bloks the prototype produces, or the
+- [x] The decompiler prototype's sample prompt clusters into the same bloks the prototype produces, or the
       deviation is named and justified in the report. Evidence: snapshot plus a paragraph.
-- [ ] Adding a topic key to `topics.json` changes exactly the snapshots it should; show the diff. Evidence:
+- [x] Adding a topic key to `topics.json` changes exactly the snapshots it should; show the diff. Evidence:
       README worked example.
-- [ ] `tags.ts` allocation flattened; growth exponent reported for local and CI with the new headroom, and the
+- [x] `tags.ts` allocation flattened; growth exponent reported for local and CI with the new headroom, and the
       100 KB gate still passes. Evidence: timing output before and after.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [ ] Report and session log written; backlog updated.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [x] Report and session log written; backlog updated.
 
 ## Verification
 ```
