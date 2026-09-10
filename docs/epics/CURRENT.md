@@ -1,26 +1,29 @@
 # CURRENT
 
-**EPIC-013 is the current epic.** A mirror of `docs/epics/EPIC-013-decompiler-web.md`; when the two
-disagree, that file wins.
+**EPIC-013 is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-013-report.md`, except the staging deployment, which waits on this branch
+being merged since `main` deploys to staging automatically. The session log is
+`docs/epics/sessions/EPIC-013-session.md`.
 
-Stage 1's core work is done: EPIC-010 (segmenter), EPIC-011a (classifier and clustering), EPIC-011b
-(summariser seam), EPIC-012a (five detectors) and EPIC-012b (`rule_without_check`) are all shipped
-with reports, and every open question is ruled. This is the first web epic of the stage and the whole
-of M1.
+370 tests in `packages/core`, 38 in `apps/web`, 67 in `packages/ui`, 28 end to end, axe clean in both
+themes and on the empty state. Both carried debts are paid: EPIC-011a's fixture gap (corpus 25 → 29,
+classifier accuracy 96.7% of 60 → 96.7% of 92) and EPIC-012a's cross-kind `repeated` presentation.
+Four open questions are at the end of the report. This file stays pointed at EPIC-013 until the next
+epic is written and copied here per `docs/PROCESS.md`'s loop.
 
-**Rulings carried in from EPIC-012b** (2026-09-10, all four recorded in that epic's report):
-`rule_without_check` closes the findings panel as the call to action — decision 5 below; the
-`contradiction` silencing rule stays one kind wider than EPIC-012b asked; `CLAUDE.md`'s vocabulary
-section is corrected to list all six check phrases **in this branch**; extracting the quoted object of
-a "must contain" rule is parked for EPIC-030.
+**The finding worth carrying forward:** two separate things eat characters between a pasted prompt and
+the DOM. The HTML parser replaces `\r\n` and lone `\r` with `\n` before any script runs, and the form-
+submission algorithm normalises a textarea to CRLF on the way in — so almost every submission is CRLF
+at the server, and **EPIC-014 will be capturing CRLF whatever the author's editor used**.
 
-**Two debts land here**, both in the Scope: EPIC-011a's missing multimodal and expectation fixtures
-(three of six blok kinds have no coverage in the accuracy table), and EPIC-012a's cross-kind
-`repeated` presentation.
+**Stage 1's remaining epics:** EPIC-017 (legal minimum, which must land before `/decompile` reaches
+production traffic), EPIC-014 (capture, purge, rate limits, abuse checks), EPIC-016 (landing page),
+EPIC-015 (soft ship), then EPIC-084 reads the funnel against M1's kill criterion. Nothing in this epic
+pre-built any of them.
 
-**EPIC-005 and EPIC-080 are `cut`**, not deferred — Soroush's decision, 2026-09-10. The prototypes in
-`docs/design/` are the spec, corrected by `docs/design/README.md`, and the per-milestone kill criteria
-are the only feedback mechanism before Stage 2.
+**EPIC-005 and EPIC-080 are `cut`** — Soroush's decision, 2026-09-10. Both of EPIC-080's questions
+that fell to this epic are answered in it: touch discoverability, by making touch the default rather
+than the fallback, and summary trust, by showing `Summary.source` as plain words and nothing more.
 
 ---
 
@@ -87,32 +90,33 @@ discoverability question, which this epic answers by making touch the default ra
 - Any use of green, red or amber.
 
 ## Acceptance criteria
-- [ ] `/decompile` renders server-side for a pasted prompt with no account; a Playwright test drives paste →
+- [x] `/decompile` renders server-side for a pasted prompt with no account; a Playwright test drives paste →
       result. Evidence: test name.
-- [ ] Hover, focus and tap each highlight every range of a blok, with a leading marker at each range; pinning
+- [x] Hover, focus and tap each highlight every range of a blok, with a leading marker at each range; pinning
       survives pointer-away; `Escape` and a second tap unpin. Evidence: four test names.
-- [ ] Hovering a highlighted range surfaces its owning blok. Evidence: test name.
-- [ ] Offsets map correctly to the DOM for CRLF, tabs, emoji with combining characters, and RTL text ; the
+- [x] Hovering a highlighted range surfaces its owning blok. Evidence: test name.
+- [x] Offsets map correctly to the DOM for CRLF, tabs, emoji with combining characters, and RTL text ; the
       highlighted characters are exactly the range. Evidence: four fixtures and their tests.
-- [ ] The findings panel places `rule_without_check` in its own closing section with a count line; the other five
+- [x] The findings panel places `rule_without_check` in its own closing section with a count line; the other five
       kinds appear above in `detect()` order. Evidence: snapshot and a screenshot.
-- [ ] A `repeated` finding across two kinds shows both kinds on the card. Evidence: fixture and screenshot.
-- [ ] Each blok card states whether its summary came from a rule or a model, as plain text. Evidence: screenshot.
-- [ ] Input over 100 KB is refused server-side with a message naming the limit; empty and whitespace-only input
+- [x] A `repeated` finding across two kinds shows both kinds on the card. Evidence: fixture and screenshot.
+- [x] Each blok card states whether its summary came from a rule or a model, as plain text. Evidence: screenshot.
+- [x] Input over 100 KB is refused server-side with a message naming the limit; empty and whitespace-only input
       show the empty state. Evidence: three test names.
-- [ ] Axe clean in both themes; highlight changes are announced to assistive technology. Evidence: axe output and
+- [x] Axe clean in both themes; highlight changes are announced to assistive technology. Evidence: axe output and
       the ARIA test name.
-- [ ] Full keyboard operation with a visible focus ring; touch targets ≥44px at the small breakpoint; with
+- [x] Full keyboard operation with a visible focus ring; touch targets ≥44px at the small breakpoint; with
       `prefers-reduced-motion` every transition shows its end state. Evidence: three test names.
-- [ ] Grep proves green, red and amber tokens are unused on this route. Evidence: the check.
-- [ ] No segmentation, clustering or detection code exists in `apps/web`; dependency-cruiser confirms the import
+- [x] Grep proves green, red and amber tokens are unused on this route. Evidence: the check.
+- [x] No segmentation, clustering or detection code exists in `apps/web`; dependency-cruiser confirms the import
       direction. Evidence: the rule name.
-- [ ] Corpus extended with two multimodal and two expectation prompts; classifier accuracy re-run and reported.
+- [x] Corpus extended with two multimodal and two expectation prompts; classifier accuracy re-run and reported.
       Evidence: the number, before and after.
-- [ ] Forbidden-word grep passes over every string on the route.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm e2e`, `pnpm compliance`, `pnpm binary-files` clean.
+- [x] Forbidden-word grep passes over every string on the route.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm e2e`, `pnpm compliance`, `pnpm binary-files` clean.
 - [ ] Deployed to staging and driven by hand once; paste the URL and a screenshot into the report.
-- [ ] Report and session log written; backlog updated.
+      (Pending merge — `main` deploys to staging automatically; lands as a follow-up commit to the report.)
+- [x] Report and session log written; backlog updated.
 
 ## Verification
 ```
