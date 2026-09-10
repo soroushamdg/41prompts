@@ -1,7 +1,13 @@
 # CURRENT
 
-A mirror of `docs/epics/EPIC-012a-detectors.md`, per `docs/PROCESS.md`. EPIC-012a is the current
-epic. EPIC-010, EPIC-011a and EPIC-011b are done, and their open questions are ruled — including
+**EPIC-012a is done** — every acceptance criterion below is checked with evidence in
+`docs/epics/reports/EPIC-012a-report.md`; the session log is
+`docs/epics/sessions/EPIC-012a-session.md`. The false-positive audit stands at 4 findings across all
+25 EPIC-010 fixtures, each judged in the report, and four open questions are at the end. This file
+stays pointed at EPIC-012a until the next epic is written and copied here per `docs/PROCESS.md`'s
+loop.
+
+A mirror of `docs/epics/EPIC-012a-detectors.md`. EPIC-012a was the current epic. EPIC-010, EPIC-011a and EPIC-011b are done, and their open questions are ruled — including
 EPIC-011b's cache key, which keeps the blok's kind. Two requirements carried forward land in later
 epics, not this one: EPIC-020 finishes the compiler tripwire, EPIC-031 supplies the model transport.
 EPIC-080 and EPIC-005 remain deferred.
@@ -75,27 +81,27 @@ costs more trust than a finding they never saw.
 - Model-assisted detection of any kind.
 
 ## Acceptance criteria
-- [ ] `detect()` and the `Finding` type exported from `packages/core`; zero new dependencies. Evidence:
+- [x] `detect()` and the `Finding` type exported from `packages/core`; zero new dependencies. Evidence:
       `package.json` diff.
-- [ ] All five detector kinds implemented, each with a positive fixture, a near-miss fixture that does not fire,
+- [x] All five detector kinds implemented, each with a positive fixture, a near-miss fixture that does not fire,
       and a committed snapshot. Evidence: ten test names.
-- [ ] The antonym case carried from EPIC-011a is a named test: a blok containing both "keep the summary short" and
+- [x] The antonym case carried from EPIC-011a is a named test: a blok containing both "keep the summary short" and
       "keep the summary long" produces a `contradiction` finding pointing at both ranges. Evidence: test name and
       snapshot.
-- [ ] False-positive audit: every finding fired across the 25 EPIC-010 fixtures is listed in the report with a
+- [x] False-positive audit: every finding fired across the 25 EPIC-010 fixtures is listed in the report with a
       one-line judgement of whether it is real. Evidence: the report table.
-- [ ] Determinism: 100 runs over every fixture produce byte-identical findings, including ids and order.
+- [x] Determinism: 100 runs over every fixture produce byte-identical findings, including ids and order.
       Evidence: test name.
-- [ ] Every `ranges` entry is within bounds and points at text that actually supports the finding; an invariant
+- [x] Every `ranges` entry is within bounds and points at text that actually supports the finding; an invariant
       test checks bounds over all fixtures and 1,000 generated inputs. Evidence: test name.
-- [ ] Every finding's `bloks` names at least one existing blok id, and a contradiction names at least two.
+- [x] Every finding's `bloks` names at least one existing blok id, and a contradiction names at least two.
       Evidence: test name.
-- [ ] Forbidden-word grep passes over every message and suggestion string. Evidence: the compliance job.
-- [ ] The prototype's sample prompt produces findings that are compared with the prototype's diagnostics in the
+- [x] Forbidden-word grep passes over every message and suggestion string. Evidence: the compliance job.
+- [x] The prototype's sample prompt produces findings that are compared with the prototype's diagnostics in the
       report, with each deviation justified. Evidence: snapshot plus a paragraph.
-- [ ] Performance: the 100 KB gate still passes with detection included; report the number. Evidence: timing.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [ ] Report and session log written; backlog updated.
+- [x] Performance: the 100 KB gate still passes with detection included; report the number. Evidence: timing.
+- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [x] Report and session log written; backlog updated.
 
 ## Notes for the implementer
 - Write the "must not fire" fixtures before the detectors, exactly as the false-merge fixture came before the
