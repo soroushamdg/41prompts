@@ -137,7 +137,7 @@
     "kind": "constraint",
     "confidence": 0.65,
     "flags": "i",
-    "pattern": "^(?:respond|reply|answer|return|output|format|write|use|include|omit|exclude|keep|limit|wrap|prefix|quote|cite|escalate|classify|group|page|set|name|strip|detect|sign off|prioriti[sz]e|summari[sz]e)\\b"
+    "pattern": "^(?:respond|reply|answer|return|output|format|write|use|include|omit|exclude|keep|limit|wrap|prefix|quote|cite|escalate|classify|group|page|read|report|set|name|strip|detect|sign off|prioriti[sz]e|summari[sz]e)\\b"
   },
   {
     "id": "constraint-tone",
