@@ -1,19 +1,3 @@
-# CURRENT
-
-**EPIC-011a is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-011a-report.md`; the session log is
-`docs/epics/sessions/EPIC-011a-session.md`. Five open questions for the advisor are at the end of the
-report. This file stays pointed at EPIC-011a until the next epic is written and copied here per
-`docs/PROCESS.md`'s loop.
-
-A mirror of `docs/epics/EPIC-011a-classifier-clustering.md`. EPIC-011a was the current epic. EPIC-010 is done (`docs/epics/reports/EPIC-010-report.md`), including the
-advisor's rulings on its five open questions; the one carry-over is in this epic's Scope — flatten
-the allocation in `tags.ts` so the growth-exponent gate has real headroom. EPIC-080 and EPIC-005
-are still deferred: per the standing note below, their findings are a data change here, not a
-rewrite.
-
----
-
 # EPIC-011a: Classifier and clustering
 Stage: 1 · Depends on: EPIC-010 · Size: M
 

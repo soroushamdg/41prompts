@@ -10,12 +10,7 @@
 import { LIST_MIN_ITEMS, SENTENCE_SPLIT_THRESHOLD } from "./constants.js";
 import { indentWidth, isDigit, isSentenceTerminator, isWhitespaceAt, skipIndent } from "./chars.js";
 import type { Line } from "./lines.js";
-
-/** A half-open `[start, end)` range of the source, before trimming. */
-export interface Range {
-  readonly start: number;
-  readonly end: number;
-}
+import type { Range } from "./types.js";
 
 const HYPHEN = 0x2d;
 const ASTERISK = 0x2a;

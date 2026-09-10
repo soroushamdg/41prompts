@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# polarity-order — A neutral rule, then the same rule asserted, then the same rule forbidden — in that order. The first two are one blok; the third may never join them however the blok was opened.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 2 blok(s), 1 of them multi-range
+
+[0] blok_292616483f07ce1f constraint ranges=2
+      0..16 "Reply in French."
+      18..53 "Always reply in French, every time."
+[1] blok_49256ef8f21aa9ca constraint ranges=1
+      55..98 "Never reply in French on the audit channel."

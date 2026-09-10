@@ -1,0 +1,16 @@
+{
+  "negative": [
+    {
+      "id": "negative-modal",
+      "flags": "i",
+      "pattern": "\\b(?:never|must not|may not|cannot|can't|do not|don't|does not|doesn't|should not|shouldn't|avoid|refrain|forbidden|prohibited|disallowed)\\b"
+    }
+  ],
+  "positive": [
+    {
+      "id": "positive-modal",
+      "flags": "i",
+      "pattern": "\\b(?:always|must|shall|ensure|required|require)\\b"
+    }
+  ]
+}

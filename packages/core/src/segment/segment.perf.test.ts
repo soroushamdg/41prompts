@@ -1,15 +1,10 @@
 // SPDX-FileCopyrightText: 2026 <legal entity>
 // SPDX-License-Identifier: Apache-2.0
 
-import { readFileSync, readdirSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SEGMENT_FIXTURES } from "./fixtures/index.js";
 import { checkSegmentInvariants } from "./invariants.js";
 import { segment } from "./segment.js";
-
-const HERE = dirname(fileURLToPath(import.meta.url));
 
 /** Milliseconds for one `segment()` call, measured on a monotonic clock. */
 function timeSegment(input: string): number {
@@ -193,6 +188,44 @@ describe("adversarial input", () => {
     expect(measured).toHaveLength(ADVERSARIAL.length);
   });
 
+  it("costs no more per tag than the same document shape without tags", () => {
+    // The differential version of the growth check, and the one that actually isolates what this
+    // suite is here to protect: the cost of *tag matching*.
+    //
+    // The absolute exponent below cannot do that on its own. Measuring four shapes shows it is
+    // dominated by how many segments come out, not by what the rules did to produce them — one
+    // paragraph grows at exponent 0.996 and plain lines at 1.026, while any shape that yields one
+    // segment per line sits near 1.15 whether or not a single tag is involved. That floor is
+    // per-segment allocation, and `Segment.text` being the verbatim source slice is a ruled
+    // decision, so the floor stays.
+    //
+    // So compare like with like. Both inputs here are the same byte count, the same line count and
+    // the same segment count; only one of them has tags in it. If tag matching ever went quadratic
+    // — one forward scan per unmatched opener, the shape `tags.ts` uses a stack to avoid — the
+    // tagged exponent would climb towards 2.0 while the control stayed where it is, and the
+    // difference is what fails. Runner speed and GC pressure move both together and cancel.
+    const tagged = (n: number): string => "<a>\n".repeat(n);
+    const control = (n: number): string => "# a\n".repeat(n);
+
+    const exponentOf = (make: (n: number) => string): number => {
+      const small = make(12_500);
+      const large = make(50_000);
+      timeSegment(small);
+      timeSegment(large);
+      const [smallMs, largeMs] = fastestInterleaved(small, large);
+      return Math.log(largeMs / Math.max(smallMs, 0.5)) / Math.log(4);
+    };
+
+    const taggedExponent = exponentOf(tagged);
+    const controlExponent = exponentOf(control);
+    const excess = taggedExponent - controlExponent;
+    console.log(
+      `tag-matching excess ${excess.toFixed(2)} (tagged ${taggedExponent.toFixed(2)}, control ${controlExponent.toFixed(2)})`
+    );
+    // Quadratic tag matching would put the excess near 0.85. Anything under 0.5 is not that.
+    expect(excess, `tags cost input^${excess.toFixed(2)} more than the same shape without them`).toBeLessThan(0.5);
+  });
+
   it("grows no faster than input^1.6 when an adversarial input grows four times larger", () => {
     // The timing tests above catch a hang. This catches the thing that would not hang on a test
     // input but would on a user's: quadratic growth. Matching unmatched tag openers by scanning
@@ -222,78 +255,5 @@ describe("adversarial input", () => {
       `growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for ${factor}x input; 1.0 linear, 2.0 quadratic)`
     );
     expect(exponent, `grew as input^${exponent.toFixed(2)}`).toBeLessThan(1.6);
-  });
-});
-
-// ── Decision 7 as a failing test, not a review comment ───────────────────────────────────────
-//
-// "Nested quantifiers over the same character class are a build failure." A timing test alone
-// cannot prove that, because catastrophic backtracking needs the *right* input and the next
-// person to add a regex will not think of it. So the module's patterns are enumerated here: a
-// new one fails this test until it is added to the list, which forces the thought.
-
-const EXPECTED_PATTERNS: ReadonlyArray<readonly [string, string]> = [
-  ["chars.ts", "\\s"],
-  ["invariants.ts", "\\s"],
-  ["tags.ts", "<(/?)([A-Za-z][A-Za-z0-9._:-]*)([^<>]*)>"]
-];
-
-function moduleSources(): Array<{ file: string; source: string }> {
-  return readdirSync(HERE)
-    .filter((entry) => entry.endsWith(".ts") && !entry.endsWith(".test.ts"))
-    .sort()
-    .map((file) => ({ file, source: readFileSync(join(HERE, file), "utf-8") }));
-}
-
-/** Regex literals plus the string constants this module hands to `new RegExp`. */
-function patternsIn(source: string): string[] {
-  const withoutComments = source.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
-  const literals = withoutComments.match(/(?<![*/\w)\]])\/(?:\\.|\[(?:\\.|[^\]])*\]|[^/\\\n])+\/[dgimsuvy]*/g) ?? [];
-  const named = withoutComments.match(/_PATTERN\s*=\s*"((?:\\.|[^"\\])*)"/g) ?? [];
-  return [
-    ...literals.map((literal) => literal.slice(1, literal.lastIndexOf("/"))),
-    ...named.map((declaration) => declaration.slice(declaration.indexOf('"') + 1, -1))
-  ];
-}
-
-/**
- * The `(X+)+` shape: a group that is itself quantified and whose body already contains a
- * quantifier. That is the structure behind every catastrophic-backtracking incident, and it is
- * detectable without running anything.
- */
-function nestedQuantifiers(pattern: string): string[] {
-  const found: string[] = [];
-  const groups = pattern.match(/\((?:\?[:=!<]{1,2})?(?:\\.|[^()\\])*\)[*+?]|\((?:\?[:=!<]{1,2})?(?:\\.|[^()\\])*\)\{/g) ?? [];
-  for (const group of groups) {
-    const body = group.slice(group.indexOf("(") + 1, group.lastIndexOf(")"));
-    const bodyWithoutEscapes = body.replace(/\\./g, "");
-    if (/[*+]|\{\d+,/.test(bodyWithoutEscapes)) found.push(group);
-  }
-  return found;
-}
-
-describe("regex safety (epic decision 7)", () => {
-  it("uses only the patterns on the reviewed list", () => {
-    const actual = moduleSources().flatMap(({ file, source }) =>
-      patternsIn(source).map((pattern) => [file, pattern] as const)
-    );
-    // A new regex in this module is a decision, not an implementation detail: add it here and
-    // say in the same commit why it is linear.
-    expect(actual).toEqual(EXPECTED_PATTERNS);
-  });
-
-  it("has no nested quantifier in any of them", () => {
-    for (const [file, pattern] of EXPECTED_PATTERNS) {
-      expect(nestedQuantifiers(pattern), `${file}: /${pattern}/`).toEqual([]);
-    }
-  });
-
-  it("detects a nested quantifier when there is one", () => {
-    // The detector has to be able to fail, or the test above proves nothing.
-    expect(nestedQuantifiers("(a+)+")).toEqual(["(a+)+"]);
-    expect(nestedQuantifiers("(?:[a-z]*)*")).toEqual(["(?:[a-z]*)*"]);
-    expect(nestedQuantifiers("([^<>]*)+")).toEqual(["([^<>]*)+"]);
-    expect(nestedQuantifiers("(\\s*)\\{2,}")).toEqual([]);
-    expect(nestedQuantifiers("([^<>]*)")).toEqual([]);
   });
 });

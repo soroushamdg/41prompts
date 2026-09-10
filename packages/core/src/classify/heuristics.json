@@ -1,0 +1,163 @@
+[
+  {
+    "id": "image-ref-markdown",
+    "kind": "image_ref",
+    "confidence": 0.95,
+    "flags": "",
+    "pattern": "!\\[[^\\]]*\\]\\("
+  },
+  {
+    "id": "image-ref-html-tag",
+    "kind": "image_ref",
+    "confidence": 0.9,
+    "flags": "i",
+    "pattern": "<img\\b"
+  },
+  {
+    "id": "image-ref-file",
+    "kind": "image_ref",
+    "confidence": 0.8,
+    "flags": "i",
+    "pattern": "\\.(?:png|jpe?g|gif|webp|bmp|svg|heic|tiff)\\b"
+  },
+  {
+    "id": "image-input-variable",
+    "kind": "image_input",
+    "confidence": 0.95,
+    "flags": "i",
+    "pattern": "\\{\\{[^}]*image[^}]*\\}\\}"
+  },
+  {
+    "id": "image-input-tag",
+    "kind": "image_input",
+    "confidence": 0.9,
+    "flags": "i",
+    "pattern": "<\\s*image\\b|\\[\\s*image\\s*\\]"
+  },
+  {
+    "id": "image-input-phrase",
+    "kind": "image_input",
+    "confidence": 0.75,
+    "flags": "i",
+    "pattern": "\\b(?:attached|uploaded|provided|supplied|input|given)\\s+(?:image|photo|screenshot|picture|diagram)\\b"
+  },
+  {
+    "id": "expected-explicit",
+    "kind": "expected",
+    "confidence": 0.9,
+    "flags": "i",
+    "pattern": "\\bexpected\\s+(?:output|result|response|answer|value)\\b"
+  },
+  {
+    "id": "expected-equality",
+    "kind": "expected",
+    "confidence": 0.85,
+    "flags": "i",
+    "pattern": "\\b(?:must equal|should equal|must exactly match|must match exactly|must return exactly|should return exactly|must contain exactly)\\b"
+  },
+  {
+    "id": "example-io-pair",
+    "kind": "example",
+    "confidence": 0.85,
+    "flags": "i",
+    "pattern": "(?:^|\\n)[ \\t]*(?:input|output)[ \\t]*:"
+  },
+  {
+    "id": "example-marker",
+    "kind": "example",
+    "confidence": 0.8,
+    "flags": "i",
+    "pattern": "\\b(?:for example|e\\.g\\.|for instance)\\b"
+  },
+  {
+    "id": "example-fenced",
+    "kind": "example",
+    "confidence": 0.7,
+    "flags": "",
+    "pattern": "^(?:`{3,}|~{3,})"
+  },
+  {
+    "id": "context-role-second-person",
+    "kind": "context",
+    "confidence": 0.9,
+    "flags": "i",
+    "pattern": "^(?:you are|you're|act as|your role|assume the role)\\b"
+  },
+  {
+    "id": "context-role-tag",
+    "kind": "context",
+    "confidence": 0.85,
+    "flags": "i",
+    "pattern": "^<\\s*(?:role|persona|system|identity)\\b"
+  },
+  {
+    "id": "constraint-tag",
+    "kind": "constraint",
+    "confidence": 0.8,
+    "flags": "i",
+    "pattern": "^<\\s*(?:constraints?|rules?|output_format|format|requirements?|guidelines?|restrictions?)\\b"
+  },
+  {
+    "id": "constraint-modal",
+    "kind": "constraint",
+    "confidence": 0.85,
+    "flags": "i",
+    "pattern": "\\b(?:must|shall|always|never|do not|don't|only|ensure|required|should not|avoid|remember)\\b"
+  },
+  {
+    "id": "constraint-conditional",
+    "kind": "constraint",
+    "confidence": 0.7,
+    "flags": "i",
+    "pattern": "^(?:if|when|unless|in case|whenever|for)\\b"
+  },
+  {
+    "id": "constraint-prohibition-line",
+    "kind": "constraint",
+    "confidence": 0.7,
+    "flags": "i",
+    "pattern": "(?:^|\\n)[ \\t]*(?:[-*+\u2022][ \\t]+|\\d+[.)][ \\t]+)?no[ \\t]"
+  },
+  {
+    "id": "constraint-prohibition-sentence",
+    "kind": "constraint",
+    "confidence": 0.7,
+    "flags": "i",
+    "pattern": "[.!?][ \\t]+no[ \\t]"
+  },
+  {
+    "id": "constraint-output-shape",
+    "kind": "constraint",
+    "confidence": 0.7,
+    "flags": "i",
+    "pattern": "\\b(?:json|xml|yaml|markdown|schema|fields?|respond in|no extra text)\\b"
+  },
+  {
+    "id": "constraint-output-verb",
+    "kind": "constraint",
+    "confidence": 0.65,
+    "flags": "i",
+    "pattern": "^(?:respond|reply|answer|return|output|format|write|use|include|omit|exclude|keep|limit|wrap|prefix|quote|cite|escalate|classify|group|page|set|name|strip|detect|sign off|prioriti[sz]e|summari[sz]e)\\b"
+  },
+  {
+    "id": "constraint-tone",
+    "kind": "constraint",
+    "confidence": 0.6,
+    "flags": "i",
+    "pattern": "\\b(?:tone|friendly|professional|polite|concise|warm|formal|empathetic)\\b"
+  },
+  {
+    "id": "context-procedure",
+    "kind": "context",
+    "confidence": 0.7,
+    "flags": "i",
+    "pattern": "^(?:your job|your task|step \\d|first,|then,|finally,)\\b"
+  },
+  {
+    "id": "context-default",
+    "kind": "context",
+    "confidence": 0.2,
+    "flags": "",
+    "pattern": ""
+  }
+]

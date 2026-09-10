@@ -25,6 +25,18 @@ export interface Segment {
 }
 
 /**
+ * A half-open `[start, end)` span of the source, in the same UTF-16 code units `Segment` uses.
+ *
+ * A `Segment` is a range plus its text; a `Blok` owns a set of ranges without carrying their text.
+ * One declaration for both, because two structurally identical span types in one package is how a
+ * codebase ends up with two subtly different ideas of what an offset means.
+ */
+export interface Range {
+  readonly start: number;
+  readonly end: number;
+}
+
+/**
  * A committed corpus prompt. The corpus is the shared truth for every later epic — EPIC-011a's
  * clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots are built
  * from, so a boundary change shows up in one place.

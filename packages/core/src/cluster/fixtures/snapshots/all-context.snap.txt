@@ -1,0 +1,14 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# all-context — A prompt with no rules at all — nothing but role and background. Every blok is context, and nothing merges.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 3 blok(s), 0 of them multi-range
+
+[0] blok_24cddb9e5e984d40 context ranges=1
+      0..72 "You are an assistant that helps a small team read its own support inbox."
+[1] blok_35cc28979db2f82a context ranges=1
+      74..134 "The team sells inventory software to mid-sized distributors."
+[2] blok_b640e89bf724b917 context ranges=1
+      136..184 "Most messages arrive in English, some in French."
