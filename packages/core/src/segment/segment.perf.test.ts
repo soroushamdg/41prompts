@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { findNestedQuantifiers } from "../pattern-shape.js";
 import { SEGMENT_FIXTURES } from "./fixtures/index.js";
 import { checkSegmentInvariants } from "./invariants.js";
 import { segment } from "./segment.js";
@@ -256,22 +257,6 @@ function patternsIn(source: string): string[] {
   ];
 }
 
-/**
- * The `(X+)+` shape: a group that is itself quantified and whose body already contains a
- * quantifier. That is the structure behind every catastrophic-backtracking incident, and it is
- * detectable without running anything.
- */
-function nestedQuantifiers(pattern: string): string[] {
-  const found: string[] = [];
-  const groups = pattern.match(/\((?:\?[:=!<]{1,2})?(?:\\.|[^()\\])*\)[*+?]|\((?:\?[:=!<]{1,2})?(?:\\.|[^()\\])*\)\{/g) ?? [];
-  for (const group of groups) {
-    const body = group.slice(group.indexOf("(") + 1, group.lastIndexOf(")"));
-    const bodyWithoutEscapes = body.replace(/\\./g, "");
-    if (/[*+]|\{\d+,/.test(bodyWithoutEscapes)) found.push(group);
-  }
-  return found;
-}
-
 describe("regex safety (epic decision 7)", () => {
   it("uses only the patterns on the reviewed list", () => {
     const actual = moduleSources().flatMap(({ file, source }) =>
@@ -284,16 +269,18 @@ describe("regex safety (epic decision 7)", () => {
 
   it("has no nested quantifier in any of them", () => {
     for (const [file, pattern] of EXPECTED_PATTERNS) {
-      expect(nestedQuantifiers(pattern), `${file}: /${pattern}/`).toEqual([]);
+      expect(findNestedQuantifiers(pattern), `${file}: /${pattern}/`).toEqual([]);
     }
   });
 
   it("detects a nested quantifier when there is one", () => {
-    // The detector has to be able to fail, or the test above proves nothing.
-    expect(nestedQuantifiers("(a+)+")).toEqual(["(a+)+"]);
-    expect(nestedQuantifiers("(?:[a-z]*)*")).toEqual(["(?:[a-z]*)*"]);
-    expect(nestedQuantifiers("([^<>]*)+")).toEqual(["([^<>]*)+"]);
-    expect(nestedQuantifiers("(\\s*)\\{2,}")).toEqual([]);
-    expect(nestedQuantifiers("([^<>]*)")).toEqual([]);
+    // The detector has to be able to fail, or the test above proves nothing. It now lives in
+    // `src/pattern-shape.ts` because EPIC-011a's patterns are committed JSON, which a
+    // source-scanning test cannot see.
+    expect(findNestedQuantifiers("(a+)+")).toEqual(["(a+)+"]);
+    expect(findNestedQuantifiers("(?:[a-z]*)*")).toEqual(["(?:[a-z]*)*"]);
+    expect(findNestedQuantifiers("([^<>]*)+")).toEqual(["([^<>]*)+"]);
+    expect(findNestedQuantifiers("(\\s*)\\{2,}")).toEqual([]);
+    expect(findNestedQuantifiers("([^<>]*)")).toEqual([]);
   });
 });
