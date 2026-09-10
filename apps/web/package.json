@@ -12,6 +12,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@41prompts/core": "workspace:*",
     "@41prompts/db": "workspace:*",
     "@41prompts/logger": "workspace:*",
     "@41prompts/ui": "workspace:*",
