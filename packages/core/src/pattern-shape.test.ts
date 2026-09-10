@@ -89,7 +89,15 @@ const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
   ["cluster/cluster.ts", "\\s+"],
   ["cluster/invariants.ts", "^blok_[0-9a-f]{16}$"],
   ["segment/chars.ts", "\\s"],
-  ["segment/invariants.ts", "\\s"]
+  ["segment/invariants.ts", "\\s"],
+  // EPIC-011b. The first is the same leading-list-marker pattern `classify.ts` uses, for the same
+  // reason: a marker is punctuation, not content, and a summary of "2. Set a priority" is a summary
+  // of the rule and not of the numeral. The second is the shape of a cache key. Both are single
+  // quantifiers over single classes; neither can backtrack.
+  ["summarise/contract.ts", "^[0-9a-f]{16}$"],
+  // Every character that starts a new line in something. A single class, no quantifier at all.
+  ["summarise/contract.ts", "[\\n\\r\\v\\f\\u0085\\u2028\\u2029]"],
+  ["summarise/heuristic.ts", "^[ \\t]*(?:[-*+\u2022][ \\t]+|\\d{1,9}[.)][ \\t]+)"]
 ];
 
 function sourceFiles(dir: string): string[] {

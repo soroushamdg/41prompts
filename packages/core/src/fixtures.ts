@@ -13,4 +13,6 @@
 export { SEGMENT_FIXTURES, findSegmentFixture } from "./segment/fixtures/index.js";
 export { CLUSTER_FIXTURES } from "./cluster/fixtures/prompts.js";
 export { generatePrompt, NAMED_EDGE_CASES } from "./segment/fixtures/generate.js";
+export { SUMMARY_CONTRACT_CASES } from "./summarise/contract.js";
+export type { ContractCase } from "./summarise/contract.js";
 export type { SegmentFixture } from "./segment/types.js";

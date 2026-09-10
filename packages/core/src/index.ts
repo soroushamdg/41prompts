@@ -29,6 +29,14 @@ export { checkBlokInvariants } from "./cluster/invariants.js";
 export type { Blok } from "./cluster/types.js";
 export type { Range } from "./segment/types.js";
 
+// The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a
+// replacement for it (`CLAUDE.md` rule 3): the compiler emits the verbatim source span, never this.
+export { heuristicSummariser, HEURISTIC_SUMMARISER_VERSION, SUMMARY_MAX_LENGTH } from "./summarise/heuristic.js";
+export { summaryInputHash } from "./summarise/hash.js";
+export { checkSummaryContract, MAX_REASONABLE_SUMMARY } from "./summarise/contract.js";
+export type { ContractViolation } from "./summarise/contract.js";
+export type { AsyncSummariser, Summariser, Summary } from "./summarise/types.js";
+
 // The committed 25-prompt corpus is NOT here. It is real and it is shared — EPIC-011a's
 // clustering tests and EPIC-013's UI fixtures read the same prompts these snapshots were built
 // from, rather than three drifting copies (epic decision 8) — but it is test data, and this

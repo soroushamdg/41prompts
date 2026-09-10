@@ -114,6 +114,9 @@ importers:
 
   apps/worker:
     dependencies:
+      '@41prompts/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@41prompts/db':
         specifier: workspace:*
         version: link:../../packages/db

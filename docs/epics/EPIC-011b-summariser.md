@@ -1,17 +1,3 @@
-# CURRENT
-
-**EPIC-011b is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-011b-report.md`; the session log is
-`docs/epics/sessions/EPIC-011b-session.md`. Three open questions for the advisor, and two
-requirements carried into EPIC-020 and EPIC-031, are at the end of the report. This file stays
-pointed at EPIC-011b until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
-
-A mirror of `docs/epics/EPIC-011b-summariser.md`. EPIC-011b was the current epic. EPIC-010 and EPIC-011a are done, and all of EPIC-011a's open questions are ruled — three of
-them recorded as requirements on EPIC-012a and EPIC-013 at the end of
-`docs/epics/reports/EPIC-011a-report.md`. EPIC-080 and EPIC-005 remain deferred.
-
----
-
 # EPIC-011b: Summariser interface
 Stage: 1 · Depends on: EPIC-011a · Size: S
 

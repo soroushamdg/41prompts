@@ -15,6 +15,7 @@
     "vitest": "^3.2.7"
   },
   "dependencies": {
+    "@41prompts/core": "workspace:*",
     "@41prompts/db": "workspace:*",
     "@41prompts/logger": "workspace:*",
     "@sentry/node": "^10.73.0",
