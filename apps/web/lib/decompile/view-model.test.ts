@@ -1,7 +1,7 @@
 import { cluster, detect, segment } from "@41prompts/core";
 import { findSegmentFixture, generatePrompt, NAMED_EDGE_CASES, SEGMENT_FIXTURES } from "@41prompts/core/fixtures";
 import { describe, expect, it } from "vitest";
-import { buildPieces, toDisplayText } from "./view-model";
+import { buildPieces, groupBloksByKind, toDisplayText, type BlokView } from "./view-model";
 
 /**
  * The four shapes the epic names, drawn from the EPIC-010 corpus rather than written here — a
@@ -154,5 +154,59 @@ describe("the whole pipeline, end to end on the corpus", () => {
         toDisplayText(fixture.text)
       );
     }
+  });
+});
+
+describe("grouping bloks by kind", () => {
+  const blok = (id: string, kind: BlokView["kind"]): BlokView => ({
+    id,
+    kind,
+    summary: id,
+    summarySource: "rule",
+    rangeCount: 1,
+    words: 3
+  });
+
+  it("orders groups by BLOK_KINDS, not by first appearance", () => {
+    const groups = groupBloksByKind([
+      blok("a", "expected"),
+      blok("b", "context"),
+      blok("c", "image_input"),
+      blok("d", "constraint")
+    ]);
+    expect(groups.map((group) => group.kind)).toEqual(["context", "constraint", "expected", "image_input"]);
+  });
+
+  it("omits a kind with no bloks rather than rendering it empty", () => {
+    const groups = groupBloksByKind([blok("a", "context"), blok("b", "context")]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.kind).toBe("context");
+    expect(groups[0]!.bloks).toHaveLength(2);
+  });
+
+  it("keeps source order inside a group", () => {
+    // A group is a filter over the canvas, not a re-sort of it — the reader can still find a blok by
+    // where it was in their prompt.
+    const groups = groupBloksByKind([
+      blok("first", "constraint"),
+      blok("other", "context"),
+      blok("second", "constraint"),
+      blok("third", "constraint")
+    ]);
+    const constraints = groups.find((group) => group.kind === "constraint")!;
+    expect(constraints.bloks.map((b) => b.id)).toEqual(["first", "second", "third"]);
+  });
+
+  it("loses no blok, whatever the corpus throws at it", () => {
+    for (const fixture of SEGMENT_FIXTURES) {
+      const bloks = cluster(segment(fixture.text)).map((b, i) => blok(`b${i}`, b.kind));
+      const grouped = groupBloksByKind(bloks).flatMap((group) => group.bloks);
+      expect(grouped, fixture.name).toHaveLength(bloks.length);
+      expect(new Set(grouped.map((b) => b.id)).size, fixture.name).toBe(bloks.length);
+    }
+  });
+
+  it("returns nothing for no bloks", () => {
+    expect(groupBloksByKind([])).toEqual([]);
   });
 });

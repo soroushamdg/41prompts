@@ -10,6 +10,8 @@ export { Tag } from "./primitives/tag";
 export type { TagProps } from "./primitives/tag";
 export { BlokCard } from "./primitives/blok-card";
 export type { BlokCardProps } from "./primitives/blok-card";
+export { BlokKindGlyph } from "./primitives/blok-kind-glyph";
+export type { BlokKindGlyphProps, BlokKindName } from "./primitives/blok-kind-glyph";
 export { KpiStrip } from "./primitives/kpi-strip";
 export type { Kpi, KpiStripProps } from "./primitives/kpi-strip";
 export { Table } from "./primitives/table";
