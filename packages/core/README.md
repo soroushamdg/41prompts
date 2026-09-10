@@ -14,6 +14,9 @@ deterministic graders, and artifact schema. Zero dependencies, no DOM, no IO. Ap
 - **`cluster(segments)`** — groups segments into bloks, each owning a *set* of ranges, so a rule
   stated in three places is one thing the user edits once. See
   [`src/cluster/README.md`](src/cluster/README.md) for the merge rule and its guards.
+- **`detect(bloks, source)`** — findings: specific, defensible problems, each pointing at the text
+  that causes it. Advisory only. See [`src/detect/README.md`](src/detect/README.md) for what each
+  detector fires on and what it deliberately does not.
 - **`heuristicSummariser`** and the `Summariser` seam — a short line describing what a blok says,
   as metadata about the text and never a replacement for it. See
   [`src/summarise/README.md`](src/summarise/README.md) for the cache key and how to add an

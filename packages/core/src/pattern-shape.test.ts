@@ -91,6 +91,10 @@ const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
   // enough to report" at the same time.
   ["cluster/similarity.ts", "[^a-z0-9_\\s]"],
   ["cluster/similarity.ts", "\\s+"],
+  // EPIC-012a. Both collapse whitespace: one to count words, one to quote a span on a single line
+  // inside a finding's message. Single quantifiers over a single class.
+  ["detect/shared.ts", "\\s+"],
+  ["detect/shared.ts", "\\s+"],
   ["segment/chars.ts", "\\s"],
   ["segment/invariants.ts", "\\s"],
   // EPIC-011b. The first is the same leading-list-marker pattern `classify.ts` uses, for the same

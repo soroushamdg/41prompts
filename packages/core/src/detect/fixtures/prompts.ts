@@ -82,13 +82,20 @@ export const QUIET_FIXTURES: readonly SegmentFixture[] = [
     )
   },
   {
-    name: "quiet-long-but-single-purpose",
+    name: "quiet-many-short-rules",
     describes:
-      "One long blok that says exactly one thing at length, and a prompt that is long because it has many distinct rules. `too_long` must not fire on either.",
+      "A prompt that is long because it has many distinct rules, each of them short. `too_long` counts per blok, so none of these may fire — and the whole prompt is well under the prompt-level threshold.",
     text: lf(
       "You are a migration reviewer.",
       "",
-      "When a migration adds a column with a default, check the Postgres version in the project's compose file, because adding a defaulted column rewrites the whole table before version 11 and does not from version 11 onward, and the difference decides whether the migration needs a batched backfill or can run in one statement.",
+      "Rules:",
+      "1. Reject a migration with no down step.",
+      "2. Reject a migration that locks a table for more than one second.",
+      "3. Require a batched backfill for any table over one million rows.",
+      "4. Require an index to be created concurrently.",
+      "5. Name the Postgres version the review assumed.",
+      "6. Quote the exact statement you are objecting to.",
+      "7. Give the smallest change that would make it pass.",
       ""
     )
   },
@@ -149,17 +156,6 @@ export const NOISY_FIXTURES: readonly SegmentFixture[] = [
     text: SHORT_LONG
   },
   {
-    name: "fires-contradiction-inside-one-range",
-    describes:
-      "The prototype's own sample hides its only real contradiction here: two adjacent sentences of a single paragraph, which is one segment and therefore one range.",
-    text: lf(
-      "You write support replies.",
-      "",
-      "Do not use markdown formatting in your response. Format the summary as a markdown bullet list if there are multiple issues.",
-      ""
-    )
-  },
-  {
     name: "fires-untestable",
     describes: "Rules no check could ever verify, with nothing concrete attached to them.",
     text: lf(
@@ -184,8 +180,14 @@ export const NOISY_FIXTURES: readonly SegmentFixture[] = [
   },
   {
     name: "fires-too-long",
-    describes: "One blok carrying many instructions at once, well past the per-blok threshold.",
-    text: `You are the escalation assistant. ${"Read the whole thread before replying, and quote the exact line you are answering, and never promise a date that depends on a third party, and always name the owner of the next step, and close with how to reach a human. ".repeat(4)}`
+    describes:
+      "One blok carrying many instructions at once, well past the per-blok threshold. A single run-on sentence, because a repeated one would be several ranges of the same rule and that is `repeated`'s business.",
+    text: lf(
+      "You are the escalation assistant.",
+      "",
+      "Read the whole thread before replying and quote the exact line you are answering, then establish which of the four failure modes you are looking at, and if the thread does not say then ask exactly one question and stop, and when you do know, state it back to the customer in their own words rather than in ours, and give them the one next step that is in their control while giving the internal note the one next step that is in ours, and never promise a date that depends on a bank.",
+      ""
+    )
   },
   {
     name: "fires-several",
@@ -206,4 +208,41 @@ export const NOISY_FIXTURES: readonly SegmentFixture[] = [
   }
 ];
 
-export const DETECT_FIXTURES: readonly SegmentFixture[] = [...QUIET_FIXTURES, ...NOISY_FIXTURES];
+/**
+ * A prompt containing a real contradiction that this detector **does not find**, kept as a fixture
+ * so the limit is pinned rather than forgotten.
+ *
+ * The decompiler prototype appears to find it. It does not really: its rule pairs any blok holding a
+ * negation with any blok that does not, sharing any of eight hard-coded nouns, and on this same
+ * sample that rule produces one false positive for every true one.
+ *
+ * Measured, this case is lexically indistinguishable from `quiet-negation-without-conflict`:
+ *
+ * | pair | polarity | overlap | shared tokens inside the negated scope |
+ * |---|---|---|---|
+ * | "Do not use markdown…" / "Format … as a markdown bullet list" | negative/neutral | 0.33 | `["markdown"]` |
+ * | "Never invent a change…" / "Always include the number for each change" | negative/positive | 0.25 | `["change"]` |
+ *
+ * One is a contradiction and one is two compatible rules about the same noun, and nothing lexical
+ * separates them — the difference is what the verbs do to the shared object, which needs parsing this
+ * package will not do. Decision 5 ranks the failures, so this stays quiet.
+ */
+export const LIMIT_FIXTURES: readonly SegmentFixture[] = [
+  {
+    name: "limit-contradiction-inside-one-range",
+    describes:
+      "A real contradiction between two adjacent sentences of one paragraph, which this detector deliberately does not find. See LIMIT_FIXTURES.",
+    text: lf(
+      "You write support replies.",
+      "",
+      "Do not use markdown formatting in your response. Format the summary as a markdown bullet list if there are multiple issues.",
+      ""
+    )
+  }
+];
+
+export const DETECT_FIXTURES: readonly SegmentFixture[] = [
+  ...QUIET_FIXTURES,
+  ...NOISY_FIXTURES,
+  ...LIMIT_FIXTURES
+];

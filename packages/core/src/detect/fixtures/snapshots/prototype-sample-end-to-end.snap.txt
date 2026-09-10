@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# The decompiler prototype's own sample, end to end. Generated; regenerate with vitest -u.
+# 15 segments -> 14 bloks -> 4 findings
+
+## bloks
+context     ranges=1  "You are a helpful customer support assistant for Northwind, a B2B SaaS company…"
+context     ranges=1  "Your job is to read an incoming support email and decide how to route it."
+context     ranges=1  "Rules:"
+constraint  ranges=1  "Rule: Always classify the email into one of these categories: billing, technical,…"
+constraint  ranges=2  "Rule stated in 2 places"
+constraint  ranges=1  "Rule: Never mention that you are an AI model."
+constraint  ranges=1  "Rule: Keep the summary field reasonably short and use appropriate language."
+constraint  ranges=1  "Rule: If the customer sounds angry, set the priority field to high."
+constraint  ranges=1  "Rule: Always be professional and friendly in the summary field."
+constraint  ranges=1  "Rule: The JSON should have these fields: category, priority, summary, needs_human."
+example     ranges=1  "Example: For example, if the email says 'I was charged twice this month', you…"
+constraint  ranges=1  "Rule: When the email mentions a chargeback, always set needs_human to true."
+constraint  ranges=1  "Rule: Do not use markdown formatting in your response."
+constraint  ranges=1  "Rule: If you are unsure about the category, use your best judgement and pick the…"
+
+## findings
+[medium] repeated
+      Two bloks say the same thing: "You are a helpful customer support assistant …" and "6. Always be professional and friendly in the…". Editing one leaves the other in place.
+      0..157 "You are a helpful customer support assistant for Northwind, a B2B SaaS company that sells inventory software. You should always be professional and friendly."
+      617..677 "6. Always be professional and friendly in the summary field."
+[medium] untestable
+      No check can be written against "reasonably short" — this rule can never fail visibly.
+      479..551 "4. Keep the summary field reasonably short and use appropriate language."
+[medium] untestable
+      No check can be written against "use your best judgement" — this rule can never fail visibly.
+      1134..1225 "If you are unsure about the category, use your best judgement and pick the most likely one."
+[low] padding
+      "please" costs tokens and changes nothing about the output.
+      679..809 "The JSON should have these fields: category, priority, summary, needs_human.\nPlease make sure the output is valid JSON. Thank you!"

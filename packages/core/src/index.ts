@@ -29,6 +29,12 @@ export { checkBlokInvariants } from "./cluster/invariants.js";
 export type { Blok } from "./cluster/types.js";
 export type { Range } from "./segment/types.js";
 
+// Findings (EPIC-012a) — the visible value of the decompiler, and advisory only: nothing here
+// blocks and nothing is auto-fixed. Blocking belongs to publishing (`CLAUDE.md` rule 9).
+export { detect } from "./detect/detect.js";
+export { MAX_BLOK_WORDS, MAX_PROMPT_WORDS, REPEAT_OVERLAP_THRESHOLD } from "./detect/constants.js";
+export type { Finding, FindingKind, Severity } from "./detect/types.js";
+
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a
 // replacement for it (`CLAUDE.md` rule 3): the compiler emits the verbatim source span, never this.
 export { heuristicSummariser, HEURISTIC_SUMMARISER_VERSION, SUMMARY_MAX_LENGTH } from "./summarise/heuristic.js";

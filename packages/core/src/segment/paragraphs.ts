@@ -8,8 +8,9 @@
 // attribute a later failure to half a rule.
 
 import { LIST_MIN_ITEMS, SENTENCE_SPLIT_THRESHOLD } from "./constants.js";
-import { indentWidth, isDigit, isSentenceTerminator, isWhitespaceAt, skipIndent } from "./chars.js";
+import { indentWidth, isDigit, isWhitespaceAt, skipIndent } from "./chars.js";
 import type { Line } from "./lines.js";
+import { sentenceRanges } from "./sentences.js";
 import type { Range } from "./types.js";
 
 const HYPHEN = 0x2d;
@@ -98,51 +99,6 @@ function splitListItems(text: string, lines: readonly Line[], startLine: number,
   return ranges;
 }
 
-/**
- * Split `[start, end)` after every `.`, `!` or `?` that is immediately followed by whitespace.
- *
- * A single left-to-right index scan, no lookbehind and no intermediate array of strings — but
- * exactly the prototype's boundary: `split(/(?<=[.!?])\s+/)` cuts in the same places and merely
- * loses every offset on the way, which is the bug this module exists to not have.
- *
- * Two things this deliberately does not do, both tried and reverted:
- *
- * - It does not treat a closing quote as part of the sentence before it. Extending the
- *   terminator through `"` looks like an improvement on `He said "stop." Then left.` and is a
- *   regression on `If the author wrote "this is temporary." in a comment, ask when it comes
- *   out.` — one sentence that would then be cut in half. Requiring whitespace directly after the
- *   terminator declines to guess, and a boundary we decline to draw costs a blok that is one
- *   sentence too long; a boundary we draw wrongly costs a highlight that points at nonsense.
- * - It does not special-case abbreviations. "e.g. this" splits. An abbreviation list is
- *   language-specific and would make the boundary depend on a table someone has to maintain,
- *   which is the opposite of a deterministic rule. See README.
- *
- * A run like `...` or `?!` needs no special handling: the scan simply reaches the last character
- * of the run, and that is the one followed by whitespace.
- */
-function splitSentences(text: string, start: number, end: number): Range[] {
-  const ranges: Range[] = [];
-  let cut = start;
-  let i = start;
-
-  while (i < end) {
-    if (!isSentenceTerminator(text.charCodeAt(i))) {
-      i += 1;
-      continue;
-    }
-
-    const after = i + 1;
-    if (after < end && isWhitespaceAt(text, after)) {
-      ranges.push({ start: cut, end: after });
-      cut = after;
-    }
-    i = after;
-  }
-
-  if (cut < end) ranges.push({ start: cut, end });
-  return ranges;
-}
-
 /** Length of `[start, end)` ignoring whitespace at either edge — the prototype's `trim().length`. */
 function trimmedLength(text: string, start: number, end: number): number {
   let s = start;
@@ -161,7 +117,10 @@ export function splitParagraph(text: string, lines: readonly Line[], startLine: 
   const end = lines[endLine]!.contentEnd;
 
   if (trimmedLength(text, start, end) > SENTENCE_SPLIT_THRESHOLD) {
-    return splitSentences(text, start, end);
+    // The boundary lives in `sentences.ts` so EPIC-012a's contradiction detector cuts in the same
+    // places; a finding highlighting a span the segmenter would never produce would point at text
+    // no blok owns.
+    return sentenceRanges(text, start, end);
   }
 
   return [{ start, end }];

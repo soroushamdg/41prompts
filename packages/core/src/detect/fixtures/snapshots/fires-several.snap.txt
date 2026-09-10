@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# fires-several — A realistic messy prompt producing findings of several kinds at once, with a committed ordering.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 5 finding(s)
+
+[high] contradiction find_e325de5e88748202 bloks=2
+      These two cannot both hold — one says "always" and the other says "never": "Always respond in JSON only." and "Never respond in JSON when the caller asks fo…".
+      -> Decide which one is right and delete the other, or say when each applies.
+      90..118 "Always respond in JSON only."
+      160..212 "Never respond in JSON when the caller asks for text."
+[high] contradiction find_eae72d17b52a6160 bloks=2
+      These two cannot both hold — one says "always" and the other says "never": "Never respond in JSON when the caller asks fo…" and "Always respond in JSON only.".
+      -> Decide which one is right and delete the other, or say when each applies.
+      160..212 "Never respond in JSON when the caller asks for text."
+      216..244 "Always respond in JSON only."
+[medium] untestable find_e353387322a3e06a bloks=1
+      No check can be written against "reasonably short" — this rule can never fail visibly.
+      -> Replace it with something countable, or add a check that says what good looks like.
+      119..156 "2. Keep the summary reasonably short."
+[low] padding find_0f4cbb83096355be bloks=1
+      "please" costs tokens and changes nothing about the output.
+      -> Delete it.
+      0..78 "You are an AI language model acting as a support assistant. Please be helpful."
+[low] padding find_f49986a577d4a147 bloks=1
+      "thank you" costs tokens and changes nothing about the output.
+      -> Delete it.
+      246..256 "Thank you!"
