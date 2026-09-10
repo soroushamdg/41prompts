@@ -364,7 +364,74 @@ was about behaviour, and this was a panel that worked correctly and looked unfin
 
 ---
 
-## 9. Verify
+## 9. After staging: grouping the bloks by kind
+
+Soroush drove `/decompile` on staging and said the bloks read as an undifferentiated list — they
+needed grouping and a way to scan by kind. Three changes, ruled 2026-09-10, shipped together.
+
+**1. Grouped by kind, in `BLOK_KINDS` order.** context → constraint → example → expected →
+image_ref → image_input, each group headed by the kind's name and its count, source order preserved
+inside each group so a group is a *filter over* the canvas rather than a re-sort of it. The order
+comes from `packages/core`'s exported `BLOK_KINDS`, not from a list retyped here — a second copy
+would be one rename away from disagreeing with the type it mirrors.
+
+**Empty kinds are omitted rather than shown empty**, as instructed, and there is a second reason
+worth recording: a heading reading "expected 0" on a prompt with no checks would demote the
+decompiler's most important finding to a grey zero. The findings panel's closing section makes that
+argument properly, in words, and should keep the job.
+
+**2. A persistent leading marker, by shape.** Each card carries an ink glyph on its leading edge plus
+the kind's name as text. Six glyphs, straight segments only and `currentColor`, following the
+illustration system's rules so they sit beside the existing eight without looking borrowed: a framed
+plate of prose (context), a bar with hard stops (constraint), an input/output pair (example), an
+equals sign (expected), a frame with a diagonal (image reference), a frame with an arrow entering it
+(image input).
+
+> **An ink *bar* was tried first — the prototype's shape — and is invisible.** It sits directly
+> against the card's own 2px ink border and reads as a slightly thicker border. The prototype gets
+> away with it only because its bar is coloured per kind, and per-kind colour is precisely what is
+> unshipped (`docs/design/README.md`, EPIC-003's accepted deviation). Found by looking at the first
+> capture, not by a test — no assertion would have caught a marker that is present, correct and
+> invisible. `BlokCard` gained an optional `leading` rail; when it is absent the card's markup is
+> byte-identical to before, so `/dev/ui`'s committed baselines do not move.
+
+The glyph is `aria-hidden` and never the only signal: the kind's name is beside it as text, which is
+what a screen reader gets. No tint on any card, and category colour still appears nowhere.
+
+**3. A view control, grouped by default.** Two real buttons in a `role="group"` named "Blok order",
+with `aria-pressed` — keyboard-native, and not a widget anyone has to learn. A tabs pattern was the
+alternative and was rejected: this is one list re-ordered, not two panels.
+
+**It remembers nothing.** No `localStorage`, no `sessionStorage`, no cookie, no URL parameter — epic
+decision 9 says this route persists nothing, and a view preference is still something about a person
+kept between visits. An e2e test asserts both storages are empty after switching and that a reload
+comes back grouped.
+
+### Evidence
+
+33 behavioural e2e tests (up from 28) and 8 captures, all passing; axe clean in both themes and on
+the empty state; the 44px sweep now covers the view control. Five new tests:
+`groups by kind in the fixed order, with a name and a count, and omits empty kinds`,
+`every card carries a persistent ink marker and its kind as text` — which also asserts the six glyphs
+are geometrically distinct, not just differently labelled —
+`switches to source order and back, defaulting to grouped`,
+`the view control is keyboard operable and remembers nothing across a reload`, and
+`pinning still works in both views`. Plus 22 unit tests on `groupBloksByKind`, including that it
+loses no blok across the whole corpus.
+
+One existing test needed a fix, and it is worth recording: `getByRole("heading", { name: "Bloks" })`
+began matching the group heading **"constraint 2 bloks"** by substring. It takes `exact` now — and
+any future heading query on this route needs the same, because the group headings shadow short panel
+headings.
+
+Screenshots re-captured: `02-result-light.png`, `03-result-dark.png`, `06-blok-card-summary-source.png`,
+`07-phone-pinned.png`. Staging: §10.
+
+## 10. Staging, after the grouping change
+
+_Filled in by a follow-up commit once the branch has merged and staging has redeployed._
+
+## 11. Verify
 
 ```
 pnpm test && pnpm typecheck && pnpm lint && pnpm compliance

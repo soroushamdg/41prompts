@@ -1,3 +1,4 @@
+import { BLOK_KINDS } from "@41prompts/core";
 import type { Blok, BlokKind, Finding, FindingKind, Range, Severity } from "@41prompts/core";
 
 /**
@@ -201,4 +202,34 @@ export function buildView(input: BuildViewInput): DecompileView {
       findings: findings.length
     }
   };
+}
+
+/** A run of bloks sharing a kind, for the grouped view. */
+export interface BlokGroup {
+  readonly kind: BlokKind;
+  readonly bloks: readonly BlokView[];
+}
+
+/**
+ * Group bloks by kind for the canvas, in `BLOK_KINDS` order.
+ *
+ * The order comes from `packages/core`, not from a list retyped here: `BLOK_KINDS` is already
+ * context → constraint → example → expected → image_ref → image_input, which is the order
+ * `CLAUDE.md` names and the order asked for. A second copy would be one rename away from disagreeing
+ * with the type it is supposed to mirror.
+ *
+ * **A kind with no bloks is omitted, not rendered empty.** A heading reading "expected 0" on a prompt
+ * that has no checks would be the decompiler's most important finding demoted to a grey zero — that
+ * argument belongs to the findings panel's closing section, which makes it properly.
+ *
+ * Source order is preserved inside each group, so a group is a filter over the canvas rather than a
+ * re-sort of it: the reader can still find a blok by where it was in their prompt.
+ */
+export function groupBloksByKind(bloks: readonly BlokView[]): BlokGroup[] {
+  const groups: BlokGroup[] = [];
+  for (const kind of BLOK_KINDS) {
+    const members = bloks.filter((blok) => blok.kind === kind);
+    if (members.length > 0) groups.push({ kind, bloks: members });
+  }
+  return groups;
 }

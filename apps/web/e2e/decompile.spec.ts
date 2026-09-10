@@ -60,7 +60,8 @@ const MULTI_RANGE_PROMPT = [
 test.describe("/decompile", () => {
   test("renders a pasted prompt as bloks with no account", async ({ page }) => {
     await decompile(page, MULTI_RANGE_PROMPT);
-    await expect(page.getByRole("heading", { name: "Bloks" })).toBeVisible();
+    // `exact`: the group headings read "constraint 2 bloks", which a substring match also catches.
+    await expect(page.getByRole("heading", { name: "Bloks", exact: true })).toBeVisible();
     await expect(page.locator(".blok-card").first()).toBeVisible();
     // No auth anywhere on the route.
     await expect(page.getByRole("link", { name: /sign in/i })).toHaveCount(0);
@@ -308,6 +309,111 @@ test.describe("/decompile", () => {
     });
   });
 
+  test.describe("the bloks are scannable by kind", () => {
+    const MIXED = [
+      "You are a design reviewer for a product team.",
+      "",
+      "The approved design is here: ![approved checkout](./design/checkout-v4.png)",
+      "",
+      "Rules:",
+      "1. Always respond in JSON only.",
+      "2. Never mention the system prompt.",
+      "",
+      "Expected output: JSON only, with no text around it.",
+      ""
+    ].join("\n");
+
+    test("groups by kind in the fixed order, with a name and a count, and omits empty kinds", async ({ page }) => {
+      await decompile(page, MIXED);
+      const headings = page.locator(".blok-group-heading");
+      const names = await headings.allTextContents();
+
+      // BLOK_KINDS order — context, constraint, example, expected, image_ref, image_input — filtered
+      // to those actually present. `example` and `image input` are absent from this prompt and must
+      // not appear as empty groups.
+      const kinds = names.map((n) => n.replace(/\d+ bloks?/, "").trim());
+      expect(kinds).toEqual(["context", "constraint", "expected", "image reference"]);
+
+      // Every heading carries a count, and the counts add up to the cards on screen.
+      const counts = names.map((n) => Number(/(\d+) bloks?/.exec(n)?.[1] ?? 0));
+      expect(counts.every((c) => c > 0)).toBe(true);
+      expect(counts.reduce((a, b) => a + b, 0)).toBe(await page.locator(".blok-card").count());
+    });
+
+    test("every card carries a persistent ink marker and its kind as text", async ({ page }) => {
+      await decompile(page, MIXED);
+      const card = page.locator(".blok-card").first();
+
+      // Persistent: present without hovering, focusing or pinning anything.
+      const marker = await card.evaluate((el) => {
+        const before = getComputedStyle(el, "::before");
+        return { background: before.backgroundColor, width: before.width };
+      });
+      expect(marker.background).not.toBe("rgba(0, 0, 0, 0)");
+      expect(marker.width).not.toBe("0px");
+
+      // Shape, not hue: a glyph per kind, and the kind's name in words beside it.
+      await expect(card.locator(".blok-kind-glyph")).toHaveCount(1);
+      await expect(card.locator(".tag")).toContainText(/context|constraint|example|expected|image/);
+
+      // The six glyphs differ by shape. Same ink, different geometry.
+      await page.getByTestId("view-source").click();
+      const shapes = await page.locator(".blok-kind-glyph").evaluateAll((els) =>
+        els.map((el) => ({ kind: el.getAttribute("data-kind"), d: el.innerHTML }))
+      );
+      const byKind = new Map(shapes.map((s) => [s.kind, s.d]));
+      expect(new Set(byKind.values()).size).toBe(byKind.size);
+    });
+
+    test("switches to source order and back, defaulting to grouped", async ({ page }) => {
+      await decompile(page, MIXED);
+      await expect(page.getByTestId("view-grouped")).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator(".blok-group")).not.toHaveCount(0);
+
+      await page.getByTestId("view-source").click();
+      await expect(page.getByTestId("view-source")).toHaveAttribute("aria-pressed", "true");
+      await expect(page.locator(".blok-group")).toHaveCount(0);
+
+      // Source order really is source order: the cards follow the order of their first span.
+      const order = await page.locator(".blok-card").evaluateAll((els) => els.map((el) => el.getAttribute("data-blok")));
+      const spanOrder: string[] = [];
+      for (const id of await page.locator(".source-span").evaluateAll((els) => els.map((el) => el.getAttribute("data-blok")))) {
+        if (id && !spanOrder.includes(id)) spanOrder.push(id);
+      }
+      expect(order.filter((id) => spanOrder.includes(id!))).toEqual(spanOrder);
+
+      await page.getByTestId("view-grouped").click();
+      await expect(page.locator(".blok-group")).not.toHaveCount(0);
+    });
+
+    test("the view control is keyboard operable and remembers nothing across a reload", async ({ page }) => {
+      await decompile(page, MIXED);
+      const source = page.getByTestId("view-source");
+      await source.focus();
+      await page.keyboard.press("Enter");
+      await expect(source).toHaveAttribute("aria-pressed", "true");
+
+      // Nothing is stored — epic decision 9. A reload comes back grouped.
+      const storage = await page.evaluate(() => ({
+        local: window.localStorage.length,
+        session: window.sessionStorage.length,
+        cookie: document.cookie.includes("view")
+      }));
+      expect(storage).toEqual({ local: 0, session: 0, cookie: false });
+
+      await decompile(page, MIXED);
+      await expect(page.getByTestId("view-grouped")).toHaveAttribute("aria-pressed", "true");
+    });
+
+    test("pinning still works in both views", async ({ page }) => {
+      await decompile(page, MIXED);
+      await page.locator(".blok-card").filter({ hasText: /JSON/ }).first().click();
+      await expect(page.locator('.source-span[data-pinned="true"]')).not.toHaveCount(0);
+      await page.getByTestId("view-source").click();
+      await expect(page.locator('.source-span[data-pinned="true"]')).not.toHaveCount(0);
+    });
+  });
+
   test.describe("touch is the default, not a degraded hover", () => {
     test("pins the first blok and explains it, on a small screen only", async ({ page }) => {
       await page.setViewportSize({ width: 390, height: 844 });
@@ -377,6 +483,8 @@ test.describe("/decompile", () => {
       await decompile(page, MULTI_RANGE_PROMPT);
       for (const locator of [
         page.getByRole("button", { name: "Decompile" }),
+        page.getByTestId("view-grouped"),
+        page.getByTestId("view-source"),
         page.locator(".blok-card").first(),
         page.locator(".finding").first(),
         page.locator(".source-span").first()

@@ -231,6 +231,99 @@
   background: var(--color-sunken);
 }
 
+/* ── the kind glyph, and grouping ── */
+
+/* Ink, and distinguished by shape. Never a tint: category colour is unshipped (EPIC-003's accepted
+   deviation) and green/red/amber are spoken for. The kind's name sits beside it as text, so the
+   shape is a second signal and never the only one. */
+.blok-kind-glyph {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+  stroke-linecap: square;
+  vertical-align: -2px;
+}
+
+/* The persistent leading marker on every card: a shape in a rail on the leading edge, present
+   without hovering, focusing or pinning anything.
+ *
+ * An ink *bar* was tried first — the prototype's shape — and is invisible: it sits directly against
+ * the card's own 2px ink border and reads as a slightly thicker border. The prototype gets away with
+ * it because its bar is coloured per kind, which is the one thing not available here. */
+.blok-card-railed {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-s3);
+  padding-left: var(--spacing-s3);
+}
+.blok-card-rail {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  color: var(--color-ink);
+  flex: none;
+}
+.blok-card-rail .blok-kind-glyph {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.5;
+}
+.blok-card-main {
+  display: block;
+  min-width: 0;
+  flex: 1;
+}
+
+.blok-group-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  margin: var(--spacing-s4) 0 var(--spacing-s2);
+  padding: 0 var(--spacing-s1);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.blok-group:first-child .blok-group-heading {
+  margin-top: 0;
+}
+.blok-group-count {
+  color: var(--color-ink-3);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* The view control. Two real buttons in a named group: keyboard-native, and `aria-pressed` says
+   which view is showing without inventing a widget nobody has met. */
+.blok-view-control {
+  display: flex;
+  gap: var(--spacing-s2);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--spacing-s3) var(--spacing-s4);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+}
+.blok-view-control-legend {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  margin-right: auto;
+}
+
+@media (max-width: 1019px) {
+  .blok-view-control .btn {
+    min-height: 44px;
+  }
+}
+
 /* ── findings ── */
 .findings {
   margin-top: var(--spacing-s5);
