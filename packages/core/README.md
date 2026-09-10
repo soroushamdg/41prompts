@@ -14,6 +14,10 @@ deterministic graders, and artifact schema. Zero dependencies, no DOM, no IO. Ap
 - **`cluster(segments)`** — groups segments into bloks, each owning a *set* of ranges, so a rule
   stated in three places is one thing the user edits once. See
   [`src/cluster/README.md`](src/cluster/README.md) for the merge rule and its guards.
+- **`heuristicSummariser`** and the `Summariser` seam — a short line describing what a blok says,
+  as metadata about the text and never a replacement for it. See
+  [`src/summarise/README.md`](src/summarise/README.md) for the cache key and how to add an
+  implementation.
 - **`SEGMENT_FIXTURES`** and **`CLUSTER_FIXTURES`**, from `@41prompts/core/fixtures` — the committed
   corpora, with a snapshot per prompt. A subpath rather than the root: they are real, shared test
   data, and the root is the surface the SDK contract freezes.
