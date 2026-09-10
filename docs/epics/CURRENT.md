@@ -1,109 +1,107 @@
 # CURRENT
 
-**EPIC-011b is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-011b-report.md`; the session log is
-`docs/epics/sessions/EPIC-011b-session.md`. Three open questions for the advisor, and two
-requirements carried into EPIC-020 and EPIC-031, are at the end of the report. This file stays
-pointed at EPIC-011b until the next epic is written and copied here per `docs/PROCESS.md`'s loop.
-
-A mirror of `docs/epics/EPIC-011b-summariser.md`. EPIC-011b was the current epic. EPIC-010 and EPIC-011a are done, and all of EPIC-011a's open questions are ruled — three of
-them recorded as requirements on EPIC-012a and EPIC-013 at the end of
-`docs/epics/reports/EPIC-011a-report.md`. EPIC-080 and EPIC-005 remain deferred.
+A mirror of `docs/epics/EPIC-012a-detectors.md`, per `docs/PROCESS.md`. EPIC-012a is the current
+epic. EPIC-010, EPIC-011a and EPIC-011b are done, and their open questions are ruled — including
+EPIC-011b's cache key, which keeps the blok's kind. Two requirements carried forward land in later
+epics, not this one: EPIC-020 finishes the compiler tripwire, EPIC-031 supplies the model transport.
+EPIC-080 and EPIC-005 remain deferred.
 
 ---
 
-# EPIC-011b: Summariser interface
-Stage: 1 · Depends on: EPIC-011a · Size: S
+# EPIC-012a: Five detectors
+Stage: 1 · Depends on: EPIC-011b · Size: M
 
 ## Goal
-Every blok carries a short summary, so a user scanning a canvas of forty cards knows what each one is without
-reading its source. The summary is **metadata about** the text, never a replacement for it, and the user can
-always tell which kind of summary they are looking at.
+Findings. A pasted prompt comes back with a short list of specific, defensible problems ; each one pointing at the
+bloks that caused it. This is the payload of the decompiler and the reason anyone pastes a prompt into 41Prompts
+instead of reading it themselves.
 
-## Why this is small and interface-first
-The model-backed summariser lives in the worker and its prompt is proprietary. `packages/core` must work without
-it, offline, with zero dependencies. So this epic is mostly a contract: one interface, one honest heuristic
-implementation in core, one model-backed implementation in the worker behind the same interface, and a cache.
-Getting the seam right matters more than the summary quality, which will be tuned for a year.
+## Why this is the epic that sells the product
+Segmentation, classification and summaries are plumbing the user never asked for. Findings are the visible value:
+*"these two rules contradict each other", "this rule can never be tested", "you said this three times"*. Every
+finding must be one the user reads and thinks "that's true, and I hadn't noticed". A finding they disagree with
+costs more trust than a finding they never saw.
 
 ## Decisions (do not re-litigate)
-1. `Summariser` is an interface in `packages/core`:
-   `summarise(blok: Blok, source: string): Summary` where
-   `Summary = { text: string; source: "heuristic" | "model"; inputHash: string }`.
-   The `source` field is not optional and is not inferred; a caller can always tell where a summary came from.
-2. **Rule 3 is absolute**: the summary is metadata. The compiler never emits it, no epic may substitute it for the
-   blok's verbatim text, and a test in core asserts that a summary never appears in compiled output once EPIC-020
-   exists. Write the test now as a placeholder that fails loudly if that changes.
-3. The **heuristic implementation lives in core**, is deterministic, and is honest about being dumb: leading
-   clause or first sentence, truncated at a named constant, with the blok's kind prefixed where it helps. It never
-   guesses intent and never paraphrases. `source: "heuristic"`.
-4. The **model-backed implementation lives in `apps/worker`** (rule 2: models label and summarise, from the
-   worker). Its prompt is proprietary and never leaves the worker. `source: "model"`.
-5. **Caching is by content hash**: `inputHash` is a hash of the blok's verbatim text plus the summariser's own
-   version identifier. Change the prompt, change the version, invalidate the cache. Hashing is a pure function in
-   core; the cache store is the worker's problem, not core's.
-6. `packages/core` **must never reach a model, the network, or the filesystem** ; enforced by an existing boundary
-   test plus one new test that asserts the heuristic summariser touches no global.
-7. Summaries are never trusted silently by the product: EPIC-013 shows the `source` and, if EPIC-080's study says
-   so, an explicit "not verified" cue. This epic exposes the data that makes that possible and takes no position
-   on the visual treatment.
-8. A summary of a multi-range blok summarises the blok, not its first range. Where the ranges disagree, the
-   heuristic says less rather than picking one.
-9. Empty input, whitespace-only bloks and single-word bloks all produce a valid `Summary`; nothing throws.
+1. `packages/core`, pure, deterministic, zero dependencies. No model decides whether something is a finding.
+2. `detect(bloks: Blok[], source: string): Finding[]` where
+   `Finding = { id: string; kind: FindingKind; severity: Severity; message: string; bloks: string[]; ranges: Range[]; suggestion?: string }`.
+   `bloks` names every blok involved ; a contradiction has two, a repeat may have three. `ranges` are the exact
+   spans the UI highlights.
+3. `FindingKind` is exactly five: `repeated | contradiction | untestable | padding | too_long`. Not four, not six.
+   Adding a sixth is an epic, not a patch.
+4. `Severity` is `high | medium | low`, and it maps to nothing in the colour system except through EPIC-013's
+   design decisions. Severity is about how likely the finding is to be real *and* costly, not about how confident
+   the detector feels.
+5. **False positives are the failure mode that matters.** A detector that fires on a prompt where nothing is wrong
+   teaches the user to ignore the panel. When a rule is ambiguous, do not fire. Each detector's tests include a
+   "must not fire" set drawn from the EPIC-010 corpus, and the report states the false-positive count on all 25
+   fixtures.
+6. Detector definitions:
+   - **repeated** ; two or more bloks say substantially the same thing. Reuse EPIC-011a's normalised-token overlap
+     and threshold rather than inventing a second similarity measure. Fires across bloks; never inside one.
+   - **contradiction** ; two bloks give incompatible instructions. Includes the **antonym case carried from
+     EPIC-011a**: "keep the summary short" and "keep the summary long" merged into one blok by token overlap must
+     still be found and reported. Since clustering can hide a contradiction inside a blok, this detector inspects
+     *ranges*, not only blok pairs, and one of its named tests is exactly that shape.
+   - **untestable** ; a rule stated so vaguely that no check could ever verify it: "be helpful", "sound natural",
+     "use good judgement". Data-driven from a committed phrase list, not a model.
+   - **padding** ; text that adds tokens and no instruction: "please", "as an AI language model", pleasantries,
+     restated context.
+   - **too_long** ; the prompt, or one blok, exceeds a named threshold. The constant is exported and revisitable
+     once EPIC-084 has real distribution data.
+7. Every finding carries a `message` written for the ICP: specific, quotes or points at the text, never scolding.
+   No message may use a forbidden word (ADR-003). Suggestions, where present, are concrete rewrites or "add a
+   check for this", never "consider revising".
+8. Finding order is deterministic: by severity, then by the `start` of the first range, then by `kind`. Ids are
+   content-derived and stable, so a user can share a link to a finding.
+9. Findings are advisory here. Nothing blocks, nothing is auto-fixed. Blocking belongs to publishing (rule 9).
 
 ## Scope
-- `packages/core/src/summarise/`: the `Summariser` interface, `types.ts`, `heuristic.ts`, the hash function, the
-  truncation constant, a `README.md` explaining the seam and how to add an implementation.
-- `apps/worker`: a model-backed implementation behind the same interface, its prompt in the worker, pinned model
-  version (rule 7), cached by `inputHash`, with a documented fallback to the heuristic when the model call fails
-  ; a failed summary must never fail a decompile.
-- Tests: interface contract tests that any implementation must pass, run against both implementations; the
-  boundary test; determinism of the heuristic; the "summary is never compiled output" placeholder test.
+- `packages/core/src/detect/`: `detect.ts`, one module per detector, `Finding`/`Severity` types, the phrase lists
+  and thresholds as committed data files, a `README.md` per detector explaining what it fires on, what it
+  deliberately does not, and how to tune it.
+- Fixtures: for each detector, a positive fixture, a near-miss fixture that must not fire, and the finding
+  snapshot. Plus a whole-prompt fixture producing several findings at once with a committed ordering.
+- The decompiler prototype's sample prompt run end to end: segment → cluster → summarise → detect, with the
+  resulting findings committed as a snapshot and compared against the prototype's own diagnostics in the report.
+- A false-positive audit over all 25 EPIC-010 fixtures, with the count and every fired finding listed in the
+  report so a human can judge each one.
 
 ## Out of scope
-- Any UI, card layout, or "unverified" badge. (EPIC-013.)
-- Findings and detectors. (EPIC-012a.)
-- Tuning summary quality beyond "not misleading".
-- Streaming, batching, or cost accounting for the model call. (EPIC-031 owns run economics.)
-- Translation or multilingual summaries.
+- `rules-without-checks` detector. (EPIC-012b, deliberately separate.)
+- Any UI, panel, colour or severity styling. (EPIC-013.)
+- Auto-fix, rewriting, or applying a suggestion. (Not in v1.)
+- Model-assisted detection of any kind.
 
 ## Acceptance criteria
-- [x] `Summariser`, `Summary`, the heuristic implementation and the hash function are exported from
-      `packages/core`; zero new dependencies. Evidence: `package.json` diff.
-- [x] A shared contract test suite runs against both the core heuristic and the worker's model-backed
-      implementation, and both pass. Evidence: test names and the file both import.
-- [x] `source` is always present and correct; a test fails if an implementation returns a summary without it.
+- [ ] `detect()` and the `Finding` type exported from `packages/core`; zero new dependencies. Evidence:
+      `package.json` diff.
+- [ ] All five detector kinds implemented, each with a positive fixture, a near-miss fixture that does not fire,
+      and a committed snapshot. Evidence: ten test names.
+- [ ] The antonym case carried from EPIC-011a is a named test: a blok containing both "keep the summary short" and
+      "keep the summary long" produces a `contradiction` finding pointing at both ranges. Evidence: test name and
+      snapshot.
+- [ ] False-positive audit: every finding fired across the 25 EPIC-010 fixtures is listed in the report with a
+      one-line judgement of whether it is real. Evidence: the report table.
+- [ ] Determinism: 100 runs over every fixture produce byte-identical findings, including ids and order.
       Evidence: test name.
-- [x] The heuristic is deterministic: 100 runs over every EPIC-011a clustering fixture produce identical
-      summaries. Evidence: test name.
-- [x] `inputHash` changes when the blok text changes and when the summariser version changes, and does not change
-      otherwise. Evidence: three test names.
-- [x] A boundary test proves `packages/core`'s summariser touches no network, filesystem, timer, or model.
-      Evidence: test name and the dependency-cruiser rule.
-- [x] A multi-range blok whose ranges say different things produces a summary that does not assert either one.
-      Evidence: fixture and snapshot.
-- [x] Empty, whitespace-only, single-word and 10,000-character bloks all return a valid `Summary` without
-      throwing. Evidence: test name.
-- [x] The worker's model summariser falls back to the heuristic when the model call fails, and the returned
-      `Summary` says `source: "heuristic"`. Evidence: test name with the failure injected.
-- [x] The judge/summariser model is pinned by version, not a floating alias (rule 7). Evidence: the constant.
-- [x] The placeholder test asserting a summary never becomes compiled output exists and is referenced from
-      EPIC-020's future scope. Evidence: test name.
-- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [x] Report and session log written; backlog updated.
-
-## Verification
-```
-pnpm --filter @41prompts/core test
-pnpm --filter @41prompts/worker test
-pnpm compliance
-```
+- [ ] Every `ranges` entry is within bounds and points at text that actually supports the finding; an invariant
+      test checks bounds over all fixtures and 1,000 generated inputs. Evidence: test name.
+- [ ] Every finding's `bloks` names at least one existing blok id, and a contradiction names at least two.
+      Evidence: test name.
+- [ ] Forbidden-word grep passes over every message and suggestion string. Evidence: the compliance job.
+- [ ] The prototype's sample prompt produces findings that are compared with the prototype's diagnostics in the
+      report, with each deviation justified. Evidence: snapshot plus a paragraph.
+- [ ] Performance: the 100 KB gate still passes with detection included; report the number. Evidence: timing.
+- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [ ] Report and session log written; backlog updated.
 
 ## Notes for the implementer
-- The worker's summariser needs `ANTHROPIC_API_KEY`; it is already in `.env.example`. If it is not set in Coolify,
-  ask once in a batched checklist rather than blocking, and make the tests run without it.
-- Do not make the heuristic clever. A summary that is obviously mechanical is safer than one that sounds
-  confident and is wrong; EPIC-080 exists partly to find out how much users trust these.
-- If EPIC-080's or EPIC-005's findings arrive mid-epic, stop and ask.
-- If the seam cannot be built without core depending on something, write `docs/epics/BLOCKER-EPIC-011b.md`
-  and stop.
+- Write the "must not fire" fixtures before the detectors, exactly as the false-merge fixture came before the
+  merge rule in EPIC-011a. That sequencing has now caught two real defects; keep it.
+- Read the prototype's diagnostics code, then **run** it rather than trusting it. EPIC-011a found three false
+  merges in it by doing so.
+- `untestable` and `padding` are the two most likely to annoy. Bias them hard toward silence.
+- A message is product copy. Write it as if the user is a senior engineer who is busy and slightly sceptical.
+- If a detector cannot be made deterministic without guessing, write `docs/epics/BLOCKER-EPIC-012a.md` and stop.
