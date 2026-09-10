@@ -15,7 +15,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-000 | Repo scaffold: monorepo, TS strict, lint, Vitest, CI, Apache-2.0 + SPDX on public packages, boundary allow-list | M | — | done |
-| EPIC-005 | Customer discovery: 10 interviews with ICP engineers, 5 written use cases, pricing check, activation definition | S | — | deferred |
+| EPIC-005 | Customer discovery: 10 interviews with ICP engineers, 5 written use cases, pricing check, activation definition | S | — | cut |
 | EPIC-006 | Namespaces and marks: npm org, GitHub org, PyPI names, trademark knockout search, domain check | S | — | todo |
 | EPIC-001 | Infra: AWS Lightsail Montréal + Coolify, Compose (postgres, web, worker), staging + prod, TLS, nightly backups to R2, restore drill; infra as code, no agent SSH | M | 000 | done |
 | EPIC-002 | Data + auth: Drizzle baseline, migrations, Better Auth (Google, GitHub, email), protected routes, account purge window | M | 001 | done |
@@ -28,9 +28,9 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
-| EPIC-080 | research: one 12-participant study on the decompiler prototype; "blok" comprehension, touch discoverability, summary trust | S | — | deferred |
+| EPIC-080 | research: one 12-participant study on the decompiler prototype; "blok" comprehension, touch discoverability, summary trust | S | — | cut |
 | EPIC-010 | core: deterministic segmenter with exact offsets, fixture corpus, property tests | M | 000 | done |
-| EPIC-011a | core: blok classifier with labelled table; deterministic clustering into multi-range bloks | M | 010, 080 | done |
+| EPIC-011a | core: blok classifier with labelled table; deterministic clustering into multi-range bloks | M | 010 | done |
 | EPIC-011b | core: summariser interface (heuristic in core, model-backed in worker, cached); topic keys as data | S | 011a | done |
 | EPIC-012a | core: detectors — repeated, contradiction, untestable, padding, too-long; Finding schema, severity | M | 011b | done |
 | EPIC-012b | core: rules-without-checks detector; suggested-fix wording; false-positive audit on corpus | S | 012a | todo |
@@ -43,8 +43,12 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | ▣ GATE 1 | Stage 1 exit: criteria in roadmap | — | 084 | — |
 
 Stage 1 runs out of backlog order. **EPIC-080** (prototype study) and **EPIC-005** (interviews) are
-`deferred`, not `cut`: their findings arrive mid-stage and will change EPIC-011a, EPIC-011b and EPIC-013.
-EPIC-010 is interview-proof — no research finding moves where a paragraph ends — so it goes first.
+`cut` — Soroush's decision, 2026-09-10: the prototypes in `docs/design/` and `docs/roadmap.md` are the
+spec from here, and the per-milestone kill criteria in `docs/roadmap.md` are the only feedback
+mechanism before Stage 2. Neither is deferred, so nothing waits on them and nothing may be blocked on
+them. The `Depends` column of every epic that named one has been cleared; where a cut epic owed a
+later epic an output, that debt is listed under its section in `docs/roadmap.md` rather than left
+implicit. EPIC-010 was interview-proof anyway — no research finding moves where a paragraph ends.
 
 ## Stage 2 · Bloks and compiler
 
@@ -100,7 +104,7 @@ EPIC-010 is interview-proof — no research finding moves where a paragraph ends
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
-| EPIC-070 | Stripe: Free / Pro / Team, usage meter, run gating, BYO-key unlock, dunning | M | 004, 005 | todo |
+| EPIC-070 | Stripe: Free / Pro / Team, usage meter, run gating, BYO-key unlock, dunning | M | 004 | todo |
 | EPIC-071 | Legal full: lawyer review, Team DPA, provider ToS re-check for published comparisons, trademark filing status | S | 017 | todo |
 | EPIC-072 | Marketing site final: all pages from the mockup, run demo, rotator, counters wired to real data, third-party notices page | M | 016, 055 | todo |
 | EPIC-073 | Launch 2: content series from run data, outreach to 30 teams paying for evals, launch dashboard | S | 035, 072 | todo |
@@ -134,3 +138,11 @@ EPIC-010 is interview-proof — no research finding moves where a paragraph ends
 - SDK telemetry on by default
 - MIT for public packages (replaced by Apache-2.0)
 - The word "block" anywhere in code, schema or UI
+- EPIC-005, customer discovery interviews (2026-09-10). The prototypes and the roadmap are the spec;
+  the kill criteria per milestone replace interviews as the feedback mechanism before Stage 2. The
+  two survey responses that did arrive are in `docs/research/discovery/survey/`, marked n=2 and not
+  actionable. Reopening this costs EPIC-034 its research-backed definition of "activated" and
+  EPIC-070 its validated prices — both now rest on the roadmap's own numbers.
+- EPIC-080, the 12-participant decompiler prototype study (2026-09-10). Same decision. "Blok" as a
+  term, touch discoverability and summary trust are now settled by the prototypes and tested by
+  EPIC-084's live read rather than by a study.
