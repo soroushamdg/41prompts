@@ -24,6 +24,10 @@ const SKIP_FILES = new Set(["contrast.ts", "contrast-cli.ts", "contrast.test.ts"
 // s? catches the plain plural too (assertions, blocks, labels, ...) — CLAUDE.md lists base forms
 // but plainly means the word, not just its exact singular spelling.
 const WORD_RE = new RegExp(`\\b(${FORBIDDEN.join("|")})s?\\b`, "gi");
+// Each exemption records the epic that added it and why, so the list stays auditable and nobody
+// has to reconstruct the argument from a blame view.
+// `label`  — EPIC-003: the <label> element and aria-label/aria-labelledby are the accessibility API.
+// `block`  — EPIC-013: scrollIntoView({ block: "nearest" }) is a DOM option name, not our word.
 const LABEL_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|htmlFor=/i;
 const BLOCK_CONTEXT_RE = /scrollIntoView\s*\(/;
 

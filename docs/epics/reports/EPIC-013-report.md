@@ -258,11 +258,43 @@ Three test defects worth recording, because each looks exactly like a product bu
 
 ## 7. Open questions for the advisor
 
+> **All four ruled 2026-09-10**, recorded beneath each question. **Question 1's premise was wrong in
+> this report and the correction sits with it** — the sentence "all three misses are now the same
+> shape" was not true, and it belongs here rather than quietly fixed in the code.
+
+
 1. **All three classifier misses are now one shape.** A numbered list item whose verb the
    `constraint-output-verb` anchor cannot see, because `^` matches before the list marker. Three of
    three is a pattern rather than a coincidence, and the fix is one anchor in `heuristics.json` — but
    it moves clustering snapshots across the package and belongs to EPIC-011a, not here. Worth a
    fix-up epic before EPIC-020 depends on the classifier further?
+
+   **Ruling: fix it as an EPIC-011a fix-up in its own PR, before EPIC-014** — one `heuristics.json`
+   change, re-run the accuracy table, update every clustering snapshot it moves, report accuracy
+   before and after, and stop rather than accept a snapshot that looks like a false merge.
+
+   **Correction, found on starting that work: the question above is wrong, twice.** Measured with and
+   without the markers:
+
+   | segment | with marker | marker removed |
+   |---|---|---|
+   | `"1. Read the failing job's logs…"` | context | **still context** |
+   | `"1. Report differences in spacing…"` | context | **still context** |
+   | `"- Quote the exact line."` | **constraint** | constraint |
+
+   `classify.ts` has stripped a leading list marker before matching since EPIC-011a
+   (`LEADING_MARKER`), so **the marker was never the blocker** and the change the ruling authorises
+   would have been a no-op. And the three misses are two causes, not one shape:
+
+   - `tool-use-agent[5]` and `design-review-screenshots[6]` — **"read" and "report" are not in
+     `constraint-output-verb`'s verb list.** A vocabulary gap.
+   - `bulleted-with-nesting[4]`, "Anything not covered here: use judgement and flag it." — "use" *is*
+     in the list, but sits after a colon where the `^` anchor cannot reach it. A structurally
+     different problem.
+
+   The fix-up does the vocabulary half — still one `heuristics.json` change, still what the ruling
+   intends — and leaves the `^` anchor alone as a wider change nobody has authorised. See
+   `docs/epics/reports/EPIC-011a-fixup-report.md`.
 
 2. **`apps/web` consumes `packages/core` as built output, through a Turbopack alias.** Scoped to this
    app, so nothing else changed — but it means the served app depends on `dist` being current
@@ -270,16 +302,26 @@ Three test defects worth recording, because each looks exactly like a product bu
    resolutions of the same package in one repo is a seam worth a decision: leave it, or have EPIC-052
    settle core's entry points properly when it prepares the package for publication?
 
+   **Ruling: parked**, with a note in EPIC-052's scope (`docs/roadmap.md`). It is a published-surface
+   question, not a web one.
+
 3. **`scrollIntoView({ block: … })` is exempted from the ADR-003 grep.** Same category as `<label>`,
    and deliberately narrow — but it is the first exemption added since the script was written, and the
    principle ("platform API names we cannot rename") will admit more. Confirm the principle, or
    require the code to avoid such APIs entirely?
+
+   **Ruling: the principle stands**, and every exemption now carries a one-line comment naming the
+   epic that added it and why, so the list stays auditable. Done in `scripts/forbidden-words.mjs`.
 
 4. **The decompiler prototype has "Dim the rest" and "Edit source" toggles.** Neither is in this
    epic's Scope or criteria, and neither was built. "Dim the rest" appears in the backlog line for this
    epic ("markers, dim"). Deferred deliberately rather than forgotten — EPIC-013's own criteria are the
    contract, and adding an unrequested toggle to the first page a stranger sees is not a decision to
    take silently. Add it, or drop it from the backlog line?
+
+   **Ruling: stays unbuilt** — a backlog line, not a criterion. Recorded as a candidate for
+   **EPIC-084** to judge against real usage: it earns its place only if the live blok-count
+   distribution shows prompts big enough for a pinned highlight to get lost.
 
 ---
 

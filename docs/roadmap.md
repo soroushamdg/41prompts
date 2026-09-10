@@ -212,6 +212,14 @@ by the prototypes, and the first real test of any of them is EPIC-084's live rea
 **Review.** Lawyer's notes attached. Any "must" becomes a task before EPIC-015.
 
 ### EPIC-014 Capture · S
+> **Carried forward from EPIC-013, before this is scoped: what gets stored is CRLF, whatever the author's editor used.**
+> The HTML form-submission algorithm normalises a `<textarea>`'s value to CRLF, so a prompt pasted with `\n` reaches the
+> server as `\r\n`. Measured in EPIC-013, not assumed: with two blank lines ahead of it, a range expected at offset 27
+> arrived at 29 — one extra character per line break. Consequences for this epic: the `decompiles` table stores CRLF; the
+> 20k-character cap counts characters that include a `\r` per line; a permalink replaying a stored source will not be byte-
+> identical to what the author had in their editor; and any diff or hash over stored sources is line-ending-sensitive. The
+> offsets `packages/core` produces index the string the server received, so they stay correct — it is the *stored bytes*
+> that differ from the author's file. EPIC-013's report §1 has the measurement.
 **Goal.** Sharing works, abuse is bounded, retention is enforced, and interest is captured where the editor would be.
 **Tasks.** `decompiles` table (source encrypted at rest); permalink `/d/{id}` with `noindex` and `robots` disallow; "remove this content" endpoint open to anyone, with email confirmation; 30-day purge job; rate limit 20/IP/hour anonymous; 20k-character cap; Turnstile; abuse check (moderation endpoint or classifier) before forwarding anonymous text to a provider on our key; "Save these bloks" → waitlist capture (email) with the promise stated plainly ("the editor is coming; we will email you"), no fake "create project".
 **Tests.** 21st request → 429. Permalink `noindex` header. Removal endpoint deletes. Purge job (clock test). Abuse check blocks a seeded bad input.
@@ -231,7 +239,7 @@ by the prototypes, and the first real test of any of them is EPIC-084's live rea
 
 ### EPIC-084 research: live read · S
 **Goal.** Real numbers before Stage 2 design locks.
-**Tasks.** After 30 days or 300 decompiles, whichever first: funnel conversion; distribution of blok counts and fragment counts per paste; top finding types; waitlist size.
+**Tasks.** After 30 days or 300 decompiles, whichever first: funnel conversion; distribution of blok counts and fragment counts per paste; top finding types; waitlist size. **Also judge one deferred affordance against real usage: "dim the rest"** — the decompiler prototype dims every span except the pinned blok's. EPIC-013 did not build it (it was in that epic's backlog line, never in its Scope or acceptance criteria; ruled 2026-09-10 to stay unbuilt). It is worth having only if the blok-count distribution shows prompts big enough that a pinned highlight gets lost, so this read-out decides it rather than taste.
 **Tests.** A one-page read-out in `docs/research/`.
 **Review.** Feeds GATE 1 and decides whether blok grouping moves into EPIC-021a.
 
@@ -390,6 +398,7 @@ Go: proceed to EPIC-035 and Stage 4. No-go: fix-up epic (M) or a two-week onboar
 **Tasks.** `resolve()` memory → disk → bundled → background network; never throws, `onWarning`; variable validation; jittered refresh with ETag; artifact sha verified against pointer; zero dependencies; telemetry off by default with a documented opt-in; README documents exactly what opt-in sends.
 **Tests.** Offline returns bundled; stale serves old then refreshes; 1,000 concurrent → one fetch; never-throw fuzz; sha mismatch rejected.
 **Review.** Bundle under 15 KB. Public API frozen (ADR-006).
+**Carried forward from EPIC-013 (parked 2026-09-10): `packages/core` is resolved two ways in this repo.** `apps/web` reads its **built** `dist` through a Turbopack alias, while `tsc` and Vitest read its **source** through the unchanged `main`. That is because core is `moduleResolution: NodeNext`, so its relative imports carry the `.js` extension TypeScript requires while the files are `.ts`, and Turbopack does not map one to the other (`transpilePackages` and `experimental.extensionAlias` were both tried and neither applies). It works — `predev` and turbo's `^build` keep `dist` current — but it is a published-surface question, not a web one: this epic has to settle core's `main`/`exports` for publication anyway, and should decide then whether the alias goes away. EPIC-013's report, open question 2.
 
 ### EPIC-055 web: Deploy, Connect (TypeScript), keys, publish flow · M
 **Goal.** The delivery UI, TypeScript path only.
