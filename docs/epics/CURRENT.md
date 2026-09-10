@@ -1,114 +1,104 @@
 # CURRENT
 
-**EPIC-011a is done** — every acceptance criterion below is checked with evidence in
-`docs/epics/reports/EPIC-011a-report.md`; the session log is
-`docs/epics/sessions/EPIC-011a-session.md`. Five open questions for the advisor are at the end of the
-report. This file stays pointed at EPIC-011a until the next epic is written and copied here per
-`docs/PROCESS.md`'s loop.
-
-A mirror of `docs/epics/EPIC-011a-classifier-clustering.md`. EPIC-011a was the current epic. EPIC-010 is done (`docs/epics/reports/EPIC-010-report.md`), including the
-advisor's rulings on its five open questions; the one carry-over is in this epic's Scope — flatten
-the allocation in `tags.ts` so the growth-exponent gate has real headroom. EPIC-080 and EPIC-005
-are still deferred: per the standing note below, their findings are a data change here, not a
-rewrite.
+A mirror of `docs/epics/EPIC-011b-summariser.md`, per `docs/PROCESS.md`. EPIC-011b is the current
+epic. EPIC-010 and EPIC-011a are done, and all of EPIC-011a's open questions are ruled — three of
+them recorded as requirements on EPIC-012a and EPIC-013 at the end of
+`docs/epics/reports/EPIC-011a-report.md`. EPIC-080 and EPIC-005 remain deferred.
 
 ---
 
-# EPIC-011a: Classifier and clustering
-Stage: 1 · Depends on: EPIC-010 · Size: M
+# EPIC-011b: Summariser interface
+Stage: 1 · Depends on: EPIC-011a · Size: S
 
 ## Goal
-Every segment gets a **kind**, and fragments of the same rule scattered across a prompt become **one blok owning
-several ranges**. This is the step that turns a flat list of segments into the thing the product is named after.
+Every blok carries a short summary, so a user scanning a canvas of forty cards knows what each one is without
+reading its source. The summary is **metadata about** the text, never a replacement for it, and the user can
+always tell which kind of summary they are looking at.
 
-## Standing note on research
-EPIC-080 and EPIC-005 have not run. Their findings can change the *word* "blok", the *presentation* of kinds, and
-which merges feel right ; they cannot change that clustering must be deterministic, or that a blok owns a set of
-ranges. Build so those findings are a data change, not a rewrite: the labelled table, the topic keys and the merge
-threshold are all data files, and the kind names are one exported union edited in one place.
+## Why this is small and interface-first
+The model-backed summariser lives in the worker and its prompt is proprietary. `packages/core` must work without
+it, offline, with zero dependencies. So this epic is mostly a contract: one interface, one honest heuristic
+implementation in core, one model-backed implementation in the worker behind the same interface, and a cache.
+Getting the seam right matters more than the summary quality, which will be tuned for a year.
 
 ## Decisions (do not re-litigate)
-1. `packages/core`, pure, zero dependencies, deterministic (rules 2 and 11). No model call decides a kind or a
-   merge. Models label and summarise later, from the worker, and only as metadata.
-2. Kinds are exactly the six in `CLAUDE.md`: `context | constraint | example | expected | image_ref |
-   image_input`. `classify()` returns one kind plus a confidence in `[0,1]`; low confidence is `context`, which is
-   the safe default because it changes nothing about how the text compiles.
-3. `classify(segment: Segment): { kind: BlokKind; confidence: number; matched: string }` ; `matched` names the
-   heuristic that fired, so a wrong classification is debuggable without a debugger.
-4. Heuristics are **ordered and data-driven**: an ordered list of patterns in a committed data file, first match
-   wins, each entry carrying its kind and a stable id. Adding a heuristic is a data edit plus a snapshot update.
-5. A **labelled table of 60 examples** is committed as the accuracy fixture: segment text plus expected kind,
-   drawn from the EPIC-010 corpus and the decompiler prototype's sample. Accuracy target ≥90%; the test prints
-   every miss with its `matched` value so failures are actionable.
-6. `cluster(segments): Blok[]` where `Blok = { id: string; kind: BlokKind; ranges: Range[] }` and
-   `Range = { start: number; end: number }`. **A blok always carries `ranges` as an array**, even when it has one
-   (rule 5). Ranges are sorted by `start`, never overlap, and are never merged into a span that covers text the
-   blok does not own.
-7. Merge rule: two segments join the same blok when they share a **kind** and either a **topic key** or a
-   normalised-token overlap of **≥ 0.6**. The threshold is an exported named constant. Topic keys live in a
-   committed `topics.json`; normalisation is lowercase, strip punctuation, split on whitespace, drop a committed
-   stop-word list. No stemming ; it is locale-sensitive and not worth the non-determinism.
-8. Blok order is deterministic: by the `start` of each blok's first range. Blok ids are stable for the same input
-   and are derived from content, not from a counter, so re-running produces identical ids.
-9. Non-adjacent merging is the point. A rule stated in the opening paragraph and repeated in a numbered list at
-   the end is one blok with two ranges. Prove it with a fixture built for exactly that shape.
-10. Wrong merges are worse than missed merges. When in doubt, do not merge; a user can join two bloks, but a bad
-    merge hides text inside a blok they did not expect to own it.
+1. `Summariser` is an interface in `packages/core`:
+   `summarise(blok: Blok, source: string): Summary` where
+   `Summary = { text: string; source: "heuristic" | "model"; inputHash: string }`.
+   The `source` field is not optional and is not inferred; a caller can always tell where a summary came from.
+2. **Rule 3 is absolute**: the summary is metadata. The compiler never emits it, no epic may substitute it for the
+   blok's verbatim text, and a test in core asserts that a summary never appears in compiled output once EPIC-020
+   exists. Write the test now as a placeholder that fails loudly if that changes.
+3. The **heuristic implementation lives in core**, is deterministic, and is honest about being dumb: leading
+   clause or first sentence, truncated at a named constant, with the blok's kind prefixed where it helps. It never
+   guesses intent and never paraphrases. `source: "heuristic"`.
+4. The **model-backed implementation lives in `apps/worker`** (rule 2: models label and summarise, from the
+   worker). Its prompt is proprietary and never leaves the worker. `source: "model"`.
+5. **Caching is by content hash**: `inputHash` is a hash of the blok's verbatim text plus the summariser's own
+   version identifier. Change the prompt, change the version, invalidate the cache. Hashing is a pure function in
+   core; the cache store is the worker's problem, not core's.
+6. `packages/core` **must never reach a model, the network, or the filesystem** ; enforced by an existing boundary
+   test plus one new test that asserts the heuristic summariser touches no global.
+7. Summaries are never trusted silently by the product: EPIC-013 shows the `source` and, if EPIC-080's study says
+   so, an explicit "not verified" cue. This epic exposes the data that makes that possible and takes no position
+   on the visual treatment.
+8. A summary of a multi-range blok summarises the blok, not its first range. Where the ranges disagree, the
+   heuristic says less rather than picking one.
+9. Empty input, whitespace-only bloks and single-word bloks all produce a valid `Summary`; nothing throws.
 
 ## Scope
-- `packages/core/src/classify/`: `classify.ts`, `heuristics.json`, kind union in `types.ts`.
-- `packages/core/src/cluster/`: `cluster.ts`, `topics.json`, `stopwords.json`, the exported threshold constant.
-- Fixtures: the 60-example labelled table; at least five whole-prompt clustering fixtures with committed snapshots,
-  including one built specifically to produce a multi-range blok and one built to tempt a false merge and not fall
-  for it.
-- A `README.md` in each module: what fires in what order, how to add a heuristic or a topic key, and the
-  false-merge test that any new topic key must not break.
-- **Carry-over from EPIC-010**: flatten the allocation in `tags.ts` (parallel arrays rather than one object per
-  tag, avoid per-line slicing) so the growth-exponent gate has real headroom. Keep the bar at 1.6; report the new
-  exponent in this epic's report. Same module, same session, so it happens here rather than as its own epic.
+- `packages/core/src/summarise/`: the `Summariser` interface, `types.ts`, `heuristic.ts`, the hash function, the
+  truncation constant, a `README.md` explaining the seam and how to add an implementation.
+- `apps/worker`: a model-backed implementation behind the same interface, its prompt in the worker, pinned model
+  version (rule 7), cached by `inputHash`, with a documented fallback to the heuristic when the model call fails
+  ; a failed summary must never fail a decompile.
+- Tests: interface contract tests that any implementation must pass, run against both implementations; the
+  boundary test; determinism of the heuristic; the "summary is never compiled output" placeholder test.
 
 ## Out of scope
-- Summaries of any kind. (EPIC-011b.)
-- Findings, diagnostics, severity. (EPIC-012a.)
-- Compiling bloks back to text. (EPIC-020.)
-- Any UI, colour, or interaction. (EPIC-013.)
-- Model-backed classification. Not now, and not later without an ADR.
+- Any UI, card layout, or "unverified" badge. (EPIC-013.)
+- Findings and detectors. (EPIC-012a.)
+- Tuning summary quality beyond "not misleading".
+- Streaming, batching, or cost accounting for the model call. (EPIC-031 owns run economics.)
+- Translation or multilingual summaries.
 
 ## Acceptance criteria
-- [x] `classify()` and `cluster()` exported from `packages/core` with the documented signatures; zero new
-      dependencies. Evidence: `package.json` diff.
-- [x] Accuracy on the 60-example labelled table is ≥90%, and the test output names every miss with its `matched`
-      heuristic. Evidence: test output.
-- [x] Every blok carries `ranges` as an array; a type-level and a runtime test both fail if a single-range blok is
-      ever represented as a bare range. Evidence: two test names.
-- [x] The multi-range fixture produces exactly the expected blok with two non-adjacent ranges at the expected
-      offsets. Evidence: snapshot.
-- [x] The false-merge fixture produces two separate bloks, and the test says which threshold or topic key would
-      have to change to break it. Evidence: snapshot and the test's comment.
-- [x] Determinism: 100 runs over every fixture produce byte-identical bloks, including ids and order. Evidence:
-      test name.
-- [x] Ranges within a blok are sorted, non-overlapping, and within the input's bounds, checked as an invariant
-      over all fixtures and 1,000 generated inputs. Evidence: test name.
-- [x] The decompiler prototype's sample prompt clusters into the same bloks the prototype produces, or the
-      deviation is named and justified in the report. Evidence: snapshot plus a paragraph.
-- [x] Adding a topic key to `topics.json` changes exactly the snapshots it should; show the diff. Evidence:
-      README worked example.
-- [x] `tags.ts` allocation flattened; growth exponent reported for local and CI with the new headroom, and the
-      100 KB gate still passes. Evidence: timing output before and after.
-- [x] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
-- [x] Report and session log written; backlog updated.
+- [ ] `Summariser`, `Summary`, the heuristic implementation and the hash function are exported from
+      `packages/core`; zero new dependencies. Evidence: `package.json` diff.
+- [ ] A shared contract test suite runs against both the core heuristic and the worker's model-backed
+      implementation, and both pass. Evidence: test names and the file both import.
+- [ ] `source` is always present and correct; a test fails if an implementation returns a summary without it.
+      Evidence: test name.
+- [ ] The heuristic is deterministic: 100 runs over every EPIC-011a clustering fixture produce identical
+      summaries. Evidence: test name.
+- [ ] `inputHash` changes when the blok text changes and when the summariser version changes, and does not change
+      otherwise. Evidence: three test names.
+- [ ] A boundary test proves `packages/core`'s summariser touches no network, filesystem, timer, or model.
+      Evidence: test name and the dependency-cruiser rule.
+- [ ] A multi-range blok whose ranges say different things produces a summary that does not assert either one.
+      Evidence: fixture and snapshot.
+- [ ] Empty, whitespace-only, single-word and 10,000-character bloks all return a valid `Summary` without
+      throwing. Evidence: test name.
+- [ ] The worker's model summariser falls back to the heuristic when the model call fails, and the returned
+      `Summary` says `source: "heuristic"`. Evidence: test name with the failure injected.
+- [ ] The judge/summariser model is pinned by version, not a floating alias (rule 7). Evidence: the constant.
+- [ ] The placeholder test asserting a summary never becomes compiled output exists and is referenced from
+      EPIC-020's future scope. Evidence: test name.
+- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.
+- [ ] Report and session log written; backlog updated.
 
 ## Verification
 ```
 pnpm --filter @41prompts/core test
+pnpm --filter @41prompts/worker test
 pnpm compliance
 ```
 
 ## Notes for the implementer
-- Read the decompiler prototype's clustering JavaScript first; it is the reference, and its sample prompt has a
-  known blok count. Say in the report where you deviated and why.
-- Build the false-merge fixture before the merge rule. It is the test that stops this epic shipping something that
-  feels clever and is wrong.
-- Confidence is not a probability; it is an ordering device. Do not invent calibration for it.
-- If EPIC-080's or EPIC-005's findings arrive mid-epic, stop and ask; do not guess at what they imply.
-- If a rule cannot be made deterministic, write `docs/epics/BLOCKER-EPIC-011a.md` and stop.
+- The worker's summariser needs `ANTHROPIC_API_KEY`; it is already in `.env.example`. If it is not set in Coolify,
+  ask once in a batched checklist rather than blocking, and make the tests run without it.
+- Do not make the heuristic clever. A summary that is obviously mechanical is safer than one that sounds
+  confident and is wrong; EPIC-080 exists partly to find out how much users trust these.
+- If EPIC-080's or EPIC-005's findings arrive mid-epic, stop and ask.
+- If the seam cannot be built without core depending on something, write `docs/epics/BLOCKER-EPIC-011b.md`
+  and stop.

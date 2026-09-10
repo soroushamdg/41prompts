@@ -31,7 +31,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-080 | research: one 12-participant study on the decompiler prototype; "blok" comprehension, touch discoverability, summary trust | S | — | deferred |
 | EPIC-010 | core: deterministic segmenter with exact offsets, fixture corpus, property tests | M | 000 | done |
 | EPIC-011a | core: blok classifier with labelled table; deterministic clustering into multi-range bloks | M | 010, 080 | done |
-| EPIC-011b | core: summariser interface (heuristic in core, model-backed in worker, cached); topic keys as data | S | 011a | todo |
+| EPIC-011b | core: summariser interface (heuristic in core, model-backed in worker, cached); topic keys as data | S | 011a | current |
 | EPIC-012a | core: detectors — repeated, contradiction, untestable, padding, too-long; Finding schema, severity | M | 011b | todo |
 | EPIC-012b | core: rules-without-checks detector; suggested-fix wording; false-positive audit on corpus | S | 012a | todo |
 | EPIC-013 | web: public `/decompile`; source map, bloks, bidirectional hover + keyboard pin, markers, dim, findings; touch default | M | 003, 012b | todo |
