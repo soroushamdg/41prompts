@@ -32,7 +32,12 @@ export type { Range } from "./segment/types.js";
 // Findings (EPIC-012a) — the visible value of the decompiler, and advisory only: nothing here
 // blocks and nothing is auto-fixed. Blocking belongs to publishing (`CLAUDE.md` rule 9).
 export { detect } from "./detect/detect.js";
-export { MAX_BLOK_WORDS, MAX_PROMPT_WORDS, REPEAT_OVERLAP_THRESHOLD } from "./detect/constants.js";
+export {
+  MAX_BLOK_WORDS,
+  MAX_PROMPT_WORDS,
+  MAX_RULES_WITHOUT_CHECKS,
+  REPEAT_OVERLAP_THRESHOLD
+} from "./detect/constants.js";
 export type { Finding, FindingKind, Severity } from "./detect/types.js";
 
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a

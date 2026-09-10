@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# fires-rule-without-check-capped — Twenty rules, none of them covered by a check. The cap is the whole point: a panel with twenty of one finding in it is a wall, so at most `MAX_RULES_WITHOUT_CHECKS` are reported, ranked, and the rest are counted in the last one's message.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 3 finding(s)
+
+[high] rule_without_check find_4a7a1762b877abf9 bloks=1
+      Nothing checks this rule: "Always respond in JSON only." If the model stops following it, nothing fails.
+      -> Add a "valid JSON shape" check.
+      48..76 "Always respond in JSON only."
+[high] rule_without_check find_f20beb8b5657543b bloks=1
+      Nothing checks this rule: "The JSON must have these fields: id, urgency,…" If the model stops following it, nothing fails.
+      -> Add a "valid JSON shape" check.
+      80..132 "The JSON must have these fields: id, urgency, reply."
+[high] rule_without_check find_8afe8054f75e2782 bloks=1
+      Nothing checks this rule: "Set urgency to one of these values: low, medi…" If the model stops following it, nothing fails. 17 more rules here have no check either.
+      -> Add a "one of the allowed values" check.
+      136..190 "Set urgency to one of these values: low, medium, high."

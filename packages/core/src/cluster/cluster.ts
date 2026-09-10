@@ -12,31 +12,16 @@ import {
   normalise,
   overlap
 } from "./similarity.js";
-import topicsData from "./topics.json" with { type: "json" };
+import { topicOf, topicPatterns } from "./topics.js";
 import type { Blok } from "./types.js";
 
-/**
- * How much of the smaller segment's vocabulary two segments must share before token overlap alone
- * is allowed to merge them (decision 7). Not configurable at run time on purpose: a threshold that
- * varies per caller is a threshold no snapshot can pin down.
- */
-interface Topic {
-  readonly key: string;
-  readonly test: RegExp;
-}
-
-const TOPICS: readonly Topic[] = topicsData.map((row) => ({
-  key: row.key,
-  test: new RegExp(row.pattern, row.flags)
-}));
-
-/** The first topic key that matches, or `null`. File order is precedence. */
-function topicOf(text: string): string | null {
-  for (const topic of TOPICS) {
-    if (topic.test.test(text)) return topic.key;
-  }
-  return null;
-}
+// The merge thresholds live in `similarity.ts` and the topic keys in `topics.ts`, both imported
+// above rather than defined here. Neither is configurable at run time on purpose: a threshold that
+// varies per caller is a threshold no snapshot can pin down.
+//
+// `topicOf` moved out in EPIC-012b so `rule_without_check` can ask the same question about a rule
+// and a check. Same file, same order, same precedence — merge behaviour and every clustering
+// snapshot are unchanged.
 
 /**
  * Sixteen hex digits of FNV-1a, run twice from different offset bases and concatenated. Small,
@@ -202,8 +187,5 @@ export { MERGE_OVERLAP_THRESHOLD };
 
 /** Every committed pattern in this module, for the pattern-safety test. */
 export function clusterPatterns(): ReadonlyArray<{ id: string; pattern: string; flags: string }> {
-  return [
-    ...topicsData.map((row) => ({ id: `topic:${row.key}`, pattern: row.pattern, flags: row.flags })),
-    ...polarityPatterns()
-  ];
+  return [...topicPatterns(), ...polarityPatterns()];
 }

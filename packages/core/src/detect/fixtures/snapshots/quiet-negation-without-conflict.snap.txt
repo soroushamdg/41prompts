@@ -4,5 +4,9 @@
 # quiet-negation-without-conflict — A forbidding rule and a requiring rule about the same subject that are perfectly compatible. `contradiction` must not fire on polarity plus a shared noun — which is exactly what the prototype does.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
+# 1 finding(s)
 
+[medium] rule_without_check find_da43cbb44c5aa9f3 bloks=1
+      Nothing checks this rule: "Always include the pull request number for ea…" If the model stops following it, nothing fails.
+      -> Add a "must contain" check.
+      75..130 "Always include the pull request number for each change."

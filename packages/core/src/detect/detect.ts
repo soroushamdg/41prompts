@@ -6,6 +6,7 @@ import { detectContradiction } from "./contradiction.js";
 import { detectPadding } from "./padding.js";
 import paddingData from "./padding.json" with { type: "json" };
 import { detectRepeated } from "./repeated.js";
+import { detectRuleWithoutCheck, ruleShapePatterns } from "./rule-without-check.js";
 import { detectTooLong } from "./too-long.js";
 import type { Finding, Severity } from "./types.js";
 import { detectUntestable } from "./untestable.js";
@@ -30,6 +31,12 @@ export function detect(bloks: readonly Blok[], source: string): Finding[] {
     ...detectTooLong(bloks, source)
   ];
 
+  // Last, and it is given what the others found. `rule_without_check` says "nothing verifies this
+  // rule" and always suggests adding a check, which is advice nobody can act on while a
+  // `contradiction` or an `untestable` finding stands over the same text — so it stays silent there
+  // (EPIC-012b decision 3, widened by one kind and argued in `rule-without-check.ts`).
+  found.push(...detectRuleWithoutCheck(bloks, source, found));
+
   // Decision 8. Sorted by severity, then by where the first highlight is, then by kind — so the
   // panel reads top-down in the order somebody would work through it, and two runs never disagree.
   const severityRank: Readonly<Record<Severity, number>> = { high: 0, medium: 1, low: 2 };
@@ -50,6 +57,7 @@ export function detect(bloks: readonly Blok[], source: string): Finding[] {
 export function detectPatterns(): ReadonlyArray<{ id: string; pattern: string; flags: string }> {
   return [
     ...untestableData.map((row) => ({ id: `untestable:${row.id}`, pattern: row.pattern, flags: row.flags })),
-    ...paddingData.map((row) => ({ id: `padding:${row.id}`, pattern: row.pattern, flags: row.flags }))
+    ...paddingData.map((row) => ({ id: `padding:${row.id}`, pattern: row.pattern, flags: row.flags })),
+    ...ruleShapePatterns()
   ];
 }

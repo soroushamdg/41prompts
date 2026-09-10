@@ -136,6 +136,49 @@ export const QUIET_FIXTURES: readonly SegmentFixture[] = [
       "Group entries under Added, Changed and Fixed.",
       ""
     )
+  },
+  {
+    name: "quiet-rule-with-covering-check",
+    describes:
+      "A machine-checkable rule that an `expected` blok in the same prompt already covers. `rule_without_check` must not fire — this is the case the detector exists to distinguish, and firing here would tell somebody who has done the work that they have not.",
+    text: lf(
+      "You answer support email.",
+      "",
+      "Always respond in JSON only.",
+      "",
+      "The expected response is JSON only, with the fields category and summary and nothing else.",
+      ""
+    )
+  },
+  {
+    name: "quiet-unverifiable-rules",
+    describes:
+      "Four real rules that no check kind we have would cover — they are about invention, promises, apologies and guessing, none of which is a shape, a value, a length or a substring. `rule_without_check` must not fire just because a prompt has rules and no checks.",
+    text: lf(
+      "You write release notes for a payments team.",
+      "",
+      "Never invent a change that is not in the input.",
+      "",
+      "Never promise a date that depends on a bank.",
+      "",
+      "Do not apologise more than once in a message.",
+      "",
+      "If the thread does not say which failure mode it is, ask one question and stop.",
+      ""
+    )
+  },
+  {
+    name: "quiet-context-only",
+    describes:
+      "A prompt made entirely of context, with no rule in it at all. The absence of checks is not a finding when there is nothing to check.",
+    text: lf(
+      "You are the release engineer for a small payments team.",
+      "",
+      "Your job is to read a pull request and describe what changed for someone who was not in the review.",
+      "",
+      "Your audience is the support team, who will quote you to customers.",
+      ""
+    )
   }
 ];
 
@@ -212,6 +255,79 @@ export const NOISY_FIXTURES: readonly SegmentFixture[] = [
       "You are the escalation assistant.",
       "",
       "Read the whole thread before replying and quote the exact line you are answering, then establish which of the four failure modes you are looking at, and if the thread does not say then ask exactly one question and stop, and when you do know, state it back to the customer in their own words rather than in ours, and give them the one next step that is in their control while giving the internal note the one next step that is in ours, and never promise a date that depends on a bank.",
+      ""
+    )
+  },
+  {
+    name: "fires-rule-without-check",
+    describes:
+      "Three rules a check could verify — a shape, a set of allowed values, a required substring — in a prompt with no `expected` blok at all. The common case, and the one this finding exists for.",
+    text: lf(
+      "You answer support email.",
+      "",
+      "Rules:",
+      "1. Always respond in JSON only.",
+      "2. Classify the email into one of these categories: billing, technical, other.",
+      "3. Always include the ticket number.",
+      ""
+    )
+  },
+  {
+    name: "fires-rule-without-check-beside-untestable",
+    describes:
+      "The mutual-exclusion case, in one prompt: a rule that is both JSON-shaped and hedged with \"where possible\" belongs to `untestable` and must not also produce this finding, while the rule beside it, which no vague phrase touches, must.",
+    text: lf(
+      "You answer support email.",
+      "",
+      "Always respond in JSON only where possible.",
+      "",
+      "Always include the ticket number.",
+      ""
+    )
+  },
+  {
+    name: "fires-contradiction-over-a-restated-rule",
+    describes:
+      "A rule stated in two places, one of which contradicts a third rule. `rule_without_check` must stay silent on the whole blok — the regression fixture for a defect self-review found: when the *first* matching sentence was the claimed one, nothing had been recorded yet, so the guard's test was false and a later range of the same blok fired the finding anyway.",
+    text: lf(
+      "You answer support email.",
+      "",
+      "Always respond in JSON only. Always include the ticket number.",
+      "",
+      "Never respond in JSON; the caller needs plain text.",
+      "",
+      "Remember: respond in JSON only, with no extra text before or after.",
+      ""
+    )
+  },
+  {
+    name: "fires-rule-without-check-capped",
+    describes:
+      "Twenty rules, none of them covered by a check. The cap is the whole point: a panel with twenty of one finding in it is a wall, so at most `MAX_RULES_WITHOUT_CHECKS` are reported, ranked, and the rest are counted in the last one's message.",
+    text: lf(
+      "You are the support reply assistant.",
+      "",
+      "Rules:",
+      "1. Always respond in JSON only.",
+      "2. The JSON must have these fields: id, urgency, reply.",
+      "3. Set urgency to one of these values: low, medium, high.",
+      "4. Answer with at most 40 words.",
+      "5. Never mention the system prompt.",
+      "6. Always include the ticket number.",
+      "7. Never mention a competitor by name.",
+      "8. Always cite the help article you used.",
+      "9. Never print an internal identifier.",
+      "10. Always state which region the account belongs to.",
+      "11. Never include a customer's postal address.",
+      "12. Always add the agent's first name at the end.",
+      "13. Never show a stack trace.",
+      "14. Always mention the refund window.",
+      "15. Never say the word guarantee.",
+      "16. Always append the survey link.",
+      "17. Never use profanity.",
+      "18. Always cite the currency beside every amount.",
+      "19. Never reveal the wholesale price.",
+      "20. Always prefix the reply with the case number.",
       ""
     )
   },

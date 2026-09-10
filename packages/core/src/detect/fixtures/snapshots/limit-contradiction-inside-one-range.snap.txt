@@ -4,5 +4,9 @@
 # limit-contradiction-inside-one-range — A real contradiction between two adjacent sentences of one paragraph, which this detector deliberately does not find. See LIMIT_FIXTURES.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
+# 1 finding(s)
 
+[medium] rule_without_check find_0235c132d92e04d2 bloks=1
+      Nothing checks this rule: "Do not use markdown formatting in your response." If the model stops following it, nothing fails.
+      -> Add a "must not contain" check.
+      28..76 "Do not use markdown formatting in your response."
