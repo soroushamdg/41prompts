@@ -19,7 +19,7 @@ interface Finding {
 This is the visible value of the decompiler. Segmentation, clustering and summaries are plumbing
 nobody asked for; findings are the reason anyone pastes a prompt in.
 
-> The Scope asks for a README per detector. This is one file with a section each instead — five
+> The Scope asks for a README per detector. This is one file with a section each instead — six
 > stubs that cross-reference one another would be worse to read than one page you can search, and
 > the substance the Scope asks for (what it fires on, what it deliberately does not, how to tune it)
 > is here per detector. Flagged in the report.

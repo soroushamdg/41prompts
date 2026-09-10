@@ -286,6 +286,21 @@ export const NOISY_FIXTURES: readonly SegmentFixture[] = [
     )
   },
   {
+    name: "fires-contradiction-over-a-restated-rule",
+    describes:
+      "A rule stated in two places, one of which contradicts a third rule. `rule_without_check` must stay silent on the whole blok — the regression fixture for a defect self-review found: when the *first* matching sentence was the claimed one, nothing had been recorded yet, so the guard's test was false and a later range of the same blok fired the finding anyway.",
+    text: lf(
+      "You answer support email.",
+      "",
+      "Always respond in JSON only. Always include the ticket number.",
+      "",
+      "Never respond in JSON; the caller needs plain text.",
+      "",
+      "Remember: respond in JSON only, with no extra text before or after.",
+      ""
+    )
+  },
+  {
     name: "fires-rule-without-check-capped",
     describes:
       "Twenty rules, none of them covered by a check. The cap is the whole point: a panel with twenty of one finding in it is a wall, so at most `MAX_RULES_WITHOUT_CHECKS` are reported, ranked, and the rest are counted in the last one's message.",

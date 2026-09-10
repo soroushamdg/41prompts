@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: 2026 <legal entity>
 // SPDX-License-Identifier: Apache-2.0
 
-import { normalise, overlap } from "../cluster/similarity.js";
+import { MERGE_OVERLAP_THRESHOLD, normalise, overlap } from "../cluster/similarity.js";
 import { topicOf } from "../cluster/topics.js";
 import type { Blok } from "../cluster/types.js";
-import { MERGE_OVERLAP_THRESHOLD } from "../cluster/similarity.js";
 import { trimmedSentenceRanges } from "../segment/sentences.js";
 import type { Range } from "../segment/types.js";
 import { MAX_RULES_WITHOUT_CHECKS } from "./constants.js";
@@ -73,6 +72,9 @@ interface Candidate {
  */
 const SILENCING_KINDS: ReadonlySet<string> = new Set(["untestable", "contradiction"]);
 
+/** The same order `detect()` sorts the panel by, so the two never disagree about what comes last. */
+const SEVERITY_RANK: Readonly<Record<Severity, number>> = { high: 0, medium: 1, low: 2 };
+
 export function detectRuleWithoutCheck(
   bloks: readonly Blok[],
   source: string,
@@ -102,6 +104,7 @@ export function detectRuleWithoutCheck(
     let best: RuleShape | null = null;
     let bestRank = SHAPES.length;
     let quoted: Range | null = null;
+    let silenced = false;
     const ranges: Range[] = [];
 
     for (const range of blok.ranges) {
@@ -120,8 +123,14 @@ export function detectRuleWithoutCheck(
         // rule the untestable veto above uses, and for the same reason: a blok is one thing the
         // reader edits, so a finding that covered half of it would point at a rule they are already
         // being told something else about.
+        //
+        // Carried in a flag rather than by clearing `best`. Self-review found the version that
+        // cleared it: when the *first* matching sentence was the claimed one, nothing had been
+        // pushed yet, so the outer loop's "did we lose a `best`?" test was false and a later range
+        // of the same blok could set `best` again — the blok fired after all, from a different
+        // sentence, which is exactly what this guard exists to prevent.
         if (isClaimed(sentence)) {
-          best = null;
+          silenced = true;
           break;
         }
         ranges.push(sentence);
@@ -131,10 +140,10 @@ export function detectRuleWithoutCheck(
           quoted = sentence;
         }
       }
-      if (ranges.length > 0 && best === null) break;
+      if (silenced) break;
     }
 
-    if (best === null || quoted === null) continue;
+    if (silenced || best === null || quoted === null) continue;
 
     // Whether an `expected` blok already covers this rule (decision 4). Generous on purpose: the
     // failure that matters is telling somebody who wrote a check that they have not, so this reuses
@@ -158,10 +167,9 @@ export function detectRuleWithoutCheck(
   // Decision 7: a prompt with twenty rules and no checks must not produce twenty findings. Ranked
   // by severity, then by how machine-checkable the rule is (shape precedence), then by position, so
   // the three that survive are the three whose checks are most obviously writable today.
-  const rankOfSeverity: Readonly<Record<Severity, number>> = { high: 0, medium: 1, low: 2 };
   candidates.sort((left, right) => {
-    if (rankOfSeverity[left.shape.severity] !== rankOfSeverity[right.shape.severity]) {
-      return rankOfSeverity[left.shape.severity] - rankOfSeverity[right.shape.severity];
+    if (SEVERITY_RANK[left.shape.severity] !== SEVERITY_RANK[right.shape.severity]) {
+      return SEVERITY_RANK[left.shape.severity] - SEVERITY_RANK[right.shape.severity];
     }
     if (left.rank !== right.rank) return left.rank - right.rank;
     return left.quoted.start - right.quoted.start;
@@ -177,12 +185,11 @@ export function detectRuleWithoutCheck(
   // rule is, the last of the three is often the first one on screen, and "2 more rules here have no
   // check either" printed immediately above two more rules with no check is a sentence that makes
   // the reader count wrong.
-  const severityRank: Readonly<Record<Severity, number>> = { high: 0, medium: 1, low: 2 };
   const displayLast = shown
     .map((candidate, index) => ({ candidate, index }))
     .sort(
       (left, right) =>
-        severityRank[left.candidate.shape.severity] - severityRank[right.candidate.shape.severity] ||
+        SEVERITY_RANK[left.candidate.shape.severity] - SEVERITY_RANK[right.candidate.shape.severity] ||
         left.candidate.ranges[0]!.start - right.candidate.ranges[0]!.start
     )
     .at(-1)?.index;

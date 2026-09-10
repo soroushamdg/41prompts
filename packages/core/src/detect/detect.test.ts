@@ -249,6 +249,37 @@ describe("rule_without_check", () => {
     );
   });
 
+  it("stays silent on a whole blok when a contradiction claims any one of its ranges", () => {
+    // The regression test for a defect self-review found and no fixture reached.
+    //
+    // "Always respond in JSON only." is stated twice, so clustering makes it one blok with two
+    // ranges; the first of those is in a contradiction with "Never respond in JSON", the second is
+    // not (0.43 overlap, below the threshold). The guard used to record the silencing by clearing
+    // `best` — but on the *first* matching sentence nothing had been recorded yet, so the outer
+    // loop's test for a lost `best` was false and the second range set it again. The blok fired,
+    // quoting a restatement of a rule the reader was already being told not to believe.
+    const fixture = NOISY_FIXTURES.find((f) => f.name === "fires-contradiction-over-a-restated-rule")!;
+    const found = findingsFor(fixture.text);
+
+    expect(found.filter((finding) => finding.kind === "contradiction")).toHaveLength(1);
+    expect(found.filter((finding) => finding.kind === "rule_without_check")).toEqual([]);
+
+    // And the blok really does own two ranges, only one of them claimed, or this passes for the
+    // wrong reason.
+    const bloks = cluster(segment(fixture.text));
+    const restated = bloks.find(
+      (blok) => blok.kind === "constraint" && blok.ranges.length > 1
+    );
+    expect(restated, "clustering must merge the two statements of the rule").toBeDefined();
+    const claimed = found
+      .filter((finding) => finding.kind === "contradiction")
+      .flatMap((finding) => finding.ranges);
+    const overlapping = restated!.ranges.filter((range) =>
+      claimed.some((other) => range.start < other.end && other.start < range.end)
+    );
+    expect(overlapping).toHaveLength(1);
+  });
+
   it("stays silent where an expected blok already covers the rule", () => {
     const fixture = QUIET_FIXTURES.find((f) => f.name === "quiet-rule-with-covering-check")!;
     expect(findingsFor(fixture.text).filter((finding) => finding.kind === "rule_without_check")).toEqual([]);
