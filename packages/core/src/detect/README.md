@@ -24,16 +24,24 @@ nobody asked for; findings are the reason anyone pastes a prompt in.
 > the substance the Scope asks for (what it fires on, what it deliberately does not, how to tune it)
 > is here per detector. Flagged in the report.
 
-## The rule that governs all five
+## The rule that governs all six
 
 **False positives are the failure mode.** A finding somebody disagrees with costs more trust than a
 finding they never saw, because it teaches them to stop opening the panel. When a rule is ambiguous,
 these stay quiet.
 
 That is not a slogan; it is why `QUIET_FIXTURES` exists and why it was written **before** any
-detector. Six prompts, each containing the exact surface feature one detector looks for, used
-correctly. They currently produce **zero** findings, and a change that breaks that is a regression
-even if it also finds something new.
+detector. Eleven prompts, each containing the exact surface feature one detector looks for, used
+correctly. They produce **zero defect findings**, and a change that breaks that is a regression even
+if it also finds something new.
+
+**Zero *defect* findings, not zero findings — and the distinction is new in EPIC-012b.** Five of the
+six kinds report something wrong with the prompt. `rule_without_check` does not: a prompt with no
+`expected` blok at all is the common case, not an error, so "nothing is wrong with this prompt" and
+"this prompt has an unchecked rule" are two different statements. Ten of the eleven quiet prompts are
+completely silent; `quiet-negation-without-conflict` ends "Always include the pull request number for
+each change", which genuinely has no check, and the test names that one fixture so a *second* one is
+a failure rather than a shrug.
 
 Findings are advisory. Nothing blocks, nothing is auto-fixed — blocking belongs to publishing.
 
@@ -140,6 +148,81 @@ sentence four times.
 wrong for a single instruction that genuinely needs ninety words. It will fire there. Both thresholds
 are exported and revisitable once EPIC-084 has the real distribution.
 
+## `rule_without_check` — `rule-without-check.ts`
+
+**Fires on:** a rule this prompt states that nothing in it verifies — a `constraint` blok carrying a
+sentence that matches a shape in `rule-shapes.json`, where no `expected` blok covers it.
+
+This is the finding that connects the decompiler to the rest of the product: it is the argument for
+expected bloks, for checks and for the publish gate, made about the reader's own prompt before they
+have signed up for anything.
+
+### The measurement it is built on
+
+**Not one of the 25 EPIC-010 corpus prompts contains a single `expected` blok.** So the coverage half
+of this detector is always true on a real prompt, and "which of your rules lack checks" has the same
+answer every time: all of them. An uncapped version reports sixty findings on the corpus.
+
+The useful question is **which rules are worth naming**, and the answer here is: the ones whose check
+can be named. `rule-shapes.json` does three jobs at once — it is the test for "verifiable", it
+supplies the severity, and it writes the suggestion — so this detector *cannot* fire without being
+able to say what check to add. That is decision 6 made structural rather than editorial.
+
+| shape | check named | severity |
+|---|---|---|
+| `json-fields` | valid JSON shape | high |
+| `json-output` | valid JSON shape | high |
+| `allowed-values` | one of the allowed values | high |
+| `word-limit` | word limit | high |
+| `character-limit` | character limit | high |
+| `must-contain` | must contain | medium |
+| `must-not-contain` | must not contain | medium |
+
+`high` is exactly the four machine-checkable shapes EPIC-012b's decision 5 names — JSON, a field
+name, an allowed value, a length limit. File order is precedence, and it also decides **which
+sentence is quoted** when one blok carries two shapes: a blok holding both "The JSON should have
+these fields: category, priority, summary" and "Please make sure the output is valid JSON" quotes the
+fields, because that is the more specific rule.
+
+**Deliberately does not fire on:**
+
+- a rule `untestable` claimed. Both read one list through one predicate
+  (`untestablePhraseIn`), and one vague phrase anywhere in a range skips the **whole** range — so the
+  two findings never overlap, which is stronger than "never the same range" and is the version a
+  reader would notice. Never a highlight inside a highlight, one saying no check can be written and
+  the other saying to add one.
+- a rule `contradiction` claimed. "Add a check for this" is unusable while another finding says the
+  rule should not be believed as stated; without this guard, a two-rule contradiction produced three
+  findings. This one is wider than the epic asked for and is argued in the source.
+- a rule `padding`, `too_long` or `repeated` claimed. Those say the rule is wordy, large or
+  duplicated, all compatible with "and nothing checks it" — `fires-padding` is a case where both
+  findings are worth having.
+- **a rule no check kind covers.** "Never invent a change that is not in the input", "Never promise a
+  date that depends on a bank", "Do not apologise more than once" are real rules, and this is silent
+  on every one of them. `quiet-unverifiable-rules` pins that.
+
+**One finding per blok**, ranges are the matching sentences. `repeated-sentence` states one JSON rule
+four times in one blok: one rule, one check, one finding pointing at all four places. Sentences
+rather than ranges because a range can be a whole paragraph, and quoting a paragraph that begins
+"Never run a command that changes production…" to justify a finding that matched "Never print an
+environment variable's value." points at the wrong text — measured, that change fixed six of thirteen
+quotes on the corpus.
+
+**Coverage is generous on purpose.** It reuses clustering's `topicOf`, `normalise`, `overlap` and
+threshold, but **not** `MAX_VOCABULARY_RATIO`. That guard exists to stop clustering over-merging;
+here the failures point the other way. Telling somebody who wrote a check that they did not is the
+false positive that matters; a loose match only costs a missed pitch.
+
+**Tuning:** add shapes to `rule-shapes.json`, each with the ADR-003 phrase for the check it names —
+never an internal identifier, and never a phrase that is not a check kind the product will have. The
+cap is `MAX_RULES_WITHOUT_CHECKS`, exported; it binds on exactly one of the 25 fixtures today. Every
+addition must leave the quiet set free of new findings.
+
+**Known limit:** the phrase lists are English. `right-to-left`'s "أجب دائماً بصيغة JSON فقط." is a
+JSON rule this does not fire on, because the verb it needs is Arabic. And the *object* of a
+"must contain" rule is not extracted, so 'Never write "various improvements"' produces "Add a
+\"must not contain\" check" rather than naming the string that is already in quotes.
+
 ## Messages
 
 Product copy, for a senior engineer who is busy and slightly sceptical.
@@ -162,4 +245,6 @@ Product copy, for a senior engineer who is busy and slightly sceptical.
 4. **Read the false-positive audit.** It prints every finding fired across all 25 EPIC-010 fixtures.
    A finding you cannot defend in one line is a detector that needs narrowing — that is exactly how
    the `too_long` summing bug and the AI-identity padding false positive were caught.
-5. A sixth `FindingKind` is an epic, not a patch (decision 3).
+5. A **seventh** `FindingKind` is an epic, not a patch. EPIC-012a's decision 3 said "exactly five"
+   scoped to that epic; EPIC-012b's decision 2 added `rule_without_check` as the planned sixth and
+   the last one in Stage 1.
