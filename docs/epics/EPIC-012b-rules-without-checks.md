@@ -1,19 +1,3 @@
-# CURRENT
-
-**EPIC-012b is the current epic.** A mirror of `docs/epics/EPIC-012b-rules-without-checks.md`; when
-the two disagree, that file wins.
-
-EPIC-010, EPIC-011a, EPIC-011b and EPIC-012a are done, and their open questions are ruled. Two
-requirements carried forward land in later epics, not this one: EPIC-020 finishes the compiler
-tripwire, EPIC-031 supplies the model transport. EPIC-013 owns showing both kinds on a `repeated`
-card, carried from EPIC-012a.
-
-**EPIC-005 and EPIC-080 are `cut`**, not deferred — Soroush's decision, 2026-09-10. The prototypes in
-`docs/design/` and `docs/roadmap.md` are the spec, and the per-milestone kill criteria are the only
-feedback mechanism before Stage 2. This epic's own standing note says the same thing.
-
----
-
 # EPIC-012b: Rules without checks
 Stage: 1 · Depends on: EPIC-012a · Size: S
 
