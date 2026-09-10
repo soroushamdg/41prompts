@@ -236,29 +236,61 @@ runs the gate showed it.
       public-only tree.
 - [x] **Report and session log written; backlog updated.**
 
-## Open questions for the advisor
+## Requirements carried into later epics
 
-1. **The corpus has no image or expectation segments.** 25 real prompts, not one multimodal or
-   written as a check, so three of the six kinds get no coverage from the accuracy table. They have a
-   small separate labelled set, marked for what it is, rather than padding the headline number with
-   text I wrote to match my own patterns. Until EPIC-013's fixtures include multimodal prompts, those
-   heuristics have never seen a prompt somebody actually wrote.
-2. **Token overlap cannot tell "keep the summary short" from "keep the summary long"** — 0.75
-   overlap, no negation, same kind, so they merge and the contradiction is hidden inside one blok.
-   There is no deterministic fix that is not an antonym table, and an antonym table is a
-   locale-sensitive guess. It belongs to EPIC-012a's contradiction detector, and that epic should own
-   a test for this shape. Flagged rather than fixed.
-3. **`cluster()` is still quadratic in the worst case**, just with a much better constant: the token
-   filter cannot help when one token is universal, so 50,000 rules all beginning "Always" degrades.
-   The 100 KB gate passes at 9.8 ms and 1 MB is reported at 146 ms, so nothing a real prompt reaches
-   is affected. Worth deciding whether EPIC-013 caps input size rather than relying on this.
-4. **Two labelled-table misses stand**, both "an imperative that is a rule but has no modal verb":
-   "Anything not covered here: use judgement and flag it." and "1. Read the failing job's logs before
-   saying anything about the cause." Closing them means an imperative-verb list broad enough to catch
-   procedure steps too, which would move real `context` segments into `constraint`. Left alone at
-   96.7% rather than traded for a worse error.
-5. **`polarity.json` is a fourth data file** the epic's Scope did not name. It exists because the
-   false-merge fixture proved it necessary. Flagging it as scope the epic did not ask for.
+**Three of this epic's findings are now requirements on epics that have not been written yet.** They
+are here, in the report, because that is where the advisor's rulings landed and because a finding
+that lives only in a closed epic's prose is a finding nobody acts on. Whoever writes EPIC-012a and
+EPIC-013 should read this section before writing their Scope.
+
+### EPIC-013 — two fixture requirements and an input cap
+
+1. **Multimodal and expectation fixtures, and a re-run of the accuracy table.** EPIC-013's fixtures
+   must include **at least two multimodal prompts and two prompts written as expectations**, and its
+   report must **re-run the labelled-table accuracy with them included**.
+
+   Why: the EPIC-010 corpus is 25 real prompts and not one of them is multimodal or written as a
+   check, so `image_ref`, `image_input` and `expected` — three of the six kinds — get no coverage
+   from the 60-example accuracy table at all. They have a small separate labelled set in
+   `classify.test.ts`, marked for what it is, but until EPIC-013 those heuristics have never been
+   tested against a prompt somebody actually wrote. Padding the accuracy table with text written to
+   match my own patterns would have hidden the gap rather than closed it. Accepted as a known gap,
+   2026-09-10.
+
+2. **Cap pasted input at 100 KB, with a clear message.** `cluster()` is still quadratic in the worst
+   case — the token filter cannot help when one token is universal, so fifty thousand rules all
+   beginning "Always" degrades. Nothing a real prompt reaches is affected: the 100 KB gate passes at
+   18.9 ms on CI and 1 MB is reported at 207.5 ms.
+
+   The ruling is that **EPIC-013 caps the input rather than core defending against it**, 2026-09-10.
+   A cap with a message a user can understand is a better answer than an unbounded promise core
+   cannot keep, and it keeps the guard where the input actually arrives.
+
+### EPIC-012a — the antonym case is a named detector requirement
+
+3. **"Keep the summary short" against "keep the summary long", inside one blok, must be found and
+   reported.** Those two share 0.75 of their normalised tokens, carry no negation, and classify the
+   same — so they merge, and the contradiction ends up hidden *inside* a single blok where a detector
+   that compares bloks will never see it.
+
+   **Not fixed here, by ruling** (2026-09-10). The only deterministic fix in clustering is an antonym
+   table, and an antonym table is a locale-sensitive guess of exactly the kind decision 7 rules out.
+   It belongs to EPIC-012a's contradiction detector as a **named case with its own test**, and that
+   detector has to look inside a blok's fragments, not only between bloks.
+
+## The other two rulings
+
+4. **The two labelled-table misses stand.** Both are "an imperative that is a rule but has no modal
+   verb": "Anything not covered here: use judgement and flag it." and "1. Read the failing job's logs
+   before saying anything about the cause." Closing them needs an imperative-verb list broad enough
+   to catch procedure steps too, which would move real `context` segments into `constraint`.
+   **Ruling: leave them** — 96.7% with two honest misses beats 100% bought with a heuristic that
+   mislabels real context segments (2026-09-10).
+
+5. **`polarity.json` is accepted scope.** It is a fourth data file the epic's Scope did not name, and
+   it exists because the false-merge fixture proved it necessary — a rule merging with its own
+   contradiction at 0.667 token overlap, both sides the same kind. **Ruling: accepted, the fixture
+   justified it** (2026-09-10).
 
 ## Verify
 
