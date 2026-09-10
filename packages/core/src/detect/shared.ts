@@ -15,13 +15,37 @@ const ANTONYMS: ReadonlyArray<readonly [string, string]> = antonymsData.map(
   (pair) => [pair[0]!, pair[1]!] as const
 );
 
-/** The opposed pair two vocabularies differ by, or `null`. */
-export function opposingAntonym(left: Set<string>, right: Set<string>): readonly [string, string] | null {
+/**
+ * The opposed pair two sentences differ by, or `null`.
+ *
+ * Matched against the **text**, not the normalised vocabulary. Normalisation drops words of three
+ * characters or fewer, which silently killed `high`/`low`, `add`/`remove` and `all`/`none` — three
+ * of the nineteen pairs could never match anything, and a genuine "set it high" against "set it
+ * low" produced no finding at all. Found in review.
+ */
+export function opposingAntonym(left: string, right: string): readonly [string, string] | null {
   for (const [a, b] of ANTONYMS) {
-    if (left.has(a) && right.has(b) && !left.has(b) && !right.has(a)) return [a, b];
-    if (left.has(b) && right.has(a) && !left.has(a) && !right.has(b)) return [b, a];
+    const leftA = hasWord(left, a);
+    const leftB = hasWord(left, b);
+    const rightA = hasWord(right, a);
+    const rightB = hasWord(right, b);
+    // Each side must carry one word and not the other, or "short" appearing in both is not a
+    // difference between them.
+    if (leftA && rightB && !leftB && !rightA) return [a, b];
+    if (leftB && rightA && !leftA && !rightB) return [b, a];
   }
   return null;
+}
+
+const WORD_CACHE = new Map<string, RegExp>();
+
+function hasWord(text: string, word: string): boolean {
+  let pattern = WORD_CACHE.get(word);
+  if (pattern === undefined) {
+    pattern = new RegExp(`\\b${word}\\b`, "i");
+    WORD_CACHE.set(word, pattern);
+  }
+  return pattern.test(text);
 }
 
 export function opposed(left: ReturnType<typeof polarityOf>, right: ReturnType<typeof polarityOf>): boolean {
@@ -80,4 +104,28 @@ function hash(input: string): string {
     high = Math.imul(high, 0x85ebca6b) >>> 0;
   }
   return high.toString(16).padStart(8, "0") + low.toString(16).padStart(8, "0");
+}
+
+/** Every antonym-list word this text contains. Used to index a span for the antonym path. */
+export function antonymWordsIn(text: string): string[] {
+  const words: string[] = [];
+  for (const [a, b] of ANTONYMS) {
+    if (hasWord(text, a)) words.push(a);
+    if (hasWord(text, b)) words.push(b);
+  }
+  return words;
+}
+
+/**
+ * The partner of every antonym-list word this text contains — the words a sentence would have to
+ * carry to oppose this one. Looking these up is what lets the contradiction scan skip every span
+ * that could not possibly oppose the one in hand.
+ */
+export function antonymPartnersIn(text: string): string[] {
+  const partners: string[] = [];
+  for (const [a, b] of ANTONYMS) {
+    if (hasWord(text, a)) partners.push(b);
+    if (hasWord(text, b)) partners.push(a);
+  }
+  return partners;
 }

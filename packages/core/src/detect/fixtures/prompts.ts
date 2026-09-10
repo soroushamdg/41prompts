@@ -50,6 +50,32 @@ export const QUIET_FIXTURES: readonly SegmentFixture[] = [
     )
   },
   {
+    name: "quiet-scoped-precondition",
+    describes:
+      "A rule and a negation that scopes it — the second says *when*, not *whether*. `contradiction` must not fire, and this is the shape `quiet-negation-without-conflict` does not cover, because that one's two rules are about different subjects and so passes for the wrong reason.",
+    text: lf(
+      "You triage billing questions.",
+      "",
+      "Always escalate billing questions to a human agent.",
+      "",
+      "Do not escalate billing questions until you have checked the billing FAQ.",
+      ""
+    )
+  },
+  {
+    name: "quiet-containment",
+    describes:
+      "A short rule whose every word appears somewhere in a long paragraph. Overlap divides by the smaller vocabulary, so containment scores a perfect 1.0 — `repeated` must not fire.",
+    text: lf(
+      "You keep the audit log.",
+      "",
+      "Always use JSON format.",
+      "",
+      "The audit trail must use JSON format for every entry so downstream consumers can parse it without guessing, and each record has to carry a timestamp, an actor, a resource identifier and the outcome of the attempted operation, because a record that cannot be attributed is not an audit record at all.",
+      ""
+    )
+  },
+  {
     name: "quiet-polite-example-text",
     describes:
       "The word \"please\" appears only inside quoted example input, where it is the customer's word and not padding in the prompt. `padding` must not fire.",

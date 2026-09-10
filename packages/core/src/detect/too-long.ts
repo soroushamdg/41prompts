@@ -19,6 +19,7 @@ export function detectTooLong(bloks: readonly Blok[], source: string): Finding[]
     // so a rule said four times is not four times too long — it is one rule, said four times, which
     // is `repeated`'s business and not this detector's. Summing them put ten `too_long` findings on
     // the `wall-of-text` fixture, every one of them counting the same sentence four times.
+    if (blok.ranges.length === 0) continue;
     const words = Math.max(...blok.ranges.map((range) => wordCount(source.slice(range.start, range.end))), 0);
     if (words <= MAX_BLOK_WORDS) continue;
     found.push(
@@ -30,8 +31,12 @@ export function detectTooLong(bloks: readonly Blok[], source: string): Finding[]
   }
 
   const promptWords = wordCount(source);
-  if (promptWords > MAX_PROMPT_WORDS && bloks.length > 0) {
-    const ranges = bloks.map((blok) => toRange(blok.ranges[0]!)).slice(0, 1);
+  // `detect()` is a public export taking arbitrary bloks, so a blok with no ranges is a shape it can
+  // be handed — and mapping over every blok to build a list that is then sliced to one threw a
+  // TypeError on a range it was about to discard. Found in review.
+  const firstRange = bloks.find((blok) => blok.ranges.length > 0)?.ranges[0];
+  if (promptWords > MAX_PROMPT_WORDS && firstRange !== undefined) {
+    const ranges = [toRange(firstRange)];
     found.push(
       makeFinding("too_long", "low", bloks.map((blok) => blok.id), ranges, {
         message: `${promptWords} words in the whole prompt. Every one of them is sent on every call.`,
