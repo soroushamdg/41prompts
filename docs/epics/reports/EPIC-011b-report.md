@@ -37,10 +37,13 @@ cannot both be read literally.** If the summary depends on the kind and the key 
 reclassified from `context` to `constraint` keeps its old summary for ever — a stale cache, which is
 the one failure a content-addressed key exists to prevent.
 
-A cache key covers every input the function reads, or it is not a cache key. I read decision 5's "the
-blok's verbatim text" as naming the blok's *content* rather than excluding its kind. **Flagged for the
-advisor**: if the intent was the literal reading, then decision 3's kind prefix has to go instead —
-those are the only two consistent positions.
+A cache key covers every input the function reads, or it is not a cache key. I read decision 5's
+"the blok's verbatim text" as naming the blok's *content* rather than excluding its kind.
+
+**Ruled 2026-09-10: the key keeps the kind.** A reclassified blok is a different blok for summary
+purposes, and a stale summary contradicting its own card's kind is the exact failure this epic
+exists to prevent. The literal reading of decision 5 would have meant dropping decision 3's kind
+prefix instead; it was not taken.
 
 What the key deliberately does **not** cover, which is also a decision:
 
@@ -184,7 +187,12 @@ fallback are already real; only `complete()` needs filling. `ANTHROPIC_API_KEY` 
 ## Open questions for the advisor
 
 1. **The cache key includes the blok's kind** — judgement call 1 above. The two consistent positions
-   are "kind in the key" or "no kind prefix in the summary"; I took the first. Confirm or reverse.
+   are "kind in the key" or "no kind prefix in the summary"; I took the first.
+
+   **Ruling: the key keeps the kind** (2026-09-10). A reclassified blok is a different blok for
+   summary purposes, and a stale summary contradicting its own card's kind is the exact failure this
+   epic exists to prevent. No code change; the implementation already does this, and
+   `hash.test.ts`'s `changes when the kind changes, because the summary depends on the kind` pins it.
 2. **`SUMMARY_MAX_LENGTH` is 84**, the prototype's number, and `MAX_REASONABLE_SUMMARY` is 200 as the
    contract's outer bound for an implementation with a different house style. Both are guesses until
    EPIC-013 has a real card to measure against.
