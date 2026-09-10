@@ -94,6 +94,11 @@ export function SourceMap({ pieces, activeBlokId, pinnedBlokId, onHover, onPin, 
             key={index}
             className="source-span"
             data-blok={piece.blokId}
+            // The offsets, on the element, so a test can assert the highlighted *characters*
+            // against the source rather than counting elements — the steer's instruction, and the
+            // only form of the check that catches a one-character drift.
+            data-start={piece.start}
+            data-end={piece.end}
             data-highlighted={highlighted ? "true" : undefined}
             data-pinned={pinned ? "true" : undefined}
             {...(multi ? { "data-fragment": `${piece.fragmentIndex}/${piece.fragmentCount}` } : {})}

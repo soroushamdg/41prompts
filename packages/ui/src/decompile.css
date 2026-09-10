@@ -299,10 +299,20 @@
 }
 
 /* Touch is the default interaction, not a degraded hover (epic decision 3). At the small
-   breakpoint every target clears 44px. */
+   breakpoint every target clears 44px.
+ *
+ * A source span is an **inline** box, so its line-height does not grow its hit rectangle — only
+ * padding does, and vertical padding on an inline box overflows into the neighbouring lines rather
+ * than pushing them apart. Measured: 10px of padding gave a 37px target. So the padding is set to
+ * reach 44px and the line-height is opened up to match, or the ink-inverted highlights of adjacent
+ * lines would overlap each other. The map is taller on a phone, which is the right trade when touch
+ * is the default rather than the fallback. */
 @media (max-width: 1019px) {
+  .source-map {
+    line-height: 3.6;
+  }
   .source-span {
-    padding: 10px 0;
+    padding: 13.5px 0;
   }
   .finding {
     min-height: 44px;

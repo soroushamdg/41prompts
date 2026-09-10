@@ -2,6 +2,7 @@
 
 import { cluster, detect, heuristicSummariser, segment, uncheckedRuleCount } from "@41prompts/core";
 import { byteLength, MAX_INPUT_BYTES, type DecompileState } from "@/lib/decompile/limits";
+import { SAMPLE_PROMPT } from "@/lib/decompile/sample";
 import { buildView } from "@/lib/decompile/view-model";
 
 /**
@@ -22,7 +23,10 @@ import { buildView } from "@/lib/decompile/view-model";
  */
 export async function decompile(_previous: DecompileState, formData: FormData): Promise<DecompileState> {
   const raw = formData.get("prompt");
-  const source = typeof raw === "string" ? raw : "";
+  // The sample arrives as a flag, not as text: the form already has a `<textarea name="prompt">`,
+  // so a second submit button carrying `name="prompt"` loses to it in `FormData.get`. One server
+  // path either way — the sample is not a second code path to keep honest.
+  const source = formData.get("sample") === "1" ? SAMPLE_PROMPT : typeof raw === "string" ? raw : "";
 
   // Measured before anything else runs. A prompt over the cap must never reach the segmenter, or the
   // cap is a suggestion rather than a limit.

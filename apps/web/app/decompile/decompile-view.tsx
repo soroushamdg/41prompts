@@ -8,18 +8,6 @@ import { BlokList } from "./blok-list";
 import { FindingsPanel } from "./findings-panel";
 import { SourceMap } from "./source-map";
 
-const SAMPLE = `You are a support assistant for a small B2B company.
-
-Rules:
-1. Always classify the email into one of these categories: billing, technical, other.
-2. Always respond in JSON only.
-3. Keep the summary reasonably short.
-4. Never mention that you are an AI model.
-
-The JSON should have these fields: category, summary, needs_human.
-
-Please make sure the output is valid JSON. Thank you!`;
-
 /**
  * Everything the reader interacts with. State here is only *which blok is under the pointer* and
  * *which is pinned* — the algorithms all ran on the server (epic decision 1), and what crossed is
@@ -73,14 +61,7 @@ export function DecompileView() {
           <Button type="submit" variant="primary" disabled={pending}>
             {pending ? "Reading…" : "Decompile"}
           </Button>
-          <Button
-            type="submit"
-            name="prompt"
-            value={SAMPLE}
-            // A second submit button carrying its own value: the sample runs through exactly the same
-            // server action as a paste, so there is no second code path to keep honest.
-            disabled={pending}
-          >
+          <Button type="submit" name="sample" value="1" disabled={pending}>
             Use a sample prompt
           </Button>
           <span className="decompile-limit">Up to {kilobytes(MAX_INPUT_BYTES)}. Nothing is stored.</span>
