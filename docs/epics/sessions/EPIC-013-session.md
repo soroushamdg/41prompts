@@ -110,6 +110,12 @@ tests resolve its source is a seam EPIC-052 may want to settle; the `scrollIntoV
 first added to the ADR-003 grep and the principle will admit more; and the prototype's "Dim the rest"
 toggle is in this epic's backlog line but not its criteria, so it was deliberately not built.
 
+**Staging.** <https://staging.41prompts.ai/decompile>, driven by hand twice — on the merge commit and
+again after the panel-fill fix. `range mismatches: 0` both times, which re-checks the whole
+character-mapping path against a deployed build rather than a dev server. The first capture found the
+one defect no test could: a panel that worked correctly and looked unfinished, because its height cap
+fought `flex: 1`. Screenshots are a review surface, not only evidence.
+
 **For the next session.** Stage 1's remaining epics are EPIC-017 (legal minimum, which must land
 before `/decompile` reaches production traffic), EPIC-014 (capture, purge, rate limits, abuse checks —
 and it now knows it will be storing CRLF), EPIC-016 (landing page) and EPIC-015 (soft ship). Nothing

@@ -249,9 +249,9 @@ Three test defects worth recording, because each looks exactly like a product bu
       files checked, none binary; licence gate clean; mirror dry-run installs and tests the public-only
       tree. Performance with the larger corpus: `detect` 100 KB **22.1 ms warm**, whole pipeline
       **34.6 ms**, growth exponent **1.37** against a gate of 1.6.
-- [ ] **Deployed to staging and driven by hand; URL and screenshot in the report.** Pending merge —
-      `main` deploys to staging automatically, so this lands as a follow-up commit to this file once
-      the deploy completes. Section 8 is reserved for it.
+- [x] **Deployed to staging and driven by hand; URL and screenshot in the report.** §8.
+      <https://staging.41prompts.ai/decompile>, driven twice — once on the merge commit and again
+      after the panel-fill fix. Zero range mismatches both times.
 - [x] **Report and session log written; backlog updated.**
 
 ---
@@ -285,7 +285,40 @@ Three test defects worth recording, because each looks exactly like a product bu
 
 ## 8. Staging
 
-_Pending merge; filled in by a follow-up commit._
+**<https://staging.41prompts.ai/decompile>** — deployed automatically from `main`, driven by hand,
+twice: once on the merge commit `a8965c7` and again on `a2c2d5a` after the panel-fill fix below.
+
+```
+healthz: {"ok":true,"commit":"a2c2d5aa1c62662bc87af0764f96f3b62d111d89","env":"staging"}
+empty state visible: true
+spans=8 bloks=8 findings=6
+closing line: "4 rules here have no check."
+pinned spans after clicking the JSON card: 1
+range mismatches: 0
+phone: hint visible: true  auto-pinned spans: 1
+STAGING OK
+```
+
+Screenshots: `09-staging-result.png` (desktop, a blok pinned) and `10-staging-phone.png` (390px, the
+first blok pinned with the touch hint).
+
+**The line that matters is `range mismatches: 0`.** It re-checks, against a deployed build rather
+than a dev server, that every highlighted span's `textContent` equals its own source slice — so the
+whole path holds end to end: the browser normalising the textarea to CRLF on submit, the server
+segmenting what it actually received, and the HTML parser stripping carriage returns on the way back
+out. That is the failure this epic was most likely to ship, and it is verified on the real thing.
+
+### One defect the staging capture found
+
+The first staging screenshot showed **a band of panel background below the shorter column's sunken
+surface**. The height cap was on the scrolling surface inside each panel, where it fought `flex: 1`,
+so whichever column was shorter stopped at 640px instead of filling. Fixed in `a2c2d5a`: the cap moved
+to the panel, the surfaces got `flex: 1; min-height: 0`, and below 1020px the panel cap is removed so
+the stacked page scrolls rather than each panel scrolling inside itself.
+
+Caught by *looking at the capture*, not by any test — worth recording, because it says the screenshots
+are a review surface and not only evidence. No test would have caught it: every assertion in the suite
+was about behaviour, and this was a panel that worked correctly and looked unfinished.
 
 ---
 
