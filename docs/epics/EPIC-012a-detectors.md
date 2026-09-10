@@ -78,8 +78,11 @@ costs more trust than a finding they never saw.
       Evidence: test name.
 - [x] Every `ranges` entry is within bounds and points at text that actually supports the finding; an invariant
       test checks bounds over all fixtures and 1,000 generated inputs. Evidence: test name.
-- [x] Every finding's `bloks` names at least one existing blok id, and a contradiction names at least two.
-      Evidence: test name.
+- [x] Every finding's `bloks` names at least one existing blok id. `bloks` is a **deduplicated set**,
+      so a contradiction *between* two bloks names two, and a contradiction the clustering hid
+      *inside* one blok names one. (Amended 2026-09-10: as first written this said a contradiction
+      names at least two, which contradicted the antonym criterion below — that case is one blok
+      containing both halves. A set is the only reading that satisfies both.) Evidence: test name.
 - [x] Forbidden-word grep passes over every message and suggestion string. Evidence: the compliance job.
 - [x] The prototype's sample prompt produces findings that are compared with the prototype's diagnostics in the
       report, with each deviation justified. Evidence: snapshot plus a paragraph.

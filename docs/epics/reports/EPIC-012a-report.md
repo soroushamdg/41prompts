@@ -176,19 +176,39 @@ agent."
 - [x] **`pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` clean.**
 - [x] **Report and session log written; backlog updated.**
 
-## Open questions for the advisor
+## Requirements carried into later epics
 
-1. **`bloks` is a deduplicated set, so a within-blok contradiction names one blok** where criterion 7
-   says "at least two". The alternative is listing the same id twice, which makes `bloks` a bag.
-   Confirm or reverse.
-2. **One README with a section per detector**, where the Scope says one README per detector.
-3. **`repeated` reports what clustering refused, not what it merged.** That is the only reading under
-   which the detector can fire at all, given decision 6 — but it does mean the finding a user sees is
-   "these two bloks say the same thing" for a pair whose *kinds* differ, which may read oddly on a
-   canvas until EPIC-013 decides how to present it.
-4. **`too_long` is a length proxy** for "carries more than one instruction", and it will fire on a
-   single instruction that genuinely needs ninety words. Both thresholds are exported and want
-   EPIC-084's distribution.
+### EPIC-013 — show both kinds on a `repeated` card
+
+`repeated` reports pairs whose **kinds differ**, and that is correct behaviour rather than a defect:
+any two bloks over the threshold that share a kind were already merged by clustering, so the pair it
+reports is by construction a cross-kind one — most usefully the same instruction stated once as role
+context and once as a numbered rule.
+
+**Ruled 2026-09-10: correct behaviour, but a presentation problem.** A card reading "these two bloks
+say the same thing" for a `context` blok and a `constraint` blok will read as wrong unless the UI
+shows both kinds. EPIC-013 owns that.
+
+## The advisor's rulings on the open questions
+
+1. **`bloks` is a deduplicated set**, so a within-blok contradiction names one blok where criterion 7
+   said "at least two".
+
+   **Ruling: confirmed** (2026-09-10). The two criteria contradicted each other, and the set is the
+   only reading that satisfies both. Criterion 7's wording is amended in
+   `docs/epics/EPIC-012a-detectors.md` to say so.
+
+2. **One README with a section per detector**, where the Scope asks for one README per detector.
+
+   **Ruling: fine as one file** (2026-09-10).
+
+3. **`repeated` reports what clustering refused, not what it merged.** See the EPIC-013 requirement
+   above — **ruled correct behaviour**, and recorded there as a presentation requirement.
+
+4. **`too_long` is a length proxy** for "carries more than one instruction", and will fire on a
+   single instruction that genuinely needs ninety words.
+
+   **Ruling: accepted; both thresholds wait for EPIC-084** (2026-09-10) and its real distribution.
 
 ## Verify
 
