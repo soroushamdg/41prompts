@@ -187,8 +187,10 @@ value reaching `ip_hash` comes from `hashIdentity`, and no log line mentions the
       (including that an unidentified caller shares one bucket rather than getting a free pass, and that
       the store stays bounded), plus `refuses past the waitlist limit with a message naming it` through
       a real server action.
-- [x] **Turnstile guards permalink creation and nothing else.** Verification is skipped when
-      unconfigured and the widget is not rendered; decompiling never touches it. See §4 on failing open.
+- [x] **Turnstile guards permalink creation and nothing else.** `is reached from share-actions and
+      from no other action on the route`, `is not imported by the decompile action, so decompiling never
+      waits on Cloudflare`, plus nine more in `turnstile.test.ts`. **This was ticked on a reading of the
+      code first, with no tests behind it at all, and the criterion asked for two test names — see §11.**
 - [x] **The abuse check runs before the summariser; on failure no provider call and the heuristic
       summary.** `makes no provider call and returns the heuristic summary when a blok is too long`,
       `… for text that is a question for a model`, `… once one caller is over budget` — each with a
@@ -317,3 +319,62 @@ E2E_PORT=3100 npx playwright test apps/web/e2e/capture-share.spec.ts
 
 A local Postgres is required (`docker start 41p-dev-postgres`, then `pnpm db:migrate`) and `.env`
 must be sourced; without it the db-backed suites fail with `DATABASE_URL is required`.
+
+---
+
+## 11. What the deployed keys found (2026-09-11)
+
+The keys went into Coolify on 2026-09-11 and the verification this epic asked for — *create a
+permalink through the real widget* — could not be done, because **sharing was refused for everyone
+on staging**. Three separate things were wrong, and only one of them was a typo.
+
+### 1. The variable was named `TURNSTILE_SITE_KEY`, and the code reads `NEXT_PUBLIC_TURNSTILE_SITE_KEY`
+
+A transcription slip; `infra/README.md` had the right name. The cause is worth more than the slip:
+**EPIC-014 added three environment variables and put none of them in `.env.example`**, so the only
+place the names existed was prose in a checklist, and prose gets retyped. All three are in
+`.env.example` now, which is the actual fix.
+
+### 2. A half-configured deployment was a total outage that blamed the reader
+
+This is the defect. With the secret set and the site key missing:
+
+- `turnstileSiteKey()` returned `null`, so the widget was never rendered,
+- so no token was ever submitted,
+- so `verifyTurnstile` saw an empty token and refused — **every share, for everyone**,
+- with the message *"That check expired before the link was made. Try sharing again."*
+
+Nothing had expired and trying again could never work. The one state a hand-typed pair of variables
+is most likely to land in was the one state that broke the feature, and it broke it silently: the
+page looked normal, `/healthz` was green, and the only symptom was that sharing stopped.
+
+**Fixed by making the two keys atomic.** `turnstileConfigured()` is now true only when both are
+present; one alone degrades to the documented unconfigured state — verification skipped, rate limits
+standing — and logs a `console.error` naming the missing variable. The widget is also no longer
+rendered when the secret is missing, because a challenge nobody verifies costs the reader a puzzle
+and buys nothing.
+
+The test named `does not refuse every share when only the secret is set` is the staging outage, and
+it fails against the old rule (verified by reverting the one line).
+
+### 3. The criterion was ticked without the evidence it asked for
+
+The epic asked for *two test names*. There were none: `grep -rn turnstile` over every test file in
+the repo found one mention, in a comment. §6's tick above was written from a reading of the code.
+`apps/web/lib/decompile/turnstile.test.ts` now has eleven tests, plus two structural ones for the
+"and nothing else" half of the claim. **A criterion whose evidence is "I read it" is not evidence,
+and this one hid a live defect for a day.**
+
+### And one documentation claim that was wrong
+
+The checklist said the site key is "baked into the client bundle at **build** time" and needs a
+redeploy. It does not: the code reads it through a variable (`process.env[SITE_KEY_ENV]`), which
+Next cannot inline, and every route is server-rendered on demand — `next build` lists all fourteen
+as `ƒ (Dynamic)`. A restart is enough. The paragraph had been written from the `NEXT_PUBLIC_` prefix
+rather than from the build output.
+
+### Still outstanding
+
+The Coolify variable has to be renamed before the widget can be driven by hand. Until then staging
+runs with Turnstile **off** and the rate limits standing, which is a documented working state — and
+now a loud one.

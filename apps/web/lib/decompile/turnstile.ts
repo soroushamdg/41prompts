@@ -7,23 +7,69 @@
  * row that lives for thirty days.
  *
  * **Unconfigured is a working state, not a broken one.** The keys are a human setup step and this
- * epic is built and tested without them. With no secret key the widget is not rendered and
- * verification is skipped — the rate limits still apply, so the path is guarded, just not by this.
- * A deployment in that state says so loudly on every check rather than silently accepting anything.
+ * epic is built and tested without them. With no keys the widget is not rendered and verification is
+ * skipped — the rate limits still apply, so the path is guarded, just not by this.
+ *
+ * **There is no half-configured state.** Turnstile needs two variables that a person types by hand
+ * into a deployment dashboard, and setting one of them is the likeliest way to get this wrong. That
+ * mistake used to be silent and total: with the secret set and the site key missing, the widget was
+ * never rendered, so no token was ever sent, so *every* share was refused — and the message blamed
+ * the reader for a challenge they were never shown. It happened on staging on 2026-09-11, which is
+ * why this is here. Both keys or neither: one missing key degrades to the documented unconfigured
+ * state, which still has the rate limits, and shouts about it in the logs.
  */
 
 const SITE_KEY_ENV = "NEXT_PUBLIC_TURNSTILE_SITE_KEY";
 const SECRET_KEY_ENV = "TURNSTILE_SECRET_KEY";
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-export function turnstileSiteKey(): string | null {
-  const key = process.env[SITE_KEY_ENV];
-  return key !== undefined && key.length > 0 ? key : null;
+function env(name: string): string | null {
+  const value = process.env[name];
+  return value !== undefined && value.length > 0 ? value : null;
 }
 
+/**
+ * Complained about once per process, not once per share.
+ *
+ * `error` rather than `warn` — unlike a missing salt, which degrades something invisible, this is a
+ * deployment that believes it has a CAPTCHA and does not. That belongs at the level somebody has an
+ * alert on.
+ */
+let complained = false;
+
+function complainIfHalfConfigured(secret: string | null, siteKey: string | null): void {
+  if (complained || (secret === null) === (siteKey === null)) return;
+  complained = true;
+  if (process.env.NODE_ENV === "test") return;
+  const missing = secret === null ? SECRET_KEY_ENV : SITE_KEY_ENV;
+  console.error(
+    `[turnstile] ${missing} is not set while the other key is. Turnstile is OFF and sharing is ` +
+      `guarded by the rate limits alone. Set both variables or neither.`
+  );
+}
+
+/** Reset the one-shot complaint. Tests only. */
+export function resetTurnstileWarningForTest(): void {
+  complained = false;
+}
+
+/**
+ * The key the widget renders with, or `null` for "render no widget".
+ *
+ * Deliberately `null` when the secret is missing too. A challenge nobody verifies is worse than no
+ * challenge: it costs the reader a puzzle and buys nothing, and it makes a screenshot of the page
+ * look like evidence of a protection that is not running.
+ */
+export function turnstileSiteKey(): string | null {
+  return turnstileConfigured() ? env(SITE_KEY_ENV) : null;
+}
+
+/** Both keys, or this is off. See the half-configured note above. */
 export function turnstileConfigured(): boolean {
-  const secret = process.env[SECRET_KEY_ENV];
-  return secret !== undefined && secret.length > 0;
+  const secret = env(SECRET_KEY_ENV);
+  const siteKey = env(SITE_KEY_ENV);
+  complainIfHalfConfigured(secret, siteKey);
+  return secret !== null && siteKey !== null;
 }
 
 export type TurnstileResult =
@@ -59,7 +105,7 @@ export async function verifyTurnstile({
     return { ok: false, message: FAILED_MESSAGE };
   }
 
-  const body = new URLSearchParams({ secret: process.env[SECRET_KEY_ENV] ?? "", response: token });
+  const body = new URLSearchParams({ secret: env(SECRET_KEY_ENV) ?? "", response: token });
   if (remoteIp !== null && remoteIp !== undefined && remoteIp.length > 0) body.set("remoteip", remoteIp);
 
   try {
