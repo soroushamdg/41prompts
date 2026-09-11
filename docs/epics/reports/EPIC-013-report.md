@@ -468,6 +468,26 @@ That is twice in this epic that driving the deployed thing found something the s
 a marker that was present, correct and invisible, and a heading that was correct to every consumer
 except the literal one.
 
+### And one defect CI found that local runs could not
+
+The 44px touch target failed on CI at **43.99998474121094**. Not noise: an inline box's height comes
+from font metrics, those differ by a fraction of a pixel between macOS and Linux, and I had sized the
+padding to land on *exactly* 44. A minimum hit exactly has nothing to absorb that with, and no number
+of local runs would have shown it — the arithmetic producing "exactly 44" was the mistake, not the
+pixel.
+
+Every touch target on the route now has real headroom, measured rather than computed:
+
+| target | height at 390px | over the 44px minimum |
+|---|---|---|
+| `.source-span` | 49.0 | +5.0 |
+| view control buttons | 46.0 | +2.0 |
+| `.finding` | 112.5 | +68.5 |
+| `.blok-card` | 93.0 | +49.0 |
+
+The test's bar stays at 44 exactly — it is the accessibility minimum and not a number to soften. What
+changed is the CSS.
+
 ## 11. Verify
 
 ```

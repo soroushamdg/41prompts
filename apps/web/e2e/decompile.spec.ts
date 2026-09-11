@@ -501,7 +501,11 @@ test.describe("/decompile", () => {
       ]) {
         const box = await locator.boundingBox();
         expect(box, "element must be laid out").not.toBeNull();
-        expect(box!.height).toBeGreaterThanOrEqual(44);
+        // The bar stays 44 exactly — it is the accessibility minimum, not a number to soften. What
+        // changed is the CSS, which now clears it with room: sizing a target to land on 44.0 put CI
+        // at 43.99998474121094, because an inline box's height comes from font metrics that differ
+        // by a fraction of a pixel between platforms.
+        expect(box!.height, `${await locator.evaluate((el) => el.className)} is under the 44px minimum`).toBeGreaterThanOrEqual(44);
       }
     });
 
