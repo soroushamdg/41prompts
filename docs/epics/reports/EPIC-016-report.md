@@ -205,9 +205,10 @@ Implementation notes worth keeping:
       visible without scrolling at …` (both viewports, asserting the bottom edge against the fold with
       `scrollY === 0`), plus `keeps CRLF line endings / tabs / emoji / RTL text byte for byte` and
       twelve unit tests in `handoff.test.ts`.
-- [ ] **Nav, hero, strip, CTA and footer render in light and dark; visual regression snapshots
-      committed.** Renders in both and is axe-clean in both (eight axe tests across four routes). **The
-      snapshots are not committed — see §9.**
+- [x] **Nav, hero, strip, CTA and footer render in light and dark; visual regression snapshots
+      committed.** Axe-clean in both (eight axe tests across four routes), and
+      `landing-{light,dark}-linux.png` are committed — generated 2026-09-11 once Docker had room, in an
+      image whose equivalence to the official one was **verified rather than assumed**: see §12.
 - [ ] **`/sign-in` and `/sign-up` work end to end against staging with Google, GitHub and a magic
       link.** Both pages render all three routes to entry and the flow is EPIC-002's, unchanged and
       still covered by `auth.spec.ts`. **Google and GitHub against staging need OAuth apps for the
@@ -319,13 +320,11 @@ Both are the kind of thing that only shows up when you look at the page rather t
 
 ## 9. Not done, and why
 
-1. **Visual-regression baselines are not committed.** They must be generated on Linux or CI will never
-   match them — a `-darwin` baseline is not a baseline CI can use, and a missing one fails the run.
-   Docker's VM disk had **1.5 GB free against an image needing more than 2 GB**. Soroush has since
-   confirmed that clearing space is fine — `docker volume prune` and removing unused images, both
-   recorded in `docs/PROCESS.md` — but the prune is blocked by this session's own tool permissions, so
-   it still wants a human hand on the keyboard. The tests are written and skip themselves until the
-   file exists, so nothing is faked and CI is not left red. To finish it, free space and run:
+1. ~~**Visual-regression baselines are not committed.**~~ **Done on 2026-09-11 — see §12.** The
+   original blocker, kept because the reasoning still applies to the next person: they must be
+   generated on Linux or CI will never match them — a `-darwin` baseline is not a baseline CI can use,
+   and a missing one fails the run. Docker's VM disk had **1.5 GB free against an image needing more
+   than 2 GB**. The procedure below is still the one to use if the official image fits:
 
    ```
    docker run -d --name 41p-snap -w /repo mcr.microsoft.com/playwright:v1.63.0-noble sleep 3600
@@ -383,3 +382,48 @@ identically on `main`. Not caused here, not fixed here, and CI is the gate.
    unblocks the footer's GitHub link.
 4. **The handoff is per process** like the rate limiter. One durable store would fix both; worth doing
    before there are two containers, which is EPIC-015's problem to schedule.
+
+---
+
+## 12. The baselines, and an image that had to be proved equivalent (2026-09-11)
+
+Docker still would not fit `mcr.microsoft.com/playwright:v1.63.0-noble` after the prune: the pull got
+as far as WebKit and died with 2.1 GB free. The image carries Chromium, Firefox and WebKit, and this
+needs one of them.
+
+**So the baselines were generated in a Chromium-only image built on the same Ubuntu 24.04 base**, with
+Playwright's own `install --with-deps chromium` pulling the same font and library set. It fits in
+1.3 GB.
+
+That swap is only safe if it renders identically, and "should be the same base, so it should be fine"
+is not evidence. **It was checked against something with a known answer**: the `/dev/ui` gallery
+baselines, generated in the *official* image during EPIC-003 and matched by CI ever since, were re-run
+in the lean image.
+
+```
+✓ design system gallery (/dev/ui) › visual regression: light theme
+✓ design system gallery (/dev/ui) › visual regression: dark theme
+2 passed
+```
+
+Both pass against the committed PNGs. The environment is equivalent, so `landing-{light,dark}-linux.png`
+generated in it are baselines CI can be held to. They were then copied back out and re-run against, to
+confirm they compare clean rather than merely having been written.
+
+**The guard changed while doing this, and the reason is worth keeping.** It used to skip when the
+Linux baseline was missing. It now also skips unless `process.platform === "linux"` — because on macOS
+Playwright does not compare against the committed baseline at all: it silently **writes a new
+`-darwin` one and passes**, leaving untracked PNGs that look like evidence and are not. That had
+already happened once with the `/dev/ui` gallery earlier in this epic. `UPDATE_VISUAL=1` bypasses both
+guards, since the run that creates a baseline is the one run that cannot require it to exist.
+
+To regenerate:
+
+```
+docker build -t 41p-shotbox <the Dockerfile in this section's history>   # ubuntu:24.04 + node 22 + chromium
+pnpm --filter @41prompts/web dev --port 3100 -H 0.0.0.0                  # on the host
+docker run -d --name 41p-snap --add-host=host.docker.internal:host-gateway -w /shots 41p-shotbox sleep 7200
+docker cp apps/web/e2e/landing.spec.ts 41p-snap:/shots/tests/
+docker exec -e UPDATE_VISUAL=1 41p-snap npx playwright test landing -g "visual regression" --update-snapshots
+docker cp 41p-snap:/shots/tests/landing.spec.ts-snapshots apps/web/e2e/
+```

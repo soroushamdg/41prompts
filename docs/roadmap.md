@@ -455,6 +455,18 @@ Go to 5b: ≥5 apps and ≥2 explicit asks. No-go: ship YAML/CI export as a smal
 **Tests.** Fresh `npm install @41prompts/sdk` resolves a bundled artifact; mirror job idempotent; a proprietary import fails the dry-run.
 **Review.** Licence headers present everywhere. Legal entity named in every LICENSE/NOTICE.
 
+**Creating `github.com/41prompts/41prompts` and re-pointing every URL to it is part of this epic, and
+must not happen before it** (Soroush, 2026-09-11). An empty placeholder repository reads as abandoned
+to a stranger; a private one reads as unreleased, which is what we are. So until the mirror is real,
+every `repository`, `homepage` and `bugs` URL in `packages/core`, `packages/cli`, `packages/sdk-ts`
+and `sdks/python`, and `REUSE.toml`'s `SPDX-PackageDownloadLocation`, point at
+`soroushamdg/41prompts`. Re-point all of them in the same change that publishes the mirror.
+
+One thing deliberately *not* re-pointed: the three `prepublishOnly` guards
+(`test "$GITHUB_REPOSITORY" = 41prompts/41prompts`). That is a publish blocker rather than a URL, and
+leaving it makes publishing impossible until the public repo exists — which is the intent. It is the
+fourth thing to flip here, alongside npm and PyPI trusted publishing.
+
 ---
 
 ## Stage 6 · Billing and launch
