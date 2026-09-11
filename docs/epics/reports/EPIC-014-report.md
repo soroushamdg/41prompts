@@ -191,9 +191,9 @@ value reaching `ip_hash` comes from `hashIdentity`, and no log line mentions the
       from no other action on the route`, `is not imported by the decompile action, so decompiling never
       waits on Cloudflare`, plus nine more in `turnstile.test.ts`; and verified **live on staging** with
       the real keys — the widget renders, an invalid token is refused by Cloudflare's siteverify, and
-      neither decompiling nor the waitlist cares whether Cloudflare is reachable (§12). One half is not
-      done: **a share completed by passing a real challenge**, which Turnstile will not let an automated
-      browser do. §12 says exactly what is left and who has to do it.
+      neither decompiling nor the waitlist cares whether Cloudflare is reachable (§12). Closed on
+      2026-09-11 by **a share completed through a real challenge** — `/d/dc_e1448469195a`, created by
+      hand because Turnstile will not let an automated browser do it (§12).
       *(Originally ticked on a reading of the code, with no tests behind it at all, though the criterion
       asked for two test names — see §11.)*
 - [x] **The abuse check runs before the summariser; on failure no provider call and the heuristic
@@ -409,9 +409,23 @@ network call, so it proves nothing about the secret; a **junk** token forces the
 into a real `siteverify` round trip, and Cloudflare rejecting it proves the call is being made and
 acted on. Before PR #35 that same path refused *everyone*, silently.
 
-### What is not done, and cannot be done this way
+### Closed by hand, 2026-09-11
 
-**A share completed by passing a real challenge.** Turnstile will not render its iframe at all when
+Soroush passed a real challenge and the share went through:
+
+```
+https://staging.41prompts.ai/d/dc_e1448469195a
+→ 200, x-robots-tag: noindex, nofollow
+→ 87 bloks, 94 spans, 1 finding
+```
+
+That is the end-to-end path with Turnstile live: challenge solved, token issued, `siteverify`
+accepted it, row written, permalink renders for a stranger with the right robots directives.
+Screenshot: `screenshots/EPIC-014/09-share-through-a-real-challenge.png`.
+
+### Why it took a person
+
+**Turnstile will not render its iframe at all when**
 `navigator.webdriver` is true — verified headless and headed, with no token issued in either, and an
 empty widget container rather than an error. That is the product working correctly: refusing
 automation is the entire point of it.
@@ -421,16 +435,15 @@ Getting past that would mean writing bot-evasion — spoofing `navigator.webdriv
 even against our own property: it is a technique whose only purpose is defeating a bot check, and the
 next person to find it in the test suite would reasonably assume it was fine to point elsewhere.
 
-So this last step needs a person, and it is about twenty seconds of one:
+That is why this last step needed a person, and it was about twenty seconds of one:
 
 1. Open `https://staging.41prompts.ai/decompile` in a normal browser, paste anything, press
    **Decompile**.
 2. The Turnstile widget appears above **Get a shareable link**. Let it settle.
 3. Press **Get a shareable link**. A `/d/dc_…` URL should appear.
 
-If it does, the criterion is closed; if instead you see *"That check expired before the link was made"*,
-the secret key and the site key belong to different widgets and the pair needs re-copying from the
-Cloudflare dashboard.
+It did, on the first try, which also rules out the failure that check was designed to catch: a site key
+and secret belonging to different widgets.
 
 Screenshot of the widget in place, and of the refusal an invalid token gets:
 `screenshots/EPIC-014/08-turnstile-widget-and-refusal.png`.
