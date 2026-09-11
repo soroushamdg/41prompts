@@ -5,6 +5,12 @@
 <https://staging.41prompts.ai/decompile>, driven by hand with **zero range mismatches** against the
 deployed build. The session log is `docs/epics/sessions/EPIC-013-session.md`.
 
+**Reworked after Soroush drove it on staging** (2026-09-10): the bloks read as an undifferentiated
+list, so they are now grouped by kind in `BLOK_KINDS` order with a heading and count per group, each
+card carries a persistent ink marker distinguishing kind by **shape** plus the kind's name as text,
+and a view control switches between grouped and source order, grouped by default and remembering
+nothing. Report §9 and §10.
+
 370 tests in `packages/core`, 38 in `apps/web`, 67 in `packages/ui`, 28 end to end, axe clean in both
 themes and on the empty state. Both carried debts are paid: EPIC-011a's fixture gap (corpus 25 → 29,
 classifier accuracy 96.7% of 60 → 96.7% of 92) and EPIC-012a's cross-kind `repeated` presentation.

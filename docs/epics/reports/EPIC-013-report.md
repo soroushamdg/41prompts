@@ -425,11 +425,48 @@ any future heading query on this route needs the same, because the group heading
 headings.
 
 Screenshots re-captured: `02-result-light.png`, `03-result-dark.png`, `06-blok-card-summary-source.png`,
-`07-phone-pinned.png`. Staging: §10.
+`07-phone-pinned.png`. Staging: §10, including `11-staging-source-order.png`.
 
 ## 10. Staging, after the grouping change
 
-_Filled in by a follow-up commit once the branch has merged and staging has redeployed._
+**<https://staging.41prompts.ai/decompile>**, driven by hand on `a8c9536`:
+
+```
+healthz: {"ok":true,"commit":"a8c9536bd133a9749c90ad4b15660b60e2bcc1a6","env":"staging"}
+empty state visible: true
+spans=8 bloks=8 findings=6
+closing line: "4 rules here have no check."
+pinned spans after clicking the JSON card: 1
+range mismatches: 0
+groups: ["context 3 bloks", "constraint 5 bloks"]
+cards=8 with a rail glyph=8
+default view grouped: true
+groups after switching to source order: 0
+phone: hint visible: true  auto-pinned spans: 1
+STAGING OK
+```
+
+Screenshots: `09-staging-result.png` (grouped, a blok pinned), `11-staging-source-order.png` (the
+same prompt in source order), `10-staging-phone.png` (390px).
+
+The grouping assertions were added to the same by-hand check that verifies the character mapping, so
+one run now covers both: groups present in `BLOK_KINDS` order with counts, a rail glyph on **every**
+card rather than most of them, grouped as the default, and no group headings at all once the reader
+switches to source order. `range mismatches: 0` still holds, which is the thing worth re-checking on
+every deploy.
+
+### One defect this check found
+
+The group heading's raw `textContent` read **`"context3 bloks"`** — no space. The accessible name was
+correct (Playwright's own strict-mode error had earlier reported it as "constraint 2 bloks", so the
+accname computation inserts the separator) and it looked right because of the flex gap, so nothing
+user-facing was wrong. But anything reading the DOM directly — including this staging check — saw the
+run-on. Fixed with an explicit space rather than left as a wart for whoever next writes a selector
+against it.
+
+That is twice in this epic that driving the deployed thing found something the suite could not:
+a marker that was present, correct and invisible, and a heading that was correct to every consumer
+except the literal one.
 
 ## 11. Verify
 
