@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
+import { exponentFrom, fastestRoundRobin, growthExponent, RATIO_RUNS } from "../perf/measure.js";
 import { SEGMENT_FIXTURES } from "./fixtures/index.js";
 import { checkSegmentInvariants } from "./invariants.js";
 import { segment } from "./segment.js";
@@ -35,28 +36,14 @@ function fastestSegment(input: string, runs = 3): number {
 }
 
 /**
- * The fastest run of each of two inputs, measured **interleaved**.
+ * Ratio measurements use `perf/measure.ts`'s shared helpers.
  *
- * Comparing two timings amplifies noise in a way that measuring one does not, and measuring them
- * in two consecutive blocks makes it worse: a burst of contention that lands entirely inside the
- * second block corrupts the comparison even though every individual run was the fastest of
- * several. That is not hypothetical — it turned the growth check below into a 2.48 exponent under
- * `pnpm test`'s eight parallel suites, from a small input at 4.8 ms and a large one at 147.9 ms
- * whose honest reading is a fifth of that.
- *
- * Interleaving means a stall has to hit all `runs` measurements of the same input to survive the
- * minimum, and any uniform slowdown — a slower runner, a busy machine — scales both and cancels
- * out of the ratio entirely.
+ * They were local to this file until EPIC-014, when this file's growth gate flaked on CI twice — at
+ * 1.74 against a 1.6 bar — while measuring 1.1 on a quiet machine. Reproducing that meant
+ * reproducing CI's condition rather than its workload: saturating every core with busy loops made
+ * the five-run estimator exceed the bar in 4 of 15 trials, peaking at 1.968. At thirty runs it never
+ * did. `RATIO_RUNS` carries the full measurement table and the reason the bars did not move.
  */
-function fastestInterleaved(first: string, second: string, runs = 5): [number, number] {
-  let bestFirst = Number.POSITIVE_INFINITY;
-  let bestSecond = Number.POSITIVE_INFINITY;
-  for (let run = 0; run < runs; run++) {
-    bestFirst = Math.min(bestFirst, timeSegment(first));
-    bestSecond = Math.min(bestSecond, timeSegment(second));
-  }
-  return [bestFirst, bestSecond];
-}
 
 /**
  * A prompt of a given size: the whole corpus repeated, so it exercises every rule rather than one
@@ -188,7 +175,9 @@ describe("adversarial input", () => {
     expect(measured).toHaveLength(ADVERSARIAL.length);
   });
 
-  it("costs no more per tag than the same document shape without tags", () => {
+  // Same generous timeout as the growth gate below, and for more reason: this one measures two
+  // exponents, so it pays the sampling cost twice.
+  it("costs no more per tag than the same document shape without tags", { timeout: 120_000 }, () => {
     // The differential version of the growth check, and the one that actually isolates what this
     // suite is here to protect: the cost of *tag matching*.
     //
@@ -207,17 +196,18 @@ describe("adversarial input", () => {
     const tagged = (n: number): string => "<a>\n".repeat(n);
     const control = (n: number): string => "# a\n".repeat(n);
 
-    const exponentOf = (make: (n: number) => string): number => {
-      const small = make(12_500);
-      const large = make(50_000);
-      timeSegment(small);
-      timeSegment(large);
-      const [smallMs, largeMs] = fastestInterleaved(small, large);
-      return Math.log(largeMs / Math.max(smallMs, 0.5)) / Math.log(4);
-    };
+    // All four measurements round-robin in one window, not two exponents measured one after the
+    // other. The difference of two exponents is about twice as noisy as one, and measuring the halves
+    // in separate windows let a burst of contention inside either survive into the difference:
+    // measured that way the excess swung −0.26 to +0.31 across three runs of the full parallel suite,
+    // a range of 0.57 against a bar of 0.5. Round-robin makes contention correlate across all four,
+    // where it largely cancels.
+    const inputs = [tagged(12_500), tagged(50_000), control(12_500), control(50_000)];
+    for (const input of inputs) timeSegment(input);
 
-    const taggedExponent = exponentOf(tagged);
-    const controlExponent = exponentOf(control);
+    const [taggedSmall, taggedLarge, controlSmall, controlLarge] = fastestRoundRobin(timeSegment, inputs);
+    const taggedExponent = exponentFrom(taggedSmall!, taggedLarge!, 4);
+    const controlExponent = exponentFrom(controlSmall!, controlLarge!, 4);
     const excess = taggedExponent - controlExponent;
     console.log(
       `tag-matching excess ${excess.toFixed(2)} (tagged ${taggedExponent.toFixed(2)}, control ${controlExponent.toFixed(2)})`
@@ -226,7 +216,7 @@ describe("adversarial input", () => {
     expect(excess, `tags cost input^${excess.toFixed(2)} more than the same shape without them`).toBeLessThan(0.5);
   });
 
-  it("grows no faster than input^1.6 when an adversarial input grows four times larger", () => {
+  it("grows no faster than input^1.6 when an adversarial input grows four times larger", { timeout: 120_000 }, () => {
     // The timing tests above catch a hang. This catches the thing that would not hang on a test
     // input but would on a user's: quadratic growth. Matching unmatched tag openers by scanning
     // forward for each one is O(n²) — which is why `tags.ts` matches with a single stack pass.
@@ -238,8 +228,8 @@ describe("adversarial input", () => {
     // 8×"?) and quietly changes meaning if the 4× ever becomes 3× or 5×.
     //
     // Both inputs are big enough that a scheduling hiccup cannot dominate, and they are measured
-    // interleaved — see `fastestInterleaved`, which exists because this test failed exactly once
-    // by measuring them in two blocks.
+    // interleaved over `RATIO_RUNS` samples — see `perf/measure.ts`, which carries the measurement
+    // that set that number after this gate flaked twice on CI.
     const factor = 4;
     const small = "<a>\n".repeat(12_500);
     const large = "<a>\n".repeat(12_500 * factor);
@@ -248,11 +238,9 @@ describe("adversarial input", () => {
     timeSegment(small);
     timeSegment(large);
 
-    const [smallRaw, largeMs] = fastestInterleaved(small, large);
-    const smallMs = Math.max(smallRaw, 0.5);
-    const exponent = Math.log(largeMs / smallMs) / Math.log(factor);
+    const exponent = growthExponent(timeSegment, small, large, factor);
     console.log(
-      `growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for ${factor}x input; 1.0 linear, 2.0 quadratic)`
+      `growth exponent ${exponent.toFixed(2)} over ${RATIO_RUNS} runs per side (${factor}x input; 1.0 linear, 2.0 quadratic)`
     );
     expect(exponent, `grew as input^${exponent.toFixed(2)}`).toBeLessThan(1.6);
   });

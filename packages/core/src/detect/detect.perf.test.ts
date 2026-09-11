@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { cluster } from "../cluster/cluster.js";
+import { COARSE_RATIO_RUNS, growthExponent } from "../perf/measure.js";
 import { SEGMENT_FIXTURES } from "../segment/fixtures/index.js";
 import { segment } from "../segment/segment.js";
 import type { Blok } from "../cluster/types.js";
@@ -73,9 +74,13 @@ describe("detect() throughput", () => {
     expect(warm).toBeGreaterThan(0);
   });
 
-  it("grows no faster than input^1.6 as the prompt grows", () => {
+  // A generous timeout, not a widened bar: this gate deliberately measures many times and each
+  // measurement is a 128 KB and a 512 KB detection. Under CI contention it is slower still, and a
+  // timeout failure would be exactly the flake this change exists to remove.
+  it("grows no faster than input^1.6 as the prompt grows", { timeout: 120_000 }, () => {
     // Before the token indexes this was a clean 4x per doubling — quadratic. Interleaved and
-    // fastest-of, for the reasons EPIC-010's perf test spells out.
+    // fastest-of over `RATIO_RUNS` samples, sharing the estimator fix EPIC-014 made after the
+    // segmenter's equivalent gate flaked twice on CI.
     const small = sizedPrompt(128 * 1024);
     const large = sizedPrompt(512 * 1024);
     const smallBloks = cluster(segment(small));
@@ -83,14 +88,16 @@ describe("detect() throughput", () => {
     timeDetect(smallBloks, small);
     timeDetect(largeBloks, large);
 
-    let smallMs = Number.POSITIVE_INFINITY;
-    let largeMs = Number.POSITIVE_INFINITY;
-    for (let run = 0; run < 5; run++) {
-      smallMs = Math.min(smallMs, timeDetect(smallBloks, small));
-      largeMs = Math.min(largeMs, timeDetect(largeBloks, large));
-    }
-    const exponent = Math.log(largeMs / Math.max(smallMs, 0.5)) / Math.log(4);
-    console.log(`detect growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for 4x input)`);
+    // `detect` takes two arguments, so each side is closed over as a nullary measurement and the
+    // shared helper interleaves them over `RATIO_RUNS` samples — see `perf/measure.ts`.
+    const exponent = growthExponent(
+      (run: () => number) => run(),
+      () => timeDetect(smallBloks, small),
+      () => timeDetect(largeBloks, large),
+      4,
+      COARSE_RATIO_RUNS
+    );
+    console.log(`detect growth exponent ${exponent.toFixed(2)} over ${COARSE_RATIO_RUNS} runs per side (4x input)`);
     expect(exponent, `grew as input^${exponent.toFixed(2)}`).toBeLessThan(1.6);
   });
 });
