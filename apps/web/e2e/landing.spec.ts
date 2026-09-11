@@ -289,7 +289,16 @@ test.describe("the landing page", () => {
     // `process.cwd()` is the repo root: Playwright transpiles specs to CJS, where `import.meta` is
     // a syntax error, and the runner always starts from the config's directory.
     const baseline = join(process.cwd(), "apps/web/e2e/landing.spec.ts-snapshots/landing-light-linux.png");
-    test.skip(!existsSync(baseline), "Linux baseline not generated yet — see EPIC-016's report");
+
+    // **Linux only.** Playwright names snapshots by platform, so running this on macOS does not
+    // compare against the committed baseline — it silently *writes a new `-darwin` one* and passes,
+    // leaving two untracked PNGs that look like evidence and are not. That happened once already
+    // with the /dev/ui gallery. CI is Linux and is where this test means something.
+    //
+    // `UPDATE_VISUAL=1` bypasses both guards, because generating the baseline is the one run that
+    // has to happen before the baseline exists.
+    const canCompare = process.platform === "linux" && existsSync(baseline);
+    test.skip(!canCompare && process.env.UPDATE_VISUAL === undefined, "visual baselines are Linux-only — see EPIC-016's report");
 
     // maxDiffPixelRatio covers font-hinting differences between that image and GitHub's runner — a
     // real regression moves far more.

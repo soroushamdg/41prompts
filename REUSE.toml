@@ -1,7 +1,7 @@
 version = 1
 SPDX-PackageName = "41prompts"
 SPDX-PackageSupplier = "<legal entity>"
-SPDX-PackageDownloadLocation = "https://github.com/41prompts/41prompts"
+SPDX-PackageDownloadLocation = "https://github.com/soroushamdg/41prompts"
 
 # CLAUDE.md's own rule: public packages (packages/core, packages/cli, packages/sdk-ts,
 # sdks/python) carry a real SPDX header on every source file, checked in directly — that's

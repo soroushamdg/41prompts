@@ -189,8 +189,13 @@ value reaching `ip_hash` comes from `hashIdentity`, and no log line mentions the
       a real server action.
 - [x] **Turnstile guards permalink creation and nothing else.** `is reached from share-actions and
       from no other action on the route`, `is not imported by the decompile action, so decompiling never
-      waits on Cloudflare`, plus nine more in `turnstile.test.ts`. **This was ticked on a reading of the
-      code first, with no tests behind it at all, and the criterion asked for two test names — see §11.**
+      waits on Cloudflare`, plus nine more in `turnstile.test.ts`; and verified **live on staging** with
+      the real keys — the widget renders, an invalid token is refused by Cloudflare's siteverify, and
+      neither decompiling nor the waitlist cares whether Cloudflare is reachable (§12). One half is not
+      done: **a share completed by passing a real challenge**, which Turnstile will not let an automated
+      browser do. §12 says exactly what is left and who has to do it.
+      *(Originally ticked on a reading of the code, with no tests behind it at all, though the criterion
+      asked for two test names — see §11.)*
 - [x] **The abuse check runs before the summariser; on failure no provider call and the heuristic
       summary.** `makes no provider call and returns the heuristic summary when a blok is too long`,
       `… for text that is a question for a model`, `… once one caller is over budget` — each with a
@@ -375,6 +380,57 @@ rather than from the build output.
 
 ### Still outstanding
 
-The Coolify variable has to be renamed before the widget can be driven by hand. Until then staging
-runs with Turnstile **off** and the rate limits standing, which is a documented working state — and
-now a loud one.
+*(Resolved 2026-09-11 — the variable was renamed and the container recreated. See §12.)*
+
+---
+
+## 12. Turnstile with the real keys, on staging (2026-09-11)
+
+The variable was renamed to `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and the deployment picked it up.
+
+**A restart would not have been enough, and the earlier note in `infra/README.md` was half right.**
+Next reads this value at runtime, which is what that note claimed — but a `docker restart` replays the
+existing container's `Config.Env`, so a renamed variable only lands when the container is
+**recreated**. The timestamps show what actually happened: the Coolify variable was updated at
+`22:51:10Z` and the container was *created* at `22:52:11Z`, one minute later. A redeploy, not a
+restart.
+
+### What was verified on the deployed build
+
+| | |
+|---|---|
+| The widget renders | `data-sitekey` starts `0x4AAAAAAE…` on the share panel |
+| **Verification is live and enforcing** | A **non-empty but invalid** token is refused: *"That check expired before the link was made."* |
+| Decompiling does not depend on Cloudflare | With `challenges.cloudflare.com` aborted at the network layer, `/decompile` still returns bloks |
+| Neither does the waitlist | Same blocked context: joined, and unsubscribed again |
+
+The invalid-token case is the one that carries weight. An **empty** token is refused before any
+network call, so it proves nothing about the secret; a **junk** token forces the code past that check
+into a real `siteverify` round trip, and Cloudflare rejecting it proves the call is being made and
+acted on. Before PR #35 that same path refused *everyone*, silently.
+
+### What is not done, and cannot be done this way
+
+**A share completed by passing a real challenge.** Turnstile will not render its iframe at all when
+`navigator.webdriver` is true — verified headless and headed, with no token issued in either, and an
+empty widget container rather than an error. That is the product working correctly: refusing
+automation is the entire point of it.
+
+Getting past that would mean writing bot-evasion — spoofing `navigator.webdriver`, launching with
+`--disable-blink-features=AutomationControlled`. **That is not something to add to this repository**,
+even against our own property: it is a technique whose only purpose is defeating a bot check, and the
+next person to find it in the test suite would reasonably assume it was fine to point elsewhere.
+
+So this last step needs a person, and it is about twenty seconds of one:
+
+1. Open `https://staging.41prompts.ai/decompile` in a normal browser, paste anything, press
+   **Decompile**.
+2. The Turnstile widget appears above **Get a shareable link**. Let it settle.
+3. Press **Get a shareable link**. A `/d/dc_…` URL should appear.
+
+If it does, the criterion is closed; if instead you see *"That check expired before the link was made"*,
+the secret key and the site key belong to different widgets and the pair needs re-copying from the
+Cloudflare dashboard.
+
+Screenshot of the widget in place, and of the refusal an invalid token gets:
+`screenshots/EPIC-014/08-turnstile-widget-and-refusal.png`.
