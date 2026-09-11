@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-015 is the current epic.** A mirror of `docs/epics/EPIC-015-soft-ship.md`; when the two disagree,
-that file wins.
-
+# EPIC-015: Soft ship
 Stage: 1 · Depends on: EPIC-014, EPIC-016 · Size: S
 
 ## Goal
