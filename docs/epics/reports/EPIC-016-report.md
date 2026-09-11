@@ -321,10 +321,11 @@ Both are the kind of thing that only shows up when you look at the page rather t
 
 1. **Visual-regression baselines are not committed.** They must be generated on Linux or CI will never
    match them — a `-darwin` baseline is not a baseline CI can use, and a missing one fails the run.
-   Docker's VM disk had **1.5 GB free against an image needing more than 2 GB**, and the only way to
-   make room was pruning volumes belonging to another project on this machine, which is not mine to
-   do. The tests are written and skip themselves until the file exists, so nothing is faked and CI is
-   not left red. To finish it, free space and run:
+   Docker's VM disk had **1.5 GB free against an image needing more than 2 GB**. Soroush has since
+   confirmed that clearing space is fine — `docker volume prune` and removing unused images, both
+   recorded in `docs/PROCESS.md` — but the prune is blocked by this session's own tool permissions, so
+   it still wants a human hand on the keyboard. The tests are written and skip themselves until the
+   file exists, so nothing is faked and CI is not left red. To finish it, free space and run:
 
    ```
    docker run -d --name 41p-snap -w /repo mcr.microsoft.com/playwright:v1.63.0-noble sleep 3600
