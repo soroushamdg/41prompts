@@ -26,10 +26,16 @@
 .site-nav-inner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-s4);
-  padding: var(--spacing-s3) var(--spacing-s5);
+  gap: var(--spacing-s2);
+  padding: var(--spacing-s3) var(--spacing-s4);
   max-width: 1240px;
   margin: 0 auto;
+}
+@media (min-width: 560px) {
+  .site-nav-inner {
+    gap: var(--spacing-s4);
+    padding: var(--spacing-s3) var(--spacing-s5);
+  }
 }
 .site-nav-spacer {
   flex: 1;
@@ -41,6 +47,9 @@
   align-items: center;
   min-height: 46px;
   padding: 0 var(--spacing-s2);
+  /* At 375px the row was tight enough to break "Sign in" across two lines and shove the theme
+     button against the edge. The nav is four items and must stay one line at every width. */
+  white-space: nowrap;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-ink-2);
@@ -397,6 +406,11 @@
 
 /* ──────────────────────────────── logo ──────────────────────────────── */
 
+/* A logo that links home is a target like any other. `a.logo` only, so the plain mark (the footer
+   uses one too) is not padded out for no reason. */
+a.logo {
+  min-height: 46px;
+}
 .logo {
   display: inline-flex;
   align-items: center;
