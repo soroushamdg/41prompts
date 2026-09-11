@@ -223,7 +223,31 @@ rather than a restart.
 
 ## 8. CI runs and staging
 
-_Filled in before merge (CI) and by a follow-up commit (staging)._
+### Three consecutive green CI runs
+
+Every gate, every run, on real CI hardware. **The gate that prompted this work read 1.74 on the run
+that failed; it reads 1.11–1.19 now**, and no bar moved.
+
+| gate | run 1 | run 2 | run 3 | bar |
+|---|---|---|---|---|
+| segment growth exponent | 1.11 | 1.19 | 1.17 | < 1.6 |
+| cluster growth exponent | 1.11 | 1.36 | 1.12 | < 1.6 |
+| detect growth exponent | 1.32 | 1.30 | 1.34 | < 1.6 |
+| tag-matching excess | −0.11 | 0.02 | −0.11 | < 0.5 |
+
+Worst reading across the three is **1.36** against a 1.6 bar — 0.24 of headroom, on the gate with the
+shortest per-run duration, which is exactly where the model predicts the most residual noise.
+
+**The one to watch is `cluster`.** It swung most (1.11 → 1.36 → 1.12) and has the least headroom,
+because its inputs are 1,000 and 4,000 segments and so each run is short — the same property that made
+`segment`'s gate the first to flake. If it ever crosses, the answer is more samples, not a wider bar;
+`RATIO_RUNS` carries the measurement table to argue from.
+
+All six checks passed on all three runs.
+
+### Staging
+
+_Filled in by a follow-up commit once the branch has merged and staging has redeployed._
 
 ---
 
