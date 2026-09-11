@@ -3,6 +3,7 @@
 import { clientAddress, decompiles, hashIdentity, waitlist } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import { captureVisitorEvent } from "@/lib/analytics/visitor";
 import { getDb } from "@/lib/db";
 import { byteLength, MAX_INPUT_BYTES } from "@/lib/decompile/limits";
 import { checkLimit, SHARE_LIMIT, WAITLIST_LIMIT } from "@/lib/decompile/rate-limit";
@@ -52,6 +53,9 @@ export async function shareDecompile(_previous: ShareState, formData: FormData):
     .returning({ id: decompiles.id });
 
   if (row === undefined) return { status: "error", message: "The link could not be made. Try again." };
+
+  // After the row exists, never before: a share that failed is not a share.
+  void captureVisitorEvent("decompile_share");
   return { status: "shared", id: row.id };
 }
 
@@ -87,6 +91,12 @@ export async function joinWaitlist(_previous: WaitlistState, formData: FormData)
   // anybody who cares to ask. `onConflictDoNothing` also means a second sign-up cannot revive an
   // unsubscribed row, which would turn an unsubscribe into a temporary one.
   await getDb().insert(waitlist).values({ email }).onConflictDoNothing({ target: waitlist.email });
+
+  // Fired on a duplicate too, and that is the right call for what this measures: the M1 criterion is
+  // "share **or** waitlist" as a signal of intent, and somebody returning to sign up again has shown
+  // the intent again. It is also the only option that does not leak whether an address is already on
+  // the list — `onConflictDoNothing` deliberately does not tell us.
+  void captureVisitorEvent("waitlist_joined");
   return { status: "joined" };
 }
 

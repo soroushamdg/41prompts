@@ -23,13 +23,42 @@ function getClient(): PostHog | undefined {
   return cached;
 }
 
-// EPIC-004 decision 8: the PostHog client must not make analytics impossible to disable later.
-// True everywhere except: production, no session, and no explicit consent — that combination is
-// "an anonymous visitor in production with no cookie banner yet" (EPIC-017 builds the banner;
-// until then, anonymous production traffic is simply not captured). A signed-in call site (every
-// real caller in this epic — identify/signup/login only ever fire for an authenticated user) is
-// always allowed.
-export function hasAnalyticsConsent(options: { isSignedIn: boolean; consentCookie?: string }): boolean {
+/**
+ * Whether this visitor may be counted.
+ *
+ * **EPIC-015 changed the default for anonymous production traffic, and the reason matters.**
+ * EPIC-004 decision 8 made it opt-in: no session, production, no cookie meant no capture, because
+ * there was no banner yet and nothing to measure. EPIC-015 is the thirty-day window that decides
+ * whether the wedge is real, every visitor in it is anonymous and in production, and opt-in would
+ * have made the funnel read **zero for thirty days** — a measurement that looks like a result.
+ *
+ * EPIC-015 decision 9 settles the direction: *"a visitor who **declines** is not counted"*. Declining
+ * is an act, so the default is counted, and declining is honoured three ways:
+ *
+ * - **`DNT: 1`** — a browser-level "do not track", respected even though it is advisory.
+ * - **`Sec-GPC: 1`** — Global Privacy Control, the one with actual legal weight in some
+ *   jurisdictions, and the one a 2026 browser is more likely to send.
+ * - **A consent cookie set to anything but `granted`** — EPIC-017's banner writes this; until it
+ *   exists nobody has one, which is the whole point of the default.
+ *
+ * The consequence, and it belongs in the report rather than in a footnote: **the 300 will be an
+ * undercount.** Anyone sending DNT or GPC is invisible to the funnel by design.
+ */
+export function hasAnalyticsConsent(options: {
+  isSignedIn: boolean;
+  consentCookie?: string;
+  doNotTrack?: string | null;
+  globalPrivacyControl?: string | null;
+}): boolean {
+  // Declining wins everywhere, including outside production and including for a signed-in user.
+  // A setting that only applies in some environments is not a setting anybody can trust.
+  if (options.doNotTrack === "1" || options.globalPrivacyControl === "1") {
+    return false;
+  }
+  if (options.consentCookie !== undefined && options.consentCookie !== "granted") {
+    return false;
+  }
+
   const deployEnv = process.env.DEPLOY_ENV ?? "development";
   if (deployEnv !== "production") {
     return true;
@@ -37,8 +66,12 @@ export function hasAnalyticsConsent(options: { isSignedIn: boolean; consentCooki
   if (options.isSignedIn) {
     return true;
   }
-  return options.consentCookie === "granted";
+  // The EPIC-015 change: an anonymous visitor with no stated preference is counted.
+  return true;
 }
+
+/** The cookie EPIC-017's banner will write. Named here so both epics use one spelling. */
+export const CONSENT_COOKIE_NAME = "41prompts_analytics_consent";
 
 // User id only, never an email or any other PII (decision 3).
 export function identifyUser(distinctId: string): void {

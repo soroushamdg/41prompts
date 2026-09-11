@@ -21,6 +21,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const origin = siteOrigin();
   return [
     { url: `${origin}/`, changeFrequency: "weekly", priority: 1 },
-    { url: `${origin}/decompile`, changeFrequency: "weekly", priority: 0.8 }
+    { url: `${origin}/decompile`, changeFrequency: "weekly", priority: 0.8 },
+    // The one content asset (EPIC-015 decision 4). It exists to be found, so it is the one page here
+    // whose whole purpose is the sitemap.
+    { url: `${origin}/guides/what-your-prompt-does-not-check`, changeFrequency: "monthly", priority: 0.7 }
   ];
 }

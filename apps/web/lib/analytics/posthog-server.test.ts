@@ -27,14 +27,39 @@ describe("hasAnalyticsConsent", () => {
     expect(hasAnalyticsConsent({ isSignedIn: true })).toBe(true);
   });
 
-  it("blocks an anonymous visitor in production with no consent cookie", () => {
+  it("counts an anonymous visitor in production who has stated no preference", () => {
+    // **EPIC-015 reversed this**, and the old assertion is worth remembering: it used to be `false`,
+    // which was right when there was nothing to measure and no banner. Every visitor in the
+    // thirty-day window is anonymous and in production, so opt-in would have produced a funnel
+    // reading zero for thirty days — a measurement that looks like a result. Decision 9: a visitor
+    // who *declines* is not counted, and declining is an act.
     process.env.DEPLOY_ENV = "production";
-    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(false);
+    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(true);
   });
 
   it("allows an anonymous visitor in production once consent is granted", () => {
     process.env.DEPLOY_ENV = "production";
     expect(hasAnalyticsConsent({ isSignedIn: false, consentCookie: "granted" })).toBe(true);
+  });
+
+  it("does not count a visitor who declines, anywhere, however they say it", () => {
+    for (const env of ["production", "staging"]) {
+      process.env.DEPLOY_ENV = env;
+      expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: "1" }), `DNT in ${env}`).toBe(false);
+      expect(hasAnalyticsConsent({ isSignedIn: false, globalPrivacyControl: "1" }), `GPC in ${env}`).toBe(false);
+      expect(hasAnalyticsConsent({ isSignedIn: false, consentCookie: "denied" }), `cookie in ${env}`).toBe(false);
+      // Declining outranks being signed in. A setting that only applies to logged-out people is not
+      // a setting anybody can trust.
+      expect(hasAnalyticsConsent({ isSignedIn: true, doNotTrack: "1" }), `signed in, DNT, ${env}`).toBe(false);
+    }
+  });
+
+  it("treats only the exact values as declining, not any truthy header", () => {
+    process.env.DEPLOY_ENV = "production";
+    // Browsers send "0" for "tracking is fine" and browsers that have never been asked send nothing.
+    expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: "0" })).toBe(true);
+    expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: null })).toBe(true);
+    expect(hasAnalyticsConsent({ isSignedIn: false, globalPrivacyControl: null })).toBe(true);
   });
 
   it("allows an anonymous visitor outside production regardless of consent", () => {

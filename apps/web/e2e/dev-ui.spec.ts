@@ -29,13 +29,27 @@ test.describe("design system gallery (/dev/ui)", () => {
   // GitHub's actual runner image, and font hinting/anti-aliasing differs by a few hundred pixels
   // (~0.02% of the page) between the two even on the same OS family. A real regression — wrong
   // colour, missing component, layout shift — moves thousands to millions of pixels, not hundreds.
-  test("visual regression: light theme", async ({ page }) => {
-    await expect(page).toHaveScreenshot("gallery-light.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
-  });
+  // **Linux only**, for the reason EPIC-016 documented after being caught by it: on macOS Playwright
+  // does not compare against the committed `-linux` baseline, it silently writes a new `-darwin` one
+  // and passes — leaving untracked PNGs that look like evidence. CI is Linux and is where this means
+  // something. `UPDATE_VISUAL=1` bypasses it for regeneration.
+  //
+  // Its own `describe` so the skip covers exactly these two: a bare `test.skip(condition)` applies to
+  // every test in the enclosing block, which took the axe and keyboard tests with it.
+  test.describe("visual regression", () => {
+    test.skip(
+      process.platform !== "linux" && process.env.UPDATE_VISUAL === undefined,
+      "visual baselines are Linux-only — see EPIC-016's report"
+    );
 
-  test("visual regression: dark theme", async ({ page }) => {
-    await setTheme(page, "dark");
-    await expect(page).toHaveScreenshot("gallery-dark.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
+    test("visual regression: light theme", async ({ page }) => {
+      await expect(page).toHaveScreenshot("gallery-light.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
+    });
+
+    test("visual regression: dark theme", async ({ page }) => {
+      await setTheme(page, "dark");
+      await expect(page).toHaveScreenshot("gallery-dark.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
+    });
   });
 
   test("keyboard: Button is reachable and activatable by keyboard, with a visible focus ring", async ({ page }) => {

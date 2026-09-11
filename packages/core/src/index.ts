@@ -42,6 +42,7 @@ export {
   MAX_RULES_WITHOUT_CHECKS,
   REPEAT_OVERLAP_THRESHOLD
 } from "./detect/constants.js";
+export { FINDING_KINDS } from "./detect/types.js";
 export type { Finding, FindingKind, Severity } from "./detect/types.js";
 
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a

@@ -1,6 +1,7 @@
 import { cluster, detect, heuristicSummariser, segment, uncheckedRuleCount } from "@41prompts/core";
 import { clientAddress, hashIdentity } from "@41prompts/db";
 import { headers } from "next/headers";
+import { captureVisitorEvent } from "@/lib/analytics/visitor";
 import { byteLength, MAX_INPUT_BYTES, type DecompileState } from "./limits";
 import { checkLimit, DECOMPILE_LIMIT } from "./rate-limit";
 import { buildView } from "./view-model";
@@ -43,6 +44,12 @@ export async function runDecompile(source: string): Promise<DecompileState> {
       return [blok.id, { text: summary.text, source: summary.source }] as const;
     })
   );
+
+  // EPIC-015: counted here rather than in the action, so the landing page's handoff — which reaches
+  // the pipeline without a form submission — is counted too. Deliberately **not** on the empty,
+  // too-long or rate-limited paths: somebody pressing the button on an empty box has not run
+  // anything, and inflating the denominator would flatter the funnel.
+  void captureVisitorEvent("decompile_run", { bloks: bloks.length, findings: findings.length });
 
   return {
     status: "ok",

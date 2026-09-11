@@ -358,7 +358,7 @@ test.describe("metadata", () => {
   test("sitemap.xml lists only pages that exist and are indexable", async ({ request }) => {
     const body = await (await request.get("/sitemap.xml")).text();
     const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
-    expect(locs).toEqual(["/", "/decompile"]);
+    expect(locs).toEqual(["/", "/decompile", "/guides/what-your-prompt-does-not-check"]);
     // Anything disallowed in robots.txt must not be advertised here.
     expect(body).not.toContain("/d/");
     expect(body).not.toContain("/legal/");
