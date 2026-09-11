@@ -1,5 +1,5 @@
 import { boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { newApiKeyId, newProjectId, newRunBudgetId } from "./ids";
+import { newApiKeyId, newDecompileId, newProjectId, newRunBudgetId, newWaitlistId } from "./ids";
 
 // Better Auth's own tables. Column keys match Better Auth's internal field names exactly
 // (required for the Drizzle adapter to bind); SQL column names are snake_case per CLAUDE.md.
@@ -125,4 +125,50 @@ export const runBudgets = pgTable("run_budgets", {
   spentCents: integer("spent_cents").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// ── EPIC-014: capture ────────────────────────────────────────────────────────────────────────
+
+/**
+ * A shared decompile. Anonymous, unguessable by id, and purged after 30 days.
+ *
+ * **`source` is stored exactly as the server received it, CRLF and all.** EPIC-013 measured that a
+ * browser normalises a `<textarea>`'s value to CRLF on submit regardless of the author's editor, and
+ * the byte offsets a decompile produces index the string the server actually got. Normalising on the
+ * way in — "tidying" the line endings — would shift every range in every stored link by one
+ * character per preceding line. Whatever is in this column is what the ranges were computed against.
+ *
+ * **No `user_id`.** This route has no accounts (decision 9) and adding a nullable owner now would
+ * invite a later feature to read it.
+ */
+export const decompiles = pgTable("decompiles", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newDecompileId()),
+  source: text("source").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  /**
+   * The submitting address, hashed with a per-deployment salt — never the address itself.
+   *
+   * It exists for abuse accounting, which needs only "same or different", and a hash answers that.
+   * Storing the address would make this table a list of who read what, which is a liability we would
+   * be keeping on behalf of people who never signed up for anything.
+   */
+  ipHash: text("ip_hash"),
+  userAgentHash: text("user_agent_hash"),
+});
+
+/**
+ * "Tell me when the editor ships." One field, no account, no marketing automation (decision 8).
+ *
+ * `unsubscribedAt` rather than a delete: somebody who unsubscribes should stay unsubscribed if they
+ * later land on the form again, and a deleted row cannot remember that.
+ */
+export const waitlist = pgTable("waitlist", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newWaitlistId()),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  unsubscribedAt: timestamp("unsubscribed_at"),
 });

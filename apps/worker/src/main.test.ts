@@ -62,6 +62,10 @@ describe("worker main", () => {
     const boss = bossInstances[0]!;
     expect(boss.start).toHaveBeenCalled();
     expect(boss.createQueue).toHaveBeenCalledWith("purge-deleted-users");
+    // Two queues, not one job doing both: they keep different promises against different tables, and
+    // one failing must not take the other down.
+    expect(boss.createQueue).toHaveBeenCalledWith("purge-decompiles");
+    expect(boss.schedule).toHaveBeenCalledWith("purge-decompiles", "0 4 * * *");
     expect(boss.schedule).toHaveBeenCalledWith("purge-deleted-users", "0 3 * * *");
     expect(boss.work).toHaveBeenCalledWith("purge-deleted-users", expect.any(Function));
   });

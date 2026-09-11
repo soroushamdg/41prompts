@@ -15,6 +15,13 @@
       "when": 1788624241268,
       "tag": "0001_dry_post",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789087294573,
+      "tag": "0002_reflective_jackpot",
+      "breakpoints": true
     }
   ]
 }
