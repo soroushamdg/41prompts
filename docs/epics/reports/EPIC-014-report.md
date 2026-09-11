@@ -203,7 +203,9 @@ value reaching `ip_hash` comes from `hashIdentity`, and no log line mentions the
       the colour check reading *computed* colours, and the new controls measured with headroom rather
       than on the boundary — EPIC-013's 43.99998 lesson.
 - [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.**
-- [ ] **Staging: share, open, remove and waitlist by hand with screenshots.** §8, after merge.
+- [x] **Staging: share, open, remove and waitlist by hand with screenshots.** §8 — six screenshots
+      in `docs/epics/reports/screenshots/EPIC-014/`, plus zero range mismatches and the `noindex` header
+      re-checked on the deployed build.
 - [x] **Report and session log written; backlog updated.**
 
 ---
@@ -247,7 +249,46 @@ All six checks passed on all three runs.
 
 ### Staging
 
-_Filled in by a follow-up commit once the branch has merged and staging has redeployed._
+Merged as `62dbf5f`, redeployed, then driven by hand against `https://staging.41prompts.ai`.
+
+```
+{"ok":true,"commit":"62dbf5fccca6a6e66c96bafc03a9d7d0e1a5f089","env":"staging"}
+```
+
+**This was the first deploy in the project carrying a migration.** The container entrypoint chains
+`db:migrate && next start`, so a migration that fails takes the app down rather than serving a build
+against the wrong schema — the loud failure is the intended one. It came up clean, which is the only
+evidence that matters for `decompiles` and `waitlist` existing in staging Postgres.
+
+| step | screenshot | what it shows |
+|---|---|---|
+| share control | `01-share-control-and-retention.png` | the retention sentence and the removal offer sitting **above** "Get a shareable link" |
+| link created | `02-share-link-created.png` | `https://staging.41prompts.ai/d/dc_46d0b04f010c` |
+| opened clean | `03-permalink-opened.png` | a fresh context, no cookies or storage: 6 spans, 6 bloks, 5 findings |
+| removal | `04-remove-confirm.png` | "Delete this link for everyone?" with **Yes, delete it** / **Keep it** |
+| waitlist | `05-waitlist-joined.png` | "You are on the list. You can unsubscribe from any email I send." |
+| unsubscribe | `06-unsubscribed.png` | the path that sentence promises, reached from the email in the link |
+
+Checked on the deployed build, not just asserted in the suite:
+
+- **Retention names the window.** `"A shared link works for 30 days, then it is deleted for good.
+  Anyone with the link can delete it sooner — including you…"` The permalink adds the date it resolves
+  to — *"This one is deleted on October 10, 2026"* — which is 30 days from the share, computed on the
+  server and not by the reader.
+- **Share URL shape** matches `/d/dc_[0-9a-f]{12}`.
+- **Zero range mismatches on the permalink.** The CRLF check EPIC-013 paid for, re-run against the real
+  deployment: every `data-start`/`data-end` pair re-sliced from the *as-submitted* source (`\r\n`
+  line endings) and CR-normalised still equals the span's rendered text. This is the assertion that
+  would have caught the two-character drift, run where the browser and the proxy are real.
+- **`x-robots-tag: noindex, nofollow`** on the permalink response.
+- **404 after removal**, polled until it flipped — a hard delete, not a hidden row.
+
+One deliberate leftover: the waitlist row `staging-check-…@example.com` is still in staging's table,
+unsubscribed. Deleting it would be a mutating command on the box for no benefit, and leaving it is the
+more honest record of the path having been walked.
+
+The script that drove this is a one-off against a deployed URL, not part of the suite; it is not
+committed, and the screenshots are the evidence it produced.
 
 ---
 
