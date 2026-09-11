@@ -131,7 +131,10 @@ export function BlokList({ bloks, activeBlokId, pinnedBlokId, onHover, onPin, on
               <section key={group.kind} className="blok-group" aria-labelledby={`group-${group.kind}`}>
                 <h3 id={`group-${group.kind}`} className="blok-group-heading">
                   <BlokKindGlyph kind={group.kind} />
-                  {KIND_NAME[group.kind]}
+                  {KIND_NAME[group.kind]}{" "}
+                  {/* An explicit space: the flex gap and the accessible name both read correctly
+                      without it, but raw `textContent` comes out as "context3 bloks" — which is what
+                      anything scraping the DOM, including our own staging check, actually sees. */}
                   <span className="blok-group-count">
                     {group.bloks.length === 1 ? "1 blok" : `${group.bloks.length} bloks`}
                   </span>

@@ -116,6 +116,21 @@ character-mapping path against a deployed build rather than a dev server. The fi
 one defect no test could: a panel that worked correctly and looked unfinished, because its height cap
 fought `flex: 1`. Screenshots are a review surface, not only evidence.
 
+**After staging, a second round.** Soroush drove `/decompile` on staging and the bloks read as an
+undifferentiated list. Grouping by kind, a per-kind shape marker and a view control followed; report
+§9 and §10. Two things are worth carrying: the prototype's per-card marker **cannot be ported at all**
+(its bar works only because it is coloured per kind, and an ink bar is invisible against the card's
+own ink border), and driving the deployed thing found two defects the suite structurally could not —
+a marker that was present, correct and invisible, and a heading whose `textContent` read "context3
+bloks" while its accessible name was fine.
+
+**A CI note for whoever reads a red build next.** Two failures this session, and they were not the
+same kind of thing. `segment.perf.test.ts` flaked — a timing-ratio gate measuring 1.74 against a 1.6
+bar, in a file the change could not reach, and 1.10 locally; that test's own comment already recorded
+one prior flake, so this is the second. The other was mine: I deleted the CSS an assertion depended on
+and re-ran the capture spec rather than the behavioural one. Worth telling apart, because treating the
+second as a flake is how a suite stops meaning anything.
+
 **For the next session.** Stage 1's remaining epics are EPIC-017 (legal minimum, which must land
 before `/decompile` reaches production traffic), EPIC-014 (capture, purge, rate limits, abuse checks —
 and it now knows it will be storing CRLF), EPIC-016 (landing page) and EPIC-015 (soft ship). Nothing

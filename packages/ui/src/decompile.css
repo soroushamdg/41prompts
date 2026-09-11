@@ -319,8 +319,11 @@
 }
 
 @media (max-width: 1019px) {
+  /* 46, not 44. An explicit `min-height` is stable where a font-derived inline height is not, but a
+     target sized exactly to the minimum leaves a `>= 44` check nothing to absorb a sub-pixel with —
+     which is how the source span reached CI at 43.99998474121094. Headroom is free here. */
   .blok-view-control .btn {
-    min-height: 44px;
+    min-height: 46px;
   }
 }
 
@@ -416,10 +419,16 @@
  *
  * A source span is an **inline** box, so its line-height does not grow its hit rectangle — only
  * padding does, and vertical padding on an inline box overflows into the neighbouring lines rather
- * than pushing them apart. Measured: 10px of padding gave a 37px target. So the padding is set to
- * reach 44px and the line-height is opened up to match, or the ink-inverted highlights of adjacent
- * lines would overlap each other. The map is taller on a phone, which is the right trade when touch
- * is the default rather than the fallback. */
+ * than pushing them apart. Measured: 10px of padding gave a 37px target.
+ *
+ * **Sized well clear of 44px, not exactly on it.** Padding computed to land on exactly 44 passed on
+ * macOS and failed on CI at 43.99998474121094: an inline box's content height comes from font
+ * metrics, which differ by a fraction of a pixel between platforms, and a minimum hit exactly has no
+ * tolerance for that. The arithmetic that produced "exactly 44" was the mistake, not the pixel.
+ *
+ * The line-height is opened to match, or the ink-inverted highlights of adjacent lines would overlap
+ * each other. The map is taller on a phone, which is the right trade when touch is the default
+ * rather than the fallback. */
 @media (max-width: 1019px) {
   /* Stacked, so the page scrolls rather than each panel scrolling inside itself — epic decision 2:
      the source map stays reachable by scrolling, never hidden behind a tab. */
@@ -431,13 +440,13 @@
     max-height: 60vh;
   }
   .source-map {
-    line-height: 3.6;
+    line-height: 4;
   }
   .source-span {
-    padding: 13.5px 0;
+    padding: 16px 0;
   }
   .finding {
-    min-height: 44px;
+    min-height: 46px;
   }
 }
 
