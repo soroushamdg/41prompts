@@ -222,8 +222,10 @@ Implementation notes worth keeping:
       only pages that exist and are indexable`, `the home page carries title, description, canonical
       and a card`, `the Open Graph image renders at 1200×630` (read out of the PNG's IHDR, not
       eyeballed). **No validator screenshot — see §9.**
-- [ ] **Lighthouse on staging: performance ≥90, accessibility 100, best practices ≥95, SEO 100.** See
-      §8.
+- [x] **Lighthouse: performance ≥90, accessibility 100, best practices ≥95, SEO 100.** 97 / 100 / 100 on
+      staging, and 96 / 100 / 100 / **100** on the production ruleset. SEO is capped at 66 on staging by
+      its own `x-robots-tag: noindex` middleware, which is correct behaviour for staging and makes 100
+      unmeasurable there — both numbers and the reason are in §8.
 - [x] **Axe clean in both themes; full keyboard operation; 44px targets; no green, red or amber.**
       Eight axe runs, `the whole page is reachable by keyboard, starting with a skip link`, `the ask
       bar submits from the keyboard alone`, `touch targets clear 44px on a phone`, `uses no pass, fail
@@ -233,14 +235,85 @@ Implementation notes worth keeping:
 - [x] **No testimonial, logo, counter or claim that is not literally true today.** §5, and thirteen
       tests rather than a line in a report.
 - [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.** §10.
-- [ ] **Deployed to staging with screenshots at both viewport sizes.** §8.
+- [x] **Deployed to staging with screenshots at both viewport sizes.** §8 — seven screenshots, plus the
+      above-the-fold measurements and a full ask-bar round trip on the deployed build.
 - [x] **Report and session log written; backlog updated.**
 
 ---
 
-## 8. Staging
+## 8. Staging and Lighthouse
 
-_Filled in once this branch has merged and staging has redeployed._
+Merged as `2894709`, redeployed, then driven by hand against `https://staging.41prompts.ai`.
+
+### The ask bar, on the deployed build
+
+```
+handoff url: ?start=cb706308d6787a062e3c61f7dce75327
+landed: 6 bloks, 5 findings, 0 range mismatches
+```
+
+The whole query string is the opaque id and nothing else, and every span's `data-start`/`data-end`
+re-sliced from the source **as the browser actually submitted it** (CRLF) equals what is rendered.
+That is the EPIC-013 check, re-run where the browser and the proxy are real.
+
+`robots.txt` and `sitemap.xml` both serve the deployed origin, not a build-time localhost — which is
+what `export const dynamic = "force-dynamic"` on those two route handlers is for.
+
+### Above the fold, measured rather than eyeballed
+
+| viewport | ask bar ends at | submit ends at | fold |
+|---|---|---|---|
+| 1280×800 | 635 | 625 | 800 |
+| 375×812 | 551 | 541 | 812 |
+
+### Lighthouse
+
+| | staging | local production build | bar |
+|---|---|---|---|
+| Performance | 97 | 96 | ≥ 90 |
+| Accessibility | 100 | 100 | 100 |
+| Best practices | 100 | 100 | ≥ 95 |
+| SEO | **66** | **100** | 100 |
+
+FCP 0.8s · LCP 2.7s · TBT 70ms · CLS 0 · Speed Index 0.8s (local production build).
+
+**Why SEO is 66 on staging and why that is correct.** Staging returns
+`x-robots-tag: noindex, nofollow` on every response, so Lighthouse's `is-crawlable` audit fails and
+caps the category. That header is not ours — it is a Traefik middleware on the staging application
+(`…-noindex.headers.customresponseheaders.X-Robots-Tag`, alongside a Caddy label doing the same). It
+is exactly what staging should do, and it means **an SEO score of 100 is not measurable on staging by
+construction**. The 100 above is the same page under the ruleset production will serve, measured
+against `next build && next start`. Both numbers are reported rather than picking the flattering one.
+
+A related thing worth knowing, since it was checked while chasing this: `app/robots.ts` serves
+`Allow: /` on staging too. That is harmless only because the edge blocks indexing anyway — the header
+is what is actually protecting staging, not the file.
+
+Lighthouse itself would not run against this machine's Node, which is x64 under Rosetta; it refuses
+rather than produce numbers translated through it. Run with an arm64 Node fetched into a scratch
+directory, nothing installed.
+
+### Screenshots
+
+`docs/epics/reports/screenshots/EPIC-016/`:
+
+| | |
+|---|---|
+| `01-landing-1280x800-light.png`, `02-…-dark.png` | The whole page, both themes |
+| `03-landing-375x812-light.png`, `04-…-dark.png` | Phone, both themes |
+| `05-sign-in-1280x800.png` | Styled auth, three ways in |
+| `06-legal-stub.png` | A placeholder that says it is one |
+| `07-ask-bar-landed-on-decompile.png` | The paste, arrived and decompiled |
+
+### Two defects staging found that the suite had not
+
+1. **The nav wrapped at 375px.** "Sign in" broke across two lines and the theme button sat against the
+   edge. Fixed (`white-space: nowrap`, tighter gutter below 560px) and now asserted: the nav must be
+   one row with no horizontal scroll at 375px.
+2. **The logo link was 31px tall.** It links home, which makes it a touch target like any other, and
+   it was the one interactive element the 44px test did not cover. Fixed and added to that test.
+
+Both are the kind of thing that only shows up when you look at the page rather than at the tests.
 
 ---
 
@@ -248,10 +321,11 @@ _Filled in once this branch has merged and staging has redeployed._
 
 1. **Visual-regression baselines are not committed.** They must be generated on Linux or CI will never
    match them — a `-darwin` baseline is not a baseline CI can use, and a missing one fails the run.
-   Docker's VM disk had **1.5 GB free against an image needing more than 2 GB**, and the only way to
-   make room was pruning volumes belonging to another project on this machine, which is not mine to
-   do. The tests are written and skip themselves until the file exists, so nothing is faked and CI is
-   not left red. To finish it, free space and run:
+   Docker's VM disk had **1.5 GB free against an image needing more than 2 GB**. Soroush has since
+   confirmed that clearing space is fine — `docker volume prune` and removing unused images, both
+   recorded in `docs/PROCESS.md` — but the prune is blocked by this session's own tool permissions, so
+   it still wants a human hand on the keyboard. The tests are written and skip themselves until the
+   file exists, so nothing is faked and CI is not left red. To finish it, free space and run:
 
    ```
    docker run -d --name 41p-snap -w /repo mcr.microsoft.com/playwright:v1.63.0-noble sleep 3600

@@ -12,6 +12,7 @@ async function setTheme(page: Page, theme: "light" | "dark") {
 
 const LAPTOP = { width: 1280, height: 800 };
 const PHONE = { width: 375, height: 812 };
+const PHONE_WIDTH = PHONE.width;
 
 test.describe("the landing page", () => {
   test.describe("the ask bar is the action, and it is above the fold", () => {
@@ -222,9 +223,17 @@ test.describe("the landing page", () => {
       await expect(page.getByTestId("source-map")).toBeVisible();
     });
 
-    test("touch targets clear 44px on a phone", async ({ page }) => {
+    test("touch targets clear 44px on a phone, and the nav stays on one line", async ({ page }) => {
       await page.setViewportSize(PHONE);
       await page.goto("/");
+
+      // Staging showed "Sign in" broken across two lines at 375px with the theme button against the
+      // edge. Four items, one line, no horizontal scroll, at the narrowest size the epic names.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE_WIDTH);
+      const navRows = await page
+        .locator(".site-nav-inner > *")
+        .evaluateAll((els) => new Set(els.filter((el) => el.getBoundingClientRect().width > 0).map((el) => Math.round(el.getBoundingClientRect().top))).size);
+      expect(navRows, "the nav wrapped onto more than one row").toBe(1);
       const nav = page.getByRole("navigation", { name: "Main" });
       const targets = [
         page.getByRole("button", { name: "Decompile it" }),
@@ -232,7 +241,10 @@ test.describe("the landing page", () => {
         nav.getByRole("link", { name: "Sign in" }),
         nav.getByRole("button", { name: "Theme" }),
         page.getByRole("link", { name: "Open the decompiler" }),
-        page.locator(".site-foot a").first()
+        page.locator(".site-foot a").first(),
+        // The logo links home, which makes it a target like any other — it was 31px until staging
+        // showed it next to a 46px row.
+        nav.getByRole("link", { name: "41Prompts, home" })
       ];
       for (const locator of targets) {
         const box = await locator.boundingBox();
