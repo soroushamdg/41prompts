@@ -104,6 +104,12 @@ export function DecompileView({ turnstileSiteKey }: { turnstileSiteKey: string |
         </div>
       </form>
 
+      {state.status === "rate-limited" && (
+        <p className="decompile-notice" role="alert">
+          {state.message}
+        </p>
+      )}
+
       {state.status === "too-long" && (
         <p className="decompile-notice" role="alert">
           {tooLongMessage(state.bytes)}

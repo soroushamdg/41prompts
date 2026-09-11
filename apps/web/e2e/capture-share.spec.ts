@@ -212,6 +212,38 @@ test.describe("the waitlist", () => {
   });
 });
 
+test.describe("rate limits reach the route, not just the module", () => {
+  test("refuses past the waitlist limit with a message naming it, and does not imply wrongdoing", async ({ page }) => {
+    // The waitlist limit (5/hour) is the affordable one to exhaust end to end — the same `checkLimit`
+    // path the decompile and share actions use, through a real server action, six requests instead of
+    // a hundred and twenty. The limiter's own behaviour is unit-tested; this proves the wiring.
+    await decompile(page, PROMPT);
+
+    let refusal: string | null = null;
+    for (let i = 0; i < 8; i += 1) {
+      await page.getByLabel("Your email").fill(`e2e-limit-${Date.now()}-${i}@example.com`);
+      await page.getByRole("button", { name: "Tell me when it ships" }).click();
+
+      // Wait for *either* outcome before deciding which happened. Checking the error's count right
+      // after the click reads the DOM before the server action has resolved, so it is always zero and
+      // the success assertion then fails on a page that is simply still working.
+      const outcome = page.locator(".waitlist-joined, .share-error");
+      await expect(outcome.first()).toBeVisible();
+
+      if ((await page.locator(".share-error").count()) > 0) {
+        refusal = await page.locator(".share-error").first().textContent();
+        break;
+      }
+      await decompile(page, PROMPT);
+    }
+
+    expect(refusal, "the limit should have fired within eight attempts").not.toBeNull();
+    expect(refusal).toContain("waitlist attempts an hour");
+    expect(refusal).toMatch(/try again in/i);
+    expect(refusal).not.toMatch(/abuse|violation|blocked|forbidden|suspicious/i);
+  });
+});
+
 test.describe("the shared page meets the same bar", () => {
   test("axe: no violations in light theme", async ({ page }) => {
     await decompile(page, PROMPT);
