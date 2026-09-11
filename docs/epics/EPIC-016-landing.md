@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-016 is the current epic.** A mirror of `docs/epics/EPIC-016-landing.md`; when the two disagree,
-that file wins.
-
+# EPIC-016: Landing page v1
 Stage: 1 · Depends on: EPIC-003, EPIC-013 · Size: M
 
 ## Goal
