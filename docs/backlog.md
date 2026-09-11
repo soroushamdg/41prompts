@@ -36,7 +36,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-012b | core: rules-without-checks detector; suggested-fix wording; false-positive audit on corpus | S | 012a | done |
 | EPIC-013 | web: public `/decompile`; source map, bloks, bidirectional hover + keyboard pin, markers, dim, findings; touch default | M | 003, 012b | done |
 | EPIC-017 | Legal minimum: terms, privacy, cookie choice, sub-processor page, retention table, transfer note, DPA-on-request draft | S | 002 | todo |
-| EPIC-014 | Capture: permalink with `noindex` + removal endpoint, 30-day purge job, rate limits, Turnstile, abuse check before provider, waitlist capture | S | 013, 017 | todo |
+| EPIC-014 | Capture: permalink with `noindex` + removal endpoint, 30-day purge job, rate limits, Turnstile, abuse check before provider, waitlist capture | S | 013, 017 | current |
 | EPIC-016 | Landing page v1: nav, hero with ask bar and compile pass, three-step strip, decompiler CTA, footer, sign in / sign up | M | 003, 013 | todo |
 | EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | todo |
 | EPIC-084 | research: read the live funnel and the blok-count distribution; size the canvas problem | S | 015 | todo |
