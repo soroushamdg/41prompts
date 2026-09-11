@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="41Prompts">
+  <!--
+    The static filled plate, which is the logo's resting state and the only form that survives being
+    16px across: the prototype's own note is that below roughly 20px the counters close up, so the
+    favicon must not be the morph. Path data is `logoPathsAt(0)` from packages/ui's LogoMark, so the
+    mark in the tab and the mark on the page are the same outlines.
+
+    Colours are literal because an SVG served as a file has no access to the app's custom properties.
+    `prefers-color-scheme` is handled inside the file so the icon is legible in a dark browser chrome.
+  -->
+  <style>
+    .plate { fill: #111111; }
+    .glyph { fill: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .plate { fill: #f2f2f0; }
+      .glyph { fill: #0b0b0b; }
+    }
+  </style>
+  <rect class="plate" x="2.5" y="2.5" width="59" height="59" rx="5" />
+  <path class="glyph" fill-rule="evenodd" d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" />
+  <path class="glyph" d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" />
+</svg>

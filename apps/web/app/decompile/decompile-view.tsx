@@ -14,8 +14,19 @@ import { SourceMap } from "./source-map";
  * *which is pinned* — the algorithms all ran on the server (epic decision 1), and what crossed is
  * plain data.
  */
-export function DecompileView({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
-  const [state, formAction, pending] = useActionState<DecompileState, FormData>(decompile, INITIAL_STATE);
+export function DecompileView({
+  turnstileSiteKey,
+  initialState = INITIAL_STATE
+}: {
+  turnstileSiteKey: string | null;
+  /**
+   * A result the server already has (EPIC-016's ask bar handed the page a prompt). Seeding
+   * `useActionState` with it rather than submitting from an effect is what makes the landing-page
+   * paste arrive rendered, on first paint, with no spinner and nothing to click twice.
+   */
+  initialState?: DecompileState;
+}) {
+  const [state, formAction, pending] = useActionState<DecompileState, FormData>(decompile, initialState);
   const [hoveredBlokId, setHoveredBlokId] = useState<string | null>(null);
   const [pinnedBlokId, setPinnedBlokId] = useState<string | null>(null);
 

@@ -1,0 +1,470 @@
+/*
+ * The public site: nav, hero and ask bar, the three-step strip, the closing call to action, the
+ * footer, and the two auth pages.
+ *
+ * Ported from `docs/design/41prompts-full-mockup.html`'s `.nav` / `.hero` / `.strip` / `.foot` /
+ * `.authwrap` rules, with EPIC-016's overrides applied: there is no `.trust` row and no `.proof`
+ * counters here, because neither exists (decision 4), and the ask bar holds a textarea that goes
+ * straight to the decompiler rather than the mockup's Ask-AI input.
+ */
+
+.site-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-s5);
+}
+
+/* ─────────────────────────────── nav ─────────────────────────────── */
+
+.site-nav {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  background: var(--color-bg);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+.site-nav-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s4);
+  padding: var(--spacing-s3) var(--spacing-s5);
+  max-width: 1240px;
+  margin: 0 auto;
+}
+.site-nav-spacer {
+  flex: 1;
+}
+/* 44px targets on every nav control, measured with headroom rather than sat exactly on the bar —
+   EPIC-013 shipped a 43.99998px rect because an inline box only grows by its padding. */
+.site-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 var(--spacing-s2);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink-2);
+  text-decoration: none;
+}
+.site-nav-link:hover,
+.site-nav-link[aria-current="page"] {
+  color: var(--color-ink);
+}
+
+/* ─────────────────────────────── hero ─────────────────────────────── */
+
+.hero {
+  padding: var(--spacing-s6) 0 var(--spacing-s7);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 860px) {
+  .hero {
+    padding: var(--spacing-s8) 0 var(--spacing-s7);
+  }
+}
+.hero-eyebrow {
+  margin-bottom: var(--spacing-s4);
+}
+/* The headline is the page. It sets its own scale rather than inheriting `h1` so the three
+   sentences stay three readable beats at 375px instead of one grey block. */
+.hero h1 {
+  max-width: 20ch;
+  font-size: clamp(28px, 6.4vw, 54px);
+  line-height: 1.04;
+}
+.hero-lede {
+  margin-top: var(--spacing-s4);
+  font-size: 17px;
+  color: var(--color-ink-2);
+  max-width: 54ch;
+}
+@media (min-width: 860px) {
+  .hero-lede {
+    font-size: 19px;
+    margin-top: var(--spacing-s5);
+  }
+  .askbar-field {
+    min-height: 116px;
+  }
+}
+
+/* ───────────────────────────── ask bar ───────────────────────────── */
+
+/* The only action above the fold (decision 2). Everything about it is sized so it is actually
+   visible at 375×812 without scrolling, which is an acceptance criterion and not a preference. */
+.askbar {
+  margin-top: var(--spacing-s5);
+  max-width: 680px;
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  transition:
+    box-shadow 0.18s var(--ease-brand),
+    transform 0.18s var(--ease-brand);
+}
+.askbar:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-offset-lg) var(--shadow-offset-lg) 0 var(--color-plate);
+}
+@media (prefers-reduced-motion: reduce) {
+  .askbar {
+    transition: none;
+  }
+}
+/* `.field-textarea` carries a 150px floor that would push the ask bar's own submit button below
+   the fold at 375×812 — an acceptance criterion, so the floor comes off here rather than the
+   criterion being relaxed. */
+.askbar-field {
+  display: block;
+  width: 100%;
+  min-height: 88px;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.55;
+  padding: var(--spacing-s3) var(--spacing-s4);
+  outline: none;
+  resize: vertical;
+}
+.askbar-field::placeholder {
+  color: var(--color-ink-3);
+}
+.askbar-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s3);
+  flex-wrap: wrap;
+  border-top: var(--border-ink) solid var(--color-ink);
+  padding: var(--spacing-s2) var(--spacing-s2) var(--spacing-s2) var(--spacing-s4);
+}
+.askbar-note {
+  font-size: 12.5px;
+  color: var(--color-ink-3);
+  min-width: 0;
+}
+.askbar-foot .btn {
+  margin-left: auto;
+  min-height: 46px;
+}
+
+/* ──────────────────────────── three steps ──────────────────────────── */
+
+.strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 860px) {
+  .strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.strip-step {
+  padding: var(--spacing-s6) var(--spacing-s5);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+.strip-step:last-child {
+  border-bottom: 0;
+}
+@media (min-width: 860px) {
+  .strip-step {
+    border-bottom: 0;
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .strip-step:last-child {
+    border-right: 0;
+  }
+}
+.strip-number {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--color-ink-3);
+}
+/* `h2`, not `h3`: the hero is the page's only `h1` and axe's heading-order rule is right that a
+   jump straight to `h3` is a lie about the structure. Size is CSS's business, not the tag's. */
+.strip-step h2 {
+  margin: var(--spacing-s2) 0;
+  font-size: 18px;
+}
+.strip-step p {
+  margin: 0;
+  color: var(--color-ink-2);
+  font-size: 14px;
+}
+
+/* ──────────────────────────── closing CTA ──────────────────────────── */
+
+.cta-band {
+  padding: var(--spacing-s8) 0;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  text-align: center;
+}
+.cta-band h2 {
+  font-size: clamp(22px, 4.2vw, 34px);
+}
+.cta-band p {
+  margin: var(--spacing-s4) auto 0;
+  color: var(--color-ink-2);
+  max-width: 46ch;
+}
+.cta-band-actions {
+  display: flex;
+  gap: var(--spacing-s3);
+  justify-content: center;
+  margin-top: var(--spacing-s5);
+  flex-wrap: wrap;
+}
+/* `.btn`'s own padding lands it at roughly 42px. Every target on this page is given headroom
+   rather than set to 44 exactly — EPIC-013 shipped a 43.99998px rect by doing the latter. */
+.cta-band-link,
+.site-nav .btn {
+  min-height: 46px;
+}
+
+/* ─────────────────────────────── footer ─────────────────────────────── */
+
+.site-foot {
+  padding: var(--spacing-s7) 0 var(--spacing-s6);
+}
+.site-foot-grid {
+  display: grid;
+  gap: var(--spacing-s5);
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 860px) {
+  .site-foot-grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
+}
+.site-foot-blurb {
+  color: var(--color-ink-3);
+  font-size: 13px;
+  margin-top: var(--spacing-s3);
+  max-width: 34ch;
+}
+.site-foot h2 {
+  margin: 0 0 var(--spacing-s2);
+  font-size: 11.5px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.site-foot a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 13.5px;
+  color: var(--color-ink-2);
+  text-decoration: none;
+}
+.site-foot a:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+.site-foot-legal {
+  margin-top: var(--spacing-s6);
+  font-size: 12.5px;
+  color: var(--color-ink-3);
+}
+
+/* ──────────────────────────── legal stubs ──────────────────────────── */
+
+.prose-page {
+  max-width: 68ch;
+  margin: 0 auto;
+  padding: var(--spacing-s7) var(--spacing-s5) var(--spacing-s8);
+}
+.prose-page h1 {
+  font-size: clamp(26px, 5vw, 38px);
+}
+.prose-page p {
+  margin-top: var(--spacing-s4);
+  color: var(--color-ink-2);
+  font-size: 16px;
+}
+
+/* ─────────────────────────── sign in / sign up ─────────────────────────── */
+
+.auth-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+@media (min-width: 940px) {
+  .auth-wrap {
+    grid-template-columns: minmax(0, 480px) 1fr;
+  }
+}
+.auth-form {
+  padding: var(--spacing-s7) var(--spacing-s5);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--color-bg);
+}
+@media (min-width: 940px) {
+  .auth-form {
+    border-right: var(--border-hairline) solid var(--color-line);
+    padding: var(--spacing-s7);
+  }
+}
+.auth-form h1 {
+  margin: var(--spacing-s5) 0 var(--spacing-s2);
+  font-size: 28px;
+}
+.auth-form-sub {
+  color: var(--color-ink-2);
+  font-size: 14px;
+  margin: 0;
+}
+.auth-providers {
+  display: flex;
+  gap: var(--spacing-s2);
+  margin: var(--spacing-s5) 0;
+}
+.auth-providers form {
+  flex: 1;
+}
+.auth-providers .btn {
+  width: 100%;
+  min-height: 46px;
+}
+.auth-or {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s3);
+  color: var(--color-ink-3);
+  font-size: 12px;
+}
+.auth-or::before,
+.auth-or::after {
+  content: "";
+  height: var(--border-hairline);
+  background: var(--color-line);
+  flex: 1;
+}
+.auth-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  margin: var(--spacing-s4) 0 var(--spacing-s1);
+}
+.auth-submit {
+  width: 100%;
+  min-height: 46px;
+  margin-top: var(--spacing-s4);
+}
+.auth-alt {
+  margin-top: var(--spacing-s4);
+  font-size: 13.5px;
+  color: var(--color-ink-2);
+}
+.auth-notice {
+  margin: var(--spacing-s4) 0 0;
+  padding: var(--spacing-s3);
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  font-size: 13.5px;
+}
+.auth-side {
+  background: var(--color-sunken);
+  padding: var(--spacing-s7) var(--spacing-s5);
+  display: flex;
+  align-items: center;
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 940px) {
+  .auth-side {
+    border-top: 0;
+  }
+}
+.auth-side h2 {
+  margin: var(--spacing-s4) 0 0;
+  max-width: 18ch;
+  font-size: clamp(22px, 3vw, 30px);
+}
+.auth-side p {
+  margin: var(--spacing-s4) 0 0;
+  color: var(--color-ink-2);
+  max-width: 40ch;
+}
+
+/* ──────────────────────────────── logo ──────────────────────────────── */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36em;
+  text-decoration: none;
+  color: var(--color-ink);
+  font-size: var(--logo-size, 22px);
+  line-height: 1;
+}
+.logo-glyphs {
+  width: 1.55em;
+  height: 1.55em;
+  display: block;
+  flex: none;
+}
+.logo-word {
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-weight: 900;
+  font-size: 1em;
+  letter-spacing: -0.045em;
+  transition: letter-spacing 0.5s var(--ease-brand);
+}
+.logo.is-on .logo-word {
+  letter-spacing: -0.015em;
+}
+.logo-plate {
+  fill: var(--color-ink);
+  stroke: var(--color-ink);
+  stroke-width: 0;
+  transition:
+    fill 0.5s var(--ease-brand),
+    stroke-width 0.5s var(--ease-brand);
+}
+.logo-glyph {
+  fill: var(--color-surface);
+  transition: fill 0.5s var(--ease-brand);
+}
+.logo.is-on .logo-plate {
+  fill: var(--color-surface);
+  stroke-width: 5;
+}
+.logo.is-on .logo-glyph {
+  fill: var(--color-ink);
+}
+/* The end state of a round trip is the `41` the server rendered, so collapsing the duration leaves
+   the mark correct rather than mid-morph. The script also returns before touching anything. */
+@media (prefers-reduced-motion: reduce) {
+  .logo *,
+  .logo {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ───────────────────────────── skip link ───────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: var(--spacing-s3) var(--spacing-s4);
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--color-ink);
+}
+.skip-link:focus {
+  left: var(--spacing-s3);
+  top: var(--spacing-s3);
+}

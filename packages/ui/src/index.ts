@@ -37,6 +37,9 @@ export type { DropdownContentProps, DropdownItemProps } from "./primitives/dropd
 export { Popover, PopoverTrigger, PopoverContent } from "./primitives/popover";
 export type { PopoverContentProps } from "./primitives/popover";
 
+export { LogoMark, LOGO_GLYPHS, logoPathsAt, logoMorphScript } from "./primitives/logo-mark";
+export type { LogoMarkProps } from "./primitives/logo-mark";
+
 export { CONTRAST_PAIRS, checkContrast, contrastRatio, parseColorTokens } from "./contrast";
 export type { ContrastPair, ContrastResult, Tokens } from "./contrast";
 

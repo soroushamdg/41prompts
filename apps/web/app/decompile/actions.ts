@@ -1,24 +1,15 @@
 "use server";
 
-import { cluster, detect, heuristicSummariser, segment, uncheckedRuleCount } from "@41prompts/core";
-import { clientAddress, hashIdentity } from "@41prompts/db";
-import { headers } from "next/headers";
-import { byteLength, MAX_INPUT_BYTES, type DecompileState } from "@/lib/decompile/limits";
-import { checkLimit, DECOMPILE_LIMIT } from "@/lib/decompile/rate-limit";
+import { type DecompileState } from "@/lib/decompile/limits";
+import { runDecompile } from "@/lib/decompile/run";
 import { SAMPLE_PROMPT } from "@/lib/decompile/sample";
-import { buildView } from "@/lib/decompile/view-model";
 
 /**
- * The whole pipeline, on the server.
+ * The form's entry into the pipeline.
  *
- * Epic decision 1: the client ships no algorithm and a slow phone is not punished. Everything
- * expensive — segmentation, clustering, detection, summarising — happens here, and what crosses to
- * the browser is plain data the view renders. Epic decision 10: `packages/core` is imported and
- * never reimplemented; this file is a call sequence, not a copy.
- *
- * Epic decision 9: no persistence, no permalink, no rate limit, no analytics beyond a page view.
- * Nothing here writes anything down. EPIC-014 adds capture, purge, rate limits and abuse checks;
- * building any of it now would be building it twice.
+ * The pipeline itself is `lib/decompile/run.ts`, because EPIC-016's ask bar gave it a second caller:
+ * `/decompile` can now arrive with a prompt already handed to it and must render a result on first
+ * paint, without a form submission. This file is the FormData half of that, and nothing else.
  *
  * **Nothing but async functions may be exported from this file.** Next 16 rejects a `"use server"`
  * module that exports a constant or a type, and it does so at request time with a 500 rather than at
@@ -30,42 +21,5 @@ export async function decompile(_previous: DecompileState, formData: FormData): 
   // so a second submit button carrying `name="prompt"` loses to it in `FormData.get`. One server
   // path either way — the sample is not a second code path to keep honest.
   const source = formData.get("sample") === "1" ? SAMPLE_PROMPT : typeof raw === "string" ? raw : "";
-
-  // Measured before anything else runs. A prompt over the cap must never reach the segmenter, or the
-  // cap is a suggestion rather than a limit.
-  const bytes = byteLength(source);
-  if (bytes > MAX_INPUT_BYTES) return { status: "too-long", bytes };
-
-  // Rate-limited per caller (EPIC-014 decision 5), and checked *after* the size cap so an oversized
-  // paste is refused on the honest reason rather than quietly consuming somebody's allowance. The
-  // bucket is a hash, never an address.
-  const limit = checkLimit(hashIdentity(clientAddress(await headers())), DECOMPILE_LIMIT);
-  if (!limit.allowed) {
-    return { status: "rate-limited", message: limit.message ?? "That is the limit for now." };
-  }
-
-  // Empty and whitespace-only are the same calm state, not an error (epic decision 7). Somebody who
-  // pressed the button before pasting has not done anything wrong.
-  if (source.trim().length === 0) return { status: "empty" };
-
-  const bloks = cluster(segment(source));
-  const findings = detect(bloks, source);
-  const summaries = new Map(
-    bloks.map((blok) => {
-      const summary = heuristicSummariser.summarise(blok, source);
-      return [blok.id, { text: summary.text, source: summary.source }] as const;
-    })
-  );
-
-  return {
-    status: "ok",
-    source,
-    view: buildView({
-      source,
-      bloks,
-      findings,
-      summaries,
-      uncheckedRuleTotal: uncheckedRuleCount(bloks, source, findings)
-    })
-  };
+  return runDecompile(source);
 }
