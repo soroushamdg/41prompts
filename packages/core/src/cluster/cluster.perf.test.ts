@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { SEGMENT_FIXTURES } from "../segment/fixtures/index.js";
+import { growthExponent, RATIO_RUNS } from "../perf/measure.js";
 import { segment } from "../segment/segment.js";
 import type { Segment } from "../segment/types.js";
 import { cluster } from "./cluster.js";
@@ -77,24 +78,18 @@ describe("cluster() throughput", () => {
     expect(warm).toBeLessThan(100);
   });
 
-  it("grows no faster than input^1.6 as the number of distinct segments grows", () => {
-    // Interleaved and fastest-of, for the reasons EPIC-010's perf test spells out: a growth figure
-    // built from two noisy samples is a coin toss rather than a test.
+  it("grows no faster than input^1.6 as the number of distinct segments grows", { timeout: 120_000 }, () => {
+    // Interleaved and fastest-of over `RATIO_RUNS` samples — see `perf/measure.ts`. This gate never
+    // flaked, but it shared its estimator with the one that did (twice), so it shares the fix:
+    // leaving a known-fragile measurement in place because it has not failed yet is the same
+    // mistake, later.
     const small = segment(mutuallyDistinct(1_000));
     const large = segment(mutuallyDistinct(4_000));
     timeCluster(small);
     timeCluster(large);
 
-    let smallMs = Number.POSITIVE_INFINITY;
-    let largeMs = Number.POSITIVE_INFINITY;
-    for (let run = 0; run < 5; run++) {
-      smallMs = Math.min(smallMs, timeCluster(small));
-      largeMs = Math.min(largeMs, timeCluster(large));
-    }
-    const exponent = Math.log(largeMs / Math.max(smallMs, 0.5)) / Math.log(4);
-    console.log(
-      `cluster growth exponent ${exponent.toFixed(2)} (${smallMs.toFixed(1)} ms -> ${largeMs.toFixed(1)} ms for 4x segments)`
-    );
+    const exponent = growthExponent(timeCluster, small, large, 4);
+    console.log(`cluster growth exponent ${exponent.toFixed(2)} over ${RATIO_RUNS} runs per side (4x segments)`);
     expect(exponent, `grew as segments^${exponent.toFixed(2)}`).toBeLessThan(1.6);
   });
 });

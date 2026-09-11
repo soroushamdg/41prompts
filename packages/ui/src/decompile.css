@@ -461,3 +461,97 @@
     transform: scaleY(1);
   }
 }
+
+/* ── EPIC-014: share, retention, waitlist ── */
+
+.share-panel,
+.shared-controls {
+  margin-top: var(--spacing-s5);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+.share-body,
+.shared-controls {
+  padding: var(--spacing-s4);
+}
+
+/* The retention promise, above the control it describes — telling somebody what happens to their
+   prompt after they have shared it is not consent, it is an apology. */
+.share-retention,
+.shared-retention {
+  margin: 0 0 var(--spacing-s4);
+  max-width: 72ch;
+  color: var(--color-ink-2);
+  font-size: 13.5px;
+}
+.share-form,
+.shared-actions,
+.share-url-row,
+.waitlist-form,
+.shared-remove-confirm {
+  display: flex;
+  gap: var(--spacing-s2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.share-url-row .field-input,
+.waitlist-form .field-input {
+  flex: 1;
+  min-width: 220px;
+}
+.share-result {
+  display: block;
+}
+.share-note {
+  margin: var(--spacing-s2) 0 0;
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+}
+/* Ink, not red: a rate limit or an expired challenge is not a failure state, and red means fail. */
+.share-error {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.shared-remove-question {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.waitlist {
+  border-top: var(--border-ink) solid var(--color-ink);
+  background: var(--color-sunken);
+  padding: var(--spacing-s4);
+}
+.waitlist-heading {
+  margin: 0 0 var(--spacing-s2);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.waitlist-body {
+  margin: 0 0 var(--spacing-s3);
+  max-width: 66ch;
+  color: var(--color-ink-2);
+  font-size: 13.5px;
+}
+.waitlist-joined {
+  margin: 0;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+@media (max-width: 1019px) {
+  .share-form .btn,
+  .shared-actions .btn,
+  .share-url-row .btn,
+  .waitlist-form .btn,
+  .shared-remove-confirm .btn,
+  .share-url-row .field-input,
+  .waitlist-form .field-input {
+    min-height: 46px;
+  }
+}

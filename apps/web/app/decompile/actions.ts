@@ -1,7 +1,10 @@
 "use server";
 
 import { cluster, detect, heuristicSummariser, segment, uncheckedRuleCount } from "@41prompts/core";
+import { clientAddress, hashIdentity } from "@41prompts/db";
+import { headers } from "next/headers";
 import { byteLength, MAX_INPUT_BYTES, type DecompileState } from "@/lib/decompile/limits";
+import { checkLimit, DECOMPILE_LIMIT } from "@/lib/decompile/rate-limit";
 import { SAMPLE_PROMPT } from "@/lib/decompile/sample";
 import { buildView } from "@/lib/decompile/view-model";
 
@@ -32,6 +35,14 @@ export async function decompile(_previous: DecompileState, formData: FormData): 
   // cap is a suggestion rather than a limit.
   const bytes = byteLength(source);
   if (bytes > MAX_INPUT_BYTES) return { status: "too-long", bytes };
+
+  // Rate-limited per caller (EPIC-014 decision 5), and checked *after* the size cap so an oversized
+  // paste is refused on the honest reason rather than quietly consuming somebody's allowance. The
+  // bucket is a hash, never an address.
+  const limit = checkLimit(hashIdentity(clientAddress(await headers())), DECOMPILE_LIMIT);
+  if (!limit.allowed) {
+    return { status: "rate-limited", message: limit.message ?? "That is the limit for now." };
+  }
 
   // Empty and whitespace-only are the same calm state, not an error (epic decision 7). Somebody who
   // pressed the button before pasting has not done anything wrong.

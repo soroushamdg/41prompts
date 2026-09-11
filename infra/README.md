@@ -228,6 +228,45 @@ explicit that staging and production never share an OAuth app, a secret, or a ca
 None of the four OAuth client-secret/API-key values above are ever pasted into a Claude Code
 session or committed anywhere — Soroush sets all six directly in the Coolify UI.
 
+## Capture secrets (EPIC-014, 2026-09-10)
+
+**Three values, and the app works without all of them** — that is deliberate, so this checklist is
+something to do once when convenient rather than a deployment blocker. Same route as every other
+secret (step 9): **Coolify UI → that environment's application → Environment Variables tab**, set
+separately for staging and production.
+
+What happens if you skip each one is written next to it, because "required" and "nice to have" are
+different kinds of task and a checklist that does not say which is which gets done in the wrong order.
+
+1. **`IP_HASH_SALT`** — *do this one first.* Generate a distinct value per environment:
+   `openssl rand -hex 32`.
+   **Without it:** the app runs and no address is ever stored raw, but the salt is random per process,
+   so hashes stop matching across a restart and per-IP abuse accounting resets with every deploy. The
+   worker logs a warning on every start while it is missing.
+   **Why per environment:** so a staging table is not a lookup table for production.
+
+2. **`TURNSTILE_SECRET_KEY`** and **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** — one Cloudflare Turnstile
+   widget per environment (Cloudflare dashboard → Turnstile → Add widget). Hostnames:
+   `staging.41prompts.ai` for staging, `41prompts.ai` for production. Widget mode **Managed**.
+   **Without them:** the widget is not rendered and verification is skipped, so permalink creation is
+   guarded by the rate limit alone (20 shared links an hour per address). That is a real guard, just a
+   weaker one — fine for a soft launch, worth closing before EPIC-015 announces anything.
+   **Note:** the site key is `NEXT_PUBLIC_`, so it is baked into the client bundle at **build** time.
+   Setting it requires a redeploy to take effect, not just a restart.
+
+Nothing else in this epic needs a human. The purge job, the rate limits, the abuse check and the
+waitlist all run on what is already configured.
+
+### Verifying afterwards
+
+```
+# the salt is in use: the worker stops warning about it
+ssh 41p-box docker logs <worker container> --tail 50 | grep hash-identity   # expect no output
+
+# Turnstile is live: the widget script is referenced on a result page
+curl -s https://staging.41prompts.ai/decompile | grep -c challenges.cloudflare.com
+```
+
 ## Observability secrets (EPIC-004, 2026-09-05)
 
 Sentry, PostHog, and the uptime monitor all need real accounts Claude Code cannot create — every

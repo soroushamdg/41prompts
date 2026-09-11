@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { turnstileSiteKey } from "@/lib/decompile/turnstile";
 import { DecompileView } from "./decompile-view";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export default function DecompilePage() {
           anything worth knowing about it underneath. No account, and nothing is stored.
         </p>
       </header>
-      <DecompileView />
+      <DecompileView turnstileSiteKey={turnstileSiteKey()} />
     </main>
   );
 }

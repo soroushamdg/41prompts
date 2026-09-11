@@ -19,6 +19,7 @@ export type DecompileState =
   | { readonly status: "idle" }
   | { readonly status: "empty" }
   | { readonly status: "too-long"; readonly bytes: number }
+  | { readonly status: "rate-limited"; readonly message: string }
   | { readonly status: "ok"; readonly source: string; readonly view: DecompileView };
 
 export const INITIAL_STATE: DecompileState = { status: "idle" };

@@ -1,11 +1,18 @@
 import { createLogger, withRequestId } from "@41prompts/logger";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
+import { purgeDecompiles } from "./jobs/purge-decompiles";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
 import { initSentry, Sentry } from "./sentry";
 
 const PURGE_QUEUE = "purge-deleted-users";
 const PURGE_CRON = "0 3 * * *"; // daily, 03:00 UTC
+
+const PURGE_DECOMPILES_QUEUE = "purge-decompiles";
+// An hour after the account purge rather than alongside it. Both are cheap, but they touch
+// different tables for different promises, and a single failing queue should not take the other
+// down with it — which is also why they are two queues and not one job doing both.
+const PURGE_DECOMPILES_CRON = "0 4 * * *"; // daily, 04:00 UTC
 
 const logger = createLogger("worker");
 
@@ -35,6 +42,24 @@ export async function main(): Promise<void> {
         logger.info({ jobId, purged }, `${PURGE_QUEUE}: purged ${purged}`);
       } catch (error) {
         logger.error({ jobId, err: error }, `${PURGE_QUEUE} failed`);
+        Sentry.captureException(error);
+        throw error;
+      }
+    });
+  });
+
+  await boss.createQueue(PURGE_DECOMPILES_QUEUE);
+  await boss.schedule(PURGE_DECOMPILES_QUEUE, PURGE_DECOMPILES_CRON);
+  await boss.work(PURGE_DECOMPILES_QUEUE, async () => {
+    await withRequestId(async (jobId) => {
+      try {
+        const purged = await purgeDecompiles(db);
+        // The count is logged on every run, including zero: the acceptance criterion for this job is
+        // that it is *observed running*, and a job that only speaks when it deletes something is
+        // indistinguishable from a job that is not scheduled.
+        logger.info({ jobId, purged }, `${PURGE_DECOMPILES_QUEUE}: purged ${purged}`);
+      } catch (error) {
+        logger.error({ jobId, err: error }, `${PURGE_DECOMPILES_QUEUE} failed`);
         Sentry.captureException(error);
         throw error;
       }

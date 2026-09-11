@@ -1,30 +1,3 @@
-# CURRENT
-
-**EPIC-014 is the current epic.** A mirror of `docs/epics/EPIC-014-capture.md`; when the two disagree,
-that file wins.
-
-EPIC-013 shipped `/decompile` and was reworked after Soroush drove it on staging — bloks are grouped
-by kind with a shape marker per kind and a view control. EPIC-011a's classifier fix-up followed
-(96.7% → 98.9%). This epic makes the route survivable in public: permalinks, purge, rate limits, an
-abuse check before any provider call, and a waitlist.
-
-**Carried from EPIC-013, and it shapes the schema:** a textarea submission is normalised to **CRLF**
-by the browser regardless of the author's editor. Whatever is stored here is CRLF, and offsets in a
-stored decompile were computed against the CRLF text the server received. Do not normalise on the way
-in.
-
-**EPIC-017 is a dependency on paper only** — the legal minimum has not been built. Per the epic's
-notes, retention copy is written to stand alone and the gap is reported rather than blocking.
-
-**The carried perf defect is in scope**: `segment.perf.test.ts`'s growth-exponent gate has flaked
-twice. Decide it deliberately — make the measurement robust or demote it to a reported number — and
-do not widen the bar.
-
-**EPIC-005 and EPIC-080 are `cut`.** The 30-day funnel is the only signal, and the share rate this
-epic enables is half of M1's kill criterion.
-
----
-
 # EPIC-014: Capture and abuse control
 Stage: 1 · Depends on: EPIC-013, EPIC-017 · Size: S
 
