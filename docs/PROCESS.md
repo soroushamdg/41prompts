@@ -88,3 +88,16 @@ recommends; Soroush decides; the decision is written into `docs/decisions/GATE-n
 
 Epics numbered 08x, 09x and 064 are research, not code. Their output is a write-up in `docs/research/` and,
 where a finding changes an epic, an edit to that epic before it starts.
+
+## Visual-regression baselines, and Docker disk
+
+Playwright screenshots are platform-specific and CI runs `ubuntu-latest`, so baselines are generated
+inside `mcr.microsoft.com/playwright:v<version>-noble` and committed with the `-linux` suffix. A
+`-darwin` baseline is not a baseline: CI will never match it and fails on the missing snapshot either
+way. The procedure is in EPIC-003's report and repeated in EPIC-016's.
+
+That image needs more than 2 GB and Docker Desktop's VM disk is small and fills up. **If there is not
+enough room, deleting unused Docker volumes and images to make space is fine** — `docker volume prune`
+removes only volumes no container references, and any image removed re-pulls on demand. Check what is
+attached first (`docker ps -a` and `docker inspect <name> --format '{{range .Mounts}}…'`); a running
+project's data volume is not "unused" just because it is not ours.

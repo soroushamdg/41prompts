@@ -275,6 +275,25 @@ Go: all present. No-go: a fix-up epic (S) closes gaps, then re-gate. Soroush dec
 **Tests.** Playwright create/reorder/reload. Order integrity after delete. 60-blok fixture navigable within the EPIC-090 target.
 **Review.** Matches mockup. Touch drag works. No blok logic outside `core`.
 
+**Named evaluation this epic must make: BlockNote, or a plain textarea per blok card.** Decide it in
+the report before building the canvas, and judge it on three things: (a) whether a blok's verbatim
+text and its ranges survive editing **byte for byte**; (b) whether it forces Mantine or ProseMirror
+styling into `packages/ui`; (c) whether slash commands and drag-to-reorder are worth those costs on a
+canvas of 40+ cards.
+
+*The advisor's position, so the epic starts from it rather than from scratch:* bloks own exact UTF-16
+offsets into one continuous source, so **any editor that stores a block tree needs a mapping layer** —
+and that mapping is exactly where EPIC-013 lost two characters to CRLF. The burden of proof is on
+BlockNote.
+
+*And the stated reason for wanting it does not survive checking.* 41Prompts v1 used BlockNote
+(`@blocknote/core`, `/mantine`, `/react` at 0.35) in a single component,
+`src/components/EditorClient.tsx`, with image/file/video/audio and toggle/check-list blocks stripped from the schema.
+It persisted **BlockNote's own JSON block array to localStorage and never converted to or from
+markdown**: there is no `blocksToMarkdown` or `tryParseMarkdown` call anywhere in v1. So markdown —
+the usual reason given for reaching for it — is not what v1 actually did, and is not evidence for it
+here. No editor dependency is added before this evaluation.
+
 ### EPIC-021b web: compiled pane, override, eject · M
 **Goal.** The right half of the editor.
 **Tasks.** Compiled pane from `CompileResult.spans` with `data-b`, bidirectional hover/focus/pin, leading markers, screen-reader text naming the owning blok per span; per-span "Edit this text" → manual override; banner "Edited by hand · Update from blok"; "edited by hand" badge on the card; eject with confirmation; token count and cost estimate from a dated price table; resizable split, keyboard.
