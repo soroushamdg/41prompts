@@ -93,6 +93,16 @@ No tracked source file under packages, apps is binary
 [mirror-dry-run] OK -- the public-only tree installs and tests standalone
 ```
 
+**Staging, after the merge.** `62dbf5f` deployed and was driven by hand: share → open in a clean
+context → remove → waitlist → unsubscribe, six screenshots in
+`docs/epics/reports/screenshots/EPIC-014/`. The first deploy in the project to carry a migration, and
+the entrypoint chains `db:migrate && next start`, so a bad migration would have kept the app from
+coming up; it came up clean. Three things were re-checked against the deployment rather than trusted
+from the suite: **zero range mismatches** on the permalink with the source as the browser actually
+submits it (`\r\n`), `x-robots-tag: noindex, nofollow`, and a **404** after removal. One row is left
+behind on purpose — the `staging-check-…@example.com` waitlist entry, unsubscribed — because deleting
+it would mean a mutating command on the box for no benefit.
+
 **Open questions.** Three, at the end of `docs/epics/reports/EPIC-014-report.md`: the rate limiter is
 in-memory and per process so a second container doubles every limit; `x-forwarded-for` is
 client-controllable so a determined caller can rotate their apparent address; and the abuse check's
