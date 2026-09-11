@@ -18,5 +18,14 @@ export default async function SignUpPage({
   const sent = params.sent === "1";
   const error = typeof params.error === "string" ? params.error : undefined;
 
-  return <SignInForm heading="Create your account" next={next} sent={sent} error={error} />;
+  return (
+    <SignInForm
+      heading="Create your account"
+      sub="There is nothing to pay and nothing to configure."
+      alt={{ question: "Already have one?", name: "Sign in", href: "/sign-in" }}
+      next={next}
+      sent={sent}
+      error={error}
+    />
+  );
 }
