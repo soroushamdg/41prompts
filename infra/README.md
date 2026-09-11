@@ -245,14 +245,21 @@ different kinds of task and a checklist that does not say which is which gets do
    worker logs a warning on every start while it is missing.
    **Why per environment:** so a staging table is not a lookup table for production.
 
-2. **`TURNSTILE_SECRET_KEY`** and **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** — one Cloudflare Turnstile
+2. **`TURNSTILE_SECRET_KEY`** and **`NEXT_PUBLIC_TURNSTILE_SITE_KEY`** — copy both names from
+   `.env.example` rather than typing them; the `NEXT_PUBLIC_` prefix is part of the name, and it is
+   **both or neither** (one alone turns Turnstile off and logs an error). One Cloudflare Turnstile
    widget per environment (Cloudflare dashboard → Turnstile → Add widget). Hostnames:
    `staging.41prompts.ai` for staging, `41prompts.ai` for production. Widget mode **Managed**.
    **Without them:** the widget is not rendered and verification is skipped, so permalink creation is
    guarded by the rate limit alone (20 shared links an hour per address). That is a real guard, just a
    weaker one — fine for a soft launch, worth closing before EPIC-015 announces anything.
-   **Note:** the site key is `NEXT_PUBLIC_`, so it is baked into the client bundle at **build** time.
-   Setting it requires a redeploy to take effect, not just a restart.
+   **Note:** despite the `NEXT_PUBLIC_` prefix, this one is read at **runtime**, so a restart is
+   enough and a rebuild is not needed. Two things have to hold for that, and both do: the code reads
+   `process.env[SITE_KEY_ENV]` through a variable, which Next cannot inline the way it inlines a
+   literal `process.env.NEXT_PUBLIC_X`; and `/decompile` is server-rendered on demand, not
+   prerendered — `next build` lists every route as `ƒ (Dynamic)`. The value reaches the browser as a
+   prop, not as a baked constant. (This paragraph said the opposite until 2026-09-11; it was written
+   from the prefix rather than from the build output.)
 
 Nothing else in this epic needs a human. The purge job, the rate limits, the abuse check and the
 waitlist all run on what is already configured.
