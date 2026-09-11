@@ -35,6 +35,22 @@ const nextConfig: NextConfig = {
       "@41prompts/core": "../../packages/core/dist/index.js"
     }
   },
+  /**
+   * `X-Robots-Tag` on every permalink (EPIC-014 decision 2).
+   *
+   * The page also carries `noindex, nofollow` as metadata. Both, because they are read by different
+   * things: a crawler that fetches without parsing the document still sees the header, and a client
+   * that has the HTML but not the response sees the tag. `/decompile` itself stays indexable — it is
+   * the front door — and only `/d/:id` is hidden, because a shared link is for a colleague.
+   */
+  async headers() {
+    return [
+      {
+        source: "/d/:id",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" }]
+      }
+    ];
+  },
   // The dev-mode route indicator renders on top of page content (visible in /dev/ui's own
   // visual-regression snapshots) and never appears in a production build; real compile/runtime
   // errors still surface without it.

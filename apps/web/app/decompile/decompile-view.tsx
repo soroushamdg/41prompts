@@ -6,6 +6,7 @@ import { INITIAL_STATE, kilobytes, MAX_INPUT_BYTES, tooLongMessage, type Decompi
 import { decompile } from "./actions";
 import { BlokList } from "./blok-list";
 import { FindingsPanel } from "./findings-panel";
+import { SharePanel } from "./share-panel";
 import { SourceMap } from "./source-map";
 
 /**
@@ -13,7 +14,7 @@ import { SourceMap } from "./source-map";
  * *which is pinned* — the algorithms all ran on the server (epic decision 1), and what crossed is
  * plain data.
  */
-export function DecompileView() {
+export function DecompileView({ turnstileSiteKey }: { turnstileSiteKey: string | null }) {
   const [state, formAction, pending] = useActionState<DecompileState, FormData>(decompile, INITIAL_STATE);
   const [hoveredBlokId, setHoveredBlokId] = useState<string | null>(null);
   const [pinnedBlokId, setPinnedBlokId] = useState<string | null>(null);
@@ -172,6 +173,8 @@ export function DecompileView() {
               />
             </section>
           </div>
+
+          <SharePanel source={state.status === "ok" ? state.source : ""} turnstileSiteKey={turnstileSiteKey} />
 
           <FindingsPanel
             findings={view.findings}
