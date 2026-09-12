@@ -297,31 +297,30 @@ values redacted.
 
 **The split is verified in production.**
 
-### Staging — not verified
+### Staging — verified 2026-09-12
 
-Re-checked twice on 2026-09-12 after being reported fixed, with both hosts reporting the expected
-commit first. **`PUBLIC_SITE_URL` and `BETTER_AUTH_URL` are still swapped.**
+Both hosts settled on the expected commit first, then checked twice with a pause between, because an
+earlier look had caught a redeploy mid-flight and a transient must not be read as a result.
 
-The certificate half is fixed: `app.staging.41prompts.ai` now resolves and serves. The variables are
-not, and the evidence is unambiguous in three independent places:
+- [x] **Each host serves its own half.** `/`, `/decompile`, the guide, `llms.txt`, `robots.txt` and
+      `sitemap.xml` all 200 on `staging.41prompts.ai`; `/sign-in`, `/sign-up` and `/healthz` all 200 on
+      `app.staging.41prompts.ai`.
+- [x] **301 both directions.** `staging/app` → `app.staging/app`, `staging/sign-in` →
+      `app.staging/sign-in`, `app.staging/decompile` → `staging/decompile`, `app.staging/` →
+      `staging/`.
+- [x] **The session cookie.**
+      `__Secure-41prompts.session_token=<redacted>; Domain=.staging.41prompts.ai; Path=/; HttpOnly;
+      Secure; SameSite=Lax` — scoped one level below production, so the two cannot collide.
+- [x] **Canonicals, sitemap and `noindex`.** All three sitemap pages canonical to
+      `staging.41prompts.ai`; the sitemap and `robots.txt` name it too; `/d/` returns
+      `x-robots-tag: noindex, nofollow`.
 
-| | |
-|---|---|
-| `staging.41prompts.ai/`, `/decompile`, `/llms.txt`, `/robots.txt` | **301 to `app.staging`** — the code treats the apex as the app host |
-| `staging.41prompts.ai/sign-in` | **200**, and `/app` 307s to the session gate — consistent with the same inversion |
-| `app.staging.41prompts.ai/sitemap.xml` | names `https://app.staging.41prompts.ai/…`, and `/` canonicals to `app.staging` — `siteOrigin()` is reading the app host out of `PUBLIC_SITE_URL` |
+**Both hosts pass all four checks. The split is verified on staging and in production.**
 
-So on staging the two values are the wrong way round:
-
-| variable | is | should be |
-|---|---|---|
-| `PUBLIC_SITE_URL` | `https://app.staging.41prompts.ai` | `https://staging.41prompts.ai` |
-| `BETTER_AUTH_URL` | `https://staging.41prompts.ai` | `https://app.staging.41prompts.ai` |
-
-**What is right on staging:** `SESSION_COOKIE_DOMAIN=.staging.41prompts.ai`, scoped one level down
-exactly as intended, so staging and production session cookies cannot collide.
-
----
+*History, because it took two attempts:* the first re-check found the certificate fixed but
+`PUBLIC_SITE_URL` and `BETTER_AUTH_URL` still swapped — the apex 301ing its own marketing paths away,
+its `/sign-in` serving 200, and `app.staging`'s sitemap and canonical both naming `app.staging`, which
+is `siteOrigin()` reading the app host. Corrected in Coolify and confirmed above.
 
 ## 7. One more thing fixed on the way
 
