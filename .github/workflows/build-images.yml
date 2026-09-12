@@ -1,13 +1,27 @@
 name: Build images
 
-# Builds web and worker, pushes both to private GHCR, then tells Coolify to pull and redeploy. Coolify never
-# builds anything itself — see infra/docker-compose.staging.yml / infra/docker-compose.production.yml (image:
-# only, no build:) and docs/epics/EPIC-008-prebuilt-images.md for why. Never runs on pull_request — ci.yml
-# already lints/typechecks/tests those; this workflow's only job is producing and shipping images.
+# Builds web and worker, pushes both to private GHCR, then tells Coolify to pull and redeploy.
+#
+# **Tags only. Do not add `branches: [main]` back.** (EPIC-009, 2026-09-12.) It was there, and at 6.58 billed
+# minutes a run across 73 merges it accounted for 480 of the 2,175 Actions minutes this repository spent in its
+# first 8.4 days — against a 2,000-minute monthly allowance, which it exhausted, which stopped every deploy and
+# every CI run until the account was sorted out. Restoring this trigger would look like an improvement and would
+# put a per-merge cost back on an unbudgeted merge rate.
+#
+# **Production still gets a prebuilt image**, which is the reason EPIC-008 existed: a box that is serving
+# production must never also be building it. Staging is built on the box by Coolify instead — it costs nothing
+# there and competes with nothing. See infra/docker-compose.staging.yml, which is the one file describing how
+# staging is built.
+#
+# `workflow_dispatch` is the escape hatch: it can still push a `:staging` image by hand if the box build is ever
+# the wrong tool. That is why the `:staging` branch of the tag computation below is kept rather than deleted.
+#
+# Never runs on pull_request — ci.yml already lints/typechecks/tests those; this workflow's only job is producing
+# and shipping images.
 on:
   push:
-    branches: [main]
     tags: ["v*"]
+  workflow_dispatch:
 
 concurrency:
   group: build-images-${{ github.ref }}

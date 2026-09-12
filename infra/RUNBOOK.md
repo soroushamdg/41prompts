@@ -3,6 +3,66 @@
 Operational procedures for the Lightsail box. `infra/README.md` is the one-time setup; this is what you reach
 for afterward.
 
+## GitHub Actions budget (EPIC-009)
+
+**Where to read it:** GitHub → Settings → Billing & plans → *Plans and usage* → Actions. Per-run
+durations are in the Actions tab; billed minutes are the sum of each **job**, rounded up per job, not
+the workflow's wall clock.
+
+**The allowance:** 2,000 minutes a month on the Free plan for a private repository.
+
+**Reproduce the measurement** (the numbers below came from this, not from an estimate):
+
+```sh
+gh run list --limit 1000 --json databaseId,name,event,createdAt > runs.json
+gh api repos/<owner>/<repo>/actions/runs/<id>/jobs --jq \
+  '[.jobs[] | ((.completed_at|fromdateiso8601) - (.started_at|fromdateiso8601))/60 | ceil] | add'
+```
+
+### Measured, 2026-09-04 to 2026-09-12 — the repository's first 8.4 days
+
+| workflow | trigger | runs | billed/run | billed total |
+|---|---|---:|---:|---:|
+| CI | pull_request | 84 | 6.67 | 560 |
+| CI | push | 82 | 6.67 | 547 |
+| Build images | push | 81 | 6.58 | 533 |
+| Compliance | pull_request | 72 | 4.00 | 288 |
+| Compliance | push | 59 | 4.00 | 236 |
+| Release / Rollback | | 11 | ~1 | 11 |
+| | | | **total** | **2,175** |
+
+**2,175 billed minutes in 8.4 days against a 2,000-minute month.** The allowance was gone in about a
+week, which stopped every deploy and every CI run.
+
+### Before and after EPIC-009
+
+| | billed minutes |
+|---|---:|
+| a merge to `main`, before | **17.25** — CI 6.67 + Compliance 4.00 + Build images 6.58 |
+| a merge to `main`, after | **10.67** — CI 6.67 + Compliance 4.00 |
+| a `v*` tag | **~10.6** — Build images 6.58 + Compliance 4.00 |
+| one change end to end, after (PR run + merge run) | **~21.3** |
+
+Removing the image build from `main` saves **480 minutes over that window — 22% of the burn.**
+
+### What this does not fix, which is the number that matters
+
+At ~21.3 minutes a change, the allowance sustains **94 changes a month**. The observed rate over the
+measured window was **9.7 merges a day, about 291 a month.**
+
+**So the project remains roughly 3× over its allowance after EPIC-009.** The images were never the
+root cause: a per-merge cost multiplied by an unbudgeted merge rate is, and the merge rate is the
+dominant term. The next largest item is **CI running twice per change** — on the PR and again on the
+merge — which is 1,107 of the 2,175 minutes, 51%. Not changed here (EPIC-009 decision 4 keeps CI, and
+after a squash merge the tree only matches the PR's when `main` has not moved), but it is where the
+next 500 minutes are.
+
+### When to look
+
+**At the close of every epic.** A number nobody looks at is the same as no number — which is exactly
+how this went unnoticed: EPIC-008's report said to watch the budget and nobody did, including the
+advisor, who asked for a tag per ruling and never asked the number again.
+
 ## Migration concurrency — single web replica is the v1 decision
 
 `apps/web/Dockerfile`'s entrypoint runs `drizzle-kit migrate` before `next start`. `drizzle-kit` records applied

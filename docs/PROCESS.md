@@ -234,6 +234,24 @@ that "proved" the proxy gate was broken until the same probe was run against **p
 behaved identically and production demonstrably works. **Run the instrument against a known-good
 system before believing what it says about a broken one.**
 
+## Tags are releases, not checkpoints (2026-09-12)
+
+A `v*` tag means **this goes to production**. It builds both images in Actions and deploys them.
+
+**Three things do not warrant one**, and all three were tagged at least once:
+
+1. **A ruling.** A decision about wording, a separator, a status convention — merge it.
+2. **A copy fix.** It reaches staging on the merge, like everything else.
+3. **A fix-up epic.** Correcting a report, a test, a guard — still a merge.
+
+All of them reach staging without a tag, because staging deploys from `main`. If the question is
+"should someone be able to see this on staging", the answer is merge. If it is "should this be
+serving real users", that is a tag.
+
+This is the single change that most reduces the Actions burn, and it is not primarily about money:
+a tag is the only signal the project has for "we decided this is good enough for production", and
+spending it on a copy tweak leaves nothing to say it with.
+
 ## Three timing gates report rather than enforce (2026-09-12)
 
 `detect.perf.test.ts`'s absolute millisecond budgets — 100 KB detection, and the whole pipeline at

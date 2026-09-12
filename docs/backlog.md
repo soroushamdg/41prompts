@@ -22,7 +22,18 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-003 | Design system: Resolution tokens in Tailwind v4 `@theme`, base components with ARIA, light/dark, reduced motion | M | 000 | done |
 | EPIC-004 | Observability + guardrails: Sentry, PostHog with typed events, uptime, structured logs, run budgets, metrics dashboard, Drizzle Studio access documented for staging and production | S | 002 | done |
 | EPIC-007 | Compliance CI: REUSE lint, dependency-cruiser allow-list, Turborepo boundaries, SBOM + licence gate, mirror dry-run | S | 000 | done |
-| EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | done |
+| EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | done — staging half reverted by EPIC-009 |
+| EPIC-009 | Actions budget: image builds move off `main` to `v*` tags only, staging builds on the box again, tags become releases, measured budget in the runbook | S | 008 | current |
+
+**EPIC-009 is a late Stage 0 entry (2026-09-12).** EPIC-008 moved both image builds to Actions at
+6.58 billed minutes a merge; 81 builds, 73 of them from merges to `main`, helped spend **2,175 billed
+minutes in the repository's first 8.4 days against a 2,000-minute month**. The allowance ran out,
+which stopped every deploy and every CI run mid-epic. It sits in Stage 0 because it is foundation
+work that should have been budgeted there, not because it was foreseen.
+
+It does **not** bring the burn under the allowance on its own — it saves 22%, and the project stays
+roughly 3× over at the observed merge rate. `infra/RUNBOOK.md` carries the measurement and the
+remaining lever.
 
 ## Stage 1 · Decompiler, soft-public
 
