@@ -252,6 +252,68 @@ This is the single change that most reduces the Actions burn, and it is not prim
 a tag is the only signal the project has for "we decided this is good enough for production", and
 spending it on a copy tweak leaves nothing to say it with.
 
+## One PR per epic. A separate PR needs a reason, and "the advisor ruled" is not one (2026-09-12)
+
+**291 changes in 8.4 days is the dominant term in the Actions overrun**, not the image builds. It has
+a cause: the advisor asked for a separate PR per ruling, and each ruling — a word, a separator, a
+status convention — became its own branch, its own PR run, its own merge run. Roughly 21 billed
+minutes each, for changes that were frequently a single line.
+
+**The default is one PR per epic.** Rulings and small corrections batch into the next epic's PR.
+
+**A separate PR needs a reason.** Three that qualify, because each has to be able to ship or be
+reverted on its own:
+
+1. **A measurement defect** — anything that makes a number wrong, because the number is being used to
+   decide something while it is wrong.
+2. **A security fix.**
+3. **A change that must be revertible independently** of the work around it.
+
+"Somebody ruled on the wording" is not a reason. It is a line in the next PR.
+
+## The question is whether the gate would have told you something, not whether it ran (2026-09-12)
+
+Both of these were true on the same afternoon, and they resolved opposite ways:
+
+- **EPIC-009's PR merged with no CI.** It changed a workflow trigger and a compose file. CI runs
+  `test`, `typecheck`, `lint`, `compliance`, `binary-files` — **none of which looks at either.**
+  Waiting for a gate that had nothing to say would have bought nothing and left staging broken.
+- **EPIC-021b's PR stayed open with no CI.** It changes application code, which is exactly what those
+  gates exist to check. Merging it would have been merging past a real gate.
+
+So the rule is not "never merge red" and not "never merge un-run". It is: **ask what the gate would
+have checked.** If the answer is "nothing this PR touches", the gate's absence is not information. If
+the answer is "precisely this", then its absence is the whole problem and nothing else substitutes —
+including a local run, which is the same commands on one machine without the clean-checkout
+guarantee.
+
+Say which of the two a PR is, in its description, rather than leaving a reader to work out why one
+merged un-CI'd and the other did not.
+
+## CI runs twice per change. We are not fixing it, and here is why (2026-09-12)
+
+A decision, not an observation, because it is the **largest single item in the Actions spend** and it
+looks free.
+
+CI runs on the pull request and again on the merge to `main`: **1,107 of 2,175 billed minutes, 51% of
+everything spent.** Removing the second run would save more than every other change in EPIC-009 put
+together.
+
+**We are not doing it.** After a squash merge the merged tree is identical to the PR's **only when
+`main` has not moved in between** — and at the merge rate that produced this problem, it usually has.
+The second run is therefore testing a tree that no run has tested, which is the one thing CI is for.
+
+Two consequences worth stating so this does not get re-proposed as free:
+
+- **The saving is real and so is the risk**, and the risk is "a merge that breaks `main` and nothing
+  caught it". That is the failure CI exists to prevent.
+- **There is a version of this worth building later**: skip the merge run only when the merged tree
+  hashes identically to the tested one. That is a real epic with a real measurement, not a trigger
+  deletion, and it should be proposed as such.
+
+The cheaper lever is the rule above: fewer changes, each carrying more. A change that does not happen
+costs nothing to test.
+
 ## Three timing gates report rather than enforce (2026-09-12)
 
 `detect.perf.test.ts`'s absolute millisecond budgets — 100 KB detection, and the whole pipeline at

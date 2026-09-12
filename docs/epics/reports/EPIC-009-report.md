@@ -58,11 +58,17 @@ term.**
 1,107 of the 2,175 minutes, **51% of everything spent.** That is now the largest single item by a
 wide margin.
 
-Deliberately **not built**. Decision 4 keeps CI, and this is not a proposal to remove it: it is a
-scheduling question about running the same suite twice over what is usually the same tree. The
-caveat that makes it a real question rather than an obvious win: after a squash merge the tree is
-identical to the PR's **only when `main` has not moved in between**, and at nine merges a day it
-often has. That deserves its own epic and its own measurement, not a change slipped into this one.
+**Ruled 2026-09-12: we are not taking it**, and that is now a decision in `docs/PROCESS.md` rather
+than an observation somebody re-proposes as free money. After a squash merge the merged tree is
+identical to the PR's **only when `main` has not moved in between**, and at the merge rate that
+produced this problem it usually has — so the second run is testing a tree no run has tested, which
+is the one thing CI is for.
+
+There is a version worth building later: skip the merge run only when the merged tree hashes
+identically to the tested one. That is a real epic with a real measurement, not a trigger deletion.
+
+The cheaper lever is the other new rule — one PR per epic, rulings batched — because **a change that
+does not happen costs nothing to test.**
 
 ## 3. The one thing that could have blocked the revert
 
@@ -151,7 +157,20 @@ No tracked source file under packages, apps is binary (433 checked).
 `pnpm e2e` is not in this epic's criteria and nothing here touches the app, but it was run on this
 tree as part of EPIC-021b's branch: **142 passed.**
 
-## 7. Soroush's half — the Coolify checklist
+## 7. Three rules this epic put into PROCESS.md
+
+1. **Tags are releases, not checkpoints** — naming a ruling, a copy fix and a fix-up epic as the three
+   things that do not warrant one.
+2. **One PR per epic; a separate PR needs a reason, and "the advisor ruled" is not one.** This is the
+   one that addresses the dominant term. 291 changes in 8.4 days happened because each ruling became
+   its own branch, PR run and merge run — about 21 billed minutes for what was often a single line.
+   Exceptions kept for things that must ship or revert alone: a measurement defect, a security fix,
+   or a change needing independent revert.
+3. **The question is whether the gate would have told you something, not whether it ran.** Written
+   because two PRs resolved opposite ways the same afternoon: this one merged un-CI'd because CI
+   checks nothing it touches, and EPIC-021b stayed open because CI checks precisely what it touches.
+
+## 8. Soroush's half — the Coolify checklist
 
 Everything below is in the Coolify UI at `COOLIFY_URL`, on the **staging** application inside the
 `41prompts` project. **Do not do this on production** — production is unchanged by this epic and must
