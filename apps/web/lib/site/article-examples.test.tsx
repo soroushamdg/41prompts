@@ -1,9 +1,22 @@
 import { FINDING_KINDS } from "@41prompts/core";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import ArticlePage from "@/app/guides/what-your-prompt-does-not-check/page.js";
+import { describe, expect, it, vi } from "vitest";
 import { exampleFor, runningExample, RUNNING_EXAMPLE_NAME } from "./article-examples";
 import { FINDING_COPY } from "./finding-copy";
+
+/**
+ * The nav reads the session on the server, which makes it an async component that
+ * `renderToStaticMarkup` cannot render. Swapped for the **real** nav in its signed-out state rather
+ * than for a stub, so the footer and nav are still in the markup these assertions walk — a truth
+ * audit that skipped the chrome would not catch a testimonial added to the footer.
+ * `site-chrome.test.tsx` covers both session states directly.
+ */
+vi.mock("@/app/site-chrome", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/site-chrome")>();
+  return { ...actual, SiteNavWithSession: () => actual.SiteNav({ signedIn: false }) };
+});
+
+const { default: ArticlePage } = await import("@/app/guides/what-your-prompt-does-not-check/page.js");
 
 const html = renderToStaticMarkup(ArticlePage());
 const text = html

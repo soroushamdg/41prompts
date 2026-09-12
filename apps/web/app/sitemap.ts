@@ -17,8 +17,8 @@ export const dynamic = "force-dynamic";
  * search destinations; `/d/` is deliberately excluded everywhere. Listing a page here that robots.txt
  * disallows is a contradiction a crawler reports, so the two files are kept in step on purpose.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  const origin = siteOrigin();
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const origin = await siteOrigin();
   return [
     { url: `${origin}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${origin}/decompile`, changeFrequency: "weekly", priority: 0.8 },

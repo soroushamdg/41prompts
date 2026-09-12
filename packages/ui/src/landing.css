@@ -71,9 +71,6 @@
     padding: var(--spacing-s8) 0 var(--spacing-s7);
   }
 }
-.hero-eyebrow {
-  margin-bottom: var(--spacing-s4);
-}
 /* The headline is the page. It sets its own scale rather than inheriting `h1` so the three
    sentences stay three readable beats at 375px instead of one grey block. */
 .hero h1 {

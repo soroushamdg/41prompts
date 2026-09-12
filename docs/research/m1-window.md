@@ -91,10 +91,16 @@ reason, so the exception cannot quietly become the rule.
 | date | change | why it qualified |
 |---|---|---|
 | 2026-09-12 | **Consent and counting.** M1 moved from a PostHog funnel to a server-side count in our own Postgres; PostHog now fires only after explicit consent. | It fixes a measurement that would otherwise read **zero for thirty days**. A window measuring nothing is not a window. |
-| 2026-09-12 | **Host split.** `41prompts.ai` serves the public product and `app.41prompts.ai` everything behind a session, with 301s both ways and canonicals naming the apex. | It affects **findability**, which is what M1 measures. A brand's apex that does not serve the product handicaps the only thing being tested. |
+| 2026-09-12 | **Host split.** `41prompts.ai` serves the public product and `app.41prompts.ai` everything behind a session, with 301s both ways and canonicals naming the apex. Shipped with the decided landing copy. | It affects **findability**, which is what M1 measures. A brand's apex that does not serve the product handicaps the only thing being tested. |
 
-Neither changes what the decompiler does or says about itself, beyond the landing copy shipped with
-the second — which is a truthfulness correction, not a product change.
+Neither changes what the decompiler does, beyond the landing copy shipped with the second.
+
+**One thing the second change surfaced and did not fix**, because it needs a ruling rather than an
+edit: `v0.2.0` made **"nothing is stored" false** in eleven user-facing strings. A row per run now
+exists — a keyed hash, two integers, a timestamp, and nothing about the prompt. "Your prompt is not
+stored" is still true; "nothing is stored" is not. Listed in full in
+`docs/reports/host-split-report.md` §4. Correcting a claim that is no longer true is a defect fix, not
+a product change, so it qualifies under the rule whenever the wording is decided.
 
 ## Held until the window closes
 

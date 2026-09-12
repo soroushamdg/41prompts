@@ -27,7 +27,7 @@ test.describe("the landing page", () => {
         // Nothing has scrolled: this is what a stranger sees on arrival.
         expect(await page.evaluate(() => window.scrollY)).toBe(0);
 
-        for (const locator of [page.locator(".askbar"), page.getByRole("button", { name: "Decompile it" })]) {
+        for (const locator of [page.locator(".askbar"), page.getByRole("button", { name: "See what nothing checks" })]) {
           const box = await locator.boundingBox();
           expect(box, "element must be laid out").not.toBeNull();
           expect(box!.y).toBeGreaterThanOrEqual(0);
@@ -49,7 +49,7 @@ test.describe("the landing page", () => {
         els.filter((el) => el.getBoundingClientRect().top < fold).map((el) => el.textContent?.trim() ?? ""),
         LAPTOP.height
       );
-      expect(promoted).toEqual(["Decompile it"]);
+      expect(promoted).toEqual(["See what nothing checks"]);
     });
   });
 
@@ -72,7 +72,7 @@ test.describe("the landing page", () => {
       test(`keeps ${name} byte for byte`, async ({ page }) => {
         await page.goto("/");
         await page.getByLabel("Your prompt").fill(prompt);
-        await page.getByRole("button", { name: "Decompile it" }).click();
+        await page.getByRole("button", { name: "See what nothing checks" }).click();
 
         await page.waitForURL(/\/decompile/);
         await page.getByTestId("source-map").waitFor({ state: "visible", timeout: 30_000 });
@@ -109,7 +109,7 @@ test.describe("the landing page", () => {
 
     test("an empty ask bar is not an error, just the decompiler", async ({ page }) => {
       await page.goto("/");
-      await page.getByRole("button", { name: "Decompile it" }).click();
+      await page.getByRole("button", { name: "See what nothing checks" }).click();
       await page.waitForURL(/\/decompile/);
       // Scoped to the page: Next's dev overlay mounts its own `role="alert"` container, which is
       // present in CI too because the e2e server is `next dev`.
@@ -204,20 +204,20 @@ test.describe("the landing page", () => {
           await page.evaluate(() => {
             const el = document.activeElement;
             if (el === null) return "";
-            return `${el.tagName.toLowerCase()}:${(el.textContent ?? "").trim().slice(0, 22) || el.getAttribute("aria-label") || ""}`;
+            return `${el.tagName.toLowerCase()}:${(el.textContent ?? "").trim().slice(0, 48) || el.getAttribute("aria-label") || ""}`;
           })
         );
       }
       expect(reached.some((r) => r.startsWith("a:") && r.includes("Decompiler"))).toBe(true);
       expect(reached.some((r) => r.startsWith("textarea"))).toBe(true);
-      expect(reached.some((r) => r.includes("Decompile it"))).toBe(true);
+      expect(reached.some((r) => r.includes("See what nothing checks"))).toBe(true);
     });
 
     test("the ask bar submits from the keyboard alone", async ({ page }) => {
       await page.goto("/");
       await page.getByLabel("Your prompt").focus();
       await page.keyboard.type("Always respond in JSON only.");
-      await page.getByRole("button", { name: "Decompile it" }).focus();
+      await page.getByRole("button", { name: "See what nothing checks" }).focus();
       await page.keyboard.press("Enter");
       await page.waitForURL(/\/decompile/);
       await expect(page.getByTestId("source-map")).toBeVisible();
@@ -236,7 +236,7 @@ test.describe("the landing page", () => {
       expect(navRows, "the nav wrapped onto more than one row").toBe(1);
       const nav = page.getByRole("navigation", { name: "Main" });
       const targets = [
-        page.getByRole("button", { name: "Decompile it" }),
+        page.getByRole("button", { name: "See what nothing checks" }),
         nav.getByRole("link", { name: "Decompiler" }),
         nav.getByRole("link", { name: "Sign in" }),
         nav.getByRole("button", { name: "Theme" }),
@@ -390,5 +390,14 @@ test.describe("metadata", () => {
     await expect(page.getByRole("heading", { name: "Terms of service" })).toBeVisible();
     await expect(page.locator("body")).toContainText("not written yet");
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  });
+});
+
+test.describe("the landing nav follows the session", () => {
+  test("shows Sign in to a visitor with no session", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("nav-sign-in")).toBeVisible();
+    await expect(page.getByTestId("nav-dashboard")).toHaveCount(0);
+    await page.locator(".site-nav").screenshot({ path: "docs/epics/reports/screenshots/host-split/nav-signed-out.png" });
   });
 });

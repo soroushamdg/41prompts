@@ -21,7 +21,7 @@ export const dynamic = "force-dynamic";
  * a destination for a search result today, and a placeholder indexed as "41Prompts privacy" is worse
  * than nothing on file.
  */
-export default function robots(): MetadataRoute.Robots {
+export default async function robots(): Promise<MetadataRoute.Robots> {
   return {
     rules: [
       {
@@ -30,6 +30,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/d/", "/app", "/api/", "/sign-in", "/sign-up", "/legal/", "/contact", "/dev/", "/waitlist/"]
       }
     ],
-    sitemap: `${siteOrigin()}/sitemap.xml`
+    sitemap: `${await siteOrigin()}/sitemap.xml`
   };
 }

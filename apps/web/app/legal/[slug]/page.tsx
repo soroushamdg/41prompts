@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LEGAL_SLUGS, LEGAL_STUBS } from "@/lib/site/stubs";
-import { SiteFooter, SiteNav } from "../../site-chrome";
+import { SiteFooter, SiteNavWithSession } from "../../site-chrome";
 
 export function generateStaticParams() {
   return LEGAL_SLUGS.map((slug) => ({ slug }));
@@ -28,7 +28,7 @@ export default async function LegalStubPage({ params }: { params: Promise<{ slug
 
   return (
     <>
-      <SiteNav />
+      <SiteNavWithSession />
       <main className="prose-page" id="main">
         <h1>{stub.title}</h1>
         <p>

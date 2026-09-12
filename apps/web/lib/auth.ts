@@ -24,6 +24,19 @@ function requireEnv(name: string): string {
   return value;
 }
 
+/**
+ * The session cookie's `Domain`, or `undefined` for host-only.
+ *
+ * Exported so the decision is testable without a database: `buildAuth` needs one, and "does this
+ * deployment share its session across subdomains" is exactly the kind of thing that should not be
+ * verifiable only by signing in on staging.
+ */
+export function sessionCookieConfig(): { enabled: true; domain: string } | undefined {
+  const domain = process.env.SESSION_COOKIE_DOMAIN;
+  if (domain === undefined || domain.length === 0) return undefined;
+  return { enabled: true, domain };
+}
+
 function buildAuth() {
   const db = getDb();
 
@@ -37,6 +50,25 @@ function buildAuth() {
     }),
     advanced: {
       cookiePrefix: "41prompts",
+      /**
+       * **The session cookie is scoped to the parent domain**, so a session created on `app.` is
+       * visible to the apex — which is what lets the landing page show "Go to dashboard" instead of
+       * "Sign in" without a second round trip or a flash of the wrong one.
+       *
+       * What this costs, stated plainly because it is a real widening: **every host under
+       * `SESSION_COOKIE_DOMAIN` receives this cookie**, now and in future. Adding any subdomain
+       * means adding something that can read a signed-in session. `infra/README.md` carries the same
+       * warning next to the DNS records.
+       *
+       * What it does *not* cost, which was worth checking rather than assuming: Better Auth 1.7.2
+       * prefixes this cookie `__Secure-`, never `__Host-` (`HOST_COOKIE_PREFIX` is defined in its
+       * source and never applied). `__Secure-` permits a `Domain`, so the prefix stays, the cookie
+       * name does not change, and `Secure`, `HttpOnly` and `SameSite=Lax` are all untouched. The
+       * only attribute added is `Domain`.
+       *
+       * Unset — local development — leaves the cookie host-only, exactly as before.
+       */
+      crossSubDomainCookies: sessionCookieConfig(),
     },
     session: {
       expiresIn: SESSION_EXPIRES_IN_SECONDS,

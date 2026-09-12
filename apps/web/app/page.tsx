@@ -1,7 +1,7 @@
 import { Button, logoMorphScript, Textarea } from "@41prompts/ui";
 import type { Metadata } from "next";
 import { kilobytes, MAX_INPUT_BYTES } from "@/lib/decompile/limits";
-import { SiteFooter, SiteNav } from "./site-chrome";
+import { SiteFooter, SiteNavWithSession } from "./site-chrome";
 import { startDecompile } from "./start-actions";
 
 export const metadata: Metadata = {
@@ -33,16 +33,15 @@ export default function HomePage() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <SiteNav current="home" />
+      <SiteNavWithSession current="home" />
 
       <main id="main">
         <section className="hero">
           <div className="site-wrap">
-            <p className="eyebrow hero-eyebrow">The workbench for the prompt layer</p>
             <h1>A prompt change ships. Nothing checks it. You find out from a user.</h1>
             <p className="hero-lede">
-              Paste one here. It comes back as named bloks, with every rule that nothing checks
-              called out. No account, and nothing is stored.
+              Paste a prompt you already run. It comes back as named bloks, with every rule that
+              nothing checks called out.
             </p>
 
             <form action={startDecompile} className="askbar">
@@ -58,9 +57,12 @@ export default function HomePage() {
                 placeholder="Paste your prompt…"
               />
               <div className="askbar-foot">
-                <span className="askbar-note">Up to {kilobytes(MAX_INPUT_BYTES)}. Nothing is stored.</span>
+                <span className="askbar-note">
+                  Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt stays on this page unless you create
+                  a link — those last 30 days and anyone with one can delete it.
+                </span>
                 <Button type="submit" variant="primary">
-                  Decompile it
+                  See what nothing checks
                 </Button>
               </div>
             </form>
