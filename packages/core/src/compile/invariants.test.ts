@@ -130,6 +130,8 @@ describe("the span-tiling invariant", () => {
     expect(rules(compiled)).toContain("one-span-per-blok");
   });
 
+  // `"overridden"` on purpose: it is the word ADR-003 rejected in favour of "edited by hand", so it
+  // is the most likely wrong value anybody would actually write here.
   it("catches an unknown state", () => {
     const compiled: Compiled = {
       text: "one\n\n",

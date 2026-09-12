@@ -193,3 +193,28 @@ export interface CompileOptions {
    */
   readonly cache?: SpanCache;
 }
+
+/**
+ * The two facts about one span, plus the state needed to tell two of the four cells apart.
+ *
+ * `drift.ts` carries the table and the worked case for each cell. The short version: these two
+ * booleans are **independent**, a single "out of date" flag cannot hold both, and the case that
+ * proves it is a blok whose kind changed — its hash moves and its rendered text does not.
+ */
+export interface SpanDrift {
+  readonly blokId: string;
+  readonly state: SpanState;
+  /** What is in the output is not what this blok compiles to **now**. */
+  readonly textDiffersFromBlok: boolean;
+  /** The blok has changed since this span was compiled, or since a person edited it. */
+  readonly blokChangedSinceSpan: boolean;
+}
+
+/** What `drift()` answers. Derived on demand from hashes; never stored, never subscribed to. */
+export interface DriftReport {
+  readonly spans: readonly SpanDrift[];
+  /** Bloks that emit text but own no span: added since this was compiled. `expected` bloks are not listed. */
+  readonly addedBlokIds: readonly string[];
+  /** Spans whose blok is no longer in the blok set: deleted since this was compiled. */
+  readonly removedBlokIds: readonly string[];
+}
