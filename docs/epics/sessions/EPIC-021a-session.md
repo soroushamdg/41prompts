@@ -90,13 +90,30 @@ No tracked source file under packages, apps is binary (417 checked)
 60-blok canvas: first render 11 ms, reorder 16 ms click-to-paint
 ```
 
-## Open
+## Staging, after the merge
 
-**The staging deploy and its screenshots are not done**, and the criterion is left unticked rather
-than ticked on the intention. Staging deploys from `main`, so it happens after this merges; the
-web image's entrypoint runs the migration before `next start`, so no manual work on the box is
-needed. Sequence: merge → staging deploys → drive the canvas by hand at both viewports → land the
-screenshots with the report's §7 filled in.
+`8d62a9d` is live and verified as far as it can be without a session: healthz reports the commit —
+which is the migration's evidence, since the entrypoint runs `drizzle-kit migrate` before
+`next start` — all three new routes 307 to sign-in with the right `next`, the apex 301s `/app/*` to
+the app host, and `robots.txt` still disallows `/app`.
+
+**The hand-drive is a human step and is left as one.** Signing in needs a magic link, and
+`lib/email.ts` never logs the address or the link (ACCESS.md rule 7, EPIC-014's own criterion).
+There is no read-only path from this machine to a staging session, and manufacturing one would mean
+defeating a privacy control to tick a box. EPIC-016 recorded the same thing for OAuth sign-in.
+
+The report's screenshots are therefore from a local build and say so. They earned their place anyway:
+**they caught a defect no test did** — the instructions line, which is the card group's
+`aria-describedby`, still told people to focus a card and use the arrow keys, written before the card
+stopped being focusable and left behind. A screen reader was describing a control that no longer
+exists.
+
+## A third process mistake
+
+I committed the screenshots to `main` again rather than branching first — the same mistake as above,
+caught the same way, at the point of pushing. Moved onto `epic/021a-staging`. Twice in one session
+after the rule was already written down; worth noting that both times it happened straight after a
+`git checkout main` following a merge, which is the moment to be careful.
 
 ## Handoff
 

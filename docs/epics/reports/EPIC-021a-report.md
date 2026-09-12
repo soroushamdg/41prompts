@@ -166,8 +166,9 @@ Worth listing because each one is the kind this epic is supposed to be careful a
       rather than skipping it`.
 - [x] **Forbidden-word grep passes.** Clean over `packages/ui/src`, `apps/web/app`, `apps/web/lib`.
 - [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.** See §6.
-- [ ] **Staging deploy and screenshots.** Not done in this PR, and it cannot be: staging tracks
-      `main`, so the deploy happens when this merges. See §7 for what is left and why.
+- [~] **Staging deploy, and screenshots of the canvas at both viewports.** Deployed and verified;
+      **the "driven by hand" half is a human step and is not done.** See §7 — it is split rather than
+      ticked, because half of it genuinely happened and half of it cannot happen from here.
 - [x] **Report and session log written; backlog updated.**
 
 ---
@@ -223,14 +224,71 @@ carried `{ timeout: 120_000 }` for the same reason. Three parallel runs clean af
 
 ---
 
-## 7. Not done
+## 7. Staging, and the half of that criterion I cannot do
 
-1. **The staging deploy and its screenshots.** Staging deploys from `main` (EPIC-008: CI builds
-   `:staging` on a push to main, Coolify pulls it, and `apps/web`'s entrypoint runs the migration
-   before `next start`) — so it cannot happen from a branch. The sequence is: merge, let staging
-   deploy, drive the canvas by hand at both viewports, and land the screenshots with this section
-   filled in. **The criterion stays unticked until that is actually done**, not ticked on the
-   intention.
+### Deployed and verified
+
+`8d62a9d` is live on staging. **That the container is serving at all is the migration's evidence**:
+`apps/web`'s entrypoint runs `drizzle-kit migrate` and only then `next start`, so a failed migration
+is a container that never comes up.
+
+```
+GET  staging.41prompts.ai/healthz
+     {"ok":true,"commit":"8d62a9df3932967b43ff73f207b1ef68e07cfb7b","env":"staging"}
+
+GET  app.staging.41prompts.ai/app/projects        307 → /sign-in?next=%2Fapp%2Fprojects
+GET  app.staging.41prompts.ai/app/p/proj_0000     307 → /sign-in?next=%2Fapp%2Fp%2Fproj_0000
+GET  app.staging.41prompts.ai/app/pr/pr_00000000  307 → /sign-in?next=%2Fapp%2Fpr%2Fpr_00000000
+GET  staging.41prompts.ai/app/projects            301 → app.staging.41prompts.ai/app/projects
+robots.txt                                        Disallow: /app
+```
+
+All three new routes exist, all three are gated, each returns to where it was going, the apex hands
+`/app/*` to the app host, and none of it is indexable.
+
+### What is not done, and why it is not a thing to work around
+
+**Signing in to staging needs a magic link, and nothing logs it.** `lib/email.ts` never logs the
+address or the link — ACCESS.md rule 7 and EPIC-014's own "no email in any log line" criterion — and
+that is the correct design. There is no read-only path from this machine to a staging session, and
+manufacturing one would mean defeating a privacy control to tick a box.
+
+So the signed-in half is **a human step**, exactly as EPIC-016 recorded for OAuth sign-in against
+staging. It needs Soroush to sign in at `app.staging.41prompts.ai`, open a prompt, and look.
+
+### The screenshots are from a local build, and say so
+
+`docs/epics/reports/screenshots/EPIC-021a/`, seven frames, produced by
+`apps/web/e2e/capture-canvas.spec.ts`:
+
+| | |
+|---|---|
+| `01-project-empty.png` | a new project, before any prompt |
+| `02-canvas-empty.png` | the canvas empty state |
+| `03-canvas-1280-light.png` | five bloks, 1280×800, **at rest** |
+| `04-canvas-1280-light-hover.png` | the same, one card hovered — the only state with category colour |
+| `05-canvas-1280-dark.png` | 1280×800 dark |
+| `06-canvas-375-light.png` | 375×812 light |
+| `07-canvas-375-dark.png` | 375×812 dark |
+
+**A defect these caught that no test did.** The instructions line — which is the card group's
+`aria-describedby` — still said *"focus a card and press the up and down arrow keys"*. That was
+written before the card stopped being focusable to fix the nested-interactive violation, and was
+left behind, so a screen reader was reading out a control that no longer exists. Instructions that
+describe a missing control are worse than no instructions. Fixed.
+
+The rest-state frame also had the pointer still resting on the last card typed into, so it showed a
+hover shadow and a category colour in the one shot meant to show the absence of both. Mouse and focus
+are moved away first now.
+
+**Caveat, same as `capture.spec.ts`:** this spec rewrites its images on every `pnpm e2e`, so a local
+run leaves seven PNGs dirty in `git status` that are only this machine's font rendering. Restore with
+`git checkout -- docs/epics/reports/screenshots/EPIC-021a/`. I swept nine of `capture.spec.ts`'s into
+a commit this session before noticing.
+
+## 8. Not done
+
+1. **The hand-drive of staging**, per §7. The one criterion needing a person.
 2. **Pointer drag-and-drop.** The keyboard path is complete and is what rule 12 requires; a drag is
    additive and was not in scope.
 3. **Importing a decompile into a project.** Out of scope by name; noted, not built. The blok-id
