@@ -195,9 +195,9 @@ unexplained "30", which is `DECOMPILE_RETENTION_DAYS`. It is now listed with its
 
 ### The closing band, and the count behind it
 
-The band's heading has been through four versions. It ended at:
+The band's heading has been through five versions. It ended at:
 
-> **Prompts usually have rules nothing checks.**
+> **Prompts often have rules nothing checks.**
 
 Version two, "Your prompt already has rules nothing checks.", was shipped in #50 and flagged in the
 same commit: its stated reason was that it holds for every prompt the corpus has seen, and it does
@@ -222,16 +222,30 @@ The eleven: `support-email-router`, `fenced-json-schema`, `unmatched-tag`, `numb
 `design-review-screenshots`, `invoice-photo-reader`.
 
 **What the count does and does not support, stated plainly because it was measured and not assumed.**
-11 of 25 is **44%**, which is *under half*.
+11 of 25 is **44%**, which is *under half*. That rules out any word meaning "more than half" —
+"every", "most", and "usually", which is "most" in different clothes. It supports **"often"**, a claim
+about frequency rather than about a majority, and it supports the number itself.
 
-That rules out "every" and it rules out "most". **It also rules out "usually", which is the word that
-shipped** — "usually" and "most" are the same quantifier in different clothes, and 44% does not reach
-either. Version four is version three's error at the same size, and this is the third time the
-heading has claimed more than the corpus holds. Raised at the time and shipped as decided; the
-standing offer on the table is to drop to the number itself.
+### The pattern across all three corrections, which is the part worth keeping
 
-What the count *does* back: "often", which is a claim about frequency rather than about a majority,
-or the number stated plainly. What it cannot back is any word that means "more than half".
+| version | claim | true? |
+|---|---|---|
+| "Paste a prompt. See what is in it." | none | — |
+| "Your prompt already has rules nothing checks." | about **the reader's** prompt | no — the page has never seen it |
+| "Most prompts have rules nothing checks." | > 50% | no — 44% |
+| "Prompts usually have rules nothing checks." | > 50% | no — same word, same 44% |
+| **"Prompts often have rules nothing checks."** | frequent, not majority | **yes** |
+
+**The count was right every time. The quantifier was wrong every time.** 11 of 25 was measured once
+and never moved; three successive headings reached past it, each by a smaller margin than the last,
+and each was caught by arithmetic rather than by taste.
+
+So, for whoever writes the next line of this kind: **reach for the number before the adjective.**
+Decide what the measurement supports, then find the word for it. Going the other way — picking the
+word that reads well and checking afterwards whether the data covers it — is what produced three
+corrections, and the third was as wrong as the second.
+
+The decisions here were Soroush's and so were all three corrections.
 
 Two further cautions on the number itself:
 

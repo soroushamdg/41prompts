@@ -170,3 +170,43 @@ named and its own cost stated.
 sit, while `BLOK_SEPARATOR` is now one character. That is not drift and a comment now says so: the
 invariant checks tiling from the offsets it is given and must not assume a separator length. Rewriting
 those cases to match the compiler would make the test agree with the code it is checking.
+
+---
+
+# Addendum 2 — two rulings, one reversed on evidence (2026-09-12)
+
+1. **Copy settled at "Prompts often have rules nothing checks."** Fifth version, third correction. The
+   report now carries the pattern rather than just the outcome: **the count was right every time and
+   the quantifier was wrong every time.** 11 of 25 was measured once and never moved; three successive
+   headings reached past it, each by a smaller margin. The instruction for next time is in the report —
+   *reach for the number before the adjective*.
+
+2. **The separator ruling was reversed on the measurement.** Back to a blank line, `compile@3`.
+
+   Worth recording as process rather than as a constant: the previous ruling was made on
+   `CLAUDE.md`'s "the mockups are the spec", the implementation was shipped, the cost was measured on
+   the corpus, and the measurement changed the decision. Two version bumps and a snapshot
+   regeneration — which is precisely what `COMPILER_VERSION` is for, and the three-version history is
+   now the best argument in the codebase for having it.
+
+   **The middle option was rejected on a harder ground than taste**, and the reasoning is in
+   `hash.ts`: a separator that depends on a span's neighbours means editing one blok changes the bytes
+   of the span before it (breaking rule 4, which this epic exists to guarantee) *and* that span's
+   `hash` does not move with its bytes, because `blokHash` covers only the blok's own text and kind.
+   The cache would hand back output that no longer matches. Same failure the "separator is a constant,
+   not an option" rule already prevents, arriving by a different door.
+
+3. **The lasting output is in `docs/design/README.md`**, under corrections: **the prototypes are the
+   spec for the interface, not for the compiled string.** The compiled pane was always where this
+   would surface — it is the one surface that displays a string a model also reads, and those two
+   readers want different things. Two properties of the failure are recorded with it: nothing in the
+   suite could see it, and nobody was choosing what a model receives, because a prototype's attention
+   stops at the pane.
+
+## One correction made while in that file
+
+`docs/design/README.md` said *"EPIC-020 owns picking a real per-kind mapping [for blok category
+colour], or confirming ink-only is permanent."* EPIC-020 could not take that debt — its scope puts
+"any UI, canvas, or compiled pane" explicitly out of scope, and it shipped without touching colour.
+Repointed to EPIC-021a/EPIC-021b, which build the canvas the mapping would appear on. Flagged rather
+than done quietly, because reassigning somebody else's debt is a decision.

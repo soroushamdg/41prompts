@@ -35,9 +35,11 @@ describe("/", () => {
    * other two guards cannot do it.**
    *
    * `page.test.tsx`'s patterns below catch mechanical classes: an unexplained digit, social proof,
-   * fake urgency, an invented award. This heading has none of those and has still been wrong twice
-   * ("your prompt already has…", then "most prompts…"), because the thing wrong with it was a claim
-   * about a population, which no regex separates from ordinary copy.
+   * fake urgency, an invented award. This heading has none of those and was still wrong three times
+   * — "your prompt already has…", then "most prompts…", then "prompts usually…" — because what was
+   * wrong with it each time was the **quantifier**, a claim about a population that no regex
+   * separates from ordinary copy. The measured count, 11 of 25, was right from the first correction
+   * onwards; only the adjective kept overreaching it.
    *
    * The visual baselines cannot do it either, and that was measured rather than assumed: with a
    * changed heading live and confirmed in the served HTML, both full-page screenshots still compared
@@ -48,7 +50,7 @@ describe("/", () => {
    * sentence a **decided** string, so changing it takes a decision rather than a tidy-up.
    */
   it("closes with the band heading as decided, so a copy change is caught by text and not by pixels", () => {
-    expect(text).toContain("Prompts usually have rules nothing checks.");
+    expect(text).toContain("Prompts often have rules nothing checks.");
   });
 
   it("names bloks and checks in the subhead, and promises nothing else", () => {

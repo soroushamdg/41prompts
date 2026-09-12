@@ -36,10 +36,12 @@ const blok = (id: string, text: string, order: number, kind: PromptBlok["kind"] 
 });
 
 /**
- * The hand-built cases below use a **two-character** tail where a span's separator would sit, while
- * `BLOK_SEPARATOR` is one character. That is deliberate and is not drift: the invariant checks the
- * tiling from the offsets it is given and must not assume a separator length. If these ever get
- * rewritten to match the compiler, this file starts agreeing with the code it is checking.
+ * The hand-built cases below carry their own separator lengths and are **not** kept in step with
+ * `BLOK_SEPARATOR`. Deliberate: the invariant checks the tiling from the offsets it is given and must
+ * not assume a separator length. The constant has already been two characters, then one, then two
+ * again across three compiler versions; this file did not change with it, and that is the point. If
+ * these cases ever get rewritten to match the compiler, the test starts agreeing with the code it is
+ * meant to be checking.
  */
 describe("the span-tiling invariant", () => {
   it("passes on spans that tile the text exactly", () => {

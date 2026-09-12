@@ -45,10 +45,40 @@ arrow keys inside, not one per span; keyboard pin from the span side; real ARIA 
 labelled buttons with a shape difference; pass/fail icons alongside colour; `aria-valuetext` on sliders; 44px
 touch targets; reduced motion shows the end state of the hero and the logo, it does not skip them.
 
+**The prototypes are the spec for the interface, not for the compiled string (EPIC-020, 2026-09-12).**
+
+This is the correction that outlives the argument that produced it. A prototype specifies what a
+screen looks like and how it behaves. It does **not** specify the bytes the product sends to a model,
+even where it appears to — and the compiled pane is exactly such a place, because it *displays* a
+string the model also *reads*, and those two readers want different things.
+
+The first real case: `41prompts-full-mockup.html` joins compiled spans with `join('\n')` (line 1471).
+Read as a specification of the compiled prompt, that means a single newline between bloks. EPIC-020
+shipped it that way and then measured it. **A single newline makes a blok boundary indistinguishable
+from a newline inside a blok's own text** — a list blok followed by an example blok runs together
+with nothing marking where one stops — and on the committed corpus that is 25 of 160 bloks, reaching
+**14 of the 27 multi-blok prompts**. It was reverted to a blank line.
+
+Two things about that failure are worth keeping:
+
+- **Nothing could catch it.** Spans carry their offsets, so the pane, attribution and drift were all
+  correct, and the whole suite passed under both separators. The loss was in the string the model
+  reads, which no assertion in this codebase looks at. A degradation no test can see is the kind to
+  be conservative about.
+- **A blank line in a pane and a blank line in a prompt are not the same decision.** The mockup's
+  author was choosing pane density. Nobody was choosing what a model sees, because the pane is where
+  a prototype's attention naturally stops.
+
+So: take behaviour, layout, tokens, states and copy from the prototypes. Where a prototype implies
+something about **what gets sent, stored, or published**, treat it as an illustration and decide it
+on its own terms — then say so in the report, as EPIC-020's §6.2 does.
+
 **`--color-ink-3` (EPIC-003, accepted).** The mockup's literal values — light `#77736a` on `bg`/`surface`/
 `sunken`, dark `#807d76` on the same — fail WCAG AA: axe-core's `color-contrast` rule measured 4.03:1 and 4.485:1
 against the 4.5:1 bar on real rendered text (an unselected `Tab`, an `eyebrow` caption), not a subjective read.
 `packages/ui`'s nudged values win: `#6f6b62` (light) / `#817e77` (dark). Blok category colour staying unshipped
 (EPIC-003's deviation 1 — the mockup's `--kc` reuses `--pass`/`--warn` verbatim, conflicting with "green/red/amber
-mean pass/fail/drift and nothing else") is also accepted; EPIC-020 owns picking a real per-kind mapping, or
-confirming ink-only is permanent.
+mean pass/fail/drift and nothing else") is also accepted; That debt was assigned to EPIC-020, which
+could not take it: EPIC-020's scope puts "any UI, canvas, or compiled pane" explicitly out of scope,
+and it shipped 2026-09-12 without touching colour. **It passes to EPIC-021a/EPIC-021b**, which build
+the canvas the mapping would appear on.

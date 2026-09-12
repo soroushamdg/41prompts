@@ -153,9 +153,9 @@ alternative — an empty separator on the final span — makes a span's shape de
 and reordering then changes span *widths* rather than only offsets, which contradicts criterion 4 as
 written.
 
-`BLOK_SEPARATOR` shipped as `"\n\n"` in `compile@1` and is **`"\n"` in `compile@2`**, ruled to the
-mockup on 2026-09-12. §6.2 carries what that cost, measured after the ruling rather than argued
-before it.
+`BLOK_SEPARATOR` shipped as `"\n\n"` in `compile@1`, became `"\n"` in `compile@2` when the separator
+was ruled to the mockup, and is **`"\n\n"` again in `compile@3`** after that ruling was reversed on
+the measurement. §6.2 is the whole exchange, kept rather than tidied.
 
 ### `render()` is the identity function in v0
 
@@ -312,11 +312,35 @@ compiled text. Under `"\n\n"` only those 5 bloks had the same ambiguity.
 whose — the pane, attribution and drift are unaffected, and every test still passes. What is lost is
 structure in the string the **model** receives, which is the part no test can see.
 
-**Recorded for the revisit that was offered, not re-litigated.** It is one constant and a
-`COMPILER_VERSION` bump, which is what that constant is for. A middle option exists if it comes back:
-`"\n"` between bloks and `"\n\n"` where either side contains a newline — deterministic, but it makes a
-span's shape depend on its neighbours, which is the property §4 gave up the empty final separator to
-keep.
+### The ruling was reversed on the measurement (2026-09-12)
+
+Back to a blank line, `compile@3`. Soroush's reasoning, which is the part worth keeping:
+
+> *"The mockup is the spec for what a pane looks like, not for what string the model receives, and it
+> plainly did not have the newline-inside-a-blok case in front of it. A boundary the model cannot see,
+> on 14 of 27 multi-blok prompts, is a correctness loss that no test can catch, which makes it exactly
+> the kind of thing to be conservative about."*
+
+That generalises past this constant and is now written into `docs/design/README.md`'s corrections
+section: **the prototypes are the spec for the interface, not for the compiled string.** This is the
+first case where following one would have degraded the output, and the compiled pane is where it was
+always going to happen — it is the one surface that displays a string a model also reads, and those
+two readers want different things.
+
+**The middle option was rejected too, on a harder ground than taste.** `"\n"` normally and `"\n\n"`
+where either side contains a newline is deterministic, but it makes a span's separator depend on its
+**neighbours**. Two consequences, the second worse than the first:
+
+1. Editing one blok changes the bytes of the span *before* it — breaking "changing one blok changes
+   exactly one span", which is `CLAUDE.md` rule 4 and the thing this epic exists to guarantee.
+2. That neighbouring span's `hash` would **not** move with its bytes, because `blokHash` covers only
+   the blok's own text and kind. A cached span would then be handed back for output that no longer
+   matches it — the same stale-cache failure `hash.ts` already rules out for making the separator an
+   option, arriving by a different door.
+
+**What the whole exchange cost and bought.** Two `COMPILER_VERSION` bumps and a snapshot regeneration,
+which is exactly what that constant is for; and a correction in `docs/design/README.md` that applies
+to every prototype and every epic after this one.
 
 **3. What the mockup gets right and the model preserves.** Its bloks carry both a short `txt` (the
 card) and a longer `span` (the compiled text), and they differ — the card shows a summary, the pane
@@ -355,16 +379,17 @@ and what is still open.
 
 ### Ruled and done
 
-1. ~~**The separator.**~~ Ruled to the mockup. `compile@2`, single newline, fixtures and snapshots
-   regenerated. **The cost was measured after the ruling and is in §6.2** — the prose case was real,
-   and a second effect was found that had not been anticipated: a blok boundary is now
-   indistinguishable from a newline inside a blok's own text, in roughly half the corpus's prompts.
-   Recorded for the revisit that was offered.
+1. ~~**The separator.**~~ Ruled to the mockup (`compile@2`, single newline), measured, and **reversed
+   on the measurement** (`compile@3`, blank line). The prose case was real and a second, larger effect
+   was found that nobody had anticipated. The lasting output is not the constant but the correction in
+   `docs/design/README.md`: the prototypes are the spec for the interface, not for the compiled
+   string. §6.2 has the whole exchange.
 2. ~~**`CLAUDE.md`'s "Build sha" line.**~~ Corrected to "Build hash" in this branch, per §3.4.
-3. ~~**The band heading and its guard.**~~ Not this epic's, but shipped in the same branch: the
-   heading is now asserted by text in `page.test.tsx`. `docs/reports/host-split-report.md` carries
-   why that is a narrower fix than it looks, and the standing note that 44% does not reach "usually"
-   any more than it reached "most".
+3. ~~**The band heading and its guard.**~~ Not this epic's, but shipped alongside it. Settled at
+   **"Prompts often have rules nothing checks."** after three corrections, and asserted by text in
+   `page.test.tsx`. `docs/reports/host-split-report.md` carries why that guard is narrower than it
+   looks, and the pattern behind the three corrections: **the count was right every time and the
+   quantifier was wrong every time.**
 
 ### Carried into EPIC-021b as named requirements
 
