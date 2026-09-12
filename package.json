@@ -26,7 +26,8 @@
     "db:generate": "pnpm --filter @41prompts/db db:generate",
     "db:migrate": "pnpm --filter @41prompts/db db:migrate",
     "db:seed": "pnpm --filter @41prompts/db db:seed",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:capture": "E2E_CAPTURE=1 playwright test"
   },
   "devDependencies": {
     "@41prompts/cli": "workspace:*",

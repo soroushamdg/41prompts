@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { deleteTestUser, latestMagicLinkTokenFor } from "./db";
+import { deleteTestUser, latestMagicLinkTokenFor } from "../db";
 
 /**
  * Screenshots for EPIC-021a's report. Not assertions — this file exists to produce the images the
