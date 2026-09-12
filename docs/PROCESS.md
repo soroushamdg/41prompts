@@ -313,6 +313,21 @@ Two consequences worth stating so this does not get re-proposed as free:
 
 The cheaper lever is the rule above: fewer changes, each carrying more. A change that does not happen
 costs nothing to test.
+## `built — awaiting <the human step>` is a backlog status (2026-09-12)
+
+Some criteria need a person: signing in to staging and looking at it, an OAuth app, a DNS record, a
+screenshot of somebody else's dashboard. The epic is finished and merged and one box is honestly
+unticked, and neither `current` nor `done` says that.
+
+**Write it in the status cell**, as EPIC-021a does: `built — awaiting the staging hand-drive`. The
+row then states what it is waiting for and who it is waiting on, and flips to `done` when that
+happens. `EPIC-084`'s `cancelled — …` row is the same shape and the precedent.
+
+Two things this prevents. A row left `current` while the next epic is also `current` reads as two
+epics in flight, which `PROCESS.md` forbids — and is not what is happening. A row marked `done` with
+an unticked criterion is worse: it is the "ticked on the intention" failure the environmental rule
+above exists to stop, arriving through the backlog instead of through a report.
+
 
 ## Three timing gates report rather than enforce (2026-09-12)
 

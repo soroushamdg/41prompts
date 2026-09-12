@@ -22,8 +22,8 @@ Written first, in commit `31f7de5`'s successor, before any pane code existed.
 |---|---|---|---|---|---|
 | 1 | compiled | no | no | — | *(nothing)* |
 | 2 | edited by hand | yes | **no** | `edited by hand` | **You wrote this span. Update from blok replaces it with what the blok says.** |
-| 3 | edited by hand | yes | **yes** | `edited by hand · blok changed` | **You wrote this span, and its blok has changed since. Update from blok replaces it with wording you have not seen.** |
-| 4 | compiled | yes | **yes** | `out of date` | **This span is what its blok said before it changed. Update from blok brings it up to date and loses nothing.** |
+| 3 | edited by hand | yes | **yes** | `edited by hand · blok changed` | **You wrote this span, and its blok has changed since. Update from blok replaces it with the blok's new wording; check the card first.** |
+| 4 | compiled | yes | **yes** | `out of date` | **This span is what its blok said before it changed. Update from blok brings it up to date; nothing you wrote is lost, because you wrote none of it.** |
 
 Each sentence ends by saying **what the button does to you**, because that is the only thing the
 reader is actually deciding. The states differ in consequence, not just in fact.
@@ -42,10 +42,13 @@ blok* destroys writing — that is not the difference. The difference is what yo
   edit sat there. You should look at the card before pressing, and in state 2 you need not.
 
 So the honest summary is: **the states are distinct but the gap is narrow, and it is narrow in a
-specific way.** Same action, same destruction, different *result*. If that turns out to be too fine
-to be worth two sentences, the fallback is to merge 2 and 3 into "You wrote this span" and add the
-blok-changed half as a second line only when it is true — which is nearly what these are, and is one
-edit away. Recorded now rather than discovered later.
+specific way.** Same action, same destruction, different *result*.
+
+**Ruled 2026-09-12: they stay separate**, with both sentences edited — *"the blok's new wording;
+check the card first"* and *"nothing you wrote is lost, because you wrote none of it."* Soroush's
+reason, which is a better statement of the gap than the one above: it is
+**"you will get back what you already know" against "look before you press"**. The second clause of
+each sentence now carries exactly that, and state 4 says outright why pressing it is free.
 
 ### A fifth cell that is deliberately silent
 
