@@ -1,0 +1,7 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# Committed in the repo and wired up by `pnpm hooks:install` (which `pnpm install` runs for you).
+# The logic is in Node, matching every other check in `scripts/`; this is the shim git calls.
+exec node "$(git rev-parse --show-toplevel)/scripts/guard-main-commit.mjs" "$1"
