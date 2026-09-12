@@ -90,10 +90,10 @@ export default function HomePage() {
             </li>
             <li className="strip-step">
               <p className="strip-number">03</p>
-              <h2>Fix it before it ships</h2>
+              <h2>Add the check</h2>
               <p>
-                Each unchecked rule comes with the check that would catch it. You make the change —
-                there is nothing to install and nothing to sign up for.
+                Every rule that nothing checks comes with the check that would catch it, named in
+                plain words. You add it where your tests already live.
               </p>
             </li>
           </ol>
