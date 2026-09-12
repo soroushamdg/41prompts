@@ -9,7 +9,11 @@ import { DecompileView } from "./decompile-view";
 export const metadata: Metadata = {
   title: "Decompile a prompt · 41Prompts",
   description:
-    "Paste a prompt and get it back as named bloks, mapped to the exact text they came from, with what is worth knowing about it listed underneath. No account, and your prompt is not saved."
+    "Paste a prompt and get it back as named bloks, mapped to the exact text they came from, with what is worth knowing about it listed underneath. No account, and your prompt is not saved.",
+  // Relative, resolved against `metadataBase` — the apex — exactly as `/` and the guide do it. This
+  // page was the only indexable public route without one, from EPIC-013 until the host split was
+  // verified in production and the gap showed up.
+  alternates: { canonical: "/decompile" }
 };
 
 /**
