@@ -111,7 +111,13 @@ export function DecompileView({
           <Button type="submit" name="sample" value="1" disabled={pending}>
             Use a sample prompt
           </Button>
-          <span className="decompile-limit">Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt is not saved.</span>
+          {/* Word for word the line under the landing page's ask bar. The difference between them was
+              an artefact of how two rulings were written, not a decision — somebody arriving here
+              directly deserves the same specificity as somebody arriving from `/`. */}
+          <span className="decompile-limit">
+            Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt is processed on our servers in Montréal
+            and is not saved. Create a link and it lasts 30 days; anyone with one can delete it.
+          </span>
         </div>
       </form>
 

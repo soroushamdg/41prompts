@@ -147,33 +147,42 @@ decision 1). The line under the ask bar now reads:
 The middle sentence is verbatim as ruled. The rest keeps the cap and the link facts, with "those"
 repointed to a working antecedent.
 
-**One consequence worth a look.** The two lines under the two textareas now differ — the landing page
-names Montréal, `/decompile` says only "Your prompt is not saved". That follows the rulings literally
-(the Montréal sentence was ruled for the landing line specifically) and it is defensible, since the
-landing page is the first touch. Say the word if they should be identical.
+**The same line now appears under both textareas.** They differed for a day, because the Montréal
+sentence was ruled for the landing line specifically — an artefact of how two rulings were written
+rather than a decision, and ruled out on 2026-09-12: somebody arriving at `/decompile` directly
+deserves the same specificity as somebody arriving from `/`.
 
-### Strip 03 — not touched, awaiting a ruling
+### Strip 03 — replaced
 
-Current heading and body:
+Was:
 
 > **03 — Fix it before it ships**
 > Each unchecked rule comes with the check that would catch it. You make the change — there is nothing
 > to install and nothing to sign up for.
 
-**The objection.** Two things, and the body only answers one of them.
+Now:
 
-1. *"Fix it"* is an imperative that reads as a product capability. The product does not fix anything:
-   it lists rules with no check and names the check that would catch each one. The body's "You make
-   the change" corrects this — but a reader scanning only the three headings gets **Paste → See the
-   bloks → Fix it before it ships**, which reads as three things the product does, and the third is
-   the reader's own work done somewhere else entirely.
-2. *"before it ships"* implies we sit in the deploy path. We do not. There is no CI integration, no
-   SDK check, nothing that could block a ship — that is Stage 5. The phrase promises a position in the
-   workflow that the product has not got.
+> **03 — Add the check**
+> Every rule that nothing checks comes with the check that would catch it, named in plain words. You
+> add it where your tests already live.
 
-**Why it was left rather than rewritten:** the heading's honest version is weaker as copy, and which
-of the two problems matters more is a positioning call. Something like "See what to fix" keeps the
-scan honest and loses the urgency; "Change it yourself" is accurate and flat.
+Both objections were upheld, and **"before it ships" was the worse of the two**: it claimed a place in
+the deploy path we do not occupy until Stage 5. There is no CI integration, no SDK check, nothing that
+could block a ship — so the phrase promised a position in the workflow rather than overstating a
+feature, which is the harder kind of claim to walk back.
+
+The heading also fixes the scan. Three headings read in isolation now give **Paste → See the bloks,
+and what nothing checks → Add the check**, which is three true things, the third of them plainly the
+reader's own work. The previous set read as three things the product does.
+
+"Named in plain words" is exact rather than decorative: ADR-003 requires check kinds to display as
+plain phrases, and the detector's suggestion is literally `Add a "one of the allowed values" check.`
+"Where your tests already live" is the other half of the same honesty — we do not host tests, run
+them, or sit between the reader and their deploy.
+
+**What it gives up, recorded because it was a real trade:** the urgency of "before it ships". That
+urgency was borrowed against a capability we do not have, which is the only reason losing it is
+acceptable.
 
 ### What passed
 
