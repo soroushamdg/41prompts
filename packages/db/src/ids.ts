@@ -12,6 +12,23 @@ export function newPromptId(): string {
   return newId("pr", 4);
 }
 
+/**
+ * A blok row's id: `blok_` + 16 hex, **minted once and never recomputed**.
+ *
+ * EPIC-021a decision 1 as first written said blok ids are the content-derived ids EPIC-011a produces,
+ * "stable across recompiles". They are stable across recompiles of the *same text*, which is exactly
+ * what makes them right for a decompile and wrong for a row somebody edits: the id changes the moment
+ * the text does, so on every keystroke the row's rank, its hand edit and its history would be orphaned
+ * onto an id nothing points at. Amended 2026-09-12; EPIC-020 settled the same question for
+ * `PromptBlok.id`.
+ *
+ * A blok imported from a decompile keeps the decompiler's `blok_`-prefixed content-derived id as its
+ * first value — the two shapes are deliberately the same width — and is never recomputed after that.
+ */
+export function newBlokId(): string {
+  return newId("blok", 8);
+}
+
 export function newApiKeyId(): string {
   return newId("key", 8);
 }

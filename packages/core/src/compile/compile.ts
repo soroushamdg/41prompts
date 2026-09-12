@@ -14,12 +14,18 @@ import type { Check, Compiled, CompiledSpan, CompileOptions, PromptBlok, SpanCac
  * never merged back. A span edited by hand is an exception the model *records*; `compile()` itself
  * always produces a fresh, fully `compiled` result.
  *
- * **That is worth saying out loud, because it has a consequence this epic does not close:** calling
- * `compile()` again discards hand edits. Within this package that is correct and deliberate — there
- * is no merge anywhere here, by decision 8 — but it means whoever builds the compiled pane
- * (EPIC-021b) has to decide what happens when a blok is *added* to a prompt that has hand-edited
- * spans, since `updateFromBlok` only ever touches a span that already exists. Named in the report
- * rather than pre-empted with an API nobody has asked for yet.
+ * **`options.keep` is the exception, and it exists for one failure.** Without it, calling `compile()`
+ * again discards every hand edit — so adding one blok to a prompt somebody has edited by hand loses
+ * their typing, silently, with the recompiled text looking entirely plausible. EPIC-021a decision 5
+ * calls that the only failure in that epic that loses work rather than inconveniencing someone.
+ * `keep` carries those spans forward by blok id, with the hash each was taken at.
+ *
+ * `compile(bloks)` with no `keep` is unchanged: a fresh compile, a pure function of the blok set
+ * alone, every span `compiled`. That is what EPIC-050's artifact builder wants — it publishes what
+ * the bloks say, not an exception somebody made in an editor.
+ *
+ * This is still not a merge (decision 8). A kept span is placed, not reconciled; nothing is compared
+ * and nothing is combined.
  *
  * ## What the compiler decides, and what it never touches
  *
@@ -43,8 +49,13 @@ export function compile(bloks: readonly PromptBlok[], options: CompileOptions = 
       continue;
     }
 
-    const hash = blokHash(blok);
-    const text = render(blok, hash, options.cache);
+    // A hand edit is an exception to this blok's compiled output, so it is applied *instead of*
+    // rendering — and it keeps the hash it was taken at, never this compile's. Recomputing the hash
+    // here would quietly answer "no" to "has the blok changed since you edited this" for ever.
+    const ownHash = blokHash(blok);
+    const kept = options.keep?.get(blok.id);
+    const text = kept?.text ?? render(blok, ownHash, options.cache);
+    const hash = kept?.hash ?? ownHash;
 
     pieces.push(text, BLOK_SEPARATOR);
     spans.push({
@@ -53,7 +64,7 @@ export function compile(bloks: readonly PromptBlok[], options: CompileOptions = 
       textEnd: at + text.length,
       end: at + text.length + BLOK_SEPARATOR.length,
       hash,
-      state: "compiled"
+      state: kept === undefined ? "compiled" : "edited by hand"
     });
     at += text.length + BLOK_SEPARATOR.length;
   }

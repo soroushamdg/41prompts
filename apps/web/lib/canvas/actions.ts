@@ -1,0 +1,176 @@
+"use server";
+
+import { BLOK_KINDS } from "@41prompts/core";
+import {
+  addBlok,
+  bloksForPrompt,
+  deleteBlok,
+  moveBlok,
+  newProjectId,
+  projects,
+  promptForOwner,
+  prompts,
+  restoreBlok,
+  setBlokText,
+} from "@41prompts/db";
+import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { getDb } from "@/lib/db";
+import { requireSession } from "@/lib/session";
+
+/**
+ * Server actions for the canvas (decision 9 — actions, not a REST API).
+ *
+ * Every one follows the same four steps in the same order: **resolve the session, scope by owner,
+ * validate, write.** The scoping step is a real query, not a check on something the client sent —
+ * `promptForOwner` joins through `projects.owner`, so a prompt id belonging to somebody else simply
+ * does not resolve and the action refuses without ever disclosing that the id exists.
+ *
+ * **Blok text is written byte for byte.** No trim, no CRLF conversion, no normalisation, anywhere in
+ * this file. `CLAUDE.md` rule 3 says the verbatim span, and EPIC-013 measured what tidying costs.
+ * Trailing whitespace in an example is sometimes the point.
+ */
+
+export interface ActionResult {
+  ok: boolean;
+  /** Shown to the person. Present only when `ok` is false. */
+  message?: string;
+}
+
+const REFUSED: ActionResult = {
+  ok: false,
+  // Deliberately identical for "no such prompt" and "not yours": the two must not be tellable apart.
+  message: "That prompt is not available.",
+};
+
+async function ownedPrompt(promptId: string) {
+  const session = await requireSession("/app/projects");
+  const db = getDb();
+  const prompt = await promptForOwner(db, promptId, session.user.id);
+  return prompt === undefined ? undefined : { db, prompt, owner: session.user.id };
+}
+
+export async function createProjectAction(name: string): Promise<ActionResult & { id?: string }> {
+  const session = await requireSession("/app/projects");
+  const trimmed = name.trim();
+  if (trimmed === "") return { ok: false, message: "Give the project a name." };
+
+  const db = getDb();
+  const id = newProjectId();
+  // The slug carries the id so two projects of the same name never collide on the unique index.
+  await db.insert(projects).values({ id, owner: session.user.id, name: trimmed, slug: `${slugify(trimmed)}-${id}` });
+  revalidatePath("/app/projects");
+  return { ok: true, id };
+}
+
+export async function createPromptAction(projectId: string, name: string): Promise<ActionResult & { id?: string }> {
+  const session = await requireSession("/app/projects");
+  const trimmed = name.trim();
+  if (trimmed === "") return { ok: false, message: "Give the prompt a name." };
+
+  const db = getDb();
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.owner, session.user.id)))
+    .limit(1);
+  if (project === undefined) return REFUSED;
+
+  const [row] = await db.insert(prompts).values({ project: projectId, name: trimmed }).returning({ id: prompts.id });
+  revalidatePath(`/app/p/${projectId}`);
+  return { ok: true, id: row!.id };
+}
+
+/**
+ * Add a blok.
+ *
+ * **This is the write decision 5 is about.** It is one INSERT and it touches no other row, so it
+ * cannot reach another blok's hand edit — the guarantee is in the shape of the write, not in a rule
+ * this function has to remember. `packages/db`'s `canvas.test.ts` asserts exactly that, by checking
+ * no other row's `updatedAt` moves.
+ */
+export async function addBlokAction(
+  promptId: string,
+  kind: string,
+  text: string,
+  between?: { before: string | null; after: string | null }
+): Promise<ActionResult & { id?: string }> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+  if (!(BLOK_KINDS as readonly string[]).includes(kind)) return { ok: false, message: "Unknown blok kind." };
+
+  const row = await addBlok(owned.db, promptId, { kind, text }, between);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true, id: row.id };
+}
+
+/**
+ * Autosave (decision 4).
+ *
+ * Returns a result rather than throwing or redirecting, because the caller's job on failure is to
+ * **leave the typed text exactly where it is** and say so. Nothing here ever sends text back for the
+ * field to adopt: a server value written into a field somebody is still typing in is how autosave
+ * eats a sentence.
+ */
+export async function saveBlokTextAction(promptId: string, blokId: string, text: string): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await setBlokText(owned.db, promptId, blokId, text);
+  return { ok: true };
+}
+
+/** Move one blok between two others. One row, unless the ranks had grown and a rebalance was due. */
+export async function moveBlokAction(
+  promptId: string,
+  blokId: string,
+  between: { before: string | null; after: string | null }
+): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await moveBlok(owned.db, promptId, blokId, between);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/** Soft delete (decision 8). Undoable, because a blok is someone's writing. */
+export async function deleteBlokAction(promptId: string, blokId: string): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await deleteBlok(owned.db, promptId, blokId);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/** Undo. Restores text, rank and hand edit together, because the rank was never touched. */
+export async function undoDeleteBlokAction(promptId: string, blokId: string): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await restoreBlok(owned.db, promptId, blokId);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/** The ranks around a position, so the client can ask for "between these two" without guessing. */
+export async function neighbourRanksAction(
+  promptId: string,
+  index: number
+): Promise<{ before: string | null; after: string | null } | undefined> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return undefined;
+  const rows = await bloksForPrompt(owned.db, promptId);
+  return { before: rows[index - 1]?.rank ?? null, after: rows[index]?.rank ?? null };
+}
+
+function slugify(name: string): string {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "project"
+  );
+}

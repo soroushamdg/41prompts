@@ -60,6 +60,16 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: "warn", bg: "surface", minRatio: 4.5, note: "Table cell-drift text on a card" },
   { fg: "focus", bg: "surface", minRatio: 3.0, note: "focus ring against a card (UI-component boundary)" },
   { fg: "focus", bg: "bg", minRatio: 3.0, note: "focus ring against the page background (UI-component boundary)" },
+  // Blok category colour (EPIC-021a decision 6). It appears only during interaction, and only ever
+  // as a rail and a glyph — a UI-component boundary, never text — so the 3:1 tier applies. Checked
+  // against `surface` because that is the card it sits on, and against `bg` because the canvas's
+  // own ground shows through at the card's edge.
+  { fg: "kindContext", bg: "surface", minRatio: 3.0, note: "context rail on a card" },
+  { fg: "kindConstraint", bg: "surface", minRatio: 3.0, note: "constraint rail on a card" },
+  { fg: "kindExample", bg: "surface", minRatio: 3.0, note: "example rail on a card" },
+  { fg: "kindExpected", bg: "surface", minRatio: 3.0, note: "expected rail on a card" },
+  { fg: "kindImageRef", bg: "surface", minRatio: 3.0, note: "image_ref rail on a card" },
+  { fg: "kindImageInput", bg: "surface", minRatio: 3.0, note: "image_input rail on a card" },
 ];
 
 export interface ContrastResult extends ContrastPair {

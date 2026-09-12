@@ -39,6 +39,19 @@
   --color-warn: #6b4200;
   --color-warn-soft: #ffeab8;
 
+  /* Blok category colour (EPIC-021a decision 6; the debt EPIC-020 could not take because it had
+     all UI out of scope). Six hues, applied ONLY during interaction — hover, focus, selection —
+     never as a persistent tint, because a card at rest is told apart by its glyph and the kind's
+     name as text. Deliberately drawn from blue/violet/magenta/clay and nowhere near green, red or
+     amber, which mean pass, fail and drift and nothing else. Held to 3:1 against surface: they
+     mark a UI boundary rather than carry text. */
+  --color-kind-context: #465a7a;
+  --color-kind-constraint: #3b3f8f;
+  --color-kind-example: #6a3a8c;
+  --color-kind-expected: #1f5f78;
+  --color-kind-image-ref: #8a2f6b;
+  --color-kind-image-input: #7a4426;
+
   /* spacing — the mockup's s1..s8 scale is exactly Tailwind's default 0.25rem multiplier scale
      at 1/2/3/4/6/8/12/18; named here so component code reads `p-s5` etc, not a bare Tailwind
      number that means nothing next to the mockup's own vocabulary. */
@@ -79,6 +92,14 @@
   --color-fail-soft: #2e1210;
   --color-warn: #ffc65c;
   --color-warn-soft: #2c2205;
+
+  /* Same six, lifted for the dark ground. Designed in parallel from one set, per the prototypes. */
+  --color-kind-context: #93b0d8;
+  --color-kind-constraint: #9b9ff0;
+  --color-kind-example: #c99ae6;
+  --color-kind-expected: #78c2db;
+  --color-kind-image-ref: #ef8fc9;
+  --color-kind-image-input: #d8a07e;
 }
 
 /* Border widths and shadow offsets aren't Tailwind-namespaced tokens (no numeric scale fits

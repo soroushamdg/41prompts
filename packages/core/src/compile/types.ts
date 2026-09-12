@@ -182,6 +182,31 @@ export interface Compiled {
 /** Content-hash cache of rendered span text, owned by the caller so `compile()` stays pure. */
 export type SpanCache = Map<string, string>;
 
+/**
+ * One span a person took by hand, as the two things a hand edit actually *is*.
+ *
+ * `text` is what they typed. `hash` is the blok's hash **at the moment they typed it** — the value
+ * `editSpan` retains, and the whole mechanism behind `drift()`'s second fact. Carrying both forward
+ * is what lets "the blok has changed since you edited this" still be answerable after a recompile;
+ * carrying only the text would make every recompile look like a fresh edit.
+ */
+export interface KeptSpan {
+  readonly text: string;
+  readonly hash: string;
+}
+
+/**
+ * Hand-edited spans to carry through a recompile, keyed by blok id.
+ *
+ * **A map rather than a previous `Compiled` (EPIC-021a decision 5, candidate A refined).** The note
+ * in `docs/epics/notes-EPIC-021b.md` proposed passing the previous compiled prompt; a map is the same
+ * idea narrowed to what it needs, and narrower matters for two reasons. It is **serialisable**, so
+ * the same value survives a page load and can be rebuilt from database rows — which is where
+ * EPIC-021a keeps it, one hand edit per blok row. And it carries nothing that can go stale on its
+ * own: a whole `Compiled` holds offsets and a text that are meaningless against a different blok set.
+ */
+export type KeptSpans = ReadonlyMap<string, KeptSpan>;
+
 export interface CompileOptions {
   /**
    * Optional `hash → rendered text` cache (`CLAUDE.md` rule 4).
@@ -192,6 +217,24 @@ export interface CompileOptions {
    * can look inside it and prove the other spans were served rather than recompiled.
    */
   readonly cache?: SpanCache;
+  /**
+   * Hand-edited spans to carry through this compile (EPIC-021a decision 5).
+   *
+   * **This is the option that stops a recompile losing somebody's typing.** Without it `compile()`
+   * is a fresh compile and always returns fully `compiled` spans, so adding one blok to a prompt
+   * that has hand-edited spans silently discards every one of them: the prompt recompiles, the text
+   * looks plausible, and the sentence a person wrote is gone. Nothing throws.
+   *
+   * Omitting it keeps the old behaviour exactly — `compile(bloks)` is still a fresh compile, and
+   * still a pure function of the blok set alone. That matters for EPIC-050, whose artifact builder
+   * publishes what the bloks say and should not accidentally publish an exception somebody made in
+   * an editor.
+   *
+   * An entry is **ignored, not resurrected**, when its blok is no longer in the set or has become
+   * `expected` — a kept edit is an exception to a blok's compiled output, so with no blok there is
+   * nothing for it to be an exception to.
+   */
+  readonly keep?: KeptSpans;
 }
 
 /**

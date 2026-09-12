@@ -65,6 +65,8 @@ export type {
   CompiledSpan,
   CompileOptions,
   DriftReport,
+  KeptSpan,
+  KeptSpans,
   PromptBlok,
   SpanCache,
   SpanDrift,

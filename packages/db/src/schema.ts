@@ -1,5 +1,14 @@
-import { boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { newApiKeyId, newDecompileId, newDecompileRunId, newProjectId, newRunBudgetId, newWaitlistId } from "./ids";
+import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import {
+  newApiKeyId,
+  newBlokId,
+  newDecompileId,
+  newDecompileRunId,
+  newProjectId,
+  newPromptId,
+  newRunBudgetId,
+  newWaitlistId,
+} from "./ids";
 
 // Better Auth's own tables. Column keys match Better Auth's internal field names exactly
 // (required for the Drizzle adapter to bind); SQL column names are snake_case per CLAUDE.md.
@@ -200,3 +209,102 @@ export const waitlist = pgTable("waitlist", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   unsubscribedAt: timestamp("unsubscribed_at"),
 });
+
+// ── EPIC-021a: projects, prompts, and the blok canvas ────────────────────────────────────────
+//
+// **The first tables that hold the only copy of something a person wrote.** Everything before this
+// was derived from input the user still has: a decompile is a view of text they pasted and still
+// have in their editor. From here the product is the copy, which changes what correct means — two
+// rules run through every column below. Nothing silently discards typing, and every row is reachable
+// only through its owner.
+
+/**
+ * One prompt, inside one project.
+ *
+ * `deletedAt` rather than a delete for the same reason `bloks` has one: a prompt is somebody's
+ * writing, and a row that is gone cannot be given back.
+ */
+export const prompts = pgTable(
+  "prompts",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newPromptId()),
+    project: text("project")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at"),
+  },
+  // Every listing is "the prompts in this project", and ownership is resolved by joining through it.
+  (table) => [index("prompts_project_idx").on(table.project)],
+);
+
+/**
+ * One blok: a kind, some text a person wrote, and where it sits.
+ *
+ * ## `text` is stored byte for byte
+ *
+ * No trim, no CRLF conversion, no Unicode normalisation, no "tidying" of any kind. `CLAUDE.md` rule 3
+ * says a blok stores the **verbatim** source span, and EPIC-013 learned what normalising costs: a
+ * browser hands back CRLF from a `<textarea>` regardless of the author's editor, and every offset
+ * downstream indexes the string the server actually received. Beyond the offsets, this is someone's
+ * writing — trailing space in an example is sometimes the point.
+ *
+ * ## `rank`, and why it is a string
+ *
+ * A **fractional index**: a short base-62 key ordered lexicographically, so inserting between two
+ * cards mints a key strictly between theirs and **reordering one card writes exactly one row**
+ * (EPIC-021a decision 2 and its criterion). Integer positions would rewrite every row after the
+ * moved one; a float runs out of precision after about fifty insertions in the same slot and then
+ * silently stops ordering. `rank.ts` holds the mint, the rebalance and the reasoning.
+ *
+ * ## `editedText` and `editedFromHash` — the hand edit, and why it lives here
+ *
+ * **This pair is EPIC-021a decision 5's whole answer, and its placement is the answer.** A person can
+ * take a span in the compiled pane and write it themselves (EPIC-021b builds that pane; this is where
+ * what they write is kept). The risk the decision names is that adding a blok silently discards those
+ * edits — the prompt recompiles, the text looks plausible, and their sentence is gone.
+ *
+ * EPIC-020's one-span-per-blok invariant means a hand edit belongs to exactly one blok, so it lives on
+ * that blok's row. **Inserting a row into this table writes no other row**, which is what makes the
+ * failure structurally impossible rather than a rule the insert path has to remember. A bug with
+ * nowhere to live beats a test that catches it.
+ *
+ * `editedFromHash` is the blok's content hash at the moment of the edit, not now. It is what keeps
+ * "the blok has changed since you edited this" answerable, which EPIC-020 established is a different
+ * fact from "this text differs from the blok". Both null means the compiler owns this span.
+ */
+export const bloks = pgTable(
+  "bloks",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newBlokId()),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    /**
+     * One of `BLOK_KINDS` from `@41prompts/core`, validated at the boundary rather than by a database
+     * constraint: ADR-003 forbids that word for a reason, and a `CHECK` would need a migration every
+     * time the six move.
+     */
+    kind: text("kind").notNull(),
+    text: text("text").notNull(),
+    rank: text("rank").notNull(),
+    editedText: text("edited_text"),
+    editedFromHash: text("edited_from_hash"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    /** Decision 8's undo. A blok is someone's writing, so delete is a column and undo clears it. */
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [
+    // The canvas reads "this prompt's bloks in rank order" on every render; the partial shape is not
+    // expressed here because Drizzle's index builder has no partial support in this version, and the
+    // `deletedAt` filter is selective enough at canvas sizes.
+    index("bloks_prompt_rank_idx").on(table.prompt, table.rank),
+  ],
+);

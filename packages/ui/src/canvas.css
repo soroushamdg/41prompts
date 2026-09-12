@@ -1,0 +1,111 @@
+/* ── The blok canvas (EPIC-021a) ──────────────────────────────────────────────────────────────
+   In `packages/ui` rather than inline in the route, per the epic's scope: whatever the canvas
+   needs is added here. Nothing in this file uses --color-pass, --color-fail or --color-warn —
+   green, red and amber mean pass, fail and drift, and none of those appear on this route. */
+
+.app-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: var(--spacing-s5) var(--spacing-s4) var(--spacing-s7);
+}
+.app-pagehead {
+  margin-bottom: var(--spacing-s5);
+}
+.app-pagehead h1 {
+  font-size: 24px;
+  margin: 0;
+}
+.app-crumb {
+  font-size: 12px;
+  color: var(--color-ink-3);
+  margin: 0 0 var(--spacing-s1);
+}
+.app-state {
+  font-size: 12px;
+  color: var(--color-ink-3);
+  margin: var(--spacing-s1) 0 0;
+}
+.app-empty {
+  color: var(--color-ink-3);
+  font-size: 13.5px;
+}
+.app-list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-s4) 0 0;
+  display: grid;
+  gap: var(--spacing-s2);
+}
+.app-list a {
+  display: block;
+  border: var(--border-hairline) solid var(--color-line);
+  padding: var(--spacing-s3);
+  /* 44px touch target (rule 12) without relying on the text's line box. */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.app-create {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-s2);
+  margin-bottom: var(--spacing-s5);
+}
+.app-form-message {
+  flex-basis: 100%;
+  font-size: 12.5px;
+  /* Ink, not a colour. Rule 10: never by colour alone, and this is not pass, fail or drift. */
+  color: var(--color-ink-2);
+  margin: 0;
+}
+
+.canvas-instructions {
+  font-size: 12.5px;
+  color: var(--color-ink-3);
+  margin: 0 0 var(--spacing-s3);
+}
+.canvas-add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-bottom: var(--spacing-s4);
+}
+.canvas-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.canvas-list > li {
+  margin-bottom: var(--spacing-s4);
+}
+.canvas-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-top: calc(-1 * var(--spacing-s1));
+}
+.canvas-undo {
+  display: flex;
+  gap: var(--spacing-s2);
+  margin-top: var(--spacing-s4);
+}
+
+.blok-editor textarea {
+  width: 100%;
+  font-family: inherit;
+}
+.blok-editor-state {
+  font-size: 11.5px;
+  color: var(--color-ink-3);
+  margin: var(--spacing-s1) 0 0;
+  /* Reserves the line so a card does not jump by a row the first time it saves. */
+  min-height: 1.2em;
+}
+
+/* A canvas card holds a textarea and its own controls, so it is rendered with `as="div"` and is
+   not itself a control — a button wrapping focusable children is `nested-interactive`, which axe
+   flags and screen readers mishandle. Nothing here is clickable, so nothing should look it. */
+.canvas-list .blok-card {
+  cursor: default;
+}
