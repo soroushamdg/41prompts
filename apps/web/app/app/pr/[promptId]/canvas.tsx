@@ -128,9 +128,14 @@ export function Canvas({ promptId, initial }: { promptId: string; initial: Canva
 
   return (
     <div className="canvas">
+      {/* Describes what is actually true. An earlier version said "focus a card and press the up
+          and down arrow keys" — written before the card stopped being focusable to fix a
+          nested-interactive violation, and left behind. A screenshot caught it. Instructions that
+          are read out by a screen reader and describe a control that does not exist are worse than
+          no instructions. */}
       <p id={instructionsId} className="canvas-instructions">
-        Use the move buttons on a card, or focus a card and press the up and down arrow keys, to
-        change its position.
+        Use a card&rsquo;s move buttons to change its position. With a move button focused, the up
+        and down arrow keys do the same thing.
       </p>
 
       <div className="canvas-add" role="group" aria-label="Add a blok">
