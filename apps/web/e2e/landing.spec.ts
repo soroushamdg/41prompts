@@ -364,6 +364,35 @@ test.describe("metadata", () => {
     expect(body).not.toContain("/legal/");
   });
 
+  /**
+   * **Every page advertised for indexing declares its canonical, and names the apex.**
+   *
+   * Driven off `sitemap.xml` rather than a hand-written list, because the failure this catches is a
+   * page being *added* without one. `/decompile` sat in the sitemap with no canonical tag at all from
+   * EPIC-013 until production verification found it by hand — every sibling had one, so nothing
+   * noticed. A list here would have had the same hole; the sitemap cannot.
+   */
+  test("every page in the sitemap declares a canonical naming the apex", async ({ page, request }) => {
+    const sitemap = await (await request.get("/sitemap.xml")).text();
+    const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]!);
+    expect(urls.length).toBeGreaterThan(2);
+
+    for (const url of urls) {
+      const { origin, pathname } = new URL(url);
+      await page.goto(pathname);
+      const canonical = page.locator('link[rel="canonical"]');
+      await expect(canonical, `${pathname} has no canonical tag`).toHaveCount(1);
+
+      // Trailing slash is Next's own normalisation of "/" against metadataBase; compare origins and
+      // paths rather than strings so that is not mistaken for a mismatch.
+      const href = new URL((await canonical.getAttribute("href")) ?? "");
+      expect(href.origin, `${pathname} canonicals to a different host`).toBe(origin);
+      expect(href.pathname.replace(/\/$/, ""), `${pathname} canonicals to a different path`).toBe(
+        pathname.replace(/\/$/, "")
+      );
+    }
+  });
+
   test("the home page carries title, description, canonical and a card", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveTitle(/41Prompts/);
