@@ -39,8 +39,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-014 | Capture: permalink with `noindex` + removal endpoint, 30-day purge job, rate limits, Turnstile, abuse check before provider, waitlist capture | S | 013, 017 | done |
 | EPIC-016 | Landing page v1: nav, hero with ask bar and compile pass, three-step strip, decompiler CTA, footer, sign in / sign up | M | 003, 013 | done |
 | EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | done |
-| EPIC-084 | research: read the live funnel and the blok-count distribution; size the canvas problem | S | 015 | blocked until 2026-10-11 (M1 window closes; see docs/research/m1-window.md) |
-| ▣ GATE 1 | Stage 1 exit: criteria in roadmap | — | 084 | — |
+| EPIC-084 | research: read the live funnel and the blok-count distribution; size the canvas problem | S | 015 | cancelled — Soroush cancelled the measurement programme on 2026-09-12 |
 
 Stage 1 runs out of backlog order. **EPIC-080** (prototype study) and **EPIC-005** (interviews) are
 `cut` — Soroush's decision, 2026-09-10: the prototypes in `docs/design/` and `docs/roadmap.md` are the

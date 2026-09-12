@@ -59,8 +59,9 @@ function fastest(bloks: readonly Blok[], source: string, runs = 5): number {
  * **What that costs, stated rather than glossed:** the growth exponent below catches an algorithmic
  * regression but not a constant-factor one. Something three times slower at every size would now pass
  * everything here. The fix is a budget calibrated against a machine-speed baseline rather than
- * against wall-clock milliseconds; it is recorded in `docs/research/m1-window.md` under "Held until
- * the window closes", because it is worth doing properly rather than in a hurry.
+ * against wall-clock milliseconds. It was recorded in `docs/research/m1-window.md` as held; that
+ * window was cancelled on 2026-09-12, so it is ordinary work now — still worth doing properly rather
+ * than quickly, but nothing is stopping it.
  */
 describe("detect() throughput", () => {
   it("reports the 100 KB detection timing", { timeout: 60_000 }, () => {

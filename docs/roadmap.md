@@ -28,34 +28,40 @@ See ADR-003.
 
 | Milestone | Stage | The product can… | Leading metric | Kill criterion |
 |---|---|---|---|---|
-| M0 Green build | 0 | Deploy to staging and production from `main`; sign in; see an error in Sentry | Five consecutive green deploys | Staging not auto-deploying 30 days after EPIC-001: stop and fix infra before anything else |
-| M1 Decompiler soft-public | 1 | Turn any pasted prompt into named, multi-range bloks with findings, no signup | 300 unique decompiles in the first 30 days without announcement; ≥15% share or waitlist rate | Under 100 decompiles in 30 days: the wedge is not findable; rework EPIC-015 before Stage 2 |
-| M2 Editor | 2 | Build and compile a prompt from bloks with override and drift | 20 signed-in users create ≥1 prompt; 7-day return ≥30% | 7-day return under 15%: run EPIC-090 findings before Stage 3 |
-| M3 First run | 3 | Run checks on one provider and attribute every failure to a blok | 10 users complete a run; ≥60% of signups reach a passing run within 5 minutes (EPIC-034) | Under 5 users run in 30 days: two-week onboarding sprint before any new feature |
-| M4 Three models | 4 | Compare versions and providers on one suite | ≥30% of runs use more than one provider | Under 10%: stay Anthropic-deep, defer provider breadth |
-| M5a SDK live | 5a | Deliver a prompt into a running Node app and update it without a redeploy, gated by checks | ≥5 production apps resolving from the CDN (from access logs) | Under 3 by GATE 5: do not build 5b; ship YAML/CI export instead |
-| M6 Revenue | 6 | Charge money, stay legal, be found | 5 paying customers, $1,000 MRR within 60 days of Stripe | Under $500 MRR at 90 days: pause features, 30 days of customer calls |
-| M7 Lessons | 7 | Teach a junior member of an ICP team inside the product | ≥50% completion of Lesson 02 by invited testers | Under 25%: rework format before Lessons 04–09 |
+| M0 Green build | 0 | Deploy to staging and production from `main`; sign in; see an error in Sentry | Five consecutive green deploys | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Staging not auto-deploying 30 days after EPIC-001: stop and fix infra before anything else |
+| M1 Decompiler soft-public | 1 | Turn any pasted prompt into named, multi-range bloks with findings, no signup | 300 unique decompiles in the first 30 days without announcement; ≥15% share or waitlist rate | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under 100 decompiles in 30 days: the wedge is not findable; rework EPIC-015 before Stage 2 |
+| M2 Editor | 2 | Build and compile a prompt from bloks with override and drift | 20 signed-in users create ≥1 prompt; 7-day return ≥30% | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: 7-day return under 15%: run EPIC-090 findings before Stage 3 |
+| M3 First run | 3 | Run checks on one provider and attribute every failure to a blok | 10 users complete a run; ≥60% of signups reach a passing run within 5 minutes (EPIC-034) | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under 5 users run in 30 days: two-week onboarding sprint before any new feature |
+| M4 Three models | 4 | Compare versions and providers on one suite | ≥30% of runs use more than one provider | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under 10%: stay Anthropic-deep, defer provider breadth |
+| M5a SDK live | 5a | Deliver a prompt into a running Node app and update it without a redeploy, gated by checks | ≥5 production apps resolving from the CDN (from access logs) | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under 3 by GATE 5: do not build 5b; ship YAML/CI export instead |
+| M6 Revenue | 6 | Charge money, stay legal, be found | 5 paying customers, $1,000 MRR within 60 days of Stripe | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under $500 MRR at 90 days: pause features, 30 days of customer calls |
+| M7 Lessons | 7 | Teach a junior member of an ICP team inside the product | ≥50% completion of Lesson 02 by invited testers | **not measured; Soroush cancelled the measurement programme on 2026-09-12.** Was: Under 25%: rework format before Lessons 04–09 |
 
-### These kill criteria are now the only feedback mechanism before Stage 2
+### The measurement programme is cancelled
 
-Soroush's decision, 2026-09-10: **EPIC-005** (ten ICP interviews) and **EPIC-080** (the 12-participant
-prototype study) are **cut**, not deferred. The prototypes in `docs/design/` and this document are the
-spec from here.
+Soroush's decision, **2026-09-12**: the thirty-day M1 window is cancelled — no freeze, no no-changes
+rule, no 11 October checkpoint — and **every kill criterion above is no longer measured**. GATE 1 is
+removed and EPIC-084 is cancelled.
 
-That removes every planned way of hearing from a person before Stage 2 ships, so the column on the
-right of this table stops being a formality and becomes the mechanism. Concretely, before Stage 2
-begins there is exactly one measured signal: **M1's** — 300 unique decompiles in the first 30 days
-without an announcement, and ≥15% share-or-waitlist. Under 100 decompiles in 30 days, the wedge is
-not findable and EPIC-015 is reworked before Stage 2 starts. EPIC-084 is the read-out that produces
-the number, and GATE 1 is where it is checked.
+The criteria are kept in the table rather than deleted, each marked and followed by what it used to
+say, so this document still shows what was given up rather than quietly forgetting it.
 
-Two consequences worth stating rather than discovering:
+**What that leaves.** The earlier decision of 2026-09-10 stands: **EPIC-005** (ten ICP interviews) and
+**EPIC-080** (the 12-participant prototype study) are cut, not deferred. With the kill criteria no
+longer measured either, **there is now no planned feedback mechanism of any kind before Stage 2** —
+not an interview, not a study, not a metric. The prototypes in `docs/design/` and this document are
+the whole of the spec, and the first news about whether the wedge works will come from whatever
+happens after it ships.
 
-- **A missed kill criterion is now the first news we get.** There is no interview that would have
-  warned us earlier, so the criteria have to be checked on the date they name, not when convenient.
-- **Anything that was waiting on research now rests on this document's own numbers.** Where a cut
-  epic owed a later epic an output, the debt is listed under that epic's section below.
+That is a deliberate choice and it is recorded here so it is a choice rather than a drift.
+
+**GATE 5 is untouched**, and deliberately: it guards the frozen artifact format and the SDK surface,
+which are irreversible for *technical* reasons rather than demand reasons. Nothing about cancelling a
+demand measurement bears on it.
+
+**What survives.** `decompile_runs` keeps recording — no action required, no cost, and the data is
+there if anyone ever wants to look. `docs/research/m1-window.md` keeps the dates and the exceptions as
+history.
 
 The two survey responses that did arrive are committed at `docs/research/discovery/survey/`, marked
 n=2 and explicitly not actionable. They are not evidence and are not a substitute for EPIC-005.
@@ -241,11 +247,7 @@ by the prototypes, and the first real test of any of them is EPIC-084's live rea
 **Goal.** Real numbers before Stage 2 design locks.
 **Tasks.** After 30 days or 300 decompiles, whichever first: funnel conversion; distribution of blok counts and fragment counts per paste; top finding types; waitlist size. **Also judge one deferred affordance against real usage: "dim the rest"** — the decompiler prototype dims every span except the pinned blok's. EPIC-013 did not build it (it was in that epic's backlog line, never in its Scope or acceptance criteria; ruled 2026-09-10 to stay unbuilt). It is worth having only if the blok-count distribution shows prompts big enough that a pinned highlight gets lost, so this read-out decides it rather than taste.
 **Tests.** A one-page read-out in `docs/research/`.
-**Review.** Feeds GATE 1 and decides whether blok grouping moves into EPIC-021a.
-
-### ▣ GATE 1 · Stage 1 exit
-Measured: every Stage 1 epic has a report; CI green; Lighthouse ≥ 90 on `/` and `/decompile`; `gitleaks` clean; rate limit tested; purge job observed running; legal pages live; restore drill done; EPIC-084 read-out exists; M1 leading metric checked against its kill criterion.
-Go: all present. No-go: a fix-up epic (S) closes gaps, then re-gate. Soroush decides on the advisor's recommendation.
+**Review.** Fed GATE 1, which no longer exists; decides whether blok grouping moves into EPIC-021a.
 
 ---
 
