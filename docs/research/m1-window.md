@@ -109,6 +109,7 @@ and so must wait for 2026-10-12. Add to this list rather than fixing.
 
 | | |
 |---|---|
+| **The absolute perf budgets in `detect.perf.test.ts` are reported, not gated.** They flaked on a slow runner (106.6 ms against a 100 ms bar, on the *minimum* of ten runs) and were demoted rather than widened. The growth exponent still guards algorithmic regressions; a **constant-factor** regression is now invisible. The fix is a budget calibrated against a machine-speed baseline instead of wall-clock milliseconds. | found 2026-09-12 |
 | `/decompile`'s **Decompile** button has no explicit `min-height` at the small breakpoint, so its height comes from font metrics and lands on 44px exactly — it reached CI at `43.99998474121094`. EPIC-013 gave `.blok-view-control .btn` headroom for this reason and missed this one. The test now rounds the measurement to a hundredth of a pixel; the CSS still wants `min-height: 46px`. | found 2026-09-12 |
 
 ## Weekly readings

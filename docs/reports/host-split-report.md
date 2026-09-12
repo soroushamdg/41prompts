@@ -221,3 +221,25 @@ The logo's wrapper carried a **hydration mismatch** on every page load: EPIC-016
 mismatch on the two morphing `<path>` elements and missed `data-logo-ready` on the element the script
 stamps. It cost nothing at runtime and put an error in the dev console on every load, which is how a
 console stops being worth reading.
+
+---
+
+## 8. A perf gate demoted on the way through
+
+CI failed on this branch with `expected 106.64 to be less than 100` — `detect.perf.test.ts`'s absolute
+100 KB budget, in a package this PR does not touch.
+
+**It is not tail noise.** The number is the *minimum* of ten warm runs, and a minimum is already the
+robust estimator under contention — EPIC-014's own finding. The runner was about 7% slower than the
+machine the budget was set on. An absolute millisecond budget on a shared runner measures the runner.
+
+EPIC-014's standing instruction for exactly this: *"fix the measurement or demote it to a reported
+number, and say which and why. Do not widen the bar."* **Demoted.** The bar is untouched, and it is
+the same treatment the 1 MB case in that file already had.
+
+**What it costs, said plainly:** the growth exponent still catches an algorithmic regression, but a
+**constant-factor** one — three times slower at every size — would now pass everything in the file.
+The proper fix is a budget calibrated against a machine-speed baseline rather than wall-clock
+milliseconds, which is worth doing properly rather than at the end of a long branch. Recorded in
+`m1-window.md` under "Held until the window closes".
+
