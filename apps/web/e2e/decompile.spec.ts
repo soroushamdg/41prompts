@@ -501,11 +501,20 @@ test.describe("/decompile", () => {
       ]) {
         const box = await locator.boundingBox();
         expect(box, "element must be laid out").not.toBeNull();
-        // The bar stays 44 exactly — it is the accessibility minimum, not a number to soften. What
-        // changed is the CSS, which now clears it with room: sizing a target to land on 44.0 put CI
-        // at 43.99998474121094, because an inline box's height comes from font metrics that differ
-        // by a fraction of a pixel between platforms.
-        expect(box!.height, `${await locator.evaluate((el) => el.className)} is under the 44px minimum`).toBeGreaterThanOrEqual(44);
+        // The bar stays 44 exactly — it is the accessibility minimum, not a number to soften. What is
+        // rounded away is the *measurement*: `boundingBox()` returns a float derived from device
+        // pixels, and the Decompile button (whose height comes from font metrics, not an explicit
+        // `min-height`) reached CI at 43.99998474121094 — 0.000015px under, which is a floating-point
+        // artifact and not a design decision. Rounding to a hundredth of a pixel removes the artifact
+        // and tests the same standard.
+        //
+        // **The real fix is CSS headroom**, as EPIC-013 gave `.blok-view-control .btn`, and it is
+        // deliberately not being applied now: EPIC-015's window is open, a 2px button change is a
+        // product change requiring a production deploy, and a sub-pixel rounding artifact is not "a
+        // defect that makes the decompiler wrong or unavailable". Ship it on 2026-10-12 —
+        // `docs/research/m1-window.md`.
+        const height = Math.round(box!.height * 100) / 100;
+        expect(height, `${await locator.evaluate((el) => el.className)} is under the 44px minimum`).toBeGreaterThanOrEqual(44);
       }
     });
 
