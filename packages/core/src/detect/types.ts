@@ -20,6 +20,32 @@ export type FindingKind =
   | "rule_without_check";
 
 /**
+ * The same six, at runtime, in the order a reader should meet them.
+ *
+ * The type alone is not enough once anything outside `packages/core` has to *enumerate* them —
+ * EPIC-015's `llms.txt` and its companion article both promise a stranger, in prose, that there are
+ * six and what each one is. Without a list they can hold, a seventh kind would leave two documents
+ * quietly wrong, and documents do not fail CI.
+ */
+export const FINDING_KINDS = [
+  "contradiction",
+  "rule_without_check",
+  "untestable",
+  "repeated",
+  "padding",
+  "too_long"
+] as const satisfies readonly FindingKind[];
+
+/**
+ * Compile-time exhaustiveness: if `FindingKind` gains a member that `FINDING_KINDS` does not list,
+ * this alias resolves to `never` and the assignment below stops compiling. A seventh kind is
+ * supposed to be another epic (see above) — this makes sure it is not an accident.
+ */
+type EveryKindListed = Exclude<FindingKind, (typeof FINDING_KINDS)[number]> extends never ? true : never;
+const _everyKindListed: EveryKindListed = true;
+void _everyKindListed;
+
+/**
  * How likely the finding is to be **real and costly** — not how confident the detector feels.
  *
  * A detector that is certain about something harmless is `low`. It maps to nothing in the colour

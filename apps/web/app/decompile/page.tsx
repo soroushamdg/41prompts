@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { captureVisitorEvent } from "@/lib/analytics/visitor";
 import { INITIAL_STATE } from "@/lib/decompile/limits";
 import { runDecompile } from "@/lib/decompile/run";
 import { turnstileSiteKey } from "@/lib/decompile/turnstile";
@@ -28,6 +29,10 @@ export default async function DecompilePage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // One per render of this route, which includes the render that follows a landing-page handoff —
+  // that reader did view the decompiler, they just did not type the URL.
+  void captureVisitorEvent("decompile_view");
+
   const params = await searchParams;
   const start = typeof params.start === "string" ? params.start : undefined;
   const handed = take(start);

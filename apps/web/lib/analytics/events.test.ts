@@ -2,13 +2,14 @@ import { describe, expect, it } from "vitest";
 import { EVENT_NAMES, isEventName } from "./events";
 
 describe("event names", () => {
-  it("is exactly the nine names this epic names, in order", () => {
+  it("is exactly the ten names declared so far, in order", () => {
     expect(EVENT_NAMES).toEqual([
       "signup",
       "login",
       "decompile_view",
       "decompile_run",
       "decompile_share",
+      "waitlist_joined",
       "project_created",
       "run_started",
       "run_passed",

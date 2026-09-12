@@ -38,7 +38,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-017 | Legal minimum: terms, privacy, cookie choice, sub-processor page, retention table, transfer note, DPA-on-request draft | S | 002 | todo |
 | EPIC-014 | Capture: permalink with `noindex` + removal endpoint, 30-day purge job, rate limits, Turnstile, abuse check before provider, waitlist capture | S | 013, 017 | done |
 | EPIC-016 | Landing page v1: nav, hero with ask bar and compile pass, three-step strip, decompiler CTA, footer, sign in / sign up | M | 003, 013 | done |
-| EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | todo |
+| EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | current |
 | EPIC-084 | research: read the live funnel and the blok-count distribution; size the canvas problem | S | 015 | todo |
 | ▣ GATE 1 | Stage 1 exit: criteria in roadmap | — | 084 | — |
 

@@ -482,3 +482,67 @@ a.logo {
   left: var(--spacing-s3);
   top: var(--spacing-s3);
 }
+
+/* ──────────────────────────── the guide article ──────────────────────────── */
+
+.prose-page h2 {
+  margin-top: var(--spacing-s7);
+  font-size: clamp(20px, 3vw, 26px);
+}
+.prose-page h3 {
+  margin: var(--spacing-s6) 0 var(--spacing-s2);
+  font-size: 18px;
+}
+.prose-page code {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  padding: 1px var(--spacing-s1);
+}
+/* The running example is a prompt, so it is shown as one: monospace, wrapped, scrollable rather
+   than squeezed. It is long on purpose — that is the point being made about it. */
+.article-source {
+  margin-top: var(--spacing-s4);
+  padding: var(--spacing-s4);
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-x: auto;
+  max-height: 420px;
+}
+.article-finding {
+  border-top: var(--border-hairline) solid var(--color-line);
+  padding-top: var(--spacing-s2);
+}
+.article-finding:first-of-type {
+  border-top: 0;
+}
+/* A real finding, shown the way the product shows it: ink, no severity colour. Green, red and amber
+   mean pass, fail and drift, and a finding is none of those (EPIC-013 decision 4). */
+.article-example {
+  margin: var(--spacing-s4) 0 0;
+  padding: var(--spacing-s4);
+  border-left: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+}
+.article-example blockquote {
+  margin: 0;
+  font-size: 15px;
+}
+.article-suggestion {
+  margin: var(--spacing-s2) 0 0;
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+.article-example figcaption {
+  margin-top: var(--spacing-s3);
+  font-size: 12.5px;
+  color: var(--color-ink-3);
+}
+.article-cta {
+  min-height: 46px;
+}

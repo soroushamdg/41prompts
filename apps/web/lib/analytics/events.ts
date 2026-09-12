@@ -9,6 +9,10 @@ export const EVENT_NAMES = [
   "decompile_view",
   "decompile_run",
   "decompile_share",
+  // EPIC-015 decision 5 asks for the waitlist submission alongside the three decompile events, and
+  // EPIC-004's own rule is that the set grows by editing this array rather than by a string literal
+  // appearing somewhere. It is the M1 criterion's second half: 15% share **or waitlist**.
+  "waitlist_joined",
   "project_created",
   "run_started",
   "run_passed",

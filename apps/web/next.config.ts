@@ -32,7 +32,12 @@ const nextConfig: NextConfig = {
     // the import just falls back to the source and fails on the next `.js` — while an absolute path
     // is read as relative and produces `Can't resolve './Users/...'`. Only this form resolves.
     resolveAlias: {
-      "@41prompts/core": "../../packages/core/dist/index.js"
+      "@41prompts/core": "../../packages/core/dist/index.js",
+      // EPIC-015's article renders real findings from the committed corpus, which means importing
+      // the fixtures entry point. It needs its own alias: the main one does not cover subpaths, so
+      // `@41prompts/core/fixtures` fell through to the TypeScript source, whose `./x.js` imports
+      // Turbopack cannot map back to `.ts` — the same resolution gap EPIC-013 hit.
+      "@41prompts/core/fixtures": "../../packages/core/dist/fixtures.js"
     }
   },
   /**

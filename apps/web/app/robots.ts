@@ -26,7 +26,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/decompile"],
+        allow: ["/", "/decompile", "/guides/", "/llms.txt"],
         disallow: ["/d/", "/app", "/api/", "/sign-in", "/sign-up", "/legal/", "/contact", "/dev/", "/waitlist/"]
       }
     ],
