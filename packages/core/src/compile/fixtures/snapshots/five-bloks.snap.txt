@@ -4,16 +4,16 @@
 # five-bloks — Five bloks, four emitting and one expected. The ordinary case, and the snapshot everything else is read against.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 5 blok(s) -> 4 span(s), 1 check(s), 230 code units
+# 5 blok(s) -> 4 span(s), 1 check(s), 226 code units
 
 ## compiled text
-"You route inbound support email for a payments company.\n\nReply in at most 80 words.\n\nNever promise a refund. Say that a human will confirm it.\n\nInput: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}\n\n"
+"You route inbound support email for a payments company.\nReply in at most 80 words.\nNever promise a refund. Say that a human will confirm it.\nInput: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}\n"
 
 ## spans  start..textEnd..end  state  hash  text + separator
-     0..  55..  57  compiled  93414018fc2599bc  "You route inbound support email for a payments company." + "\n\n"
-    57..  83..  85  compiled  b09c43513a16f018  "Reply in at most 80 words." + "\n\n"
-    85.. 142.. 144  compiled  6436615fcc7fcfb9  "Never promise a refund. Say that a human will confirm it." + "\n\n"
-   144.. 228.. 230  compiled  e2e546757cc707e1  "Input: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}" + "\n\n"
+     0..  55..  56  compiled  e1b45c376f3e72ff  "You route inbound support email for a payments company." + "\n"
+    56..  82..  83  compiled  eed1bebae0284ba7  "Reply in at most 80 words." + "\n"
+    83.. 140.. 141  compiled  73ee73fa63471994  "Never promise a refund. Say that a human will confirm it." + "\n"
+   141.. 225.. 226  compiled  9689fd80f1136054  "Input: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}" + "\n"
 
 ## checks
   chk_19d4db2a9e5eb1cf  json_shape  "Respond with valid JSON containing category and needs_human."

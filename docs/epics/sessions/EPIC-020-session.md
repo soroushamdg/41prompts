@@ -123,3 +123,50 @@ EPIC-020 is on `epic/020-compiler`. `CURRENT.md` points at EPIC-020. The backlog
 and Stage 1 complete, with **EPIC-017 (legal minimum) explicitly carried as still `todo`** — its
 pages are stubs, EPIC-014 shipped against it, and the "a report for every epic before the next stage"
 rule is waived for it by decision rather than met.
+
+---
+
+# Addendum — four rulings, same session (2026-09-12)
+
+Soroush ruled on everything the report raised, in one pass, and asked for it in one PR.
+
+## What was ruled, and what was done
+
+1. **Copy.** Heading → "Prompts usually have rules nothing checks.", with the count as the evidence.
+   **Flagged again, and this is the third time:** "usually" and "most" are the same quantifier, and
+   44% reaches neither. Shipped as decided; the standing offer to drop to the number itself is on the
+   table and recorded in `docs/reports/host-split-report.md`.
+2. **The baselines absorbing a heading change is a defect, not an observation.** The band heading is
+   now asserted by text in `page.test.tsx`, next to the hero sentence that was already pinned that
+   way. The 1% pixel tolerance stays — it is right for anti-aliasing and wrong as a copy guard, which
+   was the point. **The new assertion was proved to fail before it was trusted**, by changing the
+   heading to "often" and watching that one test go red.
+3. **The separator: the mockup wins.** `BLOK_SEPARATOR = "\n"`, `COMPILER_VERSION = "compile@2"`,
+   fixtures and snapshots regenerated. The ruling came with "say so if it makes two adjacent prose
+   bloks read as one paragraph", so it was measured — see below.
+4. **`CLAUDE.md`'s Naming line** corrected to "Build hash", so the file agrees with ADR-003.
+5. **Both pane problems carried into EPIC-021b** as named requirements, in
+   `docs/epics/notes-EPIC-021b.md`, with the two candidates for the first and the four-row banner
+   table for the second.
+
+## The separator cost, measured rather than assumed
+
+The prose case was real. **A second effect was found that nobody had raised**, and it is the larger
+one: with a single newline, a blok boundary is indistinguishable from a newline inside a blok's own
+text. A list blok followed by an example blok now runs together with nothing between them.
+
+Measured on the committed corpus: **25 of 160 bloks contain a newline in their own text, reaching 14
+of the 27 multi-blok prompts.** So in about half the corpus, at least one boundary is unrecoverable
+from the compiled string. Under `"\n\n"` only 5 bloks had that ambiguity.
+
+Nothing in the product breaks — spans carry the offsets, so attribution and drift are unaffected and
+every test passes. What is lost is structure in the string the *model* receives, which is the part no
+test can see. Written up in the report §6.2 for the revisit that was offered, with a middle option
+named and its own cost stated.
+
+## What was checked and deliberately left alone
+
+`compile/invariants.test.ts`'s hand-built cases still use a two-character tail where a separator would
+sit, while `BLOK_SEPARATOR` is now one character. That is not drift and a comment now says so: the
+invariant checks tiling from the offsets it is given and must not assume a separator length. Rewriting
+those cases to match the compiler would make the test agree with the code it is checking.

@@ -4,6 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { compile } from "./compile.js";
 import { drift } from "./drift.js";
+import { BLOK_SEPARATOR } from "./hash.js";
 import { editSpan } from "./edit-span.js";
 import { compileFixture } from "./fixtures/prompts.js";
 import { checkCompiledInvariants } from "./invariants.js";
@@ -169,7 +170,7 @@ describe("editSpan", () => {
 
     const span = after.spans.find((candidate) => candidate.blokId === "b2")!;
     expect(after.text.slice(span.start, span.textEnd)).toBe("Reply briefly.");
-    expect(after.text.slice(span.textEnd, span.end)).toBe("\n\n");
+    expect(after.text.slice(span.textEnd, span.end)).toBe(BLOK_SEPARATOR);
     expect(checkCompiledInvariants(after)).toEqual([]);
 
     // Everything before it is untouched, everything after it has moved by the delta and nothing else.

@@ -79,10 +79,14 @@ it. `CURRENT.md` still points at EPIC-020 until the next epic is written.
 Its row title says "edited-by-hand spans" rather than "manual override": ADR-003 replaced that word
 and the backlog was still carrying it.
 
-Three rulings EPIC-021b needs, all in the report's §8: what happens when a blok is **added** to a
-prompt with hand-edited spans (no answer exists in the model, on purpose — it is a pane decision);
-whether the compiled prompt separates bloks with a blank line or a single newline, where the compiler
-and the mockup disagree; and `CLAUDE.md`'s "Build sha" line, which contradicts its own vocabulary rule.
+All four rulings it raised were made on 2026-09-12 and are shipped: the closing-band heading, a text
+assertion on it in `page.test.tsx`, `BLOK_SEPARATOR` moved to a single newline to match the mockup
+(`COMPILER_VERSION` now `compile@2`), and `CLAUDE.md`'s "Build sha" line corrected to "Build hash".
+
+**Two things are carried into EPIC-021b as named requirements**, in `docs/epics/notes-EPIC-021b.md`:
+what the pane does when a blok is **added** to a prompt with hand-edited spans — no answer exists in
+the model on purpose, and getting it wrong loses somebody's typing silently — and the fact that the
+mockup's single banner can express only one of the two states the model distinguishes.
 
 ## Stage 3 · Checks and runs, one provider
 

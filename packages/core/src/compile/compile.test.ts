@@ -22,7 +22,9 @@ import type { PromptBlok, SpanCache } from "./types.js";
 function generateBloks(seed: number): PromptBlok[] {
   const random = makeRandom(seed);
   const kinds = ["context", "constraint", "example", "expected", "image_ref", "image_input"] as const;
-  const words = ["answer", "JSON", "never", "always", "🚀", "café", "مرحبا", "", "\n\n", "rule", "."];
+  // `"\n"` and `"\n\n"` are both in here on purpose: a blok whose text *is* the separator, or
+  // contains it, must still compile to exactly one span and come back out unmodified.
+  const words = ["answer", "JSON", "never", "always", "🚀", "café", "مرحبا", "", "\n", "\n\n", "rule", "."];
 
   const count = 1 + Math.floor(random() * 12);
   const bloks: PromptBlok[] = [];

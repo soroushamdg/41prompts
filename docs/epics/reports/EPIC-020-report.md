@@ -123,8 +123,11 @@ section forbids `sha` "in UI strings, schema, or code identifiers". Both cannot 
 
 The vocabulary rule wins here: it is what ADR-003 actually decided and the one with a grep behind it,
 and the Naming line reads like a description of the concept that predates it. Asserted in
-`artifact/schema.test.ts` so the two cannot diverge again silently. **This is a `CLAUDE.md` edit for
-Soroush, not for me** — the file is his.
+`artifact/schema.test.ts` so the two cannot diverge again silently.
+
+**Ruled 2026-09-12 and fixed in this branch at Soroush's instruction:** `CLAUDE.md`'s Naming line now
+reads "Build hash: content hash of the compiled artifact", so the file agrees with ADR-003. The only
+remaining `sha` in it is the vocabulary rule naming the forbidden word.
 
 ---
 
@@ -145,10 +148,14 @@ span before it, with `textEnd` marking the boundary:
 `text.slice(start, textEnd)` is the blok's verbatim text; `text.slice(start, end)` is its whole
 contribution. `editSpan` replaces only the first, so a caller never handles a separator.
 
-**Every span carries one, the last included, so the compiled text ends with a blank line.** The
+**Every span carries one, the last included, so the compiled text ends with the separator.** The
 alternative — an empty separator on the final span — makes a span's shape depend on where it sits,
 and reordering then changes span *widths* rather than only offsets, which contradicts criterion 4 as
-written. The trailing blank line is the visible cost and it is the smaller one.
+written.
+
+`BLOK_SEPARATOR` shipped as `"\n\n"` in `compile@1` and is **`"\n"` in `compile@2`**, ruled to the
+mockup on 2026-09-12. §6.2 carries what that cost, measured after the ruling rather than argued
+before it.
 
 ### `render()` is the identity function in v0
 
@@ -261,12 +268,55 @@ model can say both; the pane will need two states where the mockup drew one. (It
 pre-ADR-003: "Reconcile" is now "Update from blok", "block" is "blok", and the `drifted` badge on
 `b4` is now "edited by hand".)
 
-**2. The mockup joins spans with a single newline; the compiler uses a blank line.**
-`join('\n')` at line 1471 against `BLOK_SEPARATOR = "\n\n"`. `CLAUDE.md` says the mockups are the
-spec, so this is flagged rather than assumed: a single newline lets two separate rules read as one
-paragraph in the prompt the model actually receives, and a blank line between sections is the
-convention in every prompt in our own corpus. **One constant and one `COMPILER_VERSION` bump if
-Soroush rules the other way.**
+**2. The separator — ruled to the mockup, and here is what it cost.**
+
+The mockup joins spans with `join('\n')` at line 1471; `compile@1` used `"\n\n"`. **Ruled 2026-09-12:
+the mockup wins, per `CLAUDE.md`.** Shipped as `compile@2`, fixtures and snapshots regenerated. The
+ruling came with an invitation to report back if a single newline makes two adjacent prose bloks read
+as one paragraph, so it was measured rather than asserted.
+
+**It does, and there is a second effect that is worse.** Four bloks — two prose, a list, an example:
+
+```
+You are a support assistant. You read inbound email and decide what happens next.
+Be brief. A reply longer than a screen is a reply nobody reads.
+Categories:
+- billing
+- fraud
+- other
+Input: charged twice
+Output: billing
+```
+
+- **The two prose bloks read as one paragraph**, exactly as anticipated. Two separate rules, one
+  block of text.
+- **The one that was not anticipated: a blok boundary is now indistinguishable from a newline inside
+  a blok's own text.** `- other` and `Input: charged twice` are adjacent with nothing between them —
+  the example blok's start is invisible, and it reads as more list. With a blank line the boundary
+  was recoverable from the text; with a single newline it never is, for any blok containing a
+  newline.
+
+**How often that happens, measured on the committed corpus** — `cluster(segment(text))` over the 27
+multi-blok fixtures, folded into `PromptBlok`s the way EPIC-021a will:
+
+| | |
+|---|---|
+| bloks whose own text contains a newline | **25 of 160** |
+| prompts with at least one such blok | **14 of 27** |
+| bloks whose own text contains a blank line | 5 of 160 |
+
+So in **roughly half the corpus's prompts**, at least one boundary is now unrecoverable from the
+compiled text. Under `"\n\n"` only those 5 bloks had the same ambiguity.
+
+**What it does not break.** Spans carry the offsets, so the *product* always knows whose text is
+whose — the pane, attribution and drift are unaffected, and every test still passes. What is lost is
+structure in the string the **model** receives, which is the part no test can see.
+
+**Recorded for the revisit that was offered, not re-litigated.** It is one constant and a
+`COMPILER_VERSION` bump, which is what that constant is for. A middle option exists if it comes back:
+`"\n"` between bloks and `"\n\n"` where either side contains a newline — deterministic, but it makes a
+span's shape depend on its neighbours, which is the property §4 gave up the empty final separator to
+keep.
 
 **3. What the mockup gets right and the model preserves.** Its bloks carry both a short `txt` (the
 card) and a longer `span` (the compiled text), and they differ — the card shows a summary, the pane
@@ -300,22 +350,39 @@ entry. The test name says so rather than implying a speed-up nobody measured.
 
 ## 8. Open questions
 
-1. **Adding a blok to a prompt that has hand-edited spans has no answer.** `compile()` is a fresh
-   compile and returns fully `compiled` spans, so calling it again discards hand edits;
-   `updateFromBlok` only ever touches a span that already exists. Within this package that is
-   correct — decision 8 says there is no merge — but EPIC-021b will hit it the first time somebody
-   adds a card to a prompt they have edited by hand. Two candidates, neither built here because the
-   choice is about the pane and this epic's scope is the model: `compile(bloks, { keep: previous })`
-   carrying hand-edited spans forward by blok id, or the pane replaying its edits after a recompile.
-2. **The separator, per §6.2.** A ruling, please.
-3. **`CLAUDE.md`'s "Build sha" line**, per §3.4. It contradicts the vocabulary rule in the same file.
-4. **Multimodal bloks in a text compile.** `image_ref` and `image_input` currently emit their text
+**Four of these were ruled on 2026-09-12 and are shipped in this branch.** What follows records which,
+and what is still open.
+
+### Ruled and done
+
+1. ~~**The separator.**~~ Ruled to the mockup. `compile@2`, single newline, fixtures and snapshots
+   regenerated. **The cost was measured after the ruling and is in §6.2** — the prose case was real,
+   and a second effect was found that had not been anticipated: a blok boundary is now
+   indistinguishable from a newline inside a blok's own text, in roughly half the corpus's prompts.
+   Recorded for the revisit that was offered.
+2. ~~**`CLAUDE.md`'s "Build sha" line.**~~ Corrected to "Build hash" in this branch, per §3.4.
+3. ~~**The band heading and its guard.**~~ Not this epic's, but shipped in the same branch: the
+   heading is now asserted by text in `page.test.tsx`. `docs/reports/host-split-report.md` carries
+   why that is a narrower fix than it looks, and the standing note that 44% does not reach "usually"
+   any more than it reached "most".
+
+### Carried into EPIC-021b as named requirements
+
+4. **Adding a blok to a prompt that has hand-edited spans**, and **the mockup's banner expressing only
+   one of the two states the model distinguishes**. Both are pane decisions, both are written up with
+   their candidates in **`docs/epics/notes-EPIC-021b.md`**, per the same ruling. The first is the one
+   to be careful with: the failure is silent — the pane recompiles, the text looks right, and the
+   sentence somebody wrote is gone.
+
+### Still open
+
+5. **Multimodal bloks in a text compile.** `image_ref` and `image_input` currently emit their text
    verbatim, which is the safe default — the alternative is the compiler deleting what the author
    wrote. But a real multimodal prompt is message *parts*, not one string, and no epic owns that yet.
    It will matter by EPIC-042 at the latest.
-5. **`Check.kind` derivation is provisional.** EPIC-030 owns the check model and may replace it
+6. **`Check.kind` derivation is provisional.** EPIC-030 owns the check model and may replace it
    entirely; the kindless checks are the obvious work for EPIC-033's pinned judge.
-6. **`packages/core` is not covered by the forbidden-word grep**, which runs over `packages/ui/src`,
+7. **`packages/core` is not covered by the forbidden-word grep**, which runs over `packages/ui/src`,
    `apps/web/app` and `apps/web/lib`. That is defensible — core has no UI strings — but the ADR-003
    vocabulary applies to code identifiers too, and nothing mechanical enforces it here. This epic's
    new files were checked by hand.
