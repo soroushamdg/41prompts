@@ -38,26 +38,25 @@ unattributed and the failure attribute to the wrong rule.
 The compiler joins bloks with `BLOK_SEPARATOR`, so those characters have to belong to somebody:
 
 ```
- 0        55 56               82 83
- |─────────|─|────────────────|─|
- │ blok text │s│  blok text   │s│
- └─ start   └─ textEnd     └─ end
+ 0        55  57                83  85
+ |─────────|──|─────────────────|──|
+ │ blok text │sep│  blok text   │sep│
+ └─ start   └─ textEnd       └─ end
 ```
 
 Each span owns **its blok's text and the separator that follows it**, with `textEnd` as the boundary.
 `text.slice(start, textEnd)` is the blok's verbatim text; `text.slice(start, end)` is its whole
 contribution.
 
-**Every span carries a separator, the last one included**, so the compiled text ends with a newline.
-The alternative — no separator on the final span — makes a span's shape depend on where it sits, and
+**Every span carries a separator, the last one included**, so the compiled text ends with one. The
+alternative — no separator on the final span — makes a span's shape depend on where it sits, and
 reordering would then change span *widths* rather than only offsets.
 
-`BLOK_SEPARATOR` is **a single newline**, matching the mockup's compiled pane, ruled on 2026-09-12.
-It was a blank line in `compile@1`. **The cost is real and was measured**: a blok boundary is now
-indistinguishable from a newline inside a blok's own text, and 25 of the 160 bloks in the committed
-corpus contain one — reaching 14 of its 27 multi-blok prompts. See EPIC-020's report §6.2 for the
-worked case. Changing it back is this constant plus a `COMPILER_VERSION` bump, which is what that
-constant is for.
+`BLOK_SEPARATOR` is **a blank line**. It was a single newline in `compile@2`, matching the mockup's
+compiled pane, and that was reversed in `compile@3`: a single newline makes a blok boundary
+indistinguishable from a newline inside a blok's own text, on 14 of the corpus's 27 multi-blok
+prompts. `hash.ts` carries the measurement and why the obvious middle option is unsound. The
+three-version history is itself the argument for having `COMPILER_VERSION`.
 
 ## The two facts a span carries
 

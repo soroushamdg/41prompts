@@ -4,17 +4,17 @@
 # awkward-text — Text that breaks naive slicing: an astral emoji, a combining mark, RTL, a lone separator inside a blok, and a blok that is a single character.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 5 blok(s) -> 5 span(s), 0 check(s), 179 code units
+# 5 blok(s) -> 5 span(s), 0 check(s), 184 code units
 
 ## compiled text
-"Ship it 🚀 when the checks pass.\nCafé — note the combining mark: Café.\nمرحبا: answer in the user's language.\nA blok whose text already contains\na separator,\n\nand a blank line.\n.\n"
+"Ship it 🚀 when the checks pass.\n\nCafé — note the combining mark: Café.\n\nمرحبا: answer in the user's language.\n\nA blok whose text already contains\na separator,\n\nand a blank line.\n\n.\n\n"
 
 ## spans  start..textEnd..end  state  hash  text + separator
-     0..  32..  33  compiled  08c502b3f1888b2b  "Ship it 🚀 when the checks pass." + "\n"
-    33..  71..  72  compiled  343587467a79008f  "Café — note the combining mark: Café." + "\n"
-    72.. 109.. 110  compiled  d02200dc663fdc44  "مرحبا: answer in the user's language." + "\n"
-   110.. 176.. 177  compiled  e6c33afd9712a31a  "A blok whose text already contains\na separator,\n\nand a blank line." + "\n"
-   177.. 178.. 179  compiled  db188e8ecb978a90  "." + "\n"
+     0..  32..  34  compiled  bb43ee88769525b4  "Ship it 🚀 when the checks pass." + "\n\n"
+    34..  72..  74  compiled  6798f53f392502d2  "Café — note the combining mark: Café." + "\n\n"
+    74.. 111.. 113  compiled  95c233f34037c817  "مرحبا: answer in the user's language." + "\n\n"
+   113.. 179.. 181  compiled  ca14df6ab570665d  "A blok whose text already contains\na separator,\n\nand a blank line." + "\n\n"
+   181.. 182.. 184  compiled  f3f5335dd5fb1ba7  "." + "\n\n"
 
 ## checks
   (none)
