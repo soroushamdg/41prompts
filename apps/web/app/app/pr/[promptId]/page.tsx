@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { canvasForOwner } from "@/lib/canvas/queries";
+import { canvasForOwner, compiledForBloks } from "@/lib/canvas/queries";
+import { compiledView } from "@/lib/canvas/compiled-view";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
-import { Canvas } from "./canvas";
+import { Editor } from "./editor";
 
 export const metadata: Metadata = { title: "Canvas · 41Prompts", robots: { index: false, follow: false } };
 
@@ -15,6 +16,9 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
   // 404, not 403 (decision 3): a 403 would confirm the id is real.
   if (found === undefined) notFound();
 
+  // Compiled on the server from the same rows the canvas renders, with hand edits carried through.
+  const { compiled, bloks, hashes } = compiledForBloks(found.bloks);
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -25,7 +29,12 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
         <p className="app-state">Draft</p>
       </header>
 
-      <Canvas promptId={promptId} initial={found.bloks} />
+      <Editor
+        promptId={promptId}
+        bloks={found.bloks}
+        pieces={compiledView(compiled, bloks)}
+        hashes={Object.fromEntries(hashes)}
+      />
     </main>
   );
 }

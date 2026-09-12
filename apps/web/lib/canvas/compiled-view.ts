@@ -1,4 +1,4 @@
-import { drift, type Compiled, type PromptBlok, type SpanState } from "@41prompts/core";
+import { drift, type BlokKind, type Compiled, type PromptBlok, type SpanState } from "@41prompts/core";
 import { toDisplayText } from "@/lib/site/display-text";
 
 /**
@@ -31,6 +31,8 @@ export type SpanPresentation = "in-step" | "edited" | "edited-changed" | "out-of
 
 export interface CompiledPiece {
   readonly blokId: string;
+  /** The owning blok's kind, for naming a span that has no text of its own to be named by. */
+  readonly kind: BlokKind;
   /** The blok's own characters, in DOM space. */
   readonly text: string;
   /** The separator that follows, in DOM space. Outside the highlight. */
@@ -61,6 +63,7 @@ function presentationFor(state: SpanState, differs: boolean, changed: boolean): 
 export function compiledView(compiled: Compiled, bloks: readonly PromptBlok[]): CompiledPiece[] {
   const report = drift(compiled, bloks);
   const byId = new Map(report.spans.map((span) => [span.blokId, span]));
+  const kindOf = new Map(bloks.map((blok) => [blok.id, blok.kind]));
 
   return compiled.spans.map((span) => {
     const row = byId.get(span.blokId);
@@ -68,6 +71,7 @@ export function compiledView(compiled: Compiled, bloks: readonly PromptBlok[]): 
     const changed = row?.blokChangedSinceSpan ?? false;
     return {
       blokId: span.blokId,
+      kind: kindOf.get(span.blokId) ?? "context",
       text: toDisplayText(compiled.text.slice(span.start, span.textEnd)),
       separator: toDisplayText(compiled.text.slice(span.textEnd, span.end)),
       state: span.state,
@@ -104,4 +108,21 @@ export const SPAN_BADGE: Readonly<Record<SpanPresentation, string>> = {
  */
 export function isDrift(presentation: SpanPresentation): boolean {
   return presentation === "edited-changed" || presentation === "out-of-date";
+}
+
+/**
+ * The accessible name for a span, **only when its own text cannot provide one**.
+ *
+ * A blok added but not yet typed into compiles to an empty span, and an empty `<button>` has no
+ * accessible name at all — axe rates that critical, and it is a real state: pressing "Add context"
+ * creates exactly it. Found by this epic's axe test rather than by review.
+ *
+ * Returning `undefined` for a span that *has* text is deliberate. An `aria-label` would **replace**
+ * the content as the name, so a screen reader would hear "span for the constraint blok" instead of
+ * the rule the span actually contains — which is the thing the reader came for. The decompiler makes
+ * the same choice for the same reason.
+ */
+export function spanLabel(piece: CompiledPiece): string | undefined {
+  if (piece.text.trim().length > 0) return undefined;
+  return `Empty span for the ${piece.kind.replace("_", " ")} blok`;
 }

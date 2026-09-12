@@ -38,7 +38,22 @@ const KIND_NAME: Record<BlokKind, string> = {
  * A move updates local order first and catches up after. A failed move puts the card back and says
  * so. Nothing here ever replaces a textarea's contents with a server value — see `blok-editor.tsx`.
  */
-export function Canvas({ promptId, initial }: { promptId: string; initial: CanvasBlok[] }) {
+export function Canvas({
+  promptId,
+  initial,
+  linked,
+  pinned,
+  onLink,
+  onPin,
+}: {
+  promptId: string;
+  initial: CanvasBlok[];
+  /** The blok currently highlighted from either side (`editor.tsx` owns it). */
+  linked?: string | undefined;
+  pinned?: string | undefined;
+  onLink?: (blokId: string | undefined) => void;
+  onPin?: (blokId: string | undefined) => void;
+}) {
   const [bloks, setBloks] = useState(initial);
   /**
    * Deleted bloks, kept whole for the length of the session (decision 8).
@@ -162,6 +177,12 @@ export function Canvas({ promptId, initial }: { promptId: string; initial: Canva
                 leading={<BlokKindGlyph kind={blok.kind} />}
                 aria-label={`${KIND_NAME[blok.kind]} blok, position ${index + 1} of ${bloks.length}`}
                 role="group"
+                selected={linked === blok.id}
+                data-pinned={pinned === blok.id ? "true" : undefined}
+                onMouseEnter={() => onLink?.(blok.id)}
+                onMouseLeave={() => onLink?.(undefined)}
+                onFocusCapture={() => onLink?.(blok.id)}
+                onBlurCapture={() => onLink?.(undefined)}
                 meta={
                   <>
                     <span>
@@ -204,6 +225,14 @@ export function Canvas({ promptId, initial }: { promptId: string; initial: Canva
                   disabled={index === bloks.length - 1}
                 >
                   Move down
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-pressed={pinned === blok.id}
+                  onClick={() => onPin?.(pinned === blok.id ? undefined : blok.id)}
+                >
+                  {pinned === blok.id ? "Unpin span" : "Pin span"}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => void remove(index)}>
                   Delete

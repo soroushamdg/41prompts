@@ -1,6 +1,6 @@
 import { compile, editSpan, type PromptBlok } from "@41prompts/core";
 import { describe, expect, it } from "vitest";
-import { compiledView, isDrift, SPAN_BADGE, SPAN_SENTENCE, type SpanPresentation } from "./compiled-view";
+import { compiledView, isDrift, spanLabel, SPAN_BADGE, SPAN_SENTENCE, type SpanPresentation } from "./compiled-view";
 import { toDisplayText } from "@/lib/site/display-text";
 
 /**
@@ -136,5 +136,27 @@ describe("the four states, and the fifth that is deliberately silent", () => {
     expect(isDrift("out-of-date")).toBe(true);
     expect(isDrift("edited")).toBe(false);
     expect(isDrift("in-step")).toBe(false);
+  });
+});
+
+describe("a span that has no text of its own", () => {
+  it("gets an accessible name, because an empty button has none at all", () => {
+    // The real state: "Add context" creates a blok before anybody types into it.
+    const bloks = [blok("empty", "", 10, "constraint"), blok("b", "After.", 20)];
+    const piece = compiledView(compile(bloks), bloks).find((p) => p.blokId === "empty")!;
+    expect(piece.text).toBe("");
+    expect(spanLabel(piece)).toBe("Empty span for the constraint blok");
+  });
+
+  it("gets none when it has text, so the content stays the name a screen reader hears", () => {
+    const bloks = [blok("a", "Reply in at most 80 words.", 10, "constraint")];
+    const piece = compiledView(compile(bloks), bloks)[0]!;
+    expect(spanLabel(piece)).toBeUndefined();
+  });
+
+  it("names the multi-word kinds readably", () => {
+    const bloks = [blok("i", "", 10, "image_ref")];
+    const piece = compiledView(compile(bloks), bloks)[0]!;
+    expect(spanLabel(piece)).toBe("Empty span for the image ref blok");
   });
 });
