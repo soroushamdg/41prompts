@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-021a is the current epic.** A mirror of `docs/epics/EPIC-021a-canvas.md`; when the two
-disagree, that file wins.
-
+# EPIC-021a: Projects, prompts, and the blok canvas
 Stage: 2 · Depends on: EPIC-020, EPIC-003, EPIC-002 · Size: M
 
 ## Goal

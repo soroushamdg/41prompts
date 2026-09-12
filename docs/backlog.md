@@ -67,7 +67,7 @@ met.
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
-| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks | M | 020, 003 | todo |
+| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | current |
 | EPIC-021b | web: compiled pane, span linking, override, drift, update-from-blok, eject | M | 021a, 003, 090 | todo |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
 
