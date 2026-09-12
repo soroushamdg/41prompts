@@ -195,9 +195,9 @@ unexplained "30", which is `DECOMPILE_RETENTION_DAYS`. It is now listed with its
 
 ### The closing band, and the count behind it
 
-The band's heading has been through three versions. It ended at:
+The band's heading has been through four versions. It ended at:
 
-> **Most prompts have rules nothing checks.**
+> **Prompts usually have rules nothing checks.**
 
 Version two, "Your prompt already has rules nothing checks.", was shipped in #50 and flagged in the
 same commit: its stated reason was that it holds for every prompt the corpus has seen, and it does
@@ -222,10 +222,16 @@ The eleven: `support-email-router`, `fenced-json-schema`, `unmatched-tag`, `numb
 `design-review-screenshots`, `invoice-photo-reader`.
 
 **What the count does and does not support, stated plainly because it was measured and not assumed.**
-11 of 25 is **44%**, which is *under half*, so the corpus does not back the word "most" either. It
-backs "many", or a count. This is the same error as "every", one notch smaller and in the same
-direction, and it is recorded here rather than argued: the heading was decided with the number in
-front of the decision, which is the part that was missing the first time.
+11 of 25 is **44%**, which is *under half*.
+
+That rules out "every" and it rules out "most". **It also rules out "usually", which is the word that
+shipped** — "usually" and "most" are the same quantifier in different clothes, and 44% does not reach
+either. Version four is version three's error at the same size, and this is the third time the
+heading has claimed more than the corpus holds. Raised at the time and shipped as decided; the
+standing offer on the table is to drop to the number itself.
+
+What the count *does* back: "often", which is a claim about frequency rather than about a majority,
+or the number stated plainly. What it cannot back is any word that means "more than half".
 
 Two further cautions on the number itself:
 
@@ -252,22 +258,36 @@ that file, and it was still the least defensible sentence on the page, because i
 a prompt the product has not seen. "Most prompts…" is a weaker version of the same class: a
 quantifier over a population, backed by a corpus that does not reach it.
 
-This is recorded as a **gap, not a task.** It is not obviously fixable by a pattern — the failing
-sentences are ordinary English with no tell, and a regex broad enough to catch "your prompt already
-has…" would also catch legitimate second-person copy, which is most of the page. The guard would have
-to know what the product can observe, and it cannot.
+This is not fixable by a pattern — the failing sentences are ordinary English with no tell, and a
+regex broad enough to catch "your prompt already has…" would also catch legitimate second-person
+copy, which is most of the page. The guard would have to know what the product can observe.
 
-So: **the next person writing copy for this page should not read a green `page.test.tsx` as a
-truthfulness check.** It covers the four mechanical classes above. A claim about the reader, or a
-quantifier over prompts in general, is checked by a person or it is not checked at all.
+**So the guard was changed to do the thing it can do.** Ruled on 2026-09-12: the band's heading is now
+asserted by text in `page.test.tsx`, alongside the hero sentence that was already pinned that way.
 
-**The visual-regression baselines do not cover it either, and that was measured here.** With the new
+Be precise about what that buys, because it is not detection. The assertion **cannot tell whether the
+sentence is true** — nothing in that file can. What it does is make the heading a *decided* string:
+it cannot be changed by a tidy-up, only by somebody deciding to change it and updating the test in the
+same edit. Given this heading has been wrong three times, that is the useful property.
+
+The class itself stays open: **a green `page.test.tsx` is still not a truthfulness check.** A new
+claim about the reader, somewhere else on the page, is checked by a person or it is not checked.
+
+**The visual-regression baselines did not cover it either, and that was measured here.** With the new
 heading live and confirmed in the served HTML, `landing-{light,dark}-linux.png` still compared clean
 against the *old* baselines: `maxDiffPixelRatio: 0.01` on a full-page shot absorbs an entire heading
-swap. They were regenerated with `--update-snapshots=all` — plain `--update-snapshots` is `changed`
-mode and rewrites nothing when the comparison passes — so the committed baseline is a picture of what
-ships rather than of the sentence before it. Copy is guarded by `page.test.tsx` and by a reader; the
-screenshots guard layout.
+swap.
+
+**Ruled a defect in the guard rather than an observation**, and fixed in the direction that keeps both
+properties: the 1% tolerance stays, because it is right for the anti-aliasing difference between the
+snapshot image and GitHub's runner, and the copy is now asserted by *text* in `page.test.tsx` instead.
+Pixels guard layout; text guards copy. Using one for the other is what failed here.
+
+The new assertion was proved to fail before it was trusted: changing the heading to "Prompts often
+have rules nothing checks." turns `page.test.tsx` red on that one test.
+
+Baselines are regenerated with `--update-snapshots=all` — plain `--update-snapshots` is `changed` mode
+and rewrites nothing when the comparison passes, which is precisely the trap above.
 
 ---
 

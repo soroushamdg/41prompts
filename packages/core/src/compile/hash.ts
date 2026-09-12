@@ -14,7 +14,7 @@ import type { PromptBlok } from "./types.js";
  * remember either, it is the only way a content-addressed cache can be correct across a change to
  * the thing doing the addressing.
  */
-export const COMPILER_VERSION = "compile@1";
+export const COMPILER_VERSION = "compile@2";
 
 /**
  * What goes between two bloks in the compiled prompt. **A constant, not an option.**
@@ -22,8 +22,15 @@ export const COMPILER_VERSION = "compile@1";
  * It is deliberately not in `CompileOptions`. The separator is not part of `blokHash`, so an option
  * that changed it would change every span's output while leaving every cache key untouched — a
  * stale-cache generator with a nice name. A constant covered by `COMPILER_VERSION` cannot do that.
+ *
+ * **A single newline, matching `docs/design/41prompts-full-mockup.html`**, which joins spans with
+ * `'\n'` — `CLAUDE.md` says the mockups are the spec, and this one had a compiled pane drawn in it.
+ * It shipped as a blank line in `compile@1` and was ruled to the mockup on 2026-09-12; that ruling is
+ * the reason `COMPILER_VERSION` is at 2, which is the whole point of having it. The cost, measured
+ * rather than assumed and written up in EPIC-020's report: two adjacent prose bloks now read as one
+ * paragraph in the compiled prompt, where a blank line kept them apart.
  */
-export const BLOK_SEPARATOR = "\n\n";
+export const BLOK_SEPARATOR = "\n";
 
 /**
  * A blok's content hash: **its verbatim text, its kind, and the compiler version** (decision 4).

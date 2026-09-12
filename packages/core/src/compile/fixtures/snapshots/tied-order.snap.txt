@@ -4,14 +4,14 @@
 # tied-order — Two bloks sharing an order, passed in the wrong sequence. The tie-break on id must decide, not the array order.
 #
 # Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 2 blok(s) -> 2 span(s), 0 check(s), 68 code units
+# 2 blok(s) -> 2 span(s), 0 check(s), 66 code units
 
 ## compiled text
-"First, because a sorts before z.\n\nSecond, because z sorts after a.\n\n"
+"First, because a sorts before z.\nSecond, because z sorts after a.\n"
 
 ## spans  start..textEnd..end  state  hash  text + separator
-     0..  32..  34  compiled  8572b18a71dcf8e2  "First, because a sorts before z." + "\n\n"
-    34..  66..  68  compiled  e58f043be39d870b  "Second, because z sorts after a." + "\n\n"
+     0..  32..  33  compiled  55b45ec31b1408bf  "First, because a sorts before z." + "\n"
+    33..  65..  66  compiled  ce21f3ba6d1069a6  "Second, because z sorts after a." + "\n"
 
 ## checks
   (none)

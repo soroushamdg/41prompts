@@ -97,7 +97,9 @@ export const COMPILE_FIXTURES: readonly CompileFixture[] = [
       { id: "u1", kind: "context", order: 10, text: "Ship it 🚀 when the checks pass." },
       { id: "u2", kind: "constraint", order: 20, text: "Café — note the combining mark: Café." },
       { id: "u3", kind: "constraint", order: 30, text: "مرحبا: answer in the user's language." },
-      { id: "u4", kind: "context", order: 40, text: "A blok whose text already contains\n\na separator." },
+      // Contains the separator exactly (`\n`) and twice over (`\n\n`): a blok whose own text looks
+      // like a boundary must not become two spans, and must not be normalised on the way out.
+      { id: "u4", kind: "context", order: 40, text: "A blok whose text already contains\na separator,\n\nand a blank line." },
       { id: "u5", kind: "context", order: 50, text: "." }
     ]
   }

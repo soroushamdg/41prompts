@@ -30,6 +30,27 @@ describe("/", () => {
     expect(text).toContain("A prompt change ships. Nothing checks it. You find out from a user.");
   });
 
+  /**
+   * The closing band, pinned the same way the hero sentence above is — and pinned **because the
+   * other two guards cannot do it.**
+   *
+   * `page.test.tsx`'s patterns below catch mechanical classes: an unexplained digit, social proof,
+   * fake urgency, an invented award. This heading has none of those and has still been wrong twice
+   * ("your prompt already has…", then "most prompts…"), because the thing wrong with it was a claim
+   * about a population, which no regex separates from ordinary copy.
+   *
+   * The visual baselines cannot do it either, and that was measured rather than assumed: with a
+   * changed heading live and confirmed in the served HTML, both full-page screenshots still compared
+   * clean, because `maxDiffPixelRatio: 0.01` absorbs a heading. That tolerance is right for
+   * anti-aliasing and wrong as a copy guard.
+   *
+   * So this asserts the text. It does not detect overclaiming — nothing here can — it makes the
+   * sentence a **decided** string, so changing it takes a decision rather than a tidy-up.
+   */
+  it("closes with the band heading as decided, so a copy change is caught by text and not by pixels", () => {
+    expect(text).toContain("Prompts usually have rules nothing checks.");
+  });
+
   it("names bloks and checks in the subhead, and promises nothing else", () => {
     expect(text).toContain("named bloks");
     expect(text).toContain("nothing checks");

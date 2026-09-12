@@ -66,7 +66,7 @@ showing a sample as though it were the set.
 
 - Files kebab-case. Types and components PascalCase. Functions and variables camelCase. DB columns snake_case.
 - Blok kinds: `context | constraint | example | expected | image_ref | image_input`.
-- Prompt ids `pr_` + 8 hex. Project ids `proj_` + 4 hex. Build sha: content hash of the compiled artifact.
+- Prompt ids `pr_` + 8 hex. Project ids `proj_` + 4 hex. Build hash: content hash of the compiled artifact.
 - Env: `FORTYONE_API_KEY`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`, `KEY_ENCRYPTION_SECRET`.
 - Public source files carry `SPDX-License-Identifier: Apache-2.0` headers. Copyright holder is `<legal entity>` until incorporation.
 
