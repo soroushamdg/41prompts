@@ -14,7 +14,14 @@ every write is attributable to a user and scoped to their project.
 ## Decisions (do not re-litigate)
 1. Data model in `packages/db`: `projects` (already stubbed in EPIC-002, filled in here), `prompts`, `bloks`.
    A blok row carries id, prompt id, kind, verbatim text, order, timestamps. Ids per `CLAUDE.md`: `proj_` + 4 hex,
-   `pr_` + 8 hex; blok ids are the content-derived ids EPIC-011a already produces, stable across recompiles.
+   `pr_` + 8 hex; blok ids are **minted once and never recomputed** ; `blok_` + 16 hex ; and a blok imported
+   from a decompile keeps the decompiler's content-derived id as its first value. (Amended 2026-09-12: as first
+   written this said blok ids are the content-derived ids EPIC-011a produces, "stable across recompiles". They
+   are stable across recompiles of the *same text*, which is what makes them right for a decompile and wrong for
+   a row somebody edits: the id changes the moment the text does, orphaning the row's rank, its hand edit and its
+   history on every keystroke. EPIC-020 settled the same question for `PromptBlok.id` and for the same reason.
+   Minting once keeps what decision 1 was reaching for ; an id that survives a recompile ; without the id moving
+   when a person types.)
 2. **Ordering is an explicit column**, not array position and not a float that eventually collides. Use a
    fractional-index or an integer rank with a documented rebalance; whichever, reordering one card writes one row.
    Say which and why in the report.
