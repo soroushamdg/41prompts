@@ -188,6 +188,28 @@
   align-items: center;
 }
 
+/* ── blok category colour: interaction only ──────────────────────────────────────────────────
+   EPIC-021a decision 6. The six hues live on `--blok-kind`, which is resolved per kind below and
+   then used *only* inside :hover / :focus-visible / [data-selected]. A card at rest resolves the
+   variable and paints nothing with it, so there is no persistent tint anywhere — which is the
+   rule in `docs/design/README.md` and the reason blok category colour went unshipped in EPIC-003.
+
+   It is never the only signal: the glyph and the kind's name as text are always present. And it
+   is never green, red or amber — those mean pass, fail and drift and appear on no /app route in
+   this epic. */
+.blok-card[data-kind="context"] { --blok-kind: var(--color-kind-context); }
+.blok-card[data-kind="constraint"] { --blok-kind: var(--color-kind-constraint); }
+.blok-card[data-kind="example"] { --blok-kind: var(--color-kind-example); }
+.blok-card[data-kind="expected"] { --blok-kind: var(--color-kind-expected); }
+.blok-card[data-kind="image_ref"] { --blok-kind: var(--color-kind-image-ref); }
+.blok-card[data-kind="image_input"] { --blok-kind: var(--color-kind-image-input); }
+
+.blok-card[data-kind]:hover .blok-card-rail,
+.blok-card[data-kind]:focus-visible .blok-card-rail,
+.blok-card[data-kind][data-selected="true"] .blok-card-rail {
+  color: var(--blok-kind);
+}
+
 /* ── kpi strip ── */
 .kpi-strip {
   display: grid;
