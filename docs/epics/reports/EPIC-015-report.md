@@ -215,6 +215,33 @@ actually submitted it (CRLF) matches what is rendered. Screenshots in
 
 ---
 
+## 8b. The window rule, tested within an hour of opening
+
+CI failed on the docs-only PR that closes this epic: `/decompile`'s **Decompile** button measured
+`43.99998474121094` against a `>= 44` bar — the same number EPIC-013 hit, in a place EPIC-013's fix did
+not reach. It gave `.blok-view-control .btn` explicit headroom; the primary submit still takes its
+height from font metrics and lands on 44 exactly, so it had been passing on luck.
+
+The tempting fix is two characters of CSS. **It was not applied**, and working through why is the rule
+doing its job:
+
+- A 2px button change is a **product change**, and shipping it means a production deploy inside the
+  measurement window.
+- A target 0.000015px under 44 is not *"a defect that makes the decompiler wrong or unavailable"*,
+  which is the only exception the rule allows.
+- "It's only 2px" is exactly the reasoning the rule exists to stop. The third such change is the one
+  that ruins the window, and every one of them looks like the first.
+
+What was fixed instead is the **measurement**, not the bar — the distinction EPIC-014 drew when its perf
+gate flaked. `boundingBox()` returns a float derived from device pixels; the element's CSS height *is*
+44. Rounding to a hundredth of a pixel removes a floating-point artifact and tests the same standard.
+The bar is still 44.
+
+The CSS fix is recorded in `m1-window.md` under **Held until the window closes**, which is where
+anything else noticed before 2026-10-11 goes.
+
+---
+
 ## 9. Stop here
 
 Decision 8, and it is the point of the epic rather than a note at the end:

@@ -58,6 +58,15 @@ at GATE 1 needs all three:
 3. **No announcement is part of the test**, not a limitation of it. If 300 people find this without
    being told, the wedge is findable. That is the question.
 
+## Held until the window closes
+
+Things noticed during the window that are **not** defects making the decompiler wrong or unavailable,
+and so must wait for 2026-10-12. Add to this list rather than fixing.
+
+| | |
+|---|---|
+| `/decompile`'s **Decompile** button has no explicit `min-height` at the small breakpoint, so its height comes from font metrics and lands on 44px exactly — it reached CI at `43.99998474121094`. EPIC-013 gave `.blok-view-control .btn` headroom for this reason and missed this one. The test now rounds the measurement to a hundredth of a pixel; the CSS still wants `min-height: 46px`. | found 2026-09-12 |
+
 ## Weekly readings
 
 Fill in from the PostHog funnel. Leave a row blank rather than estimating it.
