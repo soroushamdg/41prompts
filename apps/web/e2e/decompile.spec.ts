@@ -508,11 +508,11 @@ test.describe("/decompile", () => {
         // artifact and not a design decision. Rounding to a hundredth of a pixel removes the artifact
         // and tests the same standard.
         //
-        // **The real fix is CSS headroom**, as EPIC-013 gave `.blok-view-control .btn`, and it is
-        // deliberately not being applied now: EPIC-015's window is open, a 2px button change is a
-        // product change requiring a production deploy, and a sub-pixel rounding artifact is not "a
-        // defect that makes the decompiler wrong or unavailable". Ship it on 2026-10-12 —
-        // `docs/research/m1-window.md`.
+        // **The real fix is CSS headroom**, as EPIC-013 gave `.blok-view-control .btn`. It was held
+        // while EPIC-015's measurement window was open, because a 2px button change was a product
+        // change requiring a deploy and a sub-pixel artefact is not "a defect that makes the
+        // decompiler wrong or unavailable". **The window was cancelled on 2026-09-12, so it is no
+        // longer held** and can ship in any PR — `min-height: 46px` on `.decompile-actions .btn`.
         const height = Math.round(box!.height * 100) / 100;
         expect(height, `${await locator.evaluate((el) => el.className)} is under the 44px minimum`).toBeGreaterThanOrEqual(44);
       }

@@ -253,6 +253,11 @@ anything else noticed before 2026-10-11 goes.
 
 ## 9. Stop here
 
+> **Superseded 2026-09-12.** Soroush cancelled the measurement programme: no freeze, no no-changes
+> rule, no 11 October checkpoint. Everything in this section was true when written and is kept as the
+> record of what the window asked for. `docs/research/m1-window.md` carries the cancellation.
+
+
 Decision 8, and it is the point of the epic rather than a note at the end:
 
 > **Nothing about the product changes between 2026-09-11 and 2026-10-11** except a defect that makes

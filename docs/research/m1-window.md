@@ -1,5 +1,29 @@
 # M1 measurement window
 
+> ## Cancelled, 2026-09-12
+>
+> Soroush's decision: **the thirty-day window is cancelled.** No freeze, no no-changes rule, no
+> 11 October checkpoint. GATE 1 is removed and EPIC-084 is cancelled; every milestone's kill criterion
+> in `docs/roadmap.md` now reads *not measured*, with the original kept beside it.
+>
+> **Everything below is history**, kept deliberately rather than deleted: the dates it ran under, the
+> rule it ran under, and the three changes that were argued through its exception. A cancelled
+> programme that leaves no trace teaches nothing.
+>
+> **Two things survive the cancellation:**
+>
+> 1. **`decompile_runs` keeps recording.** No action is required and nothing needs switching off. It
+>    costs a row per decompile — a keyed hash, two integers, a timestamp — purges at 180 days, and
+>    means the data exists if anyone ever wants to look. `readM1(db, from, to)` still reads it.
+> 2. **The held 2px button fix is released.** `/decompile`'s Decompile button has no explicit
+>    `min-height` at the small breakpoint, so its height comes from font metrics and lands on 44px
+>    exactly; the test rounds a sub-pixel artefact away. It was held because it was a product change
+>    inside the freeze. There is no freeze, so **it can ship in any PR** — `min-height: 46px`, the way
+>    `.blok-view-control .btn` already has it.
+>
+> The perf-gate calibration in *Held until the window closes* is likewise no longer held, though it is
+> still worth doing properly rather than quickly.
+
 **Opens 2026-09-11 (Friday). Closes 2026-10-11 (Sunday).** Thirty days.
 
 Production went live with `v0.1.0` at **2026-09-12 00:17 UTC** — the evening of the 11th in Montréal,
@@ -49,7 +73,7 @@ From `docs/roadmap.md`, the M1 row:
 > **Failure action:** Under 100 decompiles in 30 days: the wedge is not findable; rework EPIC-015
 > before Stage 2
 
-## The rule
+## The rule *(no longer in force)*
 
 **Nothing about the product changes between those two dates.**
 
@@ -83,7 +107,7 @@ at GATE 1 needs all three:
 3. **No announcement is part of the test**, not a limitation of it. If 300 people find this without
    being told, the wedge is findable. That is the question.
 
-## Changes made inside the window, and why each was allowed
+## Changes made inside the window, and why each was allowed *(history)*
 
 The rule below permits exactly one kind of change. Every exercise of it is recorded here, with the
 reason, so the exception cannot quietly become the rule.
@@ -103,17 +127,18 @@ is no longer true is a defect fix, not a product change**, so it needs no except
 a tag because the copy is inert until the host split is configured. Listed in full in
 `docs/reports/host-split-report.md` §4.
 
-## Held until the window closes
+## Held until the window closes — released 2026-09-12
 
-Things noticed during the window that are **not** defects making the decompiler wrong or unavailable,
-and so must wait for 2026-10-12. Add to this list rather than fixing.
+Things noticed during the window that were not defects making the decompiler wrong or unavailable, and
+so had to wait. **The window is cancelled, so nothing here is held any more**; both are ordinary work
+now. Kept as a record of what the rule actually cost.
 
 | | |
 |---|---|
 | **The absolute perf budgets in `detect.perf.test.ts` are reported, not gated.** They flaked on a slow runner (106.6 ms against a 100 ms bar, on the *minimum* of ten runs) and were demoted rather than widened. The growth exponent still guards algorithmic regressions; a **constant-factor** regression is now invisible. The fix is a budget calibrated against a machine-speed baseline instead of wall-clock milliseconds. **The same "under 100 ms" pattern is still live in `cluster.perf.test.ts` and `segment.perf.test.ts`** and will flake the same way; they were left alone rather than pre-emptively demoted while they pass. | found 2026-09-12 |
 | `/decompile`'s **Decompile** button has no explicit `min-height` at the small breakpoint, so its height comes from font metrics and lands on 44px exactly — it reached CI at `43.99998474121094`. EPIC-013 gave `.blok-view-control .btn` headroom for this reason and missed this one. The test now rounds the measurement to a hundredth of a pixel; the CSS still wants `min-height: 46px`. | found 2026-09-12 |
 
-## Weekly readings
+## Weekly readings *(never filled in; the window was cancelled on day two)*
 
 Fill in from the PostHog funnel. Leave a row blank rather than estimating it.
 
@@ -127,7 +152,7 @@ Read with `readM1`, not by hand. Unique decompiles is `uniqueCallers`; shares is
 | 2026-10-09 | | | | | |
 | **2026-10-11 (close)** | | | | | |
 
-## What happens at the close
+## What would have happened at the close *(history)*
 
 EPIC-084 reads the result and sizes what comes next; GATE 1 decides on it. Neither runs before
 2026-10-11 — EPIC-084 is blocked until then, and the backlog says so.
