@@ -66,10 +66,23 @@ met.
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
-| EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, manual override + drift, artifact schema v0 | M | 011b | current |
+| EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks | M | 020, 003 | todo |
 | EPIC-021b | web: compiled pane, span linking, override, drift, update-from-blok, eject | M | 021a, 003, 090 | todo |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
+
+**EPIC-020 shipped 2026-09-12** (`docs/epics/reports/EPIC-020-report.md`). Marked `done` because the
+work is merged and every criterion is ticked with evidence — **the advisor's review has not happened
+yet**, so if it turns something up this row goes back rather than a fix-up epic being invented around
+it. `CURRENT.md` still points at EPIC-020 until the next epic is written.
+
+Its row title says "edited-by-hand spans" rather than "manual override": ADR-003 replaced that word
+and the backlog was still carrying it.
+
+Three rulings EPIC-021b needs, all in the report's §8: what happens when a blok is **added** to a
+prompt with hand-edited spans (no answer exists in the model, on purpose — it is a pane decision);
+whether the compiled prompt separates bloks with a blank line or a single newline, where the compiler
+and the mockup disagree; and `CLAUDE.md`'s "Build sha" line, which contradicts its own vocabulary rule.
 
 ## Stage 3 · Checks and runs, one provider
 
