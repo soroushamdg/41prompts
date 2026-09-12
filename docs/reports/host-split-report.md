@@ -94,7 +94,7 @@ The decided copy is shipped: eyebrow deleted, headline unchanged, new subhead, n
 Then the instruction: *re-check every remaining string against one test — is it literally true of what
 ships today — and report anything that fails rather than silently fixing it.*
 
-### It fails, in ten places, and I caused it an hour earlier
+### It fails, in eleven places, and I caused it an hour earlier
 
 `v0.2.0` — the counting change shipped immediately before this one — added `decompile_runs`, which
 writes **one row per decompile**: a keyed address hash, two integers, a timestamp. No prompt text.
