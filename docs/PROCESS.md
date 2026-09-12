@@ -123,6 +123,45 @@ Ten minutes of looking, whenever it was actually looked at, produced a one-line 
 If a failure is genuinely environmental, the environment is the bug. Fix it or write down exactly
 which knob is wrong, not the word "environmental".
 
+## A commit on `main` is refused by a hook, not by remembering (2026-09-12)
+
+"One epic, one branch, one PR" is a line above. It was still broken **twice in one session**
+(EPIC-021a), both times at the identical moment: right after a `git checkout main` following a merge,
+when the next piece of work starts on a tree that happens to be sitting on `main`. Nothing was pushed
+either time — but "nothing was pushed" is luck, and a rule that has to be remembered at exactly the
+wrong moment is not a rule.
+
+`.githooks/commit-msg` now refuses a commit on `main` unless **both** hold:
+
+1. the subject line starts with `docs:`, and
+2. every staged path is under `docs/`.
+
+That is the advisor's case — epics, the backlog, reviews — and nothing else. **Both, not either.** A
+`docs:` subject on a commit that also touches `packages/` is precisely the thing being stopped, and a
+doc-only commit called `chore:` is still a commit on `main` that should have said what it was.
+
+**Why `commit-msg` and not `pre-commit`.** Git gives the message file only to `prepare-commit-msg` and
+`commit-msg`; at `pre-commit` it does not exist yet. This rule needs the message *and* the staged
+paths, so it has to be one hook, and `commit-msg` is the earliest with both.
+
+**Installing it.** `core.hooksPath` is local config that a checkout does not carry, so `pnpm install`
+runs `scripts/install-hooks.mjs` through `prepare` and points git at `.githooks/`. `pnpm
+hooks:install` does it by hand.
+
+It never fails an install, and it has to survive three ways of being unable to run: no `.git` (a
+Docker build, a shallow CI checkout), a `git config` that refuses, and **the script not being there
+at all** — `scripts/` is deliberately excluded from the public mirror while the root `package.json`
+is copied, so in the mirror `prepare` names a file that cannot exist. Hence `|| true`; nothing inside
+the script can catch its own absence. `pnpm compliance` caught that the first time this was wired up.
+
+**It is not a wall.** `git commit --no-verify` goes past it, as it goes past every hook. Deliberate: a
+guard that cannot be overridden gets uninstalled the first time it is wrong, taking the rule with it.
+This exists to make the mistake loud, not impossible.
+
+**It was proved before being trusted**, all four cases: a code commit on `main` refused; a `docs:`
+subject touching code still refused; a genuine docs-only commit on `main` allowed; the same code
+commit on a branch allowed. The refusals are in EPIC-021a's report.
+
 ## Three timing gates report rather than enforce (2026-09-12)
 
 `detect.perf.test.ts`'s absolute millisecond budgets — 100 KB detection, and the whole pipeline at

@@ -301,7 +301,67 @@ Worth recording next to the timeout work in §6, because it is the same lesson f
 There the fix was to give a slow measurement more patience; here it was to stop a test racing a queue
 it had created itself. **A green CI run is one sample.**
 
-## 9. Not done
+## 9. The branch rule is a hook now, not a memory
+
+I committed to `main` instead of branching **twice in this session**, both times immediately after a
+`git checkout main` following a merge. Caught before pushing both times and recorded both times —
+which is exactly the shape of a rule that does not work, because it depended on noticing at the one
+moment attention is elsewhere.
+
+`.githooks/commit-msg` refuses a commit on `main` unless the subject starts with `docs:` **and** every
+staged path is under `docs/` — the advisor's case, and nothing else. `commit-msg` rather than
+`pre-commit` because git does not give `pre-commit` the message at all, and this rule needs both
+halves. `pnpm install` wires it via `prepare`; `--no-verify` still gets past it, deliberately.
+Documented in `docs/PROCESS.md`.
+
+**Proved before trusted**, four cases:
+
+```
+$ git commit -m "feat(web): something that has no business on main"
+
+Refused: this is a commit on main.
+
+One epic, one branch, one PR (CLAUDE.md, docs/PROCESS.md). The only commits allowed straight
+on main are the advisor's documentation ones: subject starting "docs:" AND every path under docs/.
+
+  · the subject does not start with "docs:" — it is "feat(web): something that has no business on main"
+  · 4 staged path(s) are outside docs/:
+      .githooks/commit-msg
+      package.json
+      scripts/guard-main-commit.mjs
+      scripts/install-hooks.mjs
+
+Move it to a branch — the commit is still staged, nothing is lost:
+
+    git switch -c <branch-name>
+    git commit            # re-run, it will pass there
+
+If this guard is wrong for what you are doing, `git commit --no-verify` goes past it.
+```
+
+```
+$ git commit -m "docs: dressed up as a doc commit"        # still refused — both halves required
+Refused: this is a commit on main.
+  · 4 staged path(s) are outside docs/
+
+$ git commit -m "docs: the advisor's kind of commit, which must pass"   # allowed
+ 1 file changed, 1 insertion(+)
+
+$ git switch -c chore/guard-main-commits && git commit …               # allowed
+51a8f2d chore: prove the guard lets a branch through
+```
+
+Both `main` commits made during the proof were reverted; `main` is at `aeecc60`, matching `origin`.
+
+**One thing the proof did not catch and `pnpm compliance` did.** The installer is wired to `prepare`,
+and I wrote in its own header that it "never fails an install" — it did. `scripts/` is deliberately
+excluded from the public mirror (`mirror-dry-run.sh` asserts it is absent) while the root
+`package.json` *is* copied, so in the mirror `prepare` names a file that cannot exist, and nothing
+inside a script can catch its own absence. It is invoked as `node scripts/install-hooks.mjs || true`
+now. Worth recording because the claim was written before it was true, and the compliance gate is
+what made that visible rather than a reviewer.
+
+## 10. Not done
 
 1. **The hand-drive of staging**, per §7. The one criterion needing a person.
 2. **Pointer drag-and-drop.** The keyboard path is complete and is what rule 12 requires; a drag is
