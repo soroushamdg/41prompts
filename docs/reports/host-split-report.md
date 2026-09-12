@@ -420,7 +420,16 @@ earlier look had caught a redeploy mid-flight and a transient must not be read a
       `staging/`.
 - [x] **The session cookie.**
       `__Secure-41prompts.session_token=<redacted>; Domain=.staging.41prompts.ai; Path=/; HttpOnly;
-      Secure; SameSite=Lax` — scoped one level below production, so the two cannot collide.
+      Secure; SameSite=Lax` — scoped one level below production.
+
+      > **Correction, 2026-09-12.** This line originally ended "so the two cannot collide." **That
+      > was wrong, and it was the bug.** The scoping is *one-directional*: staging's cookie cannot
+      > reach production, but production's `Domain=.41prompts.ai` reaches **every** subdomain,
+      > staging included. With both deployments using the prefix `41prompts`, a browser signed into
+      > production sent two cookies named `__Secure-41prompts.session_token` to staging; one
+      > silently won, and when production's did, staging bounced every `/app` request to sign-in
+      > while four perfectly good sessions sat in its database. Fixed by deriving the cookie prefix
+      > from `DEPLOY_ENV` — see `apps/web/lib/site/cookie-prefix.ts` and `docs/PROCESS.md`.
 - [x] **Canonicals, sitemap and `noindex`.** All three sitemap pages canonical to
       `staging.41prompts.ai`; the sitemap and `robots.txt` name it too; `/d/` returns
       `x-robots-tag: noindex, nofollow`.

@@ -1,5 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
+import { sessionCookiePrefix } from "@/lib/site/cookie-prefix";
 import { redirectTarget } from "@/lib/site/hosts";
 
 export const config = {
@@ -39,7 +40,7 @@ export function proxy(request: NextRequest) {
   // can end up outside whatever a proxy matcher covers after a refactor, so that page-level check
   // is the one this app actually depends on; this gate only saves the DB round trip for requests
   // that were never going to have a session anyway.
-  const sessionCookie = getSessionCookie(request, { cookiePrefix: "41prompts" });
+  const sessionCookie = getSessionCookie(request, { cookiePrefix: sessionCookiePrefix() });
   if (sessionCookie) {
     return NextResponse.next();
   }

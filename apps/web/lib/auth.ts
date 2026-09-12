@@ -7,6 +7,7 @@ import { magicLink } from "better-auth/plugins";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { captureEvent, identifyUser } from "./analytics/posthog-server";
 import { getDb } from "./db";
+import { sessionCookiePrefix } from "./site/cookie-prefix";
 import { sendMagicLinkEmail } from "./email";
 
 const MAGIC_LINK_EXPIRES_IN_SECONDS = 15 * 60;
@@ -49,7 +50,11 @@ function buildAuth() {
       usePlural: true,
     }),
     advanced: {
-      cookiePrefix: "41prompts",
+      // Per deployment, so production's wide-domain cookie cannot be mistaken for staging's.
+      // `lib/site/cookie-prefix.ts` carries the failure this prevents; `proxy.ts` derives the same
+      // value from the same function, because a gate looking for a different name than the one set
+      // is the same outage wearing a different hat.
+      cookiePrefix: sessionCookiePrefix(),
       /**
        * **The session cookie is scoped to the parent domain**, so a session created on `app.` is
        * visible to the apex — which is what lets the landing page show "Go to dashboard" instead of
