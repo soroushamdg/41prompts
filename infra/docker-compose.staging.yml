@@ -1,15 +1,28 @@
-# Coolify-deployed, staging environment. image: only, no build: anywhere in this file — GitHub Actions
-# (.github/workflows/build-images.yml) builds and pushes both images to GHCR on every push to main; this file
-# only ever pulls ghcr.io/soroushamdg/41prompts-{web,worker}:staging with pull_policy: always. Local dev /
-# `docker compose up` still uses infra/docker-compose.yml, which keeps build:.
+# Coolify-deployed, staging environment. **This is the one file that describes how staging is built.**
+#
+# Coolify builds web and worker from this file on every push to main (EPIC-009, 2026-09-12). It used to pull
+# prebuilt `:staging` images from GHCR, built by Actions on every merge — that cost 6.58 billed minutes a merge,
+# 480 minutes across 73 merges, and helped exhaust a 2,000-minute monthly allowance in 8.4 days, which stopped
+# every deploy. On the box the same build costs nothing and competes with nothing, because staging is not serving
+# anybody. **Production is unchanged** and still pulls a prebuilt image from a `v*` tag, which is the reason
+# EPIC-008 existed: a box serving production must never also be building it.
+#
+# `/healthz`'s `commit` still reports correctly under an on-box build, which was the thing worth checking before
+# reverting: `apps/web/app/healthz/route.ts` prefers the baked `COMMIT_SHA` only when it is not the literal
+# "unknown", and otherwise falls back to `SOURCE_COMMIT`, which Coolify sets directly on the running container at
+# deploy time.
 #
 # ${POSTGRES_USER}/${POSTGRES_PASSWORD}/${POSTGRES_DB}/${DEPLOY_ENV} below are Coolify Environment Variables,
 # entered by hand per infra/README.md step 9 — that's intentional; those four are meant to be Coolify-managed.
-# What must never appear here is ${SOURCE_COMMIT} or ${COMMIT_SHA} as a build.args interpolation: that's the
-# EPIC-001 F2 defect (any ${VAR} in a build.args block becomes a permanently locked Coolify env var that
-# overrides the real build arg on every future deploy). There is no build: block in this file at all, so that
-# mistake isn't reachable here. SOURCE_COMMIT is instead baked into the image once, in Actions, from github.sha —
-# see build-images.yml.
+# **What must never appear here is ${SOURCE_COMMIT} or ${COMMIT_SHA} inside a build.args block.** That is the
+# EPIC-001 F2 defect: any ${VAR} written in a build.args block becomes a permanently locked Coolify application
+# variable that then overrides the real build arg on every future deploy, pinning it to the fallback for ever.
+#
+# There are `build:` blocks in this file again, so the mistake is reachable now in a way it was not while this
+# file only pulled images. **The build blocks below carry no `args:` at all**, deliberately, and the commit
+# reaches the container by Coolify's own `SOURCE_COMMIT` instead — see the note above. If a locked
+# `SOURCE_COMMIT` variable already exists in the Coolify UI from before EPIC-008, it has to be deleted or it will
+# win; infra/README.md step 10 has that cleanup.
 services:
   postgres:
     image: postgres:16
@@ -30,8 +43,10 @@ services:
       start_period: 10s
 
   web:
-    image: ghcr.io/soroushamdg/41prompts-web:staging
-    pull_policy: always
+    # Built on the box by Coolify. No `args:` here — see the EPIC-001 F2 note at the top of this file.
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:
@@ -44,8 +59,10 @@ services:
       - "127.0.0.1:3000:3000"
 
   worker:
-    image: ghcr.io/soroushamdg/41prompts-worker:staging
-    pull_policy: always
+    # Built on the box by Coolify. No `args:` here — see the EPIC-001 F2 note at the top of this file.
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:

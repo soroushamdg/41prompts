@@ -124,6 +124,13 @@ that was cut; it stays as the format if this is ever reopened.
 **Tests.** A `main` merge produces a GHCR image whose `/healthz` `commit` equals the merge sha, with no build log on the box. A `v*` tag does the same for production. Rollback = redeploy the previous `:sha-` tag, timed in the runbook.
 **Review.** Box CPU/memory flat during a deploy. No `${...}` in either deployed compose file. Images private.
 
+### EPIC-009 Actions budget · S · late entry, 2026-09-12
+**Why it exists.** EPIC-008's task list ends "Actions minutes budget noted (Free plan 2,000/month)." It was noted and never read. Measured over the repository's first 8.4 days: **2,175 billed minutes against a 2,000-minute month**, of which the image build on `main` was 533 across 81 runs. The allowance ran out mid-epic, which stopped every deploy and every CI run.
+**Goal.** Stop spending Actions minutes on work the box does for nothing, and stop tagging things that are not releases. CI stays on GitHub, where a green tick before merge is worth paying for.
+**Tasks.** `build-images.yml` loses its `push: branches: [main]` trigger and keeps `v*` plus `workflow_dispatch`; `infra/docker-compose.staging.yml` gets `build:` back for web and worker, with no `args:` (EPIC-001 F2); `PROCESS.md` gains "tags are releases, not checkpoints" and names the three things that do not warrant one; `infra/RUNBOOK.md` gains a budget section with measured minutes per merge and per tag, and says to read it at the close of every epic.
+**Tests.** A merge to `main` runs CI and Compliance and no image build, with staging updating from Coolify's own build. A `v*` tag still builds, pushes and deploys production. The on-box staging build finishes under ten minutes without taking the apex `/healthz` down.
+**Review.** The saving is 22%, not a fix: at the observed merge rate the project stays roughly 3× over its allowance, and the largest remaining item is CI running twice per change. Nothing about what production runs changes.
+
 ### EPIC-002 Data layer and auth · M
 **Goal.** Users in our Postgres, three sign-in methods, protected routes, and an account purge window.
 **Tasks.** Drizzle baseline: users, sessions, accounts, projects, api_keys (empty); migrations on deploy; Better Auth with Google, GitHub, magic link via Resend; `/app/*` protected; account page with delete (soft delete, 30-day purge job); seed script.
