@@ -192,6 +192,48 @@ capture mode runs everything rather than only `capture/`.
 outside `capture/` writes into `docs/` without that guard, so the next one is caught by a test rather
 than by somebody's `git status` six weeks later.
 
+## Cookie scoping is one-directional, and the parent always wins (2026-09-12)
+
+Production sets `SESSION_COOKIE_DOMAIN=.41prompts.ai` so a session made on `app.` is visible on the
+apex. **That domain matches every subdomain under it**, `app.staging.41prompts.ai` included.
+
+Staging's cookie is scoped `.staging.41prompts.ai` and cannot reach production. The host-split report
+called that "scoped one level below production, so the two cannot collide" — and that is exactly the
+wrong conclusion. **Scoping a child protects the parent from the child. It does nothing to protect
+the child from the parent.** The asymmetry is the whole bug: production only ever saw its own cookie
+and worked; staging saw two, both named `__Secure-41prompts.session_token`, and one silently won.
+
+When production's token won, staging looked it up in its own database, found nothing, and bounced to
+`/sign-in`. Sign-in was never broken — four live sessions were sitting in staging's `sessions` table
+the whole time.
+
+**The rule: two deployments under one parent domain must differ by cookie *name*, not by cookie
+domain.** Names cannot collide whatever the topology is; domains can, and the failure is silent.
+`apps/web/lib/site/cookie-prefix.ts` derives the prefix from `DEPLOY_ENV` — production keeps the bare
+name so live sessions survive, everything else gets its environment appended, so a subdomain added
+years from now is safe without anyone remembering this.
+
+**The same trap waits for any future subdomain**: a preview environment, a demo, a customer
+subdomain. Anything served under `41prompts.ai` receives production's session cookie.
+
+## When a symptom matches a failure you have seen before, check the evidence before naming the cause
+
+The certificate on `app.staging.41prompts.ai` had genuinely been broken earlier the same day, and the
+symptom — sign-in completing and the session vanishing — is what a rejected `__Secure-` cookie looks
+like. So the certificate was named as the cause, and it was not: it had been valid since 12:46 GMT,
+SAN correct, `Verify return code: 0 (ok)`.
+
+Reasoning from a symptom to a cause you have met before is fast and usually right, which is what
+makes it worth a rule. **Read the current evidence first** — here the certificate itself, the ACME
+log, the router labels, the cookie the server actually emits, and the `sessions` table, which said
+plainly that four sessions existed and sign-in was fine.
+
+Two of the checks along the way were themselves wrong and were caught by controls rather than by
+care: an empty `openssl` result that was `timeout` not existing on macOS, and a cookie-name probe
+that "proved" the proxy gate was broken until the same probe was run against **production**, where it
+behaved identically and production demonstrably works. **Run the instrument against a known-good
+system before believing what it says about a broken one.**
+
 ## Three timing gates report rather than enforce (2026-09-12)
 
 `detect.perf.test.ts`'s absolute millisecond budgets — 100 KB detection, and the whole pipeline at
