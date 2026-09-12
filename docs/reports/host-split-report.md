@@ -257,13 +257,69 @@ Production's Google and GitHub URLs are unchanged — `BETTER_AUTH_URL` was alre
 
 ## 6. Verification
 
-Locally and in CI: 122 e2e tests, including 36 on the host rule, 5 on the nav's two states, 4 on the
-cookie domain, and the signed-out-cookie replay.
+Locally and in CI: 123 e2e tests, including 36 on the host rule, 5 on the nav's two states, 4 on the
+cookie domain, the signed-out-cookie replay, and the sitemap-driven canonical guard.
 
-**Not verified on staging**, and it cannot be until §5's variables and the DNS record exist — the split
-is inert without them, by design. That is also why merging and tagging this is safe: production
-behaviour does not change until `PUBLIC_SITE_URL` is set. The order that follows is: set staging's
-three variables and the DNS record, confirm the redirects and a sign-in there, then set production's.
+### Production — verified 2026-09-12, on `v0.4.0` and re-checked on `v0.5.0`
+
+Checked against the deployment rather than inferred from the suite. Read-only throughout; cookie
+values redacted.
+
+- [x] **The apex serves the public product and `app.` serves the session.** `/`, `/decompile`, the
+      guide, `llms.txt`, `robots.txt` and `sitemap.xml` all 200 on `41prompts.ai`; `/sign-in` 200 and
+      `/app` 307 to the session gate on `app.41prompts.ai`. The landing page carries all seven new
+      strings and none of the six retired ones.
+- [x] **301 both directions, query string intact.** `41prompts.ai/app` → `app.41prompts.ai/app`,
+      `41prompts.ai/sign-in` → `app.41prompts.ai/sign-in`, `app.41prompts.ai/` → `41prompts.ai/`,
+      `app.41prompts.ai/decompile?start=abc123` → `41prompts.ai/decompile?start=abc123`. `/healthz`
+      serves on both, unredirected.
+- [x] **The session cookie crosses hosts with every attribute intact.** Read from response headers,
+      by name, on the sign-out expiry path:
+
+      ```
+      set-cookie: __Secure-41prompts.session_token=<redacted>; Max-Age=0;
+                  Domain=.41prompts.ai; Path=/; HttpOnly; Secure; SameSite=Lax
+      ```
+
+      Because this is the *expiry*, it also demonstrates the half no test had shown against a
+      deployment: **sign-out clears the cookie on the parent domain**, so it dies on every host at
+      once.
+- [x] **Canonicals and the sitemap name the apex only; `/d/` is still `noindex`.** All three sitemap
+      pages canonical to `41prompts.ai`, `robots.txt` advertises the apex sitemap, and a real
+      permalink returns `x-robots-tag: noindex, nofollow, noarchive` with the matching meta tag.
+      *(`/decompile` had no canonical at all when first checked — fixed under the window's exception
+      in `v0.5.0`; see `m1-window.md`.)*
+- [x] **The nav reads the session server-side, with no flash.** Anonymous: `nav-sign-in` in the
+      server-rendered HTML, pointing at `app.41prompts.ai/sign-in`, no dashboard link. Signed in
+      (confirmed by Soroush, 2026-09-12): `nav-dashboard` **in the server-rendered HTML** at
+      `41prompts.ai` with `href="https://app.41prompts.ai/app"` and no sign-in link. The cookie
+      crosses, the read is server-side, and there is no flash.
+
+**The split is verified in production.**
+
+### Staging — not verified
+
+Re-checked twice on 2026-09-12 after being reported fixed, with both hosts reporting the expected
+commit first. **`PUBLIC_SITE_URL` and `BETTER_AUTH_URL` are still swapped.**
+
+The certificate half is fixed: `app.staging.41prompts.ai` now resolves and serves. The variables are
+not, and the evidence is unambiguous in three independent places:
+
+| | |
+|---|---|
+| `staging.41prompts.ai/`, `/decompile`, `/llms.txt`, `/robots.txt` | **301 to `app.staging`** — the code treats the apex as the app host |
+| `staging.41prompts.ai/sign-in` | **200**, and `/app` 307s to the session gate — consistent with the same inversion |
+| `app.staging.41prompts.ai/sitemap.xml` | names `https://app.staging.41prompts.ai/…`, and `/` canonicals to `app.staging` — `siteOrigin()` is reading the app host out of `PUBLIC_SITE_URL` |
+
+So on staging the two values are the wrong way round:
+
+| variable | is | should be |
+|---|---|---|
+| `PUBLIC_SITE_URL` | `https://app.staging.41prompts.ai` | `https://staging.41prompts.ai` |
+| `BETTER_AUTH_URL` | `https://staging.41prompts.ai` | `https://app.staging.41prompts.ai` |
+
+**What is right on staging:** `SESSION_COOKIE_DOMAIN=.staging.41prompts.ai`, scoped one level down
+exactly as intended, so staging and production session cookies cannot collide.
 
 ---
 
