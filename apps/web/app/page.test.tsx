@@ -1,6 +1,19 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import Page from "./page.js";
+import { describe, expect, it, vi } from "vitest";
+
+/**
+ * The nav reads the session on the server, which makes it an async component that
+ * `renderToStaticMarkup` cannot render. Swapped for the **real** nav in its signed-out state rather
+ * than for a stub, so the footer and nav are still in the markup these assertions walk — a truth
+ * audit that skipped the chrome would not catch a testimonial added to the footer.
+ * `site-chrome.test.tsx` covers both session states directly.
+ */
+vi.mock("@/app/site-chrome", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/site-chrome")>();
+  return { ...actual, SiteNavWithSession: () => actual.SiteNav({ signedIn: false }) };
+});
+
+const { default: Page } = await import("./page.js");
 
 const html = renderToStaticMarkup(Page());
 const text = html
@@ -67,7 +80,8 @@ describe("nothing on this page is a claim we cannot back", () => {
       ["02", "step number"],
       ["03", "step number"],
       ["41", "the product's name"],
-      ["100", "the input cap in KB — MAX_INPUT_BYTES, enforced in code"]
+      ["100", "the input cap in KB — MAX_INPUT_BYTES, enforced in code"],
+      ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"]
     ]);
     const numbers = text.match(/\d[\d.,]*/g) ?? [];
     for (const number of numbers) {

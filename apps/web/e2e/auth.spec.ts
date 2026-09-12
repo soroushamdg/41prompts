@@ -64,6 +64,67 @@ test.describe("auth", () => {
     }
   });
 
+  test("a signed-out cookie cannot reach /app, even replayed by hand", async ({ page, context, browser }) => {
+    // The existing sign-out test checks the browser no longer *holds* the cookie. This checks the
+    // half that matters once the cookie is scoped to a parent domain: the value itself is dead
+    // server-side, so a copy kept anywhere — another tab, another subdomain, a clipboard — is
+    // worthless. Signing out has to kill the session, not just the browser's copy of it.
+    const email = uniqueEmail("replay");
+    try {
+      await signInByMagicLink(page, email);
+      await expect(page).toHaveURL(/\/app$/);
+
+      const before = (await context.cookies()).find((cookie) => cookie.name.endsWith("session_token"));
+      expect(before, "no session cookie was set on sign-in").toBeDefined();
+
+      await page.getByRole("button", { name: "Sign out" }).click();
+      await expect(page).toHaveURL(/\/sign-in$/);
+      expect(await sessionCountFor(email)).toBe(0);
+
+      // A brand-new browser context carrying only the captured cookie.
+      const replay = await browser.newContext();
+      await replay.addCookies([{ ...before!, name: before!.name, value: before!.value }]);
+      const attacker = await replay.newPage();
+      await attacker.goto("/app");
+      await expect(attacker).toHaveURL(/\/sign-in\?next=%2Fapp/);
+      await replay.close();
+    } finally {
+      await deleteTestUser(email);
+    }
+  });
+
+  /**
+   * The landing nav's signed-in state, proved in the **server-rendered HTML**.
+   *
+   * `site-chrome.test.tsx` pins the markup for each state; this proves the session read works through
+   * a real sign-in, and — by fetching the page with the cookie and reading the raw body — that the
+   * right answer is in the first byte rather than swapped in after hydration. An effect-driven nav
+   * would pass every assertion above this one and still flash "Sign in" at everybody who has an
+   * account.
+   */
+  test("the landing nav offers the dashboard once signed in, in the first byte of HTML", async ({ page, request }) => {
+    const email = uniqueEmail("nav");
+    try {
+      await signInByMagicLink(page, email);
+      await expect(page).toHaveURL(/\/app$/);
+
+      await page.goto("/");
+      await expect(page.getByTestId("nav-dashboard")).toBeVisible();
+      await expect(page.getByTestId("nav-sign-in")).toHaveCount(0);
+
+      const header = (await page.context().cookies()).map((c) => `${c.name}=${c.value}`).join("; ");
+      const body = await (await request.get("/", { headers: { cookie: header } })).text();
+      expect(body).toContain("Go to dashboard");
+      expect(body).not.toContain("nav-sign-in");
+
+      await page.locator(".site-nav").screenshot({
+        path: "docs/epics/reports/screenshots/host-split/nav-signed-in.png",
+      });
+    } finally {
+      await deleteTestUser(email);
+    }
+  });
+
   test("account delete sets deletedAt, kills the session, and refuses re-sign-in", async ({ page }) => {
     const email = uniqueEmail("delete");
     try {

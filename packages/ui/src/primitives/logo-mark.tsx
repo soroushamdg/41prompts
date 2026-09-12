@@ -111,12 +111,22 @@ export function LogoMark({ href, size, className }: LogoMarkProps) {
   // The accessible name is "41Prompts" in both states (the prototype's own rule): the mark is
   // `aria-hidden`, the word is visible text, and the link carries the whole name so a screen reader
   // never announces a bare "prompts".
+  // `suppressHydrationWarning` here as well as on the paths: the morph script also stamps
+  // `data-logo-ready` on this element before React hydrates. EPIC-016 suppressed the `d` mismatch and
+  // missed this one, which left a hydration error in the dev console on every page load.
   return href === undefined ? (
-    <span className={cx("logo", className)} style={style} data-logo="">
+    <span className={cx("logo", className)} style={style} data-logo="" suppressHydrationWarning>
       {inner}
     </span>
   ) : (
-    <a className={cx("logo", className)} style={style} href={href} aria-label="41Prompts, home" data-logo="">
+    <a
+      className={cx("logo", className)}
+      style={style}
+      href={href}
+      aria-label="41Prompts, home"
+      data-logo=""
+      suppressHydrationWarning
+    >
       {inner}
     </a>
   );

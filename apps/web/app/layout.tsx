@@ -11,26 +11,29 @@ import "./globals.css";
  * its own canonical; the Open Graph card, the Twitter card and `metadataBase` are set once here so a
  * new route cannot forget them.
  *
- * `metadataBase` is what turns a relative `alternates.canonical` into an absolute URL and what points
- * the card at the generated `opengraph-image`. Without it Next warns and falls back to localhost.
+ * **A function rather than a constant**, since the host split: `metadataBase` is what turns every
+ * relative canonical into an absolute URL, and it now has to name the apex — which is read per
+ * request rather than baked in, so staging describes itself as staging and local as local.
  */
-export const metadata: Metadata = {
-  metadataBase: new URL(siteOrigin()),
-  title: {
-    default: "41Prompts — see what is actually in your prompt",
-    template: "%s"
-  },
-  description:
-    "Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, nothing stored.",
-  openGraph: {
-    type: "website",
-    siteName: "41Prompts",
-    locale: "en"
-  },
-  twitter: {
-    card: "summary_large_image"
-  }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    metadataBase: new URL(await siteOrigin()),
+    title: {
+      default: "41Prompts — see what is actually in your prompt",
+      template: "%s"
+    },
+    description:
+      "Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, nothing stored.",
+    openGraph: {
+      type: "website",
+      siteName: "41Prompts",
+      locale: "en"
+    },
+    twitter: {
+      card: "summary_large_image"
+    }
+  };
+}
 
 const archivo = Archivo({
   subsets: ["latin"],

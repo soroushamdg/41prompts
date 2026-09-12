@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SiteFooter, SiteNav } from "../site-chrome";
+import { SiteFooter, SiteNavWithSession } from "../site-chrome";
 
 export const metadata: Metadata = {
   title: "Contact · 41Prompts",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <SiteNav />
+      <SiteNavWithSession />
       <main className="prose-page" id="main">
         <h1>Contact</h1>
         <p>

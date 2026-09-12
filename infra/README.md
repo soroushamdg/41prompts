@@ -339,6 +339,95 @@ insight's `?refresh=true` result genuinely computes to `count: 0`, not just "cre
 erroring"). Re-running the script is safe: it looks up existing insights by name before creating a
 duplicate.
 
+## Two hosts, one deployment (2026-09-12)
+
+`41prompts.ai` serves the public product; `app.41prompts.ai` serves everything behind a session. A
+request for the wrong kind of path on either is **301**ed to the same path on the other, so a search
+engine settles on one host per page. Canonical URLs and `sitemap.xml` name the apex only.
+
+The rule lives in `apps/web/lib/site/hosts.ts` and nowhere else — the proxy redirects from it,
+`robots.ts` disallows from it, and a test walks every route in `app/` to check each one is classified.
+
+### ⚠️ The session cookie now spans the parent domain
+
+To let the apex see a session created on `app.` — which is what makes the landing nav say "Go to
+dashboard" without a flash — the session cookie carries `Domain=.41prompts.ai`.
+
+**Every host under that domain receives it.** Today that is the apex, `app.`, and `staging.`. Any
+subdomain added in future — a status page, a docs host, a marketing experiment, anything a third party
+runs for us — can read a signed-in session cookie. **Adding a subdomain of `41prompts.ai` is now a
+security decision.** If a host does not need the session, it should live somewhere else entirely.
+
+The sharpest instance today: **staging is a subdomain of the production domain**, so a browser holding
+a production session sends that cookie to `staging.41prompts.ai`. Staging cannot *use* it (different
+database, different `BETTER_AUTH_SECRET`), but it receives it, and staging is the less-defended box.
+Moving staging to its own registrable domain would remove that, and is worth doing before anything
+sensitive is behind the session.
+
+What did **not** change, which was worth checking rather than assuming: Better Auth 1.7.2 prefixes this
+cookie `__Secure-`, never `__Host-` (`HOST_COOKIE_PREFIX` exists in its source and is never applied).
+`__Secure-` permits a `Domain`, so **the prefix stays, the cookie name is unchanged, and `Secure`,
+`HttpOnly` and `SameSite=Lax` are all untouched**. The only attribute added is `Domain`. Sign-out
+expires the cookie with the same attributes, so it dies on every host at once.
+
+### Coolify variables
+
+**Production** (application `d180rye1…`):
+
+| variable | value |
+|---|---|
+| `PUBLIC_SITE_URL` | `https://41prompts.ai` |
+| `BETTER_AUTH_URL` | `https://app.41prompts.ai` |
+| `SESSION_COOKIE_DOMAIN` | `.41prompts.ai` |
+
+**Staging** (application `pboa5wxr…`):
+
+| variable | value |
+|---|---|
+| `PUBLIC_SITE_URL` | `https://staging.41prompts.ai` |
+| `BETTER_AUTH_URL` | `https://app-staging.41prompts.ai` |
+| `SESSION_COOKIE_DOMAIN` | `.staging.41prompts.ai` |
+
+Staging's cookie domain is deliberately **not** `.41prompts.ai`. Sharing it would put a staging session
+cookie on the production hosts under the same name, and signing in on one would overwrite the other.
+
+> `app-staging.41prompts.ai` rather than `app.staging.41prompts.ai`: Let's Encrypt issues for both, but
+> a cookie scoped to `.staging.41prompts.ai` is only sent to hosts *under* `staging.41prompts.ai` —
+> which `app-staging.41prompts.ai` is not. **If the apex-to-app session must work on staging too, use
+> `app.staging.41prompts.ai` and add that DNS record instead.** Both are listed below; pick one.
+
+### DNS
+
+| record | type | value |
+|---|---|---|
+| `app.41prompts.ai` | A | `3.97.92.244` *(already exists)* |
+| `41prompts.ai` | A | `3.97.92.244` *(already exists)* |
+| `app.staging.41prompts.ai` | A | `3.97.92.244` **← add this one** |
+
+Add the host to the staging application's domains in Coolify so Traefik routes it and issues a
+certificate.
+
+### OAuth callback URLs
+
+Both providers need the **`app.` host**, because that is where `BETTER_AUTH_URL` points and therefore
+where the callback lands. Add these; the existing ones can be removed once the new ones are confirmed.
+
+**Google** (APIs & Services → Credentials → the OAuth 2.0 client → Authorised redirect URIs):
+
+```
+https://app.41prompts.ai/api/auth/callback/google
+https://app.staging.41prompts.ai/api/auth/callback/google
+```
+
+**GitHub** (Settings → Developer settings → OAuth Apps → the app → Authorization callback URL):
+
+```
+https://app.41prompts.ai/api/auth/callback/github
+```
+
+> GitHub OAuth apps accept **one** callback URL each, so staging needs its own app — that is already
+> how staging and production are separated today, and only the URL changes.
+
 ## Why some things are the way they are
 
 - **`postgres`, `web`, and its published ports are bound to `127.0.0.1`, not the open internet.** `ufw` (step 4)

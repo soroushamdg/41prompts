@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { exampleFor, runningExample, RUNNING_EXAMPLE_NAME } from "@/lib/site/article-examples";
 import { FINDINGS_IN_ORDER } from "@/lib/site/finding-copy";
-import { SiteFooter, SiteNav } from "../../site-chrome";
+import { SiteFooter, SiteNavWithSession } from "../../site-chrome";
 
 export const metadata: Metadata = {
   title: "What your prompt does not check · 41Prompts",
@@ -37,7 +37,7 @@ export default function ArticlePage() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <SiteNav />
+      <SiteNavWithSession />
 
       <main className="prose-page" id="main">
         <article>

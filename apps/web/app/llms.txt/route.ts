@@ -16,8 +16,8 @@ import { siteOrigin } from "@/lib/site/url";
  */
 export const dynamic = "force-dynamic";
 
-export function GET(): Response {
-  const origin = siteOrigin();
+export async function GET(): Promise<Response> {
+  const origin = await siteOrigin();
 
   const findings = FINDINGS_IN_ORDER.map(([, copy]) => `- **${copy.name}.** ${copy.summary}`).join("\n");
 
