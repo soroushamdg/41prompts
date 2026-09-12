@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: "%s"
     },
     description:
-      "Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, nothing stored.",
+      "Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, and your prompt is not saved.",
     openGraph: {
       type: "website",
       siteName: "41Prompts",

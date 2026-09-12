@@ -8,7 +8,7 @@ import { randomBytes } from "node:crypto";
  *
  * - **A query string** (`/decompile?prompt=…`) puts the prompt in browser history, in the `Referer`
  *   of any outbound click, in proxy access logs and — once EPIC-015 wires PostHog — in analytics. A
- *   page whose own copy says nothing is stored must not put the prompt in a URL. It also breaks past
+ *   page whose own copy says the prompt is not saved must not put it in a URL. It also breaks past
  *   roughly 8 KB.
  * - **A cookie** is 4 KB, and rides on every subsequent request.
  * - **Posting to the page** is not a thing: an App Router page cannot read a request body, and a

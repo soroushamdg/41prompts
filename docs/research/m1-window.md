@@ -95,12 +95,12 @@ reason, so the exception cannot quietly become the rule.
 
 Neither changes what the decompiler does, beyond the landing copy shipped with the second.
 
-**One thing the second change surfaced and did not fix**, because it needs a ruling rather than an
-edit: `v0.2.0` made **"nothing is stored" false** in eleven user-facing strings. A row per run now
-exists — a keyed hash, two integers, a timestamp, and nothing about the prompt. "Your prompt is not
-stored" is still true; "nothing is stored" is not. Listed in full in
-`docs/reports/host-split-report.md` §4. Correcting a claim that is no longer true is a defect fix, not
-a product change, so it qualifies under the rule whenever the wording is decided.
+**A third change, on 2026-09-12: the storage copy.** The audit above found "nothing is stored" in
+eleven user-facing strings, which `v0.2.0` had made false. Ruled and applied — the claim is now about
+the prompt ("your prompt is not saved") or deleted, never about the system. **Correcting a claim that
+is no longer true is a defect fix, not a product change**, so it needs no exception; it ships without
+a tag because the copy is inert until the host split is configured. Listed in full in
+`docs/reports/host-split-report.md` §4.
 
 ## Held until the window closes
 

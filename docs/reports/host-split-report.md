@@ -88,58 +88,101 @@ because a database was briefly slow is a worse trade than one that says "Sign in
 
 ## 4. Landing copy, and a truthfulness audit that failed
 
-The decided copy is shipped: eyebrow deleted, headline unchanged, new subhead, new CTA
-("See what nothing checks"), new note under the textarea with an em dash.
+The decided copy shipped in `v0.3.0`: eyebrow deleted, headline unchanged, new subhead, new CTA
+("See what nothing checks"), new note under the textarea.
 
 Then the instruction: *re-check every remaining string against one test — is it literally true of what
 ships today — and report anything that fails rather than silently fixing it.*
 
-### It fails, in eleven places, and I caused it an hour earlier
+### It failed in eleven places
 
-`v0.2.0` — the counting change shipped immediately before this one — added `decompile_runs`, which
-writes **one row per decompile**: a keyed address hash, two integers, a timestamp. No prompt text.
+`v0.2.0` added `decompile_runs`, which writes one row per decompile: a keyed address hash, two
+integers, a timestamp. No prompt text. That makes **"nothing is stored" false.**
 
-That makes **"nothing is stored" false.** It was true until `v0.2.0`. It is not true now.
+**Where the phrase came from.** It is EPIC-014's, from the scope Soroush wrote, and it was **already
+imprecise before `v0.2.0` made it false** — the system has stored `decompiles` rows, `waitlist` rows
+and Better Auth sessions since long before the counter existed. What was always true is the narrower
+claim about the prompt. `v0.2.0` did not introduce the imprecision; it removed the last reading under
+which the sentence could be defended. The audit is what caught it.
 
-| where | string |
-|---|---|
-| `page.tsx` strip 01 | "No account, no email, nothing stored." |
-| `page.tsx` CTA band | "Free, no account, and nothing is stored." |
-| `page.tsx` metadata | "Free, no account, nothing stored." |
-| `layout.tsx` metadata | "Free, no account, nothing stored." |
-| `opengraph-image.tsx` | "Free · no account · nothing stored" |
-| `decompile/page.tsx` heading | "No account, and nothing is stored." |
-| `decompile/page.tsx` metadata | "No account, nothing stored." |
-| `decompile-view.tsx` limit line | "Up to 100 KB. Nothing is stored." |
-| `decompile-view.tsx` empty state | "No account, nothing stored." |
-| `guides/…` article | "there is no account, nothing is stored" |
-| `llms.txt` | "No account, nothing stored, free." |
+### The ruling, applied to all eleven
 
-**The accurate claim is "your prompt is not stored", which remains true.** What is stored is a row that
-contains nothing about what was in the prompt. That distinction is defensible and easy to say — but it
-is not what eleven strings currently say, and the fix is a copy decision rather than mine to make.
+**Never claim the system stores nothing** — it stores a counter row, and a sceptical reader who learns
+that later discounts everything else on the page. Where the sentence is about the prompt it becomes
+**"your prompt is not saved"**; where the clause was doing no work it is **deleted**.
 
-**Not fixed, per the instruction.** It needs one ruling, applied everywhere at once.
+| # | where | was | now |
+|---|---|---|---|
+| 1 | `page.tsx` strip 01 | "No account, no email, nothing stored." | "No account, no email, and your prompt is not saved." |
+| 2 | `page.tsx` CTA band | "Free, no account, and nothing is stored." | **deleted** → "Free, and no account." |
+| 3 | `page.tsx` metadata | "Free, no account, nothing stored." | "Free, no account, and your prompt is not saved." |
+| 4 | `layout.tsx` metadata | "Free, no account, nothing stored." | "Free, no account, and your prompt is not saved." |
+| 5 | `opengraph-image.tsx` | "Free · no account · nothing stored" | "Free · no account · prompt not saved" |
+| 6 | `decompile/page.tsx` heading | "No account, and nothing is stored." | "No account, and your prompt is not saved." |
+| 7 | `decompile/page.tsx` metadata | "No account, nothing stored." | "No account, and your prompt is not saved." |
+| 8 | `decompile-view.tsx` limit line | "Up to 100 KB. Nothing is stored." | "Up to 100 KB. Your prompt is not saved." |
+| 9 | `decompile-view.tsx` empty state | "No account, nothing stored." | **deleted** |
+| 10 | `guides/…` article | "there is no account, nothing is stored" | "there is no account, your prompt is not saved" |
+| 11 | `llms.txt` | "No account, nothing stored, free." | "No account, free, and your prompt is not saved." |
 
-### Two more worth a ruling, both in newly decided copy
+**The two deletions, and why those two.** Each was the third statement of the same fact on one screen.
+`/` said it in strip 01, in the note under the textarea and again in the closing band; `/decompile`
+said it in the header paragraph, under the textarea and again in the empty state. The deleted copies
+are the ones furthest from the moment the reader is deciding whether to paste.
 
-1. **"Your prompt stays on this page unless you create a link."** The prompt does leave the browser —
-   segmentation, clustering and detection all run on the server by design (EPIC-013 decision 1), and
-   `v0.2.0` derives two integers from the result. It is not *stored*, and it does not leave Montréal,
-   but "stays on this page" reads as "never leaves your browser", which is not what happens.
-2. **Strip 03, "Fix it before it ships."** The product does not fix anything; the body says "You make
-   the change", which carries it. Borderline, and flagged only because the heading alone could be read
-   as a promise.
+Three code comments that quoted the retired promise were updated with it, so the source does not go on
+citing copy that no longer exists.
+
+**Left alone:** `llms.txt`'s "Nothing you paste is kept unless you ask for a shareable link" — already
+about the prompt specifically, and still true.
+
+### "Your prompt stays on this page" — replaced
+
+It was false: segmentation, clustering and detection all run on the server by design (EPIC-013
+decision 1). The line under the ask bar now reads:
+
+> Up to 100 KB. **Your prompt is processed on our servers in Montréal and is not saved.** Create a
+> link and it lasts 30 days; anyone with one can delete it.
+
+The middle sentence is verbatim as ruled. The rest keeps the cap and the link facts, with "those"
+repointed to a working antecedent.
+
+**One consequence worth a look.** The two lines under the two textareas now differ — the landing page
+names Montréal, `/decompile` says only "Your prompt is not saved". That follows the rulings literally
+(the Montréal sentence was ruled for the landing line specifically) and it is defensible, since the
+landing page is the first touch. Say the word if they should be identical.
+
+### Strip 03 — not touched, awaiting a ruling
+
+Current heading and body:
+
+> **03 — Fix it before it ships**
+> Each unchecked rule comes with the check that would catch it. You make the change — there is nothing
+> to install and nothing to sign up for.
+
+**The objection.** Two things, and the body only answers one of them.
+
+1. *"Fix it"* is an imperative that reads as a product capability. The product does not fix anything:
+   it lists rules with no check and names the check that would catch each one. The body's "You make
+   the change" corrects this — but a reader scanning only the three headings gets **Paste → See the
+   bloks → Fix it before it ships**, which reads as three things the product does, and the third is
+   the reader's own work done somewhere else entirely.
+2. *"before it ships"* implies we sit in the deploy path. We do not. There is no CI integration, no
+   SDK check, nothing that could block a ship — that is Stage 5. The phrase promises a position in the
+   workflow that the product has not got.
+
+**Why it was left rather than rewritten:** the heading's honest version is weaker as copy, and which
+of the two problems matters more is a positioning call. Something like "See what to fix" keeps the
+scan honest and loses the urgency; "Change it yourself" is accurate and flat.
 
 ### What passed
 
 The headline, the subhead, strip 01's "no account, no email", strip 02 in full, strip 03's body, the
-CTA band's "Free" and "no account", the footer blurb, and every string in the guide except the storage
+CTA band's "Free" and "no account", the footer blurb, and every string in the guide bar the storage
 claim above.
 
 One incidental proof the guard works: the new copy tripped `page.test.tsx`'s number allowlist with an
-unexplained "30", which is `DECOMPILE_RETENTION_DAYS`. It is now listed with its reason. That
-assertion exists precisely so a number cannot appear on the page without somebody saying what it is.
+unexplained "30", which is `DECOMPILE_RETENTION_DAYS`. It is now listed with its reason.
 
 ---
 

@@ -111,7 +111,7 @@ export function DecompileView({
           <Button type="submit" name="sample" value="1" disabled={pending}>
             Use a sample prompt
           </Button>
-          <span className="decompile-limit">Up to {kilobytes(MAX_INPUT_BYTES)}. Nothing is stored.</span>
+          <span className="decompile-limit">Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt is not saved.</span>
         </div>
       </form>
 
@@ -135,7 +135,7 @@ export function DecompileView({
           </p>
           <p className="decompile-empty-body">
             It comes back as named bloks, mapped to the exact text they came from, with anything worth
-            knowing about it listed underneath. No account, nothing stored.
+            knowing about it listed underneath.
           </p>
         </div>
       )}
