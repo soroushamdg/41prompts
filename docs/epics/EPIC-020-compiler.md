@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-020 is the current epic.** A mirror of `docs/epics/EPIC-020-compiler.md`; when the two
-disagree, that file wins.
-
+# EPIC-020: Blok model and per-blok compiler
 Stage: 2 · Depends on: EPIC-011b · Size: M
 
 ## Goal
