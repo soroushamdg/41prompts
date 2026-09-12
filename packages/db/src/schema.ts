@@ -1,5 +1,5 @@
 import { boolean, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { newApiKeyId, newDecompileId, newProjectId, newRunBudgetId, newWaitlistId } from "./ids";
+import { newApiKeyId, newDecompileId, newDecompileRunId, newProjectId, newRunBudgetId, newWaitlistId } from "./ids";
 
 // Better Auth's own tables. Column keys match Better Auth's internal field names exactly
 // (required for the Drizzle adapter to bind); SQL column names are snake_case per CLAUDE.md.
@@ -164,6 +164,34 @@ export const decompiles = pgTable("decompiles", {
  * `unsubscribedAt` rather than a delete: somebody who unsubscribes should stay unsubscribed if they
  * later land on the form again, and a deleted row cannot remember that.
  */
+/**
+ * One row per decompile that actually ran. **This table is what GATE 1 reads.**
+ *
+ * M1's criterion — 300 unique decompiles in thirty days — was measured through PostHog until
+ * 2026-09-12. Counting anonymous EU and Québec visitors by default, with a cookie and a stable id,
+ * through a processor outside Canada, is not defensible under GDPR or Law 25, and a consent banner
+ * would have made the number a measure of who accepts banners. So the measurement moved here:
+ *
+ * - **No cookie.** Nothing is written to the visitor's browser to make this count.
+ * - **No third party.** The row never leaves our own Postgres, in Montréal.
+ * - **No address.** The key is the same keyed hash `decompiles` uses — per-deployment salt, not
+ *   reversible, and meaningless outside this deployment.
+ * - **No content.** Two integers about the shape of the result, and nothing about what was in it.
+ *
+ * `bloks` and `findings` are here because EPIC-084 needs the blok-count distribution and this is the
+ * only place it will ever exist; they are counts, not text.
+ */
+export const decompileRuns = pgTable("decompile_runs", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => newDecompileRunId()),
+  /** Null when the address was not knowable. Those rows still count toward totals, not uniques. */
+  ipHash: text("ip_hash"),
+  bloks: integer("bloks").notNull(),
+  findings: integer("findings").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const waitlist = pgTable("waitlist", {
   id: text("id")
     .primaryKey()

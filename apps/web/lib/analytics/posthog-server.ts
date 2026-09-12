@@ -26,14 +26,18 @@ function getClient(): PostHog | undefined {
 /**
  * Whether this visitor may be counted.
  *
- * **EPIC-015 changed the default for anonymous production traffic, and the reason matters.**
- * EPIC-004 decision 8 made it opt-in: no session, production, no cookie meant no capture, because
- * there was no banner yet and nothing to measure. EPIC-015 is the thirty-day window that decides
- * whether the wedge is real, every visitor in it is anonymous and in production, and opt-in would
- * have made the funnel read **zero for thirty days** — a measurement that looks like a result.
+ * **Opt-in, and the round trip is worth recording.** EPIC-004 made it opt-in. EPIC-015 briefly made
+ * it opt-out, because the M1 funnel ran through here and opt-in would have made it read zero for
+ * thirty days. That lasted a day: counting anonymous EU and Québec visitors by default, with a
+ * cookie and a stable id, through a processor outside Canada, is not defensible under GDPR or Law 25
+ * whatever it does for the number — and a banner is the wrong fix, because a number gathered behind
+ * one measures who accepts banners.
  *
- * EPIC-015 decision 9 settles the direction: *"a visitor who **declines** is not counted"*. Declining
- * is an act, so the default is counted, and declining is honoured three ways:
+ * **The measurement moved instead.** M1 is now counted server-side into our own Postgres
+ * (`lib/decompile/record-run.ts`): no cookie, no third party, nothing leaving Montréal. PostHog stays
+ * wired and supplementary, and fires only for somebody who has explicitly said yes.
+ *
+ * Declining is still honoured three ways, and still outranks everything:
  *
  * - **`DNT: 1`** — a browser-level "do not track", respected even though it is advisory.
  * - **`Sec-GPC: 1`** — Global Privacy Control, the one with actual legal weight in some
@@ -41,8 +45,6 @@ function getClient(): PostHog | undefined {
  * - **A consent cookie set to anything but `granted`** — EPIC-017's banner writes this; until it
  *   exists nobody has one, which is the whole point of the default.
  *
- * The consequence, and it belongs in the report rather than in a footnote: **the 300 will be an
- * undercount.** Anyone sending DNT or GPC is invisible to the funnel by design.
  */
 export function hasAnalyticsConsent(options: {
   isSignedIn: boolean;
@@ -66,8 +68,9 @@ export function hasAnalyticsConsent(options: {
   if (options.isSignedIn) {
     return true;
   }
-  // The EPIC-015 change: an anonymous visitor with no stated preference is counted.
-  return true;
+  // **Explicit consent, and nothing less.** An anonymous visitor who has not said yes is not sent to
+  // PostHog at all. See the note above for why the opposite default lasted less than a day.
+  return options.consentCookie === "granted";
 }
 
 /** The cookie EPIC-017's banner will write. Named here so both epics use one spelling. */

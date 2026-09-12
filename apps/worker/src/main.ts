@@ -1,7 +1,7 @@
 import { createLogger, withRequestId } from "@41prompts/logger";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
-import { purgeDecompiles } from "./jobs/purge-decompiles";
+import { purgeDecompiles, purgeRunCounts } from "./jobs/purge-decompiles";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
 import { initSentry, Sentry } from "./sentry";
 
@@ -54,10 +54,13 @@ export async function main(): Promise<void> {
     await withRequestId(async (jobId) => {
       try {
         const purged = await purgeDecompiles(db);
+        // Riding the same schedule rather than taking its own queue: both are retention sweeps, both
+        // are idempotent, and a second cron entry is a second thing that can silently stop.
+        const purgedRuns = await purgeRunCounts(db);
         // The count is logged on every run, including zero: the acceptance criterion for this job is
         // that it is *observed running*, and a job that only speaks when it deletes something is
         // indistinguishable from a job that is not scheduled.
-        logger.info({ jobId, purged }, `${PURGE_DECOMPILES_QUEUE}: purged ${purged}`);
+        logger.info({ jobId, purged, purgedRuns }, `${PURGE_DECOMPILES_QUEUE}: purged ${purged} decompiles, ${purgedRuns} run counts`);
       } catch (error) {
         logger.error({ jobId, err: error }, `${PURGE_DECOMPILES_QUEUE} failed`);
         Sentry.captureException(error);

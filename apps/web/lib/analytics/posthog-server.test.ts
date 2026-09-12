@@ -27,14 +27,14 @@ describe("hasAnalyticsConsent", () => {
     expect(hasAnalyticsConsent({ isSignedIn: true })).toBe(true);
   });
 
-  it("counts an anonymous visitor in production who has stated no preference", () => {
-    // **EPIC-015 reversed this**, and the old assertion is worth remembering: it used to be `false`,
-    // which was right when there was nothing to measure and no banner. Every visitor in the
-    // thirty-day window is anonymous and in production, so opt-in would have produced a funnel
-    // reading zero for thirty days — a measurement that looks like a result. Decision 9: a visitor
-    // who *declines* is not counted, and declining is an act.
+  it("does not send an anonymous production visitor to PostHog without explicit consent", () => {
+    // This flipped twice in a day and the round trip is the point. EPIC-004: opt-in. EPIC-015: opt-out,
+    // because the M1 funnel ran through here and opt-in made it read zero. Then: back to opt-in,
+    // because counting EU and Québec visitors by default through a processor outside Canada is not
+    // defensible whatever it does for the number — and the measurement moved to our own Postgres
+    // instead, where no cookie and no third party are involved. PostHog is supplementary now.
     process.env.DEPLOY_ENV = "production";
-    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(true);
+    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(false);
   });
 
   it("allows an anonymous visitor in production once consent is granted", () => {
@@ -57,9 +57,11 @@ describe("hasAnalyticsConsent", () => {
   it("treats only the exact values as declining, not any truthy header", () => {
     process.env.DEPLOY_ENV = "production";
     // Browsers send "0" for "tracking is fine" and browsers that have never been asked send nothing.
-    expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: "0" })).toBe(true);
-    expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: null })).toBe(true);
-    expect(hasAnalyticsConsent({ isSignedIn: false, globalPrivacyControl: null })).toBe(true);
+    // Neither is a *decline*, so neither should block a visitor who has separately said yes.
+    const granted = { isSignedIn: false, consentCookie: "granted" };
+    expect(hasAnalyticsConsent({ ...granted, doNotTrack: "0" })).toBe(true);
+    expect(hasAnalyticsConsent({ ...granted, doNotTrack: null })).toBe(true);
+    expect(hasAnalyticsConsent({ ...granted, globalPrivacyControl: null })).toBe(true);
   });
 
   it("allows an anonymous visitor outside production regardless of consent", () => {
