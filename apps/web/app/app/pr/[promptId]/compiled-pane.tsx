@@ -169,18 +169,21 @@ export function CompiledPane({
                   >
                     {SPAN_SENTENCE[piece.presentation]}
                   </SpanStateNote>
-                  {piece.presentation === "in-step" && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => {
-                        setDraft(piece.text);
-                        setEditing(piece.blokId);
-                      }}
-                    >
-                      Edit by hand
-                    </Button>
-                  )}
+                  {/* Available in every state, not only `in-step`. The first version offered it
+                      only for an untouched span, which meant that once you had written a span you
+                      could never write it again — the only way back into your own text was to
+                      discard it with Update from blok. Found by the verbatim-storage test, which
+                      reopens the editor to read back what it stored. */}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setDraft(piece.text);
+                      setEditing(piece.blokId);
+                    }}
+                  >
+                    {piece.presentation === "in-step" ? "Edit by hand" : "Edit again"}
+                  </Button>
                   {entry !== undefined && (
                     <Button size="sm" onClick={() => void undo(entry)}>
                       Undo update from blok

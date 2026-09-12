@@ -148,7 +148,7 @@
   background: transparent;
   color: inherit;
   padding: 1px 0;
-  border-radius: 2px;
+  border-radius: var(--radius-card);
 }
 .compiled-span[data-linked="true"] {
   background: var(--color-ink);
@@ -167,7 +167,7 @@
   font-size: 11px;
   padding: 0 5px;
   border: var(--border-hairline) solid var(--color-line);
-  border-radius: 2px;
+  border-radius: var(--radius-card);
   color: var(--color-ink-2);
   background: var(--color-surface);
   white-space: nowrap;
@@ -209,5 +209,21 @@
   .compiled-layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
+  }
+}
+
+/* Touch targets in the compiled pane, the same answer `decompile.css` gives its source map: a span
+   is an inline run of the prompt, so it cannot have a height of its own — the line it sits on has to
+   provide one. Airy only where touch is the interaction; the desktop layout keeps normal leading. */
+@media (max-width: 560px) {
+  .compiled-text {
+    line-height: 4;
+  }
+  .compiled-span {
+    padding: 16px 0;
+  }
+  .compiled-panebar .btn,
+  .span-state-note .btn {
+    min-height: 46px;
   }
 }
