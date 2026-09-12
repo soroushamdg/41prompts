@@ -59,7 +59,7 @@ export default function HomePage() {
               <div className="askbar-foot">
                 <span className="askbar-note">
                   Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt stays on this page unless you create
-                  a link — those last 30 days and anyone with one can delete it.
+                  a link; those last 30 days and anyone with one can delete it.
                 </span>
                 <Button type="submit" variant="primary">
                   See what nothing checks

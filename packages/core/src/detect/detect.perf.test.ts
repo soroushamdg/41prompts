@@ -51,6 +51,11 @@ function fastest(bloks: readonly Blok[], source: string, runs = 5): number {
  * number, and say which and why. Do not widen the bar."* **Demoted**, and the bar is untouched — the
  * same treatment the 1 MB case in this file already had, for the same reason.
  *
+ * **A generous timeout on each, not a widened bar.** None of these assert a duration any more, so a
+ * five-second vitest timeout was measuring the runner a second time — the 1 MB case takes over two
+ * seconds on a fast machine and timed out on CI immediately after the demotion. The growth-exponent
+ * gate below already carries one for the same reason.
+ *
  * **What that costs, stated rather than glossed:** the growth exponent below catches an algorithmic
  * regression but not a constant-factor one. Something three times slower at every size would now pass
  * everything here. The fix is a budget calibrated against a machine-speed baseline rather than
@@ -58,7 +63,7 @@ function fastest(bloks: readonly Blok[], source: string, runs = 5): number {
  * the window closes", because it is worth doing properly rather than in a hurry.
  */
 describe("detect() throughput", () => {
-  it("reports the 100 KB detection timing", () => {
+  it("reports the 100 KB detection timing", { timeout: 60_000 }, () => {
     const source = sizedPrompt(102_400);
     const bloks = cluster(segment(source));
     const cold = timeDetect(bloks, source);
@@ -70,7 +75,7 @@ describe("detect() throughput", () => {
     expect(warm).toBeGreaterThan(0);
   });
 
-  it("reports the whole pipeline on a 100 KB prompt", () => {
+  it("reports the whole pipeline on a 100 KB prompt", { timeout: 60_000 }, () => {
     const source = sizedPrompt(102_400);
     const run = (): number => {
       const started = performance.now();
@@ -85,7 +90,7 @@ describe("detect() throughput", () => {
     expect(warm).toBeGreaterThan(0);
   });
 
-  it("reports the 1 MB timing without gating on it", () => {
+  it("reports the 1 MB timing without gating on it", { timeout: 60_000 }, () => {
     const source = sizedPrompt(1_048_576);
     const bloks = cluster(segment(source));
     const warm = fastest(bloks, source, 3);
