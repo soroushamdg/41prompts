@@ -7,10 +7,12 @@ import { findSegmentFixture } from "../segment/fixtures/index.js";
 import { makeRandom } from "../segment/fixtures/generate.js";
 import { segment } from "../segment/segment.js";
 import { compile } from "./compile.js";
+import { drift } from "./drift.js";
+import { editSpan } from "./edit-span.js";
 import { COMPILE_FIXTURES, compileFixture } from "./fixtures/prompts.js";
 import { BLOK_SEPARATOR } from "./hash.js";
 import { checkCompiledInvariants } from "./invariants.js";
-import type { PromptBlok, SpanCache } from "./types.js";
+import type { KeptSpan, KeptSpans, PromptBlok, SpanCache } from "./types.js";
 
 /**
  * Generated blok sets, from the shared seeded generator.
@@ -269,5 +271,133 @@ describe("compile", () => {
       compile(compileFixture("reordered").bloks, { cache });
       expect(cache.size).toBe(size);
     });
+  });
+});
+
+/**
+ * **Decision 5 of EPIC-021a, and the test written before the option it tests.**
+ *
+ * The failure it exists to prevent is silent: somebody edits a span by hand, adds an unrelated blok,
+ * the prompt recompiles, the text looks plausible, and the sentence they wrote is gone. Nothing
+ * throws and nothing looks wrong. It is the only failure in that epic that loses work rather than
+ * inconveniencing someone, so the test came first.
+ */
+describe("a hand edit survives adding an unrelated blok", () => {
+  const FIVE = compileFixture("five-bloks").bloks;
+  const HAND_WRITTEN = "Reply in at most 60 words, and never hedge.";
+
+  /** What the canvas will hold: the two things a hand edit *is*, per blok. */
+  function keepFrom(compiled: ReturnType<typeof compile>): KeptSpans {
+    const kept = new Map<string, KeptSpan>();
+    for (const span of compiled.spans) {
+      if (span.state === "edited by hand") {
+        kept.set(span.blokId, { text: compiled.text.slice(span.start, span.textEnd), hash: span.hash });
+      }
+    }
+    return kept;
+  }
+
+  it("keeps the text, the state and the hash when a blok is added", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const was = edited.spans.find((span) => span.blokId === "b2")!;
+
+    const withExtra = [...FIVE, { id: "b9", kind: "constraint" as const, order: 25, text: "Always sign off." }];
+    const after = compile(withExtra, { keep: keepFrom(edited) });
+
+    const span = after.spans.find((candidate) => candidate.blokId === "b2")!;
+    expect(after.text.slice(span.start, span.textEnd)).toBe(HAND_WRITTEN);
+    expect(span.state).toBe("edited by hand");
+    // The retained hash is what keeps `drift()`'s second fact true afterwards — without it, "the
+    // blok changed since you edited this" is unanswerable after any recompile.
+    expect(span.hash).toBe(was.hash);
+  });
+
+  it("still reports both drift facts correctly after the recompile", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const withExtra = [...FIVE, { id: "b9", kind: "constraint" as const, order: 25, text: "Always sign off." }];
+    const after = compile(withExtra, { keep: keepFrom(edited) });
+
+    // The blok has not moved: edited by hand, and nothing is out of date.
+    const quiet = drift(after, withExtra).spans.find((row) => row.blokId === "b2")!;
+    expect([quiet.state, quiet.textDiffersFromBlok, quiet.blokChangedSinceSpan]).toEqual([
+      "edited by hand",
+      true,
+      false
+    ]);
+
+    // And when the blok does move, the second fact turns true — which is only possible because the
+    // hash survived the recompile.
+    const movedOn = withExtra.map((blok) => (blok.id === "b2" ? { ...blok, text: "Reply in at most 200 words." } : blok));
+    const loud = drift(after, movedOn).spans.find((row) => row.blokId === "b2")!;
+    expect(loud.blokChangedSinceSpan).toBe(true);
+  });
+
+  it("the new blok compiles normally, and every other span is untouched", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const withExtra = [...FIVE, { id: "b9", kind: "constraint" as const, order: 25, text: "Always sign off." }];
+    const after = compile(withExtra, { keep: keepFrom(edited) });
+
+    const added = after.spans.find((span) => span.blokId === "b9")!;
+    expect(after.text.slice(added.start, added.textEnd)).toBe("Always sign off.");
+    expect(added.state).toBe("compiled");
+
+    for (const span of after.spans.filter((s) => s.blokId !== "b2" && s.blokId !== "b9")) {
+      const was = edited.spans.find((candidate) => candidate.blokId === span.blokId)!;
+      expect(span.hash).toBe(was.hash);
+      expect(after.text.slice(span.start, span.textEnd)).toBe(edited.text.slice(was.start, was.textEnd));
+    }
+    expect(checkCompiledInvariants(after, withExtra)).toEqual([]);
+  });
+
+  it("survives deleting a different blok, and reordering, for the same reason", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const kept = keepFrom(edited);
+
+    const withoutB3 = FIVE.filter((blok) => blok.id !== "b3");
+    const reordered = FIVE.map((blok) => (blok.id === "b4" ? { ...blok, order: 5 } : blok));
+
+    for (const [name, bloks] of [["delete", withoutB3], ["reorder", reordered]] as const) {
+      const after = compile(bloks, { keep: kept });
+      const span = after.spans.find((candidate) => candidate.blokId === "b2")!;
+      expect(after.text.slice(span.start, span.textEnd), name).toBe(HAND_WRITTEN);
+      expect(span.state, name).toBe("edited by hand");
+    }
+  });
+
+  it("keeps nothing for a blok that is no longer in the set, rather than resurrecting it", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const withoutB2 = FIVE.filter((blok) => blok.id !== "b2");
+    const after = compile(withoutB2, { keep: keepFrom(edited) });
+
+    expect(after.spans.map((span) => span.blokId)).not.toContain("b2");
+    expect(after.text).not.toContain(HAND_WRITTEN);
+    expect(checkCompiledInvariants(after, withoutB2)).toEqual([]);
+  });
+
+  it("ignores a kept entry for a blok that has become expected, since it emits no text at all", () => {
+    const edited = editSpan(compile(FIVE), "b2", HAND_WRITTEN);
+    const nowExpected = FIVE.map((blok) => (blok.id === "b2" ? { ...blok, kind: "expected" as const } : blok));
+    const after = compile(nowExpected, { keep: keepFrom(edited) });
+
+    expect(after.text).not.toContain(HAND_WRITTEN);
+    expect(after.checks.map((check) => check.blokId)).toContain("b2");
+    expect(checkCompiledInvariants(after, nowExpected)).toEqual([]);
+  });
+
+  it("holds over generated blok sets: an edit survives any one blok being added", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      const bloks = generateBloks(seed);
+      const target = bloks.find((blok) => blok.kind !== "expected");
+      if (target === undefined) continue;
+
+      const edited = editSpan(compile(bloks), target.id, `hand written ${seed}`);
+      const withExtra = [...bloks, { id: "added", kind: "context" as const, order: 3, text: "new" }];
+      const after = compile(withExtra, { keep: keepFrom(edited) });
+
+      const span = after.spans.find((candidate) => candidate.blokId === target.id)!;
+      expect(after.text.slice(span.start, span.textEnd), `seed ${seed}`).toBe(`hand written ${seed}`);
+      expect(span.state, `seed ${seed}`).toBe("edited by hand");
+      expect(checkCompiledInvariants(after, withExtra), `seed ${seed}`).toEqual([]);
+    }
   });
 });
