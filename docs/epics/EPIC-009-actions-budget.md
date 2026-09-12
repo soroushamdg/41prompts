@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-009 is the current epic.** A mirror of `docs/epics/EPIC-009-actions-budget.md`; when the
-two disagree, that file wins.
-
+# EPIC-009: Actions budget
 Stage: 0 (late) · Depends on: EPIC-008 · Size: S
 
 ## Goal
