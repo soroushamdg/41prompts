@@ -1,8 +1,4 @@
-# CURRENT
-
-**EPIC-021b is the current epic.** A mirror of `docs/epics/EPIC-021b-compiled-pane.md`; when the
-two disagree, that file wins.
-
+# EPIC-021b: The compiled pane
 Stage: 2 · Depends on: EPIC-021a · Size: M
 
 ## Goal
