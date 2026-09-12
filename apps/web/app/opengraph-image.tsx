@@ -60,7 +60,7 @@ export default function OpengraphImage() {
           </div>
         </div>
 
-        <div style={{ fontSize: 22, color: "#6f6b62" }}>Free · no account · nothing stored</div>
+        <div style={{ fontSize: 22, color: "#6f6b62" }}>Free · no account · prompt not saved</div>
       </div>
     ),
     size

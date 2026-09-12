@@ -7,7 +7,7 @@ import { startDecompile } from "./start-actions";
 export const metadata: Metadata = {
   title: "41Prompts — see what is actually in your prompt",
   description:
-    "A prompt change ships and nothing checks it. Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, nothing stored.",
+    "A prompt change ships and nothing checks it. Paste a prompt and get it back as named bloks, with every rule that nothing checks called out. Free, no account, and your prompt is not saved.",
   alternates: { canonical: "/" }
 };
 
@@ -58,8 +58,9 @@ export default function HomePage() {
               />
               <div className="askbar-foot">
                 <span className="askbar-note">
-                  Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt stays on this page unless you create
-                  a link; those last 30 days and anyone with one can delete it.
+                  Up to {kilobytes(MAX_INPUT_BYTES)}. Your prompt is processed on our servers in
+                  Montréal and is not saved. Create a link and it lasts 30 days; anyone with one can
+                  delete it.
                 </span>
                 <Button type="submit" variant="primary">
                   See what nothing checks
@@ -75,8 +76,8 @@ export default function HomePage() {
               <p className="strip-number">01</p>
               <h2>Paste</h2>
               <p>
-                A prompt you already run in production, as it is. No account, no email, nothing
-                stored.
+                A prompt you already run in production, as it is. No account, no email, and your
+                prompt is not saved.
               </p>
             </li>
             <li className="strip-step">
@@ -101,7 +102,7 @@ export default function HomePage() {
         <section className="cta-band">
           <div className="site-wrap">
             <h2>Paste a prompt. See what is in it.</h2>
-            <p>Free, no account, and nothing is stored.</p>
+            <p>Free, and no account.</p>
             <div className="cta-band-actions">
               {/* An anchor wearing the button's clothes, not a Button — it navigates, so it must be
                   a link for the keyboard, the context menu and anyone middle-clicking it. */}

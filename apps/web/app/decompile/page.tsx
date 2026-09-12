@@ -9,7 +9,7 @@ import { DecompileView } from "./decompile-view";
 export const metadata: Metadata = {
   title: "Decompile a prompt · 41Prompts",
   description:
-    "Paste a prompt and get it back as named bloks, mapped to the exact text they came from, with what is worth knowing about it listed underneath. No account, nothing stored."
+    "Paste a prompt and get it back as named bloks, mapped to the exact text they came from, with what is worth knowing about it listed underneath. No account, and your prompt is not saved."
 };
 
 /**
@@ -48,7 +48,7 @@ export default async function DecompilePage({
         <h1>See what is actually in your prompt.</h1>
         <p>
           Paste it. It comes back as named bloks, each mapped to the exact text it came from, with
-          anything worth knowing about it underneath. No account, and nothing is stored.
+          anything worth knowing about it underneath. No account, and your prompt is not saved.
         </p>
       </header>
       {missed && (

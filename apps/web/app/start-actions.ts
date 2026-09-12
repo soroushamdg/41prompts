@@ -13,7 +13,7 @@ import { put } from "@/lib/landing/handoff";
  * **The text never enters the URL.** It goes into a single-use in-process handoff and an opaque id
  * travels instead; `lib/landing/handoff.ts` has the full reasoning, but the short version is that a
  * prompt in a query string ends up in browser history, in the `Referer` of any outbound click, in
- * proxy logs and eventually in analytics — on a page whose own copy says nothing is stored.
+ * proxy logs and eventually in analytics — on a page whose own copy says the prompt is not saved.
  *
  * Works with JavaScript off: this is a plain Server Action on a plain `<form>`, so the browser posts
  * it and follows the redirect on its own.

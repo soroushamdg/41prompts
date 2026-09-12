@@ -25,7 +25,7 @@ export async function GET(): Promise<Response> {
 
 > A workbench for the prompt layer. The part of it that works today is a decompiler: paste a prompt
 > and it comes back as named pieces — bloks — each mapped to the exact text it came from, with the
-> problems worth knowing about listed underneath. No account, nothing stored, free.
+> problems worth knowing about listed underneath. No account, free, and your prompt is not saved.
 
 ## What the decompiler does
 

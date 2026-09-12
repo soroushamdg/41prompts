@@ -80,7 +80,7 @@ export function BlokList({ bloks, activeBlokId, pinnedBlokId, onHover, onPin, on
    * Grouped by default, and **remembered nowhere**. No `localStorage`, no cookie, no URL parameter:
    * epic decision 9 says this route persists nothing, and a view preference is still something about
    * a person kept between visits. Somebody who wants source order can press the button again; that
-   * is a cheaper cost than the first stored thing on a page whose promise is "nothing is stored".
+   * is a cheaper cost than the first stored thing on a page that promises your prompt is not saved.
    */
   const [view, setView] = useState<View>("grouped");
 

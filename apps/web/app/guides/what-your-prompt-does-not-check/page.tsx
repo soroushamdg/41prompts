@@ -96,7 +96,7 @@ export default function ArticlePage() {
           <h2>Try it on your own</h2>
           <p>
             Paste a prompt you already run in production and see which of these it has. It takes one
-            paste — there is no account, nothing is stored, and there is nothing to install.
+            paste — there is no account, your prompt is not saved, and there is nothing to install.
           </p>
           <p>
             <a className="btn btn-pri article-cta" href="/decompile">
