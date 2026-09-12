@@ -2,6 +2,18 @@
 
 **Opens 2026-09-11 (Friday). Closes 2026-10-11 (Sunday).** Thirty days.
 
+Production went live with `v0.1.0` at **2026-09-12 00:17 UTC** — the evening of the 11th in Montréal,
+which is the date above. Before that tag, production had been serving a build with no `/decompile` at
+all, so the window and the product start together.
+
+> **One condition on the start date.** The apex `41prompts.ai` is **not routed yet**: production serves
+> `app.41prompts.ai`, and the apex has no certificate. Everything the product advertises about itself —
+> canonical URLs, `sitemap.xml`, `llms.txt` — points at `app.41prompts.ai`, so the measurement is
+> internally consistent and can run as it stands. But "findable" is the thing being measured, and a
+> brand's apex returning a TLS error is a real handicap on it. **If the apex is routed within a few
+> days, leave these dates alone.** If it takes longer than that, move both dates to the day it lands
+> and say so here — a window that measures findability should not start before the front door opens.
+
 ## The criterion, verbatim
 
 From `docs/roadmap.md`, the M1 row:
