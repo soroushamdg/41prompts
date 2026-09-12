@@ -2,6 +2,7 @@ import { cluster, detect, heuristicSummariser, segment, uncheckedRuleCount } fro
 import { clientAddress, hashIdentity } from "@41prompts/db";
 import { headers } from "next/headers";
 import { captureVisitorEvent } from "@/lib/analytics/visitor";
+import { recordRun } from "@/lib/decompile/record-run";
 import { byteLength, MAX_INPUT_BYTES, type DecompileState } from "./limits";
 import { checkLimit, DECOMPILE_LIMIT } from "./rate-limit";
 import { buildView } from "./view-model";
@@ -27,7 +28,8 @@ export async function runDecompile(source: string): Promise<DecompileState> {
   // Rate-limited per caller (EPIC-014 decision 5), and checked *after* the size cap so an oversized
   // paste is refused on the honest reason rather than quietly consuming somebody's allowance. The
   // bucket is a hash, never an address.
-  const limit = checkLimit(hashIdentity(clientAddress(await headers())), DECOMPILE_LIMIT);
+  const ipHash = hashIdentity(clientAddress(await headers()));
+  const limit = checkLimit(ipHash, DECOMPILE_LIMIT);
   if (!limit.allowed) {
     return { status: "rate-limited", message: limit.message ?? "That is the limit for now." };
   }
@@ -45,10 +47,20 @@ export async function runDecompile(source: string): Promise<DecompileState> {
     })
   );
 
-  // EPIC-015: counted here rather than in the action, so the landing page's handoff — which reaches
-  // the pipeline without a form submission — is counted too. Deliberately **not** on the empty,
-  // too-long or rate-limited paths: somebody pressing the button on an empty box has not run
-  // anything, and inflating the denominator would flatter the funnel.
+  /**
+   * **The M1 measurement**, written to our own Postgres before anything else is considered.
+   *
+   * Counted here rather than in the action, so the landing page's handoff — which reaches the
+   * pipeline without a form submission — is counted too. Deliberately **not** on the empty,
+   * too-long or rate-limited paths: somebody pressing the button on an empty box has not run
+   * anything, and inflating the denominator would flatter the number.
+   *
+   * `void` on purpose: a failed insert must not fail somebody's decompile. The measurement serves
+   * the product, not the other way round.
+   */
+  void recordRun({ ipHash, bloks: bloks.length, findings: findings.length });
+
+  // PostHog is now supplementary and fires only for a visitor who has explicitly said yes.
   void captureVisitorEvent("decompile_run", { bloks: bloks.length, findings: findings.length });
 
   return {

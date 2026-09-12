@@ -11,3 +11,16 @@ export const ACCOUNT_PURGE_WINDOW_DAYS = 30;
  * goes, because "we still have it but marked it deleted" is not what the sentence on the page says.
  */
 export const DECOMPILE_RETENTION_DAYS = 30;
+
+
+/**
+ * A counted run is kept this many days.
+ *
+ * Longer than `DECOMPILE_RETENTION_DAYS` because this is the measurement rather than the content:
+ * M1's window closes at thirty days and EPIC-084 reads the same rows afterwards, so purging at
+ * thirty would delete the evidence on the day it is needed. Six months is enough for both and is
+ * still a promise that nothing here is kept forever.
+ *
+ * The row holds no prompt text — a keyed hash, two integers and a timestamp.
+ */
+export const RUN_COUNT_RETENTION_DAYS = 180;

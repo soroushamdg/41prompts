@@ -26,5 +26,20 @@ export default defineConfig({
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      /**
+       * **Pinned to the port the suite actually drives.**
+       *
+       * Better Auth checks a request's origin against `baseURL` and refuses the mismatch, so with
+       * `.env` saying `:3000` and `E2E_PORT=3100` every sign-in silently failed: the magic-link
+       * verify redirected fine, no session cookie was set, and three auth tests failed in a way that
+       * looked environmental. They were reported as "pre-existing failures" across three epics
+       * (EPIC-014 through EPIC-016) and they were nothing of the kind — they were this line missing.
+       *
+       * Deriving it from `port` rather than trusting `.env` means changing `E2E_PORT` cannot
+       * reintroduce it.
+       */
+      BETTER_AUTH_URL: `http://localhost:${port}`,
+    },
   },
 });

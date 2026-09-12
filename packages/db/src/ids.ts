@@ -38,3 +38,8 @@ export function newDecompileId(): string {
 export function newWaitlistId(): string {
   return newId("wl", 6);
 }
+
+/** A counted run. Six bytes like a permalink id — it is never handed out, but it costs nothing. */
+export function newDecompileRunId(): string {
+  return newId("dr", 6);
+}

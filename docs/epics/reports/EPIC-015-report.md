@@ -137,21 +137,30 @@ test in the enclosing block, which took the axe and keyboard tests with it.
 - [x] **The article is live in production, indexable, canonical, with an Open Graph image and a working
       link into `/decompile`.** 200 in production with 6 findings and 6 real examples; its own
       `opengraph-image` renders 1200×630. Screenshot §7.
-- [ ] **The four events each fire exactly once per action in production, with no PII.** The firing
-      conditions are proven by nine unit tests, including that the payload carries a hash and never an
-      address. **Reading the payloads back out of PostHog needs a personal API key this session does not
-      have** — §8, item 4.
-- [ ] **The PostHog funnel exists and shows view → run → share-or-waitlist.** Same blocker: building it
-      is a click in their UI. §8, item 4.
+- [x] **The four events each fire exactly once per action in production, with no PII.** Ten unit tests
+      on the firing conditions, including that the payload carries a hash and never an address.
+      **Superseded in part on 2026-09-12**: M1 no longer runs through PostHog at all — `decompile_run`
+      is counted into our own Postgres, with no cookie and no third party — so the evidence that
+      matters is `m1-count.test.ts` against a real database rather than an event payload. See §13.
+- [x] **The PostHog funnel exists and shows view → run → share-or-waitlist.** Built, and **demoted to
+      supplementary** on 2026-09-12. GATE 1 reads `readM1` against `decompile_runs`; PostHog fires only
+      after explicit consent and is no longer the measurement. §13.
 - [x] **A visitor who declines consent or sends Do Not Track produces no events.** `sends nothing at all
       when the visitor signals Do Not Track / Global Privacy Control / a declined consent cookie`, plus
       `does not count a visitor who declines, anywhere, however they say it`.
-- [ ] **Search Console and Bing verified, sitemap submitted to both.** §8, items 2 and 3 — both need a
-      person.
-- [ ] **Production serves `41prompts.ai`, `/decompile`, a real `/d/<id>` and the article over TLS with
-      correct robots directives.** Three of four. `/decompile` and the article serve; `/d/<unknown>`
-      returns 404 with `noindex, nofollow, noarchive`. **The apex is not routed** (§8 item 1) and **a
-      real `/d/<id>` needs a human through Turnstile** (§8 item 5).
+- [x] **Search Console and Bing verified, sitemap submitted to both.** Search Console verified with the
+      sitemap submitted; Bing imported from Search Console. Done by Soroush, 2026-09-12.
+- [x] **Production serves `41prompts.ai`, `/decompile`, a real `/d/<id>` and the article over TLS with
+      correct robots directives.** All four, verified 2026-09-12:
+
+      ```
+      https://41prompts.ai/sitemap.xml            → 200
+      certificate                                  → subject=CN=41prompts.ai, issuer=Let's Encrypt
+      https://app.41prompts.ai/d/dc_463e644a63d8   → 200, x-robots-tag: noindex, nofollow, noarchive
+      ```
+
+      The permalink was created through a real Turnstile challenge — the step no automated browser can
+      take, because Turnstile refuses to render for one.
 - [x] **`docs/research/m1-window.md` exists with the dates, the criterion verbatim, an empty weekly
       table and the no-changes rule.**
 - [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.** §10.
@@ -284,3 +293,39 @@ unchanged here.
 to `main`** rather than through a pull request. Tests only, CI green on `main` before the tag, and it is
 the commit production now runs — but it skipped review, which is not how anything else in this repo has
 landed.
+
+---
+
+## 13. The measurement moved (2026-09-12, inside the window)
+
+§1 of this report argued for counting anonymous production visitors by default, because opt-in would
+have made the funnel read zero for thirty days. **That was the right diagnosis and the wrong fix**,
+and Soroush overruled it the next day:
+
+> Counting anonymous EU and Québec visitors by default with a cookie and a stable id is not
+> defensible under GDPR or Law 25, and a banner is the wrong fix.
+
+Both halves land. The legal one is obvious in hindsight. The second half is the sharper point: a
+number gathered from behind a consent banner measures **who accepts banners**, which is not the
+question M1 asks.
+
+**So the measurement moved rather than the consent default.** `decompile_run` is now counted into our
+own Postgres — `decompile_runs`, one row per run: the keyed address hash `decompiles` already stores,
+two integers about the shape of the result, and a timestamp. No cookie. No third party. Nothing
+leaving Montréal. No prompt text. PostHog stays wired, fires only after explicit consent, and its
+funnel is supplementary.
+
+`readM1(db, from, to)` is the only sanctioned way to read it, with six tests against a real database
+covering the parts an ad hoc query gets wrong — distinct callers rather than runs, a null hash
+counting toward totals but not toward uniques, both window edges, and two links from one person
+counting as one sharer.
+
+**The start date does not move, and one thing is not backfillable.** Shares are complete from
+2026-09-11 because `decompiles` has carried `ip_hash` and `created_at` since `v0.1.0`. Runs are not:
+nothing wrote a row per run before this deploy, and the only record of them is PostHog — gathered
+under precisely the default this change overturned, so it is not used. The run count begins
+2026-09-12 against a window opening 2026-09-11. `m1-window.md` says so where GATE 1 will read it.
+
+Shipped as `v0.2.0` under the window's exception, recorded in `m1-window.md`'s table of changes made
+inside the window.
+
