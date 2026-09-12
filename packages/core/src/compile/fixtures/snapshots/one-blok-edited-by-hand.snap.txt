@@ -1,0 +1,25 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# one-blok-edited-by-hand — Five bloks, four emitting and one expected. The ordinary case, and the snapshot everything else is read against.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 5 blok(s) -> 4 span(s), 1 check(s), 247 code units
+
+## compiled text
+"You route inbound support email for a payments company.\n\nReply in at most 60 words, and never hedge.\n\nNever promise a refund. Say that a human will confirm it.\n\nInput: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}\n\n"
+
+## spans  start..textEnd..end  state  hash  text + separator
+     0..  55..  57  compiled  93414018fc2599bc  "You route inbound support email for a payments company." + "\n\n"
+    57.. 100.. 102  edited by hand  b09c43513a16f018  "Reply in at most 60 words, and never hedge." + "\n\n"
+   102.. 159.. 161  compiled  6436615fcc7fcfb9  "Never promise a refund. Say that a human will confirm it." + "\n\n"
+   161.. 245.. 247  compiled  e2e546757cc707e1  "Input: \"my card was charged twice\"\nOutput: {\"category\":\"billing\",\"needs_human\":true}" + "\n\n"
+
+## checks
+  chk_19d4db2a9e5eb1cf  json_shape  "Respond with valid JSON containing category and needs_human."
+
+## drift
+  b1  compiled        text differs: false  blok changed since: true
+  b2  edited by hand  text differs: true   blok changed since: false
+  b3  compiled        text differs: true   blok changed since: true
+  b4  compiled        text differs: false  blok changed since: false

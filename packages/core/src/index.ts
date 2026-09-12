@@ -45,6 +45,37 @@ export {
 export { FINDING_KINDS } from "./detect/types.js";
 export type { Finding, FindingKind, Severity } from "./detect/types.js";
 
+// The blok model and the compiler (EPIC-020). Two representations of one prompt: the blok set is the
+// source of truth and the compiled prompt is derived from it. `compile()` is per blok and cached by
+// content hash, so changing one blok changes exactly one span; `drift()` is a pure query over
+// hashes, never stored state. See `compile/README.md` for why the blok set wins and for the two
+// facts a span carries — they are two and not one, and the model says so.
+export { compile } from "./compile/compile.js";
+export { editSpan } from "./compile/edit-span.js";
+export { updateFromBlok } from "./compile/update-from-blok.js";
+export { drift } from "./compile/drift.js";
+export { checkCompiledInvariants } from "./compile/invariants.js";
+export { blokHash, BLOK_SEPARATOR, COMPILER_VERSION } from "./compile/hash.js";
+export { checkKindFor } from "./compile/checks.js";
+export { CHECK_KINDS, CHECK_KIND_PHRASES } from "./compile/types.js";
+export type {
+  Check,
+  CheckKind,
+  Compiled,
+  CompiledSpan,
+  CompileOptions,
+  DriftReport,
+  PromptBlok,
+  SpanCache,
+  SpanDrift,
+  SpanState
+} from "./compile/types.js";
+
+// The build artifact (EPIC-020 ships v0; EPIC-050 freezes v1). **Not a public contract yet** — the
+// file says so in as many words, and `CLAUDE.md` protects it only once Stage 5a begins.
+export { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./artifact/schema.js";
+export type { Artifact } from "./artifact/schema.js";
+
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a
 // replacement for it (`CLAUDE.md` rule 3): the compiler emits the verbatim source span, never this.
 export { heuristicSummariser, HEURISTIC_SUMMARISER_VERSION, SUMMARY_MAX_LENGTH } from "./summarise/heuristic.js";

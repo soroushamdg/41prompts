@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# awkward-text — Text that breaks naive slicing: an astral emoji, a combining mark, RTL, a lone separator inside a blok, and a blok that is a single character.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 5 blok(s) -> 5 span(s), 0 check(s), 166 code units
+
+## compiled text
+"Ship it 🚀 when the checks pass.\n\nCafé — note the combining mark: Café.\n\nمرحبا: answer in the user's language.\n\nA blok whose text already contains\n\na separator.\n\n.\n\n"
+
+## spans  start..textEnd..end  state  hash  text + separator
+     0..  32..  34  compiled  a5fffb564b7ba152  "Ship it 🚀 when the checks pass." + "\n\n"
+    34..  72..  74  compiled  6c51b4ddf82b2f54  "Café — note the combining mark: Café." + "\n\n"
+    74.. 111.. 113  compiled  a57f362190143565  "مرحبا: answer in the user's language." + "\n\n"
+   113.. 161.. 163  compiled  4afbf24fa0f0d43b  "A blok whose text already contains\n\na separator." + "\n\n"
+   163.. 164.. 166  compiled  665fc15302c209b1  "." + "\n\n"
+
+## checks
+  (none)

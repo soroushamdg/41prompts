@@ -101,7 +101,7 @@ export default function HomePage() {
 
         <section className="cta-band">
           <div className="site-wrap">
-            <h2>Your prompt already has rules nothing checks.</h2>
+            <h2>Most prompts have rules nothing checks.</h2>
             <p>Free, and no account.</p>
             <div className="cta-band-actions">
               {/* An anchor wearing the button's clothes, not a Button — it navigates, so it must be

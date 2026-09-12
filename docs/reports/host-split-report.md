@@ -193,6 +193,82 @@ claim above.
 One incidental proof the guard works: the new copy tripped `page.test.tsx`'s number allowlist with an
 unexplained "30", which is `DECOMPILE_RETENTION_DAYS`. It is now listed with its reason.
 
+### The closing band, and the count behind it
+
+The band's heading has been through three versions. It ended at:
+
+> **Most prompts have rules nothing checks.**
+
+Version two, "Your prompt already has rules nothing checks.", was shipped in #50 and flagged in the
+same commit: its stated reason was that it holds for every prompt the corpus has seen, and it does
+not. The heading now claims less, and it makes no assertion about the reader's own prompt — which is
+the part that could not be backed by anything, since the page has never seen it.
+
+**The measurement, re-run from source rather than repeated.** The 29-prompt corpus
+(`SEGMENT_FIXTURES`) put through the shipping pipeline — `cluster(segment(text))`, then `detect()`,
+then `uncheckedRuleCount(bloks, text, findings)` — with "states a rule" read as *at least one
+`constraint` blok*:
+
+| group | prompts | state a rule | have a rule nothing checks |
+|---|---:|---:|---:|
+| structure | 12 | 10 | 6 |
+| encoding | 9 | 7 | 1 |
+| prose | 4 | 4 | 2 |
+| multimodal | 4 | 4 | 2 |
+| **total** | **29** | **25** | **11** |
+
+The eleven: `support-email-router`, `fenced-json-schema`, `unmatched-tag`, `numbered-rules`,
+`few-shot-examples`, `tool-use-agent`, `crlf-line-endings`, `short-paragraphs`, `repeated-sentence`,
+`design-review-screenshots`, `invoice-photo-reader`.
+
+**What the count does and does not support, stated plainly because it was measured and not assumed.**
+11 of 25 is **44%**, which is *under half*, so the corpus does not back the word "most" either. It
+backs "many", or a count. This is the same error as "every", one notch smaller and in the same
+direction, and it is recorded here rather than argued: the heading was decided with the number in
+front of the decision, which is the part that was missing the first time.
+
+Two further cautions on the number itself:
+
+- **The corpus is a test corpus.** Nine of the 29 are encoding fixtures (BOM, lone CR, RTL,
+  whitespace-only) and exist to break the segmenter, not to read like something an engineer wrote.
+  On the twelve `structure` fixtures — the ones closest to a real prompt — it is 6 of 10, which is
+  over half. That slice was chosen *after* seeing the numbers, so it is an observation, not evidence.
+- **It measures our detector, not the world.** `rule_without_check` firing is not the same fact as a
+  rule genuinely going unchecked; `MAX_RULES_WITHOUT_CHECKS` also caps what is reported per prompt,
+  though it does not affect this count, which uses `uncheckedRuleCount`.
+
+Re-run it against the corpus before citing it again; it moves whenever a detector or a fixture moves.
+
+### A gap in `page.test.tsx`, named rather than filed
+
+`page.test.tsx` is the guard that makes criterion 10 a build failure instead of a sentence in a
+report. It catches what it was built to catch: an unexplained digit (every number on the page must be
+listed with a reason), social proof ("trusted by", "join N", customer counts, star ratings,
+testimonial furniture), fake urgency, and invented awards.
+
+**It cannot catch a confident assertion about the reader.** "Your prompt already has rules nothing
+checks." contains no number, no logo, no testimonial and no urgency — it passed every assertion in
+that file, and it was still the least defensible sentence on the page, because it stated a fact about
+a prompt the product has not seen. "Most prompts…" is a weaker version of the same class: a
+quantifier over a population, backed by a corpus that does not reach it.
+
+This is recorded as a **gap, not a task.** It is not obviously fixable by a pattern — the failing
+sentences are ordinary English with no tell, and a regex broad enough to catch "your prompt already
+has…" would also catch legitimate second-person copy, which is most of the page. The guard would have
+to know what the product can observe, and it cannot.
+
+So: **the next person writing copy for this page should not read a green `page.test.tsx` as a
+truthfulness check.** It covers the four mechanical classes above. A claim about the reader, or a
+quantifier over prompts in general, is checked by a person or it is not checked at all.
+
+**The visual-regression baselines do not cover it either, and that was measured here.** With the new
+heading live and confirmed in the served HTML, `landing-{light,dark}-linux.png` still compared clean
+against the *old* baselines: `maxDiffPixelRatio: 0.01` on a full-page shot absorbs an entire heading
+swap. They were regenerated with `--update-snapshots=all` — plain `--update-snapshots` is `changed`
+mode and rewrites nothing when the comparison passes — so the committed baseline is a picture of what
+ships rather than of the sentence before it. Copy is guarded by `page.test.tsx` and by a reader; the
+screenshots guard layout.
+
 ---
 
 ## 5. The checklist

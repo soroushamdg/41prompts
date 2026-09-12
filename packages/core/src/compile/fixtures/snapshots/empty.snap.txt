@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-License-Identifier: Apache-2.0
+#
+# empty — No bloks at all. The degenerate tiling: an empty string, no spans, no checks.
+#
+# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
+# 0 blok(s) -> 0 span(s), 0 check(s), 0 code units
+
+## compiled text
+""
+
+## spans  start..textEnd..end  state  hash  text + separator
+  (none)
+
+## checks
+  (none)

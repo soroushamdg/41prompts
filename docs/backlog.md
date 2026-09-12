@@ -49,15 +49,40 @@ them. The `Depends` column of every epic that named one has been cleared; where 
 later epic an output, that debt is listed under its section in `docs/roadmap.md` rather than left
 implicit. EPIC-010 was interview-proof anyway — no research finding moves where a paragraph ends.
 
+**Stage 1 is complete (2026-09-12)** and Stage 2 has started. Every Stage 1 epic that was going to be
+built has shipped with a report: 010, 011a, 011b, 012a, 012b, 013, 014, 016, 015. EPIC-080 and
+EPIC-005 are `cut`, EPIC-084 is `cancelled`.
+
+**One item is carried rather than done, and it is named here so the stage line is not read as more
+than it is: `EPIC-017` (legal minimum) is still `todo`.** Terms, privacy, cookie choice, the
+sub-processor page and the retention table are stubs — EPIC-016's baseline literally captures a
+placeholder that says it is one. EPIC-014 shipped against it anyway, which is how the dependency got
+away. It is a Stage 1 obligation carried into Stage 2, not a Stage 2 epic, and the usual rule — a
+report for every epic in a stage before the next one starts — is being waived for it by decision, not
+met.
+
 ## Stage 2 · Bloks and compiler
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
-| EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, manual override + drift, artifact schema v0 | M | 011b | todo |
+| EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks | M | 020, 003 | todo |
 | EPIC-021b | web: compiled pane, span linking, override, drift, update-from-blok, eject | M | 021a, 003, 090 | todo |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
+
+**EPIC-020 shipped 2026-09-12** (`docs/epics/reports/EPIC-020-report.md`). Marked `done` because the
+work is merged and every criterion is ticked with evidence — **the advisor's review has not happened
+yet**, so if it turns something up this row goes back rather than a fix-up epic being invented around
+it. `CURRENT.md` still points at EPIC-020 until the next epic is written.
+
+Its row title says "edited-by-hand spans" rather than "manual override": ADR-003 replaced that word
+and the backlog was still carrying it.
+
+Three rulings EPIC-021b needs, all in the report's §8: what happens when a blok is **added** to a
+prompt with hand-edited spans (no answer exists in the model, on purpose — it is a pane decision);
+whether the compiled prompt separates bloks with a blank line or a single newline, where the compiler
+and the mockup disagree; and `CLAUDE.md`'s "Build sha" line, which contradicts its own vocabulary rule.
 
 ## Stage 3 · Checks and runs, one provider
 
