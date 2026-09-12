@@ -79,7 +79,10 @@ export function SiteFooter() {
         <div className="site-foot-grid">
           <div>
             <LogoMark href="/" size="18px" />
-            <p className="site-foot-blurb">The workbench for the prompt layer.</p>
+            {/* Not a category phrase. The hero dropped "the workbench for the prompt layer" and it survived
+                here, where it was the footer's only sentence and said nothing about what the product
+                does. */}
+            <p className="site-foot-blurb">Paste a prompt. See what nothing checks.</p>
           </div>
           {FOOTER_GROUPS.map((group) => (
             <div key={group.heading}>
