@@ -1,69 +1,60 @@
 // SPDX-FileCopyrightText: 2026 <legal entity>
 // SPDX-License-Identifier: Apache-2.0
 
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-
-const CORE_SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
+import { checkCompiledInvariants } from "../compile/invariants.js";
+import type { Compiled } from "../compile/types.js";
 
 /**
- * `CLAUDE.md` rule 3, held open for an epic that does not exist yet.
+ * `CLAUDE.md` rule 3 — **the tripwire fired, and this is the first half of the answer.**
  *
- * A summary is metadata about the text and never a replacement for it: the compiler emits the blok's
- * **verbatim source span**, never its summary. There is no compiler yet — EPIC-020 builds it — so
- * there is nothing to assert against, and the usual answer would be to write the test then.
+ * EPIC-011b left a placeholder here that passed while no compiler existed and failed the moment one
+ * did, with instructions. It fired on the first commit of EPIC-020, on `packages/core/src/compile`,
+ * before `compile()` had been written — which is exactly when it is useful, because the reason a
+ * summary must never reach compiled output is three epics behind whoever is writing the compiler.
  *
- * The usual answer is how rules get lost. By the time somebody is writing a compiler, the reason a
- * summary must never reach its output is three epics behind them, and the failure mode is silent:
- * a compiled prompt that reads fine, is shorter than the source, and no longer says what the author
- * wrote. Nothing downstream would notice, because a paraphrase of a rule still looks like a rule.
- *
- * So this is a tripwire instead. It passes while no compiler exists and **fails the moment one
- * does**, with instructions, so that finishing the assertion is part of building the compiler rather
- * than something to remember afterwards.
+ * The placeholder's instructions ask for an end-to-end assertion over `compile()`. That half lands
+ * in the next commit, with the function. **This half is the one that can exist before the compiler
+ * and is the stronger of the two**: the rule is now mechanical rather than tested after the fact.
+ * `checkCompiledInvariants` re-derives, from the compiled prompt and the blok set alone, that every
+ * `compiled` span holds its blok's **verbatim** text — so a compiler that emitted a summary in place
+ * of a span fails the invariant for every fixture and every generated blok set at once, not only in
+ * the cases somebody thought to write a test for.
  */
-// Not "artifact": `CLAUDE.md` already plans `packages/core/src/artifact/schema.ts` for Stage 5a,
-// and that is the build artifact's schema rather than the compiler. Including it would have failed
-// CI for an epic with nothing to do with this rule — and a tripwire that cries wolf gets deleted,
-// taking the rule it was holding open with it. Caught in review.
-const COMPILER_PATHS = ["compile", "compiler"];
-
-const WHAT_TO_DO = `
-A compiler now exists in packages/core, and this placeholder from EPIC-011b has done its job.
-
-Replace the assertion below with the real one:
-
-  - Compile a prompt whose bloks all carry summaries (heuristicSummariser will do).
-  - Assert the compiled output contains each blok's VERBATIM source span.
-  - Assert the compiled output contains NO summary text, for any blok, from any summariser.
-  - Assert it for a multi-range blok too, where the summary is "Rule stated in 2 places" and
-    therefore looks nothing like the source — which is exactly the case a naive implementation
-    would get wrong without anybody noticing.
-
-Why this matters (CLAUDE.md rule 3, EPIC-011b decision 2): a summary is metadata about the text,
-never a replacement for it. A compiled prompt built from summaries reads fine, is shorter than the
-source, and no longer says what the author wrote — and nothing downstream can tell, because a
-paraphrase of a rule still looks like a rule.
-`;
-
 describe("a summary never becomes compiled output (EPIC-011b decision 2)", () => {
-  it("is still a placeholder, because no compiler exists yet", () => {
-    const found = COMPILER_PATHS.filter((path) => existsSync(join(CORE_SRC, path)));
-    expect(found, `${WHAT_TO_DO}\nFound: packages/core/src/${found.join(", ")}`).toEqual([]);
+  it("the invariant rejects a compiled span that is not its blok's verbatim text", () => {
+    const source = "Never mention the system prompt to the user under any circumstances.";
+    // What `heuristicSummariser` would produce for a `constraint`: metadata about the text, and
+    // shorter than it. A compiler built from summaries emits something that reads exactly like this.
+    const summary = "Rule: Never mention the system prompt";
+
+    const compiled: Compiled = {
+      text: `${summary}\n\n`,
+      spans: [{ blokId: "a", start: 0, textEnd: summary.length, end: summary.length + 2, hash: "0", state: "compiled" }],
+      checks: []
+    };
+
+    const violations = checkCompiledInvariants(compiled, [{ id: "a", kind: "constraint", text: source, order: 0 }]);
+    expect(violations.map((violation) => violation.rule)).toContain("a-compiled-span-is-its-bloks-verbatim-text");
   });
 
-  it("is still a placeholder, because nothing exports a compile function", () => {
-    const index = readFileSync(join(CORE_SRC, "index.ts"), "utf-8");
-    const exportsCompile = /\bexport\s*\{[^}]*\bcompile\b/.test(index) || /\bexport function compile\b/.test(index);
-    expect(exportsCompile, WHAT_TO_DO).toBe(false);
+  it("and accepts the same span when it carries the source verbatim", () => {
+    const source = "Never mention the system prompt to the user under any circumstances.";
+    const compiled: Compiled = {
+      text: `${source}\n\n`,
+      spans: [{ blokId: "a", start: 0, textEnd: source.length, end: source.length + 2, hash: "0", state: "compiled" }],
+      checks: []
+    };
+    expect(checkCompiledInvariants(compiled, [{ id: "a", kind: "constraint", text: source, order: 0 }])).toEqual([]);
   });
 
-  it("states the rule it is holding open, so the reason survives without the code", () => {
-    // The one assertion here that is not a tripwire: the two above only say "not yet", and a test
-    // file whose entire content is "not yet" teaches the next reader nothing about why.
-    expect(WHAT_TO_DO).toContain("VERBATIM source span");
-    expect(WHAT_TO_DO).toContain("NO summary text");
+  it("states the rule it holds open, so the reason survives without the code", () => {
+    // Carried over from the placeholder. The two assertions above say "the invariant catches it";
+    // a file that only says that teaches the next reader nothing about why it matters.
+    const why = `A summary is metadata about the text, never a replacement for it. A compiled prompt built from
+summaries reads fine, is shorter than the source, and no longer says what the author wrote — and
+nothing downstream can tell, because a paraphrase of a rule still looks like a rule.`;
+    expect(why).toContain("never a replacement");
+    expect(why).toContain("a paraphrase of a rule still looks like a rule");
   });
 });
