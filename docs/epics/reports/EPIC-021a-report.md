@@ -361,7 +361,48 @@ inside a script can catch its own absence. It is invoked as `node scripts/instal
 now. Worth recording because the claim was written before it was true, and the compliance gate is
 what made that visible rather than a reviewer.
 
-## 10. Not done
+## 10. The screenshot generators are out of the default `pnpm e2e`
+
+Three times in this session a capture spec rewrote committed PNGs into a commit. EPIC-016's report
+already listed it as an annoyance, and treating it as one is what let it happen three more times.
+**It is a defect**, and the cost is not the churn: a suite that leaves `git status` permanently dirty
+makes `git status` useless as a signal, which is how the NUL byte survived two self-reviews.
+
+### What moved, exactly
+
+| spec | was | now |
+|---|---|---|
+| EPIC-013's decompiler screenshots | `e2e/capture.spec.ts` | `e2e/capture/epic-013-decompiler.spec.ts` |
+| EPIC-021a's canvas screenshots | `e2e/capture-canvas.spec.ts` | `e2e/capture/epic-021a-canvas.spec.ts` |
+
+### Two writes that did not move, and why
+
+`auth.spec.ts` and `landing.spec.ts` each end with a screenshot of the nav — `nav-signed-in.png` and
+`nav-signed-out.png`, the host-split evidence — inside a test whose *assertions* matter and must stay
+in the default run. Moving those tests would take real coverage out of `pnpm e2e` to solve a file-
+writing problem. They are guarded in place with `if (CAPTURING)` instead.
+
+That is also why capture mode runs the **whole** suite rather than only `capture/`: those two images
+are produced by real tests, so regenerating them means running them.
+
+### Verified in both directions
+
+```
+pnpm e2e          →  125 passed,  and `git status` clean afterwards
+pnpm e2e:capture  →  134 passed,  every committed screenshot regenerated
+```
+
+The nine-test difference is exactly the generators. Under capture, `nav-signed-in.png` and
+`nav-signed-out.png` were both rewritten (checked by timestamp, because six of EPIC-021a's seven came
+back byte-identical and `git status` alone would have suggested they had not run).
+
+### The class is guarded, not just these instances
+
+`apps/web/e2e-writes.test.ts` fails if any spec outside `capture/` writes into `docs/` without the
+guard. Proved before trusted: un-guarding `auth.spec.ts`'s write turns it red with
+`move it to e2e/capture/, or guard it with \`if (CAPTURING)\``.
+
+## 11. Not done
 
 1. **The hand-drive of staging**, per §7. The one criterion needing a person.
 2. **Pointer drag-and-drop.** The keyboard path is complete and is what rule 12 requires; a drag is

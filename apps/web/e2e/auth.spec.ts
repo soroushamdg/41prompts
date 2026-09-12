@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { deleteTestUser, latestMagicLinkTokenFor, sessionCountFor } from "./db";
 
+const CAPTURING = process.env.E2E_CAPTURE === "1";
+
 function uniqueEmail(label: string): string {
   return `e2e-${label}-${Date.now()}@example.com`;
 }
@@ -117,9 +119,14 @@ test.describe("auth", () => {
       expect(body).toContain("Go to dashboard");
       expect(body).not.toContain("nav-sign-in");
 
-      await page.locator(".site-nav").screenshot({
-        path: "docs/epics/reports/screenshots/host-split/nav-signed-in.png",
-      });
+      // The assertions above are the test; this line is documentation. It writes into the working
+      // tree, so it only runs under `pnpm e2e:capture` — a suite that rewrites committed files on
+      // every ordinary run makes `git status` useless as a signal.
+      if (CAPTURING) {
+        await page.locator(".site-nav").screenshot({
+          path: "docs/epics/reports/screenshots/host-split/nav-signed-in.png",
+        });
+      }
     } finally {
       await deleteTestUser(email);
     }

@@ -162,6 +162,36 @@ This exists to make the mistake loud, not impossible.
 subject touching code still refused; a genuine docs-only commit on `main` allowed; the same code
 commit on a branch allowed. The refusals are in EPIC-021a's report.
 
+**It is `commit-msg`, and `pre-commit` cannot replace it.** Recorded because it was asked for as a
+pre-commit hook and is not one. Git passes the message file only to `prepare-commit-msg` and
+`commit-msg`; at `pre-commit` the message does not exist yet. This rule needs the message *and* the
+staged paths, so it has to be a hook that has both, and `commit-msg` is the earliest. Nobody should
+re-suggest `pre-commit` for it.
+
+## A test suite never writes into the working tree (2026-09-12)
+
+`pnpm e2e` used to rewrite committed screenshots on every run. It was listed as an annoyance in
+EPIC-016's report, worked around by hand, and then swept into three separate commits in one session
+before anyone treated it as a defect.
+
+**It is a defect, and the cost is not the churn.** A suite that leaves `git status` permanently dirty
+makes `git status` useless as a signal — and a useless `git status` is how the NUL byte survived two
+self-reviews, which is the reason `pnpm binary-files` exists at all. A dirty tree you learn to ignore
+is a review you are no longer doing.
+
+- **`pnpm e2e`** runs everything except `apps/web/e2e/capture/` and writes nothing into the tree.
+- **`pnpm e2e:capture`** sets `E2E_CAPTURE=1` and runs **everything**, generators included. It is the
+  only command that may modify committed files, and running it is a deliberate act.
+
+Two ordinary specs (`auth.spec.ts`, `landing.spec.ts`) end with a screenshot write that is
+documentation rather than assertion. Those are guarded by `if (CAPTURING)` in place rather than moved,
+because moving the whole test would take real assertions out of the default run — which is why
+capture mode runs everything rather than only `capture/`.
+
+**The class is guarded, not just the instances.** `apps/web/e2e-writes.test.ts` fails if any spec
+outside `capture/` writes into `docs/` without that guard, so the next one is caught by a test rather
+than by somebody's `git status` six weeks later.
+
 ## Three timing gates report rather than enforce (2026-09-12)
 
 `detect.perf.test.ts`'s absolute millisecond budgets — 100 KB detection, and the whole pipeline at

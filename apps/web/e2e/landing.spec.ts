@@ -10,6 +10,8 @@ async function setTheme(page: Page, theme: "light" | "dark") {
   await page.waitForTimeout(350);
 }
 
+const CAPTURING = process.env.E2E_CAPTURE === "1";
+
 const LAPTOP = { width: 1280, height: 800 };
 const PHONE = { width: 375, height: 812 };
 const PHONE_WIDTH = PHONE.width;
@@ -427,6 +429,9 @@ test.describe("the landing nav follows the session", () => {
     await page.goto("/");
     await expect(page.getByTestId("nav-sign-in")).toBeVisible();
     await expect(page.getByTestId("nav-dashboard")).toHaveCount(0);
-    await page.locator(".site-nav").screenshot({ path: "docs/epics/reports/screenshots/host-split/nav-signed-out.png" });
+    // Documentation, not the assertion — only under `pnpm e2e:capture`. See `auth.spec.ts`.
+    if (CAPTURING) {
+      await page.locator(".site-nav").screenshot({ path: "docs/epics/reports/screenshots/host-split/nav-signed-out.png" });
+    }
   });
 });

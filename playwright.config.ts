@@ -10,11 +10,26 @@ import { defineConfig } from "@playwright/test";
  */
 const port = Number(process.env.E2E_PORT ?? 3000);
 
-// Serial, single worker: the magic-link rate limit (lib/auth.ts) is keyed per IP in an
-// in-memory store shared by every request the dev server handles. Parallel workers hitting
-// the same server would share that budget and make the suite flaky depending on run order.
+/**
+ * Screenshot generators are excluded from the ordinary run.
+ *
+ * `apps/web/e2e/capture/` holds specs whose whole job is writing PNGs into `docs/`, and two ordinary
+ * specs (`auth`, `landing`) end with one such write guarded on this same flag. Left in the default
+ * suite they rewrite committed files on every `pnpm e2e`, which makes `git status` useless as a
+ * signal — and that is how a stray NUL byte survived two self-reviews (`docs/PROCESS.md`).
+ *
+ * `pnpm e2e` runs everything except `capture/` and writes nothing into the tree.
+ * `pnpm e2e:capture` sets `E2E_CAPTURE=1` and runs **everything**, generators included — the two
+ * guarded writes live inside real tests, so regenerating them means running those tests.
+ */
+const capturing = process.env.E2E_CAPTURE === "1";
+
 export default defineConfig({
   testDir: "./apps/web/e2e",
+  testIgnore: capturing ? [] : ["**/capture/**"],
+  // Serial, single worker: the magic-link rate limit (lib/auth.ts) is keyed per IP in an
+  // in-memory store shared by every request the dev server handles. Parallel workers hitting
+  // the same server would share that budget and make the suite flaky depending on run order.
   fullyParallel: false,
   workers: 1,
   retries: 0,
