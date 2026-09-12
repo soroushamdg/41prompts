@@ -282,10 +282,15 @@ test.describe("the blok canvas", () => {
       test.slow();
       const url = await newPrompt(page);
 
+      // **Wait for each add before making the next one.** Firing sixty clicks and then asserting the
+      // count leaves sixty server actions in flight against a single assertion's timeout: it passes
+      // on a fast machine and fails on a slow one, which is exactly what CI did — the count was
+      // climbing steadily (29, 30, 33 … 51) and simply had not arrived. Awaiting each one is
+      // deterministic rather than a widened bar, and it is also what a person does.
       for (let i = 0; i < 60; i++) {
         await page.getByRole("button", { name: "Add context" }).click();
+        await expect(page.locator(".canvas-list > li")).toHaveCount(i + 1);
       }
-      await expect(page.locator(".canvas-list > li")).toHaveCount(60);
 
       await page.goto(url);
       const rendered = await page.evaluate(() => {

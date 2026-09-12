@@ -286,7 +286,22 @@ run leaves seven PNGs dirty in `git status` that are only this machine's font re
 `git checkout -- docs/epics/reports/screenshots/EPIC-021a/`. I swept nine of `capture.spec.ts`'s into
 a commit this session before noticing.
 
-## 8. Not done
+## 8. A flake this epic shipped, found the run after
+
+The 60-blok test seeded its canvas by firing sixty "Add context" clicks and then asserting the count.
+Sixty server actions in flight against one assertion's timeout: fine on this machine, and on CI's
+slower runner the count was still climbing — 29, 30, 33 … 51 — when the five seconds ran out.
+
+**It passed CI on #55 and failed on the next run**, which is the definition of a flake and means this
+epic merged with it. Fixed by awaiting each add before making the next, which is deterministic rather
+than a widened bar and is also what a person does. Not a product bug: the app was keeping up, the
+test was not waiting.
+
+Worth recording next to the timeout work in §6, because it is the same lesson from the other side.
+There the fix was to give a slow measurement more patience; here it was to stop a test racing a queue
+it had created itself. **A green CI run is one sample.**
+
+## 9. Not done
 
 1. **The hand-drive of staging**, per §7. The one criterion needing a person.
 2. **Pointer drag-and-drop.** The keyboard path is complete and is what rule 12 requires; a drag is
