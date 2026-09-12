@@ -1,32 +1,49 @@
-import { renderToStaticMarkup } from "react-dom/server";
+import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { BlokCard } from "./blok-card";
-import { BlokKindGlyph } from "./blok-kind-glyph";
+import { BlokCard } from "./blok-card.js";
+import { BlokKindGlyph } from "./blok-kind-glyph.js";
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "recipes.css"), "utf-8");
 
 describe("BlokCard", () => {
-  it("is a real button, so every blok is keyboard-reachable", () => {
-    const html = renderToStaticMarkup(<BlokCard kindTag="Context">text</BlokCard>);
-    expect(html).toMatch(/^<button/);
-    expect(html).toContain('type="button"');
+  it("is a real button by default, so a selectable blok is keyboard-reachable", () => {
+    const { container } = render(<BlokCard kindTag="Context">text</BlokCard>);
+    const card = container.querySelector(".blok-card")!;
+    expect(card.tagName).toBe("BUTTON");
+    expect(card.getAttribute("type")).toBe("button");
+  });
+
+  /**
+   * The canvas's card holds a textarea and its own buttons. A `<button>` wrapping those is
+   * `nested-interactive` — axe flags it and screen readers genuinely mishandle it, sometimes not
+   * announcing the textarea at all. Found by the canvas's axe test, not by reasoning.
+   */
+  it("renders as a plain container when asked, for a card that contains controls", () => {
+    const { container } = render(
+      <BlokCard as="div" kindTag="Context">
+        text
+      </BlokCard>
+    );
+    const card = container.querySelector(".blok-card")!;
+    expect(card.tagName).toBe("DIV");
+    expect(card.hasAttribute("type")).toBe(false);
   });
 
   it("carries its kind as data, for the category colour to key on", () => {
-    const html = renderToStaticMarkup(
+    const { container } = render(
       <BlokCard kindTag="Constraint" kind="constraint">
         text
       </BlokCard>
     );
-    expect(html).toContain('data-kind="constraint"');
+    expect(container.querySelector(".blok-card")!.getAttribute("data-kind")).toBe("constraint");
   });
 
-  it("is byte-identical to the old markup when no kind is given, so committed baselines hold", () => {
-    const html = renderToStaticMarkup(<BlokCard kindTag="Context">text</BlokCard>);
-    expect(html).not.toContain("data-kind");
+  it("carries no kind attribute when none is given, so committed baselines hold", () => {
+    const { container } = render(<BlokCard kindTag="Context">text</BlokCard>);
+    expect(container.querySelector(".blok-card")!.hasAttribute("data-kind")).toBe(false);
   });
 });
 
@@ -62,13 +79,14 @@ describe("blok category colour appears only during interaction", () => {
   });
 
   it("a card at rest carries no category colour in its own markup", () => {
-    const html = renderToStaticMarkup(
+    const { container } = render(
       <BlokCard kindTag="Constraint" kind="constraint" leading={<BlokKindGlyph kind="constraint" />}>
         text
       </BlokCard>
     );
     // No inline style, no colour class — the rest state is ink, and the only distinction is the
     // glyph plus the kind's name as text.
+    const html = container.innerHTML;
     expect(html).not.toMatch(/style="[^"]*color/);
     expect(html).not.toMatch(/--color-kind-/);
   });

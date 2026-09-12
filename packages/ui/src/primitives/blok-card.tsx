@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { cx } from "../cx";
 
 export interface BlokCardProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -32,10 +32,24 @@ export interface BlokCardProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    * `/dev/ui`'s committed baselines do not move.
    */
   kind?: string;
+  /**
+   * `"button"` (the default) for a card that *is* a control, `"div"` for one that *contains* them.
+   *
+   * A `<button>` with a textarea inside it is `nested-interactive`; see the note on the component.
+   */
+  as?: "button" | "div";
 }
 
-/** A real `<button>` — every blok in the canvas is keyboard-reachable and -activatable, not a
- * `div` with an onClick. */
+/**
+ * A real `<button>` by default — a blok in the decompiler is selectable, so it is a button and not a
+ * `div` with an onClick.
+ *
+ * **`as="div"` exists for the canvas, where the card is not itself a control.** There the card
+ * *contains* controls — a textarea, move buttons, delete — and a button containing focusable
+ * children is `nested-interactive`, which axe flags and screen readers genuinely mishandle: the
+ * textarea inside a button may not be announced at all. Caught by the canvas's own axe test rather
+ * than reasoned about, and fixed by making the container stop claiming to be a control.
+ */
 export function BlokCard({
   kindTag,
   children,
@@ -43,6 +57,7 @@ export function BlokCard({
   selected,
   leading,
   kind,
+  as = "button",
   className,
   type = "button",
   ...rest
@@ -55,14 +70,35 @@ export function BlokCard({
     </>
   );
 
+  const shared = {
+    className: cx("blok-card", leading && "blok-card-railed", className),
+    "data-selected": selected ? "true" : undefined,
+    "data-kind": kind,
+  };
+
+  if (as === "div") {
+    // `rest` is typed for a button; the overlap that matters here (aria-*, data-*, id, onKeyDown)
+    // is identical on a div, and `type` is dropped rather than written onto an element that has no
+    // such attribute.
+    const divProps = rest as unknown as HTMLAttributes<HTMLDivElement>;
+    return (
+      <div {...shared} {...divProps}>
+        {leading ? (
+          <>
+            <span className="blok-card-rail" aria-hidden="true">
+              {leading}
+            </span>
+            <span className="blok-card-main">{inner}</span>
+          </>
+        ) : (
+          inner
+        )}
+      </div>
+    );
+  }
+
   return (
-    <button
-      type={type}
-      className={cx("blok-card", leading && "blok-card-railed", className)}
-      data-selected={selected ? "true" : undefined}
-      data-kind={kind}
-      {...rest}
-    >
+    <button type={type} {...shared} {...rest}>
       {leading ? (
         <>
           <span className="blok-card-rail" aria-hidden="true">

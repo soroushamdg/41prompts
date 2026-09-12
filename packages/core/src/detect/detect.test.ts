@@ -186,7 +186,13 @@ describe("the shape of a finding", () => {
     }
   });
 
-  it("produces byte-identical findings over 100 runs of every fixture", () => {
+  /**
+   * An explicit timeout rather than fewer runs: 100 is the assertion's strength, and cutting it to
+   * fit a five-second default would weaken the test to fix the harness. It fails on *timeout* under
+   * a full parallel `pnpm test`, not on its assertion. See `cluster.perf.test.ts` for the check
+   * that this is caused by load and not by a change to the code under test.
+   */
+  it("produces byte-identical findings over 100 runs of every fixture", { timeout: 60_000 }, () => {
     for (const fixture of DETECT_FIXTURES) {
       const first = JSON.stringify(findingsFor(fixture.text));
       for (let run = 0; run < 100; run++) {

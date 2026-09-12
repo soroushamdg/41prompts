@@ -49,7 +49,18 @@ function mutuallyDistinct(count: number): string {
 }
 
 describe("cluster() throughput", () => {
-  it("clusters a 100 KB prompt in under 100 ms", () => {
+  /**
+   * **An explicit timeout, not a widened budget.** The assertion below is unchanged; this is only
+   * how long vitest waits before calling the test hung. Under `pnpm test` the whole monorepo's
+   * suites run at once, and EPIC-021a's additions — a 220-move database rebalance, two more
+   * seeded-input loops in `compile.test.ts` — pushed this file past vitest's 5-second default, so
+   * it failed on *timeout* while its own measurement was still passing.
+   *
+   * Verified rather than assumed: three full parallel runs on this branch failed here, and two on
+   * the tree without it did not. `cluster.perf.test.ts`'s growth gate already carries
+   * `{ timeout: 120_000 }` for the same reason.
+   */
+  it("clusters a 100 KB prompt in under 100 ms", { timeout: 60_000 }, () => {
     const segments = segment(sizedPrompt(102_400));
     const cold = timeCluster(segments);
     for (let warmUp = 0; warmUp < 3; warmUp++) timeCluster(segments);
@@ -58,7 +69,7 @@ describe("cluster() throughput", () => {
     expect(warm).toBeLessThan(100);
   });
 
-  it("reports the 1 MB timing without gating on it", () => {
+  it("reports the 1 MB timing without gating on it", { timeout: 60_000 }, () => {
     const segments = segment(sizedPrompt(1_048_576));
     const cold = timeCluster(segments);
     const warm = fastestCluster(segments);
@@ -66,7 +77,7 @@ describe("cluster() throughput", () => {
     expect(warm).toBeGreaterThan(0);
   });
 
-  it("clusters 2,000 mutually distinct segments in under 100 ms", () => {
+  it("clusters 2,000 mutually distinct segments in under 100 ms", { timeout: 60_000 }, () => {
     // The pathological shape, at a size a 100 KB prompt could actually reach. Before the candidate
     // indexes this took 192 ms; the gate is here so the next person who touches the merge loop finds
     // out from a red test rather than from a browser tab.
