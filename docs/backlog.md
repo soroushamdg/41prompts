@@ -71,6 +71,18 @@ met.
 | EPIC-021b | web: compiled pane, span linking, override, drift, update-from-blok, eject | M | 021a, 003, 090 | todo |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
 
+**EPIC-021a is built and its report is written** (`docs/epics/reports/EPIC-021a-report.md`). It stays
+`current` rather than `done` for one reason, stated plainly: **the staging deploy and its screenshots
+have not happened.** Staging tracks `main`, so that step can only follow the merge, and the criterion
+is left unticked rather than ticked on the intention.
+
+Decision 5 — a hand edit surviving an unrelated blok being added — is resolved structurally: the hand
+edit lives on the blok row, so adding a blok is one INSERT that writes no other row. Both tests are
+kept; the database one is the one that would catch the real failure, and it asserts the structure
+directly by checking no other row's `updatedAt` moves.
+
+Decision 1 was amended in the epic file on 2026-09-12: blok ids are minted, not content-derived.
+
 **EPIC-020 shipped 2026-09-12** (`docs/epics/reports/EPIC-020-report.md`). Marked `done` because the
 work is merged and every criterion is ticked with evidence — **the advisor's review has not happened
 yet**, so if it turns something up this row goes back rather than a fix-up epic being invented around
