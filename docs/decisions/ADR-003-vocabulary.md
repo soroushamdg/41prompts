@@ -17,6 +17,26 @@ Status: accepted · 2026-09-04 · from the UX research review
   "must contain", "must not contain", "matches a pattern", "refuses to answer". Internal identifiers never render.
 - Never in UI strings: label, pointer, artifact, promote, enum, sha, hash, schema (say "shape"), regex (say "pattern").
 - "Named bloks", not "labelled bloks".
+- **There are six findings, and a seventh is a different noun.** Added 2026-09-13, on EPIC-022's
+  ruling. `FINDING_KINDS` is closed at six — contradiction, rule without check, untestable, repeated,
+  padding, too long — and `apps/web/lib/site/article-examples.test.tsx` asserts both the count and the
+  words "six ways" against the shipped guide page, because the page promises a stranger, and a model
+  that may cite it, that there are six.
+
+  The rule is not the number, it is what the number means: **a finding is a claim about prose we did
+  not write.** It is what the decompiler can tell you, deterministically and without a model, about a
+  prompt it has never seen. A defect that is *decidable* rather than heuristic, or that is about a
+  structure the product itself owns rather than about someone's writing, is **not a finding** however
+  much it looks like one — it gets its own noun, its own type and its own surface.
+
+  EPIC-022 is the worked example. "This prompt uses `{{customer}}` and never declares it" is exactly
+  as real a defect as a contradiction, and it is not a finding: it is decidable in one pass, it is
+  about a variable set the editor owns, and it lives in the Variables tab as a `VariableIssue`.
+  Folding it in would have made the sentence "six things we can find" depend on whether a prompt
+  happened to use `{{ }}`, which is not what that sentence claims.
+
+  So: before proposing a seventh, ask whether the thing is a claim about someone's prose or a fact
+  about our own structure. If the second, it is a new noun, and the six stay six.
 
 ## Why
 
