@@ -296,6 +296,9 @@ The change is only **who performs the merge**.
 merged by the agent under the previous process. Recorded here rather than quietly adopted, because
 the first question anyone reading the log will have is why those four look different.
 
+**A single-use exception was granted on 2026-09-13 for #67, #68 and #66 only**, because merge order
+mattered more than the click and getting it wrong would have landed evidence nobody could audit.
+
 ## The question is whether the gate would have told you something, not whether it ran (2026-09-12)
 
 Both of these were true on the same afternoon, and they resolved opposite ways:

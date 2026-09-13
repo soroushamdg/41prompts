@@ -161,6 +161,16 @@ Worth saying plainly: **e2e caught something no unit test could have.** `page.te
 component tests can assert what renders; only the axe pass over an assembled page can see that a
 heading level is wrong relative to headings a different component rendered.
 
+### The merge order paid for itself
+
+`packages/db/src/variables.test.ts` was written for this epic before PR #68 existed, so it still
+*threw* when `DATABASE_URL` was unset rather than skipping. That is the exact defect #68 had shipped
+ten minutes earlier to remove: a throwing suite makes "no database here" indistinguishable from
+"this code is broken", and because the run stops there it hides every package scheduled after it.
+Merging this PR first would have landed a fresh violation of a rule that was minutes old, in the one
+file most likely to be read as the rule's own example. Rebasing onto #68 rather than merging past it
+is what surfaced it, and that is the answer to whether the ordering was worth the extra round trips.
+
 ## 7. Open, and deliberately so
 
 1. **The `Assertions` tab is not stubbed.** Two tabs ship. A disabled tab that does nothing is a
