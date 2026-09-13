@@ -1,9 +1,51 @@
 name: CI
 
+# Concurrency (2026-09-13, Actions budget second pass).
+#
+# A second push to a branch cancels the first run instead of paying for both. On a branch under
+# review that is most of the waste: a run starts, a review comment arrives, a fixup lands, and two
+# runs of the same suite are billed for one answer.
+#
+# **`main` and tags are excluded from cancellation, deliberately.** A run on `main` is the record
+# that a merge was green, and a release build must never be cancelled by whatever lands next — the
+# expression below is the whole of that guarantee, so read it before changing it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
+# Documentation-only changes do not run this workflow (2026-09-13, Actions budget second pass).
+#
+# **Why this is the line, and why it must not move.** `ci` runs lint, typecheck, migrations, the unit
+# suites, Playwright and the Python tests — six to ten billed minutes that cannot tell a reader
+# anything about a change to `docs/`. The rule is not *size*: a one-character change to a `.ts` file
+# runs the whole suite, and a thousand lines of `docs/` does not. **Do not widen this into "skip CI on
+# small changes."** The question is only ever whether the gate could have something to say.
+#
+# **Compliance is deliberately not filtered.** `reuse`, `license-gate`,
+# `boundaries-and-forbidden-words` and `mirror-dry-run` all check things documentation *can* break —
+# a `LICENSES/` edit, a README inside a public package, a forbidden word in UI copy. They are the
+# cheap jobs; skipping them would save seconds and cost the one class of change they exist to catch.
+#
+# **`paths-ignore` rather than a changed-files gate, and this was measured rather than assumed.** A
+# gate job is fail-safe and was built first, then thrown away: GitHub bills every job rounded up to a
+# whole minute, so a fifteen-second gate costs a minute on every run it does *not* save. Over the
+# hundred runs to 2026-09-13 it would have saved 19 minutes and cost 36. `paths-ignore` costs nothing
+# because the workflow never starts. It is also fail-safe in the direction that matters: when GitHub
+# cannot generate a diff — too many commits, too many files, a timeout — it runs the workflow.
+#
+# `**.md` and not `*.md`: `*` does not cross a `/`, so `*.md` would match only the repository root.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "LICENSES/**"
+      - "**.md"
   pull_request:
+    paths-ignore:
+      - "docs/**"
+      - "LICENSES/**"
+      - "**.md"
 
 jobs:
   ci:

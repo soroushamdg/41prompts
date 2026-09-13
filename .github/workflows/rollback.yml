@@ -4,6 +4,13 @@ name: Rollback
 # rebuild, no checkout) and fires the same Coolify deploy webhook build-images.yml uses. The sha must already
 # exist as a :sha-<sha> tag on GHCR — i.e. a commit that previously built successfully via build-images.yml.
 # See infra/RUNBOOK.md's "Roll back a deploy" section for the procedure and how it was timed.
+# Concurrency (2026-09-13). Grouped so two runs on the same ref queue rather than race, but
+# **never cancelled**: this workflow ships something. A cancelled release is worse than a duplicated
+# one, and it is duplicated only if somebody pushes the same tag twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:

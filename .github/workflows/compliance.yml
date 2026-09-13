@@ -8,6 +8,24 @@ name: Compliance
 # ADR-002 is the licensing/repo-split decision every one of these checks enforces: packages/core,
 # packages/cli, packages/sdk-ts, sdks/python are the four public packages (Apache-2.0); everything
 # else is LicenseRef-41Prompts-Proprietary.
+#
+# **Unfiltered on purpose (2026-09-13).** `ci.yml` skips itself on a documentation-only change; this
+# workflow does not, because every check in it is one documentation can break — a `LICENSES/` edit,
+# a README inside a public package, a forbidden word in UI copy. These are the cheap jobs; skipping
+# them would save seconds and cost the one class of change they exist to catch.
+
+# Concurrency (2026-09-13, Actions budget second pass).
+#
+# A second push to a branch cancels the first run instead of paying for both. On a branch under
+# review that is most of the waste: a run starts, a review comment arrives, a fixup lands, and two
+# runs of the same suite are billed for one answer.
+#
+# **`main` and tags are excluded from cancellation, deliberately.** A run on `main` is the record
+# that a merge was green, and a release build must never be cancelled by whatever lands next — the
+# expression below is the whole of that guarantee, so read it before changing it.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 on:
   push:

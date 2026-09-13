@@ -9,7 +9,8 @@ for afterward.
 durations are in the Actions tab; billed minutes are the sum of each **job**, rounded up per job, not
 the workflow's wall clock.
 
-**The allowance:** 2,000 minutes a month on the Free plan for a private repository.
+**The allowance:** 3,000 minutes a month on Pro for a private repository, since 2026-09-13.
+It was 2,000 on Free, and the measurements below from before that date are against 2,000.
 
 **Reproduce the measurement** (the numbers below came from this, not from an estimate):
 
@@ -56,6 +57,62 @@ dominant term. The next largest item is **CI running twice per change** — on t
 merge — which is 1,107 of the 2,175 minutes, 51%. Not changed here (EPIC-009 decision 4 keeps CI, and
 after a squash merge the tree only matches the PR's when `main` has not moved), but it is where the
 next 500 minutes are.
+
+### Second pass, 2026-09-13 — concurrency cancellation and a documentation path filter
+
+Two changes, both measured **after** shipping rather than estimated before:
+
+1. **Every workflow has a concurrency group keyed on the ref, cancelling in progress** — except on
+   `main` and on tags, which are never cancelled. A second push to a branch now kills the first run
+   instead of paying for both.
+2. **`ci` does not run on a change confined to `docs/**`, `LICENSES/**` or `**.md`.** Compliance
+   still does, unfiltered, because `reuse`, `license-gate`, `boundaries-and-forbidden-words` and
+   `mirror-dry-run` all check things documentation can break.
+
+The plan is on Pro now (3,000 minutes), so neither change is load-bearing. They are here because the
+burn should be lower anyway.
+
+| window, to 2026-09-13 | runs | billed | these two would have saved | |
+|---|---|---|---|---|
+| **the last ten runs** | 10 | **48 min** | **0 min** | **0%** |
+| the last hundred runs | 100 | 499 min | 35 min | 7.0% |
+
+**Both numbers are under 20%, and both changes stay.** That was decided in advance, and the record is
+the point rather than a second decision.
+
+**Why the ten-run window shows nothing**, which is the more useful half of the measurement: those ten
+are a single afternoon of serial, code-heavy work. Nothing was superseded because each push waited for
+the previous run to finish, and no diff was documentation-only because every one of them touched
+`.ts`. A sample drawn from one working session measures that session, not the repository. The
+hundred-run window is the honest base rate, and even that is 7%.
+
+**What the measurement changed while it was being taken.** The path filter was first built as a
+changed-files gate job — fail-safe by construction, and thrown away once measured. GitHub bills every
+job **rounded up to a whole minute**, so a fifteen-second gate costs a minute on every run it does not
+save: over the same hundred runs it would have saved 19 minutes and cost 36, a net loss of 8.
+`paths-ignore` costs nothing because the workflow never starts, and it is fail-safe in the direction
+that matters — when GitHub cannot generate a diff, it runs the workflow. **A job is never free. Do not
+add a cheap job to decide whether to run an expensive one.**
+
+**One defect found while doing this.** `build-images.yml` already carried
+`concurrency: cancel-in-progress: true`, on a workflow triggered only by `v*` tags. A second tag
+pushed while the first was still building would have cancelled a release mid-flight, leaving a tag
+with no image behind it and a Coolify webhook that never fired. It had never happened — two tags have
+never been pushed within six minutes of each other — and it is now `false`.
+
+**Reproduce these two numbers** with the script the epic used, which reads job start and completion
+times and rounds each job up:
+
+```sh
+gh api "repos/<owner>/<repo>/actions/runs?per_page=100" --jq '.workflow_runs[].id' |
+  while read id; do
+    gh api "repos/<owner>/<repo>/actions/runs/$id/jobs" --jq \
+      '[.jobs[] | select(.started_at and .completed_at) |
+        ((.completed_at|fromdateiso8601) - (.started_at|fromdateiso8601))/60 | ceil | if . < 1 then 1 else . end] | add'
+  done | paste -sd+ - | bc
+```
+
+Note that `actions/runs/<id>/timing` reports `total_ms: 0` for this repository and cannot be used.
 
 ### When to look
 
