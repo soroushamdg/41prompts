@@ -60,7 +60,7 @@ export function VariablesTab({
 
       {undeclaredUses.length > 0 && (
         <section className="variables-issues" aria-label="Used but not declared">
-          <h3>Used but not declared</h3>
+          <h2>Used but not declared</h2>
           <p className="variables-note">
             This prompt sends these to the model exactly as written, braces and all, because nothing
             says what they stand for.
@@ -86,7 +86,7 @@ export function VariablesTab({
 
       {unusedDeclarations.length > 0 && (
         <section className="variables-issues" aria-label="Declared but never used">
-          <h3>Declared but never used</h3>
+          <h2>Declared but never used</h2>
           <p className="variables-note">
             Nothing in the prompt refers to these. They are harmless; they are also a promise to
             whoever calls this prompt that they need to supply something that has no effect.
@@ -102,7 +102,7 @@ export function VariablesTab({
       )}
 
       <section aria-label="Declared variables">
-        <h3>Declared</h3>
+        <h2>Declared</h2>
         {declared.length === 0 ? (
           <p className="app-empty">
             Nothing declared yet. Write <code>{"{{a_name}}"}</code> in a blok and it will appear above.
@@ -151,7 +151,7 @@ export function VariablesTab({
       </section>
 
       <section aria-label="Preview">
-        <h3>Preview</h3>
+        <h2>Preview</h2>
         <p className="variables-note">
           The compiled prompt with each default written in. This is for reading: it changes nothing
           that is sent, saved or published.

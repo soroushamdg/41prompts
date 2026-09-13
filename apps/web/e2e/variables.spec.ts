@@ -42,6 +42,20 @@ async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   await page.reload();
 }
 
+/**
+ * The declared variable's own name, and not the four labels that also contain it.
+ *
+ * `getByText("company")` matches `Default for company`, `What company is for` and
+ * `New name for company` as well as the name itself — a strict-mode violation that says the test is
+ * ambiguous, not that the page is wrong.
+ */
+function declaredName(page: Page, name: string) {
+  return page
+    .getByRole("region", { name: "Declared variables" })
+    .locator(".variables-name")
+    .filter({ hasText: new RegExp(`^${name}$`) });
+}
+
 async function openVariables(page: Page): Promise<void> {
   await page.getByRole("tab", { name: "Variables" }).click();
   await expect(page.getByRole("tabpanel", { name: "Variables" })).toBeVisible();
@@ -75,7 +89,7 @@ test.describe("variables", () => {
 
     await undeclared.getByRole("button", { name: "Declare company" }).click();
     await expect(page.getByRole("region", { name: "Used but not declared" })).toHaveCount(0);
-    await expect(page.getByRole("region", { name: "Declared variables" }).getByText("company")).toBeVisible();
+    await expect(declaredName(page, "company")).toBeVisible();
   });
 
   test("a rename follows into every blok and into the declaration", async ({ page }) => {
@@ -89,7 +103,7 @@ test.describe("variables", () => {
     await page.getByLabel("New name for company").fill("vendor");
     await page.getByRole("button", { name: "Rename everywhere" }).click();
 
-    await expect(page.getByRole("region", { name: "Declared variables" }).getByText("vendor")).toBeVisible();
+    await expect(declaredName(page, "vendor")).toBeVisible();
     // Nothing is undeclared afterwards: the texts moved with the row.
     await expect(page.getByRole("region", { name: "Used but not declared" })).toHaveCount(0);
 
@@ -111,7 +125,7 @@ test.describe("variables", () => {
     await page.getByRole("button", { name: "Rename everywhere" }).click();
 
     await expect(page.getByRole("status")).toContainText("already in this prompt");
-    await expect(page.getByRole("region", { name: "Declared variables" }).getByText("company")).toBeVisible();
+    await expect(declaredName(page, "company")).toBeVisible();
   });
 
   test("preview renders defaults and leaves a required variable visible", async ({ page }) => {

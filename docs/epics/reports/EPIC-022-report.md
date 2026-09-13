@@ -144,6 +144,23 @@ so rather than accidentally so.
 run.* The habit of reading "5 successful, 8 total" as "passing" is what let this through, and the
 three packages that did not run were the ones the change touched most.
 
+### The second CI run found one more, and it was a real one
+
+With the styles fixed, `ci` got as far as Playwright: **147 passed, 4 failed, all four mine.**
+
+Three were ambiguous selectors in my own spec — `getByText("company")` also matches
+`Default for company`, `What company is for` and `New name for company`. Strict mode was telling me
+the test was ambiguous, not that the page was wrong. Scoped to `.variables-name`.
+
+The fourth was **a genuine accessibility defect**: axe's `heading-order`. The Variables tab opened at
+`<h3>` under the page's `<h1>`, with no `<h2>` between them, so a screen-reader user moving by
+heading would meet a level that skips one. Promoted to `<h2>`, which is the correct level for a
+section inside the page's only `<h1>`.
+
+Worth saying plainly: **e2e caught something no unit test could have.** `page.test.tsx` and the
+component tests can assert what renders; only the axe pass over an assembled page can see that a
+heading level is wrong relative to headings a different component rendered.
+
 ## 7. Open, and deliberately so
 
 1. **The `Assertions` tab is not stubbed.** Two tabs ship. A disabled tab that does nothing is a
