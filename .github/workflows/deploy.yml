@@ -5,6 +5,13 @@ name: Release
 # auto-deploy is off (see infra/README.md and docs/epics/EPIC-008-prebuilt-images.md). This
 # workflow only makes production deploys visible in one place by creating a GitHub Release
 # from the tag.
+# Concurrency (2026-09-13). Grouped so two runs on the same ref queue rather than race, but
+# **never cancelled**: this workflow ships something. A cancelled release is worse than a duplicated
+# one, and it is duplicated only if somebody pushes the same tag twice.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     tags:

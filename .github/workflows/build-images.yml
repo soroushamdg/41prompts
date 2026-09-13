@@ -18,14 +18,24 @@ name: Build images
 #
 # Never runs on pull_request — ci.yml already lints/typechecks/tests those; this workflow's only job is producing
 # and shipping images.
+
+# Concurrency (2026-09-13). Grouped so two runs on the same ref queue rather than race, but
+# **never cancelled**: this workflow ships something. A cancelled release is worse than a duplicated
+# one, and it is duplicated only if somebody pushes the same tag twice.
+#
+# This replaces a `cancel-in-progress: true` that was here before 2026-09-13 and was wrong: on a
+# workflow triggered only by `v*` tags, it meant a second tag pushed while the first was still
+# building would cancel a release mid-flight, leaving a tag with no image behind it and a Coolify
+# webhook that never fired. It had never happened, because two tags have never been pushed within
+# six minutes of each other. Do not put it back.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
-
-concurrency:
-  group: build-images-${{ github.ref }}
-  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
