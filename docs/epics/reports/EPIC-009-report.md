@@ -103,19 +103,20 @@ file rather than left looking like dead code.
 
 ## 5. Acceptance criteria
 
-- [ ] **A merge to `main` triggers CI and compliance but no image build; staging updates via
-      Coolify's own build.** **Cannot be verified from here** — Actions cannot start a job, so no
-      merge produces a run to show. Coolify's side needed no change at all (§9.1), and its own
-      on-box build is now proven end to end (§9.6). Still unticked because the *trigger* is not:
-      this deploy was a button press, so only the next merge to `main` shows the auto-deploy path
-      working.
-- [ ] **A `v*` tag still builds and deploys production.** Same reason. The workflow change is a
-      trigger removal that leaves the tag path untouched, but "untouched" is not evidence.
+- [x] **A merge to `main` triggers CI and compliance but no image build; staging updates via
+      Coolify's own build.** Answered by this report's own merge, §12. `CI` and `Compliance` both
+      fired on the push; **`build-images` did not**; Coolify started a staging deployment in the
+      same minute and served the merge commit 1 min 18 s later. Production was untouched.
+- [ ] **A `v*` tag still builds and deploys production.** Still unticked, and deliberately so. The
+      workflow change is a trigger removal that leaves the tag path untouched, but "untouched" is not
+      evidence, and the only way to gather the evidence is to cut a tag — which PROCESS.md says is a
+      release, not a test. This should be ticked by the next real release. See §11.4.
 - [ ] **Staging's on-box build completes in under ten minutes without taking the apex `/healthz`
       down.** **Fails on the second half.** Build: **9 min 23 s**, inside the budget. Apex: **down
       for up to 32 seconds** during the container swap, `503` on both `staging.41prompts.ai` and
       `app.staging.41prompts.ai`. Production, redeployed by the same press, dropped for up to 38 s.
-      Measured in §9.7; left open as a named piece of work in §11.
+      A second, cache-hot deploy (§12) dropped for up to 23 s, so the gap is not an artefact of a
+      long build. Measured in §9.7 and §12; left open as a named piece of work in §11.
 - [x] **`PROCESS.md` states that tags are releases and names the three things that do not warrant
       one.** A ruling, a copy fix, a fix-up epic.
 - [x] **`infra/RUNBOOK.md` has the budget section with measured minutes before and after, and says
@@ -428,7 +429,7 @@ has not been verified here, and the next deploy is what will say. Claiming the h
 for the downtime would be the same kind of reasoning-from-plausibility that the cookie-prefix epic
 already cost us once.
 
-## 11. Three things this session leaves open
+## 11. What this session leaves open
 
 1. **The apex drops on every deploy, on both environments.** Measured, reproducible, ~30 s. It wants
    its own epic. Of the obvious three options, one is not actually available: **a second `web`
@@ -438,6 +439,64 @@ already cost us once.
    healthchecks are declared where it can see them, or moving migrations out of the web entrypoint
    into a one-shot step (which would also cut the startup window that produces the gap). Taking them
    in that order is cheapest first. Not fixed here.
-2. **Criterion 1 needs a merge**, not a button. The next PR that lands on `main` answers it for free.
+2. ~~**Criterion 1 needs a merge**, not a button.~~ **Closed by §12** — this report's own PR did it.
 3. **A project-level Deploy in Coolify redeploys production.** Worth a line in the runbook, because
-   the safeguard everyone reaches for — auto-deploy off — does not cover it.
+   the safeguard everyone reaches for — auto-deploy off — does not cover it. Now in
+   `infra/RUNBOOK.md`.
+4. **Criterion 2 — a `v*` tag still builds and deploys production — remains unverified**, and the only
+   way to verify it is to cut a tag, which by PROCESS.md's own rule is a release rather than a test.
+   It should be ticked by the next real release, not by a tag cut to satisfy it.
+
+## 12. The merge that answered criterion 1
+
+This report's own PR (#63) merged at 12:51 and settled criterion 1 without anything being staged for
+it. Three things happened on the push to `main`, and all three are what the epic predicted:
+
+| | |
+|---|---|
+| `CI` | triggered, `event=push`, failed — `log not found` on the job, i.e. the runner never started |
+| `Compliance` | triggered, same, all four jobs failed with no logs |
+| **`build-images`** | **did not run at all** |
+
+That last line is #62's trigger removal working on a real merge rather than on a reading of the YAML.
+The two failures are the budget refusal this epic exists because of, not a code failure: a job that
+produces no log never ran.
+
+Coolify picked the merge up on its own:
+
+```
+deployment  wrqzmozouniufix0xwovcafd
+app         …pboa5wxrnggay30epiq0pmzd   — staging only
+commit      50c9831
+created     12:51:17Z                   — the same minute as the push
+```
+
+**Production was not touched.** That is the useful contrast: the same auto-deploy flags that let
+staging follow `main` kept production out of it, which confirms §9.5's reading that the earlier
+double-deploy was the project-level button rather than anything structural.
+
+### The second measurement, and what it rules out
+
+| moment | time (UTC) |
+|---|---|
+| deployment created | 12:51:17 |
+| last `200` on `f75569b` | 12:52:12 |
+| `503` | 12:52:18, 12:52:24, 12:52:29 |
+| first `200` on `50c9831` | 12:52:35 |
+
+**Total 1 min 18 s**, against 9 min 23 s for the first deploy. The difference is Docker layer cache:
+#63 changed only documentation and compose YAML, so no image layer was rebuilt. Useful as a floor —
+a merge that touches no application code reaches staging in about eighty seconds.
+
+**The apex still dropped, for up to 23 s.** Two things follow.
+
+First, the gap is not an artefact of a long build. A deploy that did almost no work still dropped the
+apex for twenty-odd seconds, which puts the cost squarely in the container swap.
+
+Second, **this was the first deploy to carry the compose-level `healthcheck:` blocks from §10, and it
+did not close the gap.** §10 declined to claim the healthcheck as the fix for the downtime, on the
+grounds that Docker had called a container healthy while the apex was still `503`. That caution was
+correct, and it is worth noting as the reason to state it that way: had §10 claimed the fix, this
+deploy would have quietly falsified the report an hour after it was written. The healthcheck makes
+readiness *visible*; making Coolify *wait* for it is a different setting, and §11's first item is
+still open.

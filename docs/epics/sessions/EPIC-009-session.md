@@ -183,3 +183,20 @@ Dockerfiles. This is an `infra/` change including the production compose, made o
 It is **not** claimed as the fix for the 30-second outage. Docker called the new staging container
 healthy 18 seconds in while the apex was still `503`, which puts the gap on the routing side. Report
 §11 leaves it as named open work rather than asserting a cause.
+
+### Criterion 1, answered by this session's own merge
+
+PR #63 (the report and healthcheck changes above) merged at 12:51 and became the evidence. On the
+push to `main`: `CI` triggered and failed with no logs, `Compliance` the same, and **`build-images`
+did not run**. Coolify started deployment `wrqzmozouniufix0xwovcafd` on staging in the same minute,
+on commit `50c9831`, and staging served it 1 min 18 s later. Production was not touched — the
+contrast that confirms the earlier double-deploy was the project-level button.
+
+The second deploy's apex gap was **≤ 23 s** (last `200` on `f75569b` 12:52:12, three `503` ticks,
+first `200` on `50c9831` 12:52:35). It was the first deploy carrying the compose-level healthchecks
+and **it did not close the gap**, which is why §10 was written to decline that claim rather than make
+it. A cache-hot deploy that rebuilt nothing still dropped the apex, so the cost is the container swap,
+not the build.
+
+Criterion 1 ticked. Criterion 3 stays failed. Criterion 2 stays unverified and should be ticked by the
+next real release rather than by a tag cut to satisfy it.
