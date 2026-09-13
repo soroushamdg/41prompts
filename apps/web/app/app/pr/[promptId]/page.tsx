@@ -4,7 +4,11 @@ import { canvasForOwner, compiledForBloks } from "@/lib/canvas/queries";
 import { compiledView } from "@/lib/canvas/compiled-view";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
+import { variablesViewFor } from "@/lib/variables/queries";
+import { variablesForPrompt } from "@41prompts/db";
 import { Editor } from "./editor";
+import { VariablesTab } from "./variables-tab";
+import { Workbench } from "./workbench";
 
 export const metadata: Metadata = { title: "Canvas · 41Prompts", robots: { index: false, follow: false } };
 
@@ -19,6 +23,11 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
   // Compiled on the server from the same rows the canvas renders, with hand edits carried through.
   const { compiled, bloks, hashes } = compiledForBloks(found.bloks);
 
+  // The same rows again, not a second read: extraction and compilation must agree about which text
+  // ships, and they cannot if they are looking at two snapshots.
+  const declarations = await variablesForPrompt(getDb(), promptId);
+  const variables = variablesViewFor(found.bloks, declarations);
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -29,11 +38,24 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
         <p className="app-state">Draft</p>
       </header>
 
-      <Editor
-        promptId={promptId}
-        bloks={found.bloks}
-        pieces={compiledView(compiled, bloks)}
-        hashes={Object.fromEntries(hashes)}
+      <Workbench
+        editor={
+          <Editor
+            promptId={promptId}
+            bloks={found.bloks}
+            pieces={compiledView(compiled, bloks)}
+            hashes={Object.fromEntries(hashes)}
+          />
+        }
+        variables={
+          <VariablesTab
+            promptId={promptId}
+            declarations={variables.declarations}
+            issues={variables.issues}
+            occurrences={variables.occurrences}
+            compiledText={compiled.text}
+          />
+        }
       />
     </main>
   );
