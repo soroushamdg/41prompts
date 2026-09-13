@@ -110,13 +110,13 @@ file rather than left looking like dead code.
 - [ ] **A `v*` tag still builds and deploys production.** Still unticked, and deliberately so. The
       workflow change is a trigger removal that leaves the tag path untouched, but "untouched" is not
       evidence, and the only way to gather the evidence is to cut a tag — which PROCESS.md says is a
-      release, not a test. This should be ticked by the next real release. See §11.4.
+      release, not a test. **Unverified, not failed** — carried to the next real release, §13.
 - [ ] **Staging's on-box build completes in under ten minutes without taking the apex `/healthz`
       down.** **Fails on the second half.** Build: **9 min 23 s**, inside the budget. Apex: **down
       for up to 32 seconds** during the container swap, `503` on both `staging.41prompts.ai` and
       `app.staging.41prompts.ai`. Production, redeployed by the same press, dropped for up to 38 s.
       A second, cache-hot deploy (§12) dropped for up to 23 s, so the gap is not an artefact of a
-      long build. Measured in §9.7 and §12; left open as a named piece of work in §11.
+      long build. Measured in §9.7 and §12. **Failed, not pending** — carried to EPIC-006b, §13.
 - [x] **`PROCESS.md` states that tags are releases and names the three things that do not warrant
       one.** A ruling, a copy fix, a fix-up epic.
 - [x] **`infra/RUNBOOK.md` has the budget section with measured minutes before and after, and says
@@ -431,8 +431,8 @@ already cost us once.
 
 ## 11. What this session leaves open
 
-1. **The apex drops on every deploy, on both environments.** Measured, reproducible, ~30 s. It wants
-   its own epic. Of the obvious three options, one is not actually available: **a second `web`
+1. **The apex drops on every deploy, on both environments.** Measured, reproducible, ~30 s. **Now
+   EPIC-006b** (Stage 0 late debt, size S, not scheduled); see §13. Of the obvious three options, one is not actually available: **a second `web`
    replica is ruled out** by `infra/RUNBOOK.md`'s migration-concurrency decision — the entrypoint
    runs `drizzle-kit migrate` before `next start`, and that is only safe because exactly one
    container does it. So the live options are Coolify's rolling-update behaviour now that the
@@ -445,7 +445,7 @@ already cost us once.
    `infra/RUNBOOK.md`.
 4. **Criterion 2 — a `v*` tag still builds and deploys production — remains unverified**, and the only
    way to verify it is to cut a tag, which by PROCESS.md's own rule is a release rather than a test.
-   It should be ticked by the next real release, not by a tag cut to satisfy it.
+   Carried to the next real release rather than held against this epic; see §13.
 
 ## 12. The merge that answered criterion 1
 
@@ -500,3 +500,44 @@ correct, and it is worth noting as the reason to state it that way: had §10 cla
 deploy would have quietly falsified the report an hour after it was written. The healthcheck makes
 readiness *visible*; making Coolify *wait* for it is a different setting, and §11's first item is
 still open.
+
+## 13. Closing: what this epic did not achieve, and where it went
+
+EPIC-009 is **done**. Two of its eight criteria are not met, and closing the epic on them is a
+decision rather than an oversight — both have somewhere to go, and neither is waiting on work this
+epic could have done.
+
+### Criterion 3 — FAILED, carried to EPIC-006b
+
+> *Staging's on-box build completes in under ten minutes without taking the apex `/healthz` down.*
+
+The build half passed at 9 min 23 s. **The apex half failed**: up to 32 seconds of `503` on the first
+deploy, up to 23 on the second. This is recorded as a failure, not as "pending" or "passed with a
+caveat". The criterion names a thing it will not tolerate and three deploys did it.
+
+It is carried to **EPIC-006b · Zero-downtime container replacement on staging** (Stage 0 late debt,
+size S, not scheduled). Nothing about the failure is specific to this epic's change — EPIC-008's
+image-pull deploys dropped the apex the same way, for longer — so it is not a regression EPIC-009
+introduced. What EPIC-009 contributed is the measurement that makes it actionable, and the
+`healthcheck:` declarations that are the first half of the likely fix.
+
+### Criterion 2 — UNVERIFIED, carried to the next release
+
+> *A `v*` tag still builds and deploys production.*
+
+Not met and not failed: **unverified**. The workflow change was a trigger removal that left the tag
+path untouched, but "untouched" is not evidence, and the only way to gather the evidence is to cut a
+tag — which PROCESS.md rules is a release, not a test. Cutting one to satisfy a checkbox would break
+the rule this epic wrote.
+
+It is carried to **the next real release**, whenever that is. Whoever cuts it should watch the
+production deployment and tick this line.
+
+### One thing deliberately left in the tree
+
+**The `healthcheck:` block added to `infra/docker-compose.production.yml` stays.** It was added while
+fixing the staging-side report of "Healthcheck: Not configured" (§10), it mirrors what
+`apps/web/Dockerfile` has always done, and it is **inert until the next `v*` tag** because nothing
+redeploys production before then. It was offered for reversion and deliberately kept, so that the
+three compose files stay consistent with each other and with the Dockerfiles. **Do not revert it as
+an oversight** — it is not one.

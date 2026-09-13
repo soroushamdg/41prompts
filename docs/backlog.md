@@ -23,7 +23,8 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-004 | Observability + guardrails: Sentry, PostHog with typed events, uptime, structured logs, run budgets, metrics dashboard, Drizzle Studio access documented for staging and production | S | 002 | done |
 | EPIC-007 | Compliance CI: REUSE lint, dependency-cruiser allow-list, Turborepo boundaries, SBOM + licence gate, mirror dry-run | S | 000 | done |
 | EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | done — staging half reverted by EPIC-009 |
-| EPIC-009 | Actions budget: image builds move off `main` to `v*` tags only, staging builds on the box again, tags become releases, measured budget in the runbook | S | 008 | current |
+| EPIC-009 | Actions budget: image builds move off `main` to `v*` tags only, staging builds on the box again, tags become releases, measured budget in the runbook | S | 008 | done — two criteria carried, see report §13 |
+| EPIC-006b | Zero-downtime container replacement on staging: close the ~25 s apex gap on every deploy | S | 009 | deferred — not scheduled |
 
 **EPIC-009 is a late Stage 0 entry (2026-09-12).** EPIC-008 moved both image builds to Actions at
 6.58 billed minutes a merge; 81 builds, 73 of them from merges to `main`, helped spend **2,175 billed
@@ -34,6 +35,22 @@ work that should have been budgeted there, not because it was foreseen.
 It does **not** bring the burn under the allowance on its own — it saves 22%, and the project stays
 roughly 3× over at the observed merge rate. `infra/RUNBOOK.md` carries the measurement and the
 remaining lever.
+
+**EPIC-006b is late Stage 0 debt, not scheduled (2026-09-13).** Every staging deploy drops the apex
+for about twenty-five seconds: `503` on both `staging.41prompts.ai` and `app.staging.41prompts.ai`
+while the container is replaced. Measured twice on staging in EPIC-009 (§9.7 and §12), at ≤ 32 s and
+≤ 23 s — the second on a deploy whose images were entirely cache hits, so the gap is the container
+swap, not the build. The likely cause is that Coolify stops the old container before the new one is
+answering; the fix is a healthcheck the orchestrator actually waits on, plus whatever Traefik needs to
+hold traffic until it passes. EPIC-009 already declared `healthcheck:` for `web` and `worker` in all
+three compose files, which makes readiness visible to Coolify but did **not** close the gap on the
+next deploy; making Coolify *wait* for it is the unstarted part.
+
+One correction to how this was scoped: **production is affected too.** It was measured at ≤ 38 s on
+2026-09-13, the longest of the three gaps recorded that day. What production avoids is the *build*, not the swap — it pulls a
+prebuilt image, so its deploy is shorter overall, and it deploys rarely because only a `v*` tag
+triggers it. Rarely is the mitigation; immunity is not. Anyone treating a release as zero-downtime on
+the strength of "production pulls an image" would be wrong.
 
 ## Stage 1 · Decompiler, soft-public
 
