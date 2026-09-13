@@ -55,6 +55,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Mirrors the HEALTHCHECK baked into apps/web/Dockerfile, deliberately duplicated: Coolify reads the
+    # compose file rather than the image, so without this it reports "Healthcheck: Not configured" while
+    # Docker is in fact checking the container and reporting it healthy. Same test, same thresholds — if you
+    # change one, change the other. No `${...}` anywhere in here, for the EPIC-001 F2 reason above.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     ports:
       - "127.0.0.1:3000:3000"
 
@@ -71,6 +81,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Mirrors apps/worker/Dockerfile's HEALTHCHECK, for the same reason as web's above. The worker serves no
+    # HTTP, so liveness is "the entry file is still the running process", not a request.
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'apps/worker/src/index.ts' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   # Still built inline, not pulled from GHCR: this is a tiny wrapper around postgres:16 + awscli, not one of the
   # two images EPIC-008 moved to Actions (web/worker only, per docs/epics/CURRENT.md's scope). Identical to the

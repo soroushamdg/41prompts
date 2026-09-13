@@ -53,6 +53,16 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Mirrors the HEALTHCHECK baked into apps/web/Dockerfile, deliberately duplicated: Coolify reads the
+    # compose file rather than the image, so without this it reports "Healthcheck: Not configured" while
+    # Docker is in fact checking the container and reporting it healthy. Same test, same thresholds — if you
+    # change one, change the other. No `${...}` anywhere in here, for the EPIC-001 F2 reason above.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
     # Same loopback-only reasoning as postgres above. Coolify's proxy reaches this
     # container over the compose network by service name (web:3000), not via this
     # published port — it never needs to be open beyond 127.0.0.1.
@@ -70,6 +80,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # Mirrors apps/worker/Dockerfile's HEALTHCHECK, for the same reason as web's above. The worker serves no
+    # HTTP, so liveness is "the entry file is still the running process", not a request.
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'apps/worker/src/index.ts' || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   # Nightly pg_dump -> R2, run as a small always-on scheduler rather than a Coolify
   # Scheduled Task: this way the whole backup story is infra-as-code, verifiable locally
