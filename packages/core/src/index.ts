@@ -73,10 +73,27 @@ export type {
   SpanState
 } from "./compile/types.js";
 
-// The build artifact (EPIC-020 ships v0; EPIC-050 freezes v1). **Not a public contract yet** — the
+// Variables (EPIC-022). `{{name}}` in the text a model sees, against what the prompt declares.
+// A disagreement between the two is a `VariableIssue` and **never** a seventh `Finding` — ADR-003
+// says why, and the short version is that a finding is a claim about prose we did not write.
+export { extractVariables, usedVariableNames, occurrencesInText, isVariableName } from "./variables/extract.js";
+export { variableIssues } from "./variables/issues.js";
+export { renameVariable } from "./variables/rename.js";
+export { isOptional } from "./variables/types.js";
+export type { VariableScanOptions } from "./variables/extract.js";
+export type { RenameResult, RenameRefusal, RenamedText } from "./variables/rename.js";
+export type {
+  VariableDeclaration,
+  VariableIssue,
+  VariableIssueKind,
+  VariableOccurrence,
+  VariableSchema
+} from "./variables/types.js";
+
+// The build artifact (EPIC-022 ships v1; EPIC-050 freezes it). **Not a public contract yet** — the
 // file says so in as many words, and `CLAUDE.md` protects it only once Stage 5a begins.
 export { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./artifact/schema.js";
-export type { Artifact } from "./artifact/schema.js";
+export type { Artifact, ArtifactVariable } from "./artifact/schema.js";
 
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a
 // replacement for it (`CLAUDE.md` rule 3): the compiler emits the verbatim source span, never this.
