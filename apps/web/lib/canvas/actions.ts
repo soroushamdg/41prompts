@@ -12,6 +12,7 @@ import {
   prompts,
   restoreBlok,
   setBlokText,
+  setHandEdit,
 } from "@41prompts/db";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -150,6 +151,69 @@ export async function undoDeleteBlokAction(promptId: string, blokId: string): Pr
   if (owned === undefined) return REFUSED;
 
   await restoreBlok(owned.db, promptId, blokId);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/**
+ * Take one span by hand (EPIC-021b decision 1).
+ *
+ * The text is stored **verbatim** — no trim, no normalisation — like every other blok write, and the
+ * span is marked edited by hand **at the moment of the edit**, not afterwards, because a pane that
+ * tells you later has already let you believe the compiler still owns it.
+ *
+ * `fromHash` is the blok's hash as the pane was showing it. Keeping it is the entire mechanism
+ * behind "the blok has changed since you edited this" — recomputing it here would answer that
+ * question "no" for ever.
+ */
+export async function editSpanAction(
+  promptId: string,
+  blokId: string,
+  text: string,
+  fromHash: string
+): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await setHandEdit(owned.db, promptId, blokId, { text, fromHash });
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/**
+ * Update from blok: give the span back to the compiler (decision 5).
+ *
+ * **Per span, never global.** There is no bulk version and there must not be, because each one
+ * discards something a person wrote and each is therefore a separate decision.
+ *
+ * Clearing the pair is all it takes: with no hand edit on the row, the blok's text is what compiles,
+ * which is what EPIC-021a's placement bought.
+ */
+export async function updateFromBlokAction(promptId: string, blokId: string): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await setHandEdit(owned.db, promptId, blokId, null);
+  revalidatePath(`/app/pr/${promptId}`);
+  return { ok: true };
+}
+
+/**
+ * Undo an update from blok (decision 7), by putting back exactly what was there.
+ *
+ * The same shape as EPIC-021a's delete undo and for the same reason: it destroys writing. The pane
+ * holds what it had — including the retained hash — and hands both back, so the restored span is
+ * indistinguishable from the one that was replaced rather than approximately it.
+ */
+export async function undoUpdateFromBlokAction(
+  promptId: string,
+  blokId: string,
+  previous: { text: string; fromHash: string }
+): Promise<ActionResult> {
+  const owned = await ownedPrompt(promptId);
+  if (owned === undefined) return REFUSED;
+
+  await setHandEdit(owned.db, promptId, blokId, previous);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }

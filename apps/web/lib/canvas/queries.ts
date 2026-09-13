@@ -1,4 +1,12 @@
-import { BLOK_KINDS, type BlokKind } from "@41prompts/core";
+import {
+  blokHash,
+  BLOK_KINDS,
+  compile,
+  type BlokKind,
+  type Compiled,
+  type KeptSpan,
+  type PromptBlok,
+} from "@41prompts/core";
 import {
   bloksForPrompt,
   projects,
@@ -75,4 +83,41 @@ export async function canvasForOwner(db: Db, promptId: string, owner: string) {
   if (prompt === undefined) return undefined;
   const rows = await bloksForPrompt(db, promptId);
   return { prompt, bloks: rows.map((row): CanvasBlok => ({ ...row, kind: asKind(row.kind) })) };
+}
+
+/**
+ * The compiled prompt for a canvas, with hand edits carried through.
+ *
+ * `order` comes from the row's position, not from `rank`: rows arrive in rank order already, and
+ * `PromptBlok.order` only has to reproduce that sequence. Deriving a number from the fractional
+ * index would be a second ordering to keep in step with the first.
+ *
+ * `keep` is rebuilt from the rows — which is exactly why EPIC-020's `keep` is a serialisable map and
+ * not a previous `Compiled`. The hand edit lives on the blok row, so it survives a page load, a
+ * reorder, and another blok being added, without the pane holding any state of its own.
+ */
+export function compiledForBloks(rows: readonly CanvasBlok[]): {
+  compiled: Compiled;
+  bloks: PromptBlok[];
+  hashes: Map<string, string>;
+} {
+  const bloks: PromptBlok[] = rows.map((row, index) => ({
+    id: row.id,
+    kind: row.kind,
+    text: row.text,
+    order: index,
+  }));
+
+  const keep = new Map<string, KeptSpan>();
+  for (const row of rows) {
+    if (row.editedText !== null && row.editedFromHash !== null) {
+      keep.set(row.id, { text: row.editedText, hash: row.editedFromHash });
+    }
+  }
+
+  // The blok's hash as it is *now* — what the pane hands back as `fromHash` when somebody takes a
+  // span, so "the blok has changed since you edited this" stays answerable afterwards.
+  const hashes = new Map(bloks.map((blok) => [blok.id, blokHash(blok)]));
+
+  return { compiled: compile(bloks, { keep }), bloks, hashes };
 }

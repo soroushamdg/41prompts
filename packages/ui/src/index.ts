@@ -10,6 +10,8 @@ export { Tag } from "./primitives/tag";
 export type { TagProps } from "./primitives/tag";
 export { BlokCard } from "./primitives/blok-card";
 export type { BlokCardProps } from "./primitives/blok-card";
+export { SpanStateBadge, SpanStateNote, isDriftPresentation } from "./primitives/span-state";
+export type { SpanPresentationName, SpanStateBadgeProps, SpanStateNoteProps } from "./primitives/span-state";
 export { BlokKindGlyph } from "./primitives/blok-kind-glyph";
 export type { BlokKindGlyphProps, BlokKindName } from "./primitives/blok-kind-glyph";
 export { KpiStrip } from "./primitives/kpi-strip";

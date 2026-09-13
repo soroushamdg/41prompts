@@ -95,9 +95,19 @@ met.
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
-| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | current |
-| EPIC-021b | web: compiled pane, span linking, override, drift, update-from-blok, eject | M | 021a, 003, 090 | todo |
+| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | built — awaiting the staging hand-drive |
+| EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | current |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
+
+**Two Stage 2 rows read as in-flight, and that is not two epics being built at once.** EPIC-021a is
+finished and merged; its status says `built — awaiting the staging hand-drive` because one criterion
+needs a person to sign in to staging and look, which nothing here can do (its report §7 explains
+why). EPIC-021b is the epic actually being worked on. When Soroush reports on staging, 021a's last
+criterion is ticked and its row becomes `done`.
+
+Its row title also drops "override" and "eject" for "hand-edited spans" and "update from blok":
+ADR-003 replaced the first and the second is not in EPIC-021b's scope. Its `Depends` loses 090, which
+is `todo` and gated behind the cancelled EPIC-084 — the epic file names only 021a and 003.
 
 **EPIC-021a is built and its report is written** (`docs/epics/reports/EPIC-021a-report.md`). It stays
 `current` rather than `done` for one reason, stated plainly: **the staging deploy and its screenshots

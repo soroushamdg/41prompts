@@ -109,3 +109,121 @@
 .canvas-list .blok-card {
   cursor: default;
 }
+
+/* ── the compiled pane (EPIC-021b) ────────────────────────────────────────────────────────────
+   Amber appears here and only here, on the two presentations where the blok has changed since the
+   span was compiled or edited — that is drift, and drift is the only thing amber means (rule 10).
+   Every state also carries a word, so the colour is never the signal on its own. */
+
+.compiled-pane {
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-sunken);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.compiled-panebar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  flex-wrap: wrap;
+  padding: var(--spacing-s2) var(--spacing-s3);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+  font-size: 12.5px;
+}
+.compiled-text {
+  margin: 0;
+  padding: var(--spacing-s3);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  /* The compiled prompt is whitespace-significant: blank lines between spans are the separator
+     EPIC-020 settled on, and collapsing them would misrepresent what the model receives. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.compiled-span {
+  /* Ink inversion on highlight, never a colour wash (decision 2, matching EPIC-013). */
+  background: transparent;
+  color: inherit;
+  padding: 1px 0;
+  border-radius: var(--radius-card);
+}
+.compiled-span[data-linked="true"] {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+.compiled-span[data-pinned="true"] {
+  outline: var(--border-ink) solid var(--color-focus);
+  outline-offset: 1px;
+}
+
+.span-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 11px;
+  padding: 0 5px;
+  border: var(--border-hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  color: var(--color-ink-2);
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+.span-state-badge-drift {
+  color: var(--color-warn);
+  border-color: var(--color-warn);
+  background: var(--color-warn-soft);
+}
+
+.span-state-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-s2);
+  margin: var(--spacing-s1) 0 var(--spacing-s2);
+  padding: var(--spacing-s2) var(--spacing-s3);
+  border: var(--border-hairline) solid var(--color-line);
+  border-left: 3px solid var(--color-ink-3);
+  background: var(--color-surface);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 12.5px;
+}
+.span-state-note-drift {
+  border-left-color: var(--color-warn);
+}
+.span-state-note-text {
+  margin: 0;
+  flex: 1 1 260px;
+  color: var(--color-ink);
+}
+
+.compiled-layout {
+  display: grid;
+  gap: var(--spacing-s5);
+}
+/* Side by side above md, stacked below (decision 9, following EPIC-013). */
+@media (min-width: 900px) {
+  .compiled-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* Touch targets in the compiled pane, the same answer `decompile.css` gives its source map: a span
+   is an inline run of the prompt, so it cannot have a height of its own — the line it sits on has to
+   provide one. Airy only where touch is the interaction; the desktop layout keeps normal leading. */
+@media (max-width: 560px) {
+  .compiled-text {
+    line-height: 4;
+  }
+  .compiled-span {
+    padding: 16px 0;
+  }
+  .compiled-panebar .btn,
+  .span-state-note .btn {
+    min-height: 46px;
+  }
+}
