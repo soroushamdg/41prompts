@@ -95,6 +95,9 @@ use, copy, modify, merge, publish, distribute, sublicense, or sell copies of thi
 without the prior written permission of <legal entity>.
 ```
 
+**Amended 2026-09-13.** "Confidential" was removed from the shipped licence text; this plan's draft
+is left as written. See `docs/decisions/ADR-002-licensing-and-repos.md` for why.
+
 ---
 
 ## 3. SPDX headers

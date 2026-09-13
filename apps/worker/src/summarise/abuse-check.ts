@@ -25,7 +25,8 @@
 /**
  * ## The numbers below are defaults, and the deployed values are deliberately different
  *
- * This file is readable by anyone: the repository is public for a limited period. The budget was
+ * This file was published: the repository was public for a period in September 2026, and closing
+ * it again does not un-publish it — anyone who cloned it still has these numbers. The budget was
  * always the real defence — the phrase list below says so itself and always has — but it was sized
  * on the assumption that an attacker had to *discover* the bound by probing. Published, the bound
  * stops being a bound and becomes an instruction: stay under 200 an hour and 4,000 characters and

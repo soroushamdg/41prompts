@@ -34,12 +34,13 @@ Each of the first four carries a `LICENSE` file saying so; all of them are decla
 `LicenseRef-41Prompts-Proprietary` in `REUSE.toml`, whose text is in
 `LICENSES/LicenseRef-41Prompts-Proprietary.txt`.
 
-**Source being visible is not a grant of any licence.** This repository is public for a limited
-period, for reasons that have nothing to do with licensing. Reading proprietary code here gives you
-no right to use, copy, modify, distribute or create derivative works from it. No licence is implied
-by publication, by the absence of a licence file in any particular directory, or by the repository
-being open to view. The only permissive grant in this repository is Apache-2.0, and it covers exactly
-the four packages named above.
+**Source being visible is not a grant of any licence.** This repository was public for a period in
+September 2026, for reasons that had nothing to do with licensing, and closing it again does not
+un-publish what was seen. Reading proprietary code here gives you no right to use, copy, modify,
+distribute or create derivative works from it. No licence is implied by publication, by the absence
+of a licence file in any particular directory, or by the repository being open to view. The only
+permissive grant in this repository is Apache-2.0, and it covers exactly the four packages named
+above.
 
 There is deliberately **no repository-root `LICENSE` file**: a single one would tell GitHub to label
 the whole repository with a licence that is wrong for most of it. The split above is the licence

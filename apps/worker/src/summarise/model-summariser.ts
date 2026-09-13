@@ -63,12 +63,13 @@ export interface ModelSummariserOptions {
 }
 
 /**
- * The prompt. Proprietary, and — while this repository is public — readable by anyone.
+ * The prompt. Proprietary, and published.
  *
  * It used to say "never leaves the worker". That stopped being true on 2026-09-13, when the
- * repository was made public for a limited period to get free Actions minutes. The claim is
- * removed rather than softened, because a comment asserting a confidentiality the repository
- * contradicts is worse than no comment: it tells a reader the code is protected by secrecy when
+ * repository was made public to get free Actions minutes. The repository went private again the
+ * same day, which does not undo it: the prompt was readable, and anyone who cloned it has it. The
+ * claim is removed rather than softened, because a comment asserting a confidentiality the record
+ * contradicts is worse than no comment — it tells a reader the code is protected by secrecy when
  * it is protected only by licence.
  *
  * **The licence is unchanged.** `apps/worker` is `LicenseRef-41Prompts-Proprietary`, all rights
