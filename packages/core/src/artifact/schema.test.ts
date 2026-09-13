@@ -12,10 +12,45 @@ import { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./schema.js";
 
 const FIVE = compileFixture("five-bloks").bloks;
 
-describe("artifact schema v0", () => {
+describe("artifact schema v1", () => {
   it("carries a version field, from the first line", () => {
-    expect(ARTIFACT_SCHEMA_VERSION).toBe(0);
-    expect(artifactOf("pr_0000beef", compile(FIVE), FIVE).schemaVersion).toBe(0);
+    expect(ARTIFACT_SCHEMA_VERSION).toBe(1);
+    expect(artifactOf("pr_0000beef", compile(FIVE), FIVE).schemaVersion).toBe(1);
+  });
+
+  /**
+   * EPIC-022. The declaration half of the variable contract, which EPIC-050's compatibility check
+   * needs to exist before it can be written.
+   */
+  it("carries the declared variables, in name order whatever order they arrive in", () => {
+    const artifact = artifactOf("pr_0000beef", compile(FIVE), FIVE, [
+      { name: "zebra", defaultValue: null, description: null },
+      { name: "alpha", defaultValue: "a", description: "first" }
+    ]);
+    expect(artifact.variables.map((v) => v.name)).toEqual(["alpha", "zebra"]);
+  });
+
+  it("declares no variables by default, rather than leaving the field absent", () => {
+    expect(artifactOf("pr_0000beef", compile(FIVE), FIVE).variables).toEqual([]);
+  });
+
+  it("hashes the same for two artifacts whose variables arrived in different orders", () => {
+    const a = artifactOf("pr_0000beef", compile(FIVE), FIVE, [
+      { name: "one", defaultValue: null, description: null },
+      { name: "two", defaultValue: null, description: null }
+    ]);
+    const b = artifactOf("pr_0000beef", compile(FIVE), FIVE, [
+      { name: "two", defaultValue: null, description: null },
+      { name: "one", defaultValue: null, description: null }
+    ]);
+    expect(a.buildHash).toBe(b.buildHash);
+  });
+
+  it("leaves the reserved type field absent rather than writing a placeholder into it", () => {
+    const artifact = artifactOf("pr_0000beef", compile(FIVE), FIVE, [
+      { name: "one", defaultValue: null, description: null }
+    ]);
+    expect(artifact.variables[0]).not.toHaveProperty("type");
   });
 
   /**

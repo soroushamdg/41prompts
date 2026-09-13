@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { checkFor } from "./checks.js";
+import { emitsText } from "./emits-text.js";
 import { BLOK_SEPARATOR, blokHash } from "./hash.js";
 import type { Check, Compiled, CompiledSpan, CompileOptions, PromptBlok, SpanCache } from "./types.js";
 
@@ -44,7 +45,9 @@ export function compile(bloks: readonly PromptBlok[], options: CompileOptions = 
   for (const blok of ordered(bloks)) {
     // Decision 6. The only kind that emits no text, and an all-`expected` prompt therefore compiles
     // to `""` plus a list of checks — correct, not an error, and not a case to guard against.
-    if (blok.kind === "expected") {
+    // The predicate is `emitsText` rather than a comparison here because EPIC-022 asks the same
+    // question of the same bloks and must get the same answer; see `emits-text.ts`.
+    if (!emitsText(blok)) {
       checks.push(checkFor(blok));
       continue;
     }

@@ -57,6 +57,19 @@ export function newWaitlistId(): string {
 }
 
 /** A counted run. Six bytes like a permalink id — it is never handed out, but it costs nothing. */
+/**
+ * A declared variable's row id (EPIC-022).
+ *
+ * The row is identified by an id rather than by `(prompt, name)` even though that pair is unique,
+ * because **rename is the operation this table exists to survive**: a composite key would make a
+ * rename an update to the primary key, and anything that later references a variable would be
+ * referencing a value that changes. Nothing references one yet, which is the cheapest moment to
+ * decide that nothing ever has to.
+ */
+export function newVariableId(): string {
+  return newId("var", 8);
+}
+
 export function newDecompileRunId(): string {
   return newId("dr", 6);
 }

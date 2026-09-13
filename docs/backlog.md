@@ -115,7 +115,7 @@ met.
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | built — awaiting the staging hand-drive |
 | EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | current |
-| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | todo |
+| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — awaiting the staging hand-drive |
 
 **Two Stage 2 rows read as in-flight, and that is not two epics being built at once.** EPIC-021a is
 finished and merged; its status says `built — awaiting the staging hand-drive` because one criterion

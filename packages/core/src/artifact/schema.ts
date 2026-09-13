@@ -20,14 +20,21 @@
  *   canonical, so two equal artifacts can hash differently. v1 needs a defined byte encoding.
  * - **Integrity.** This hash addresses content, it does not authenticate it. EPIC-057's threat model
  *   covers artifact integrity and pointer abuse, and its answer belongs here.
- * - **The variable contract** (EPIC-022) and its compatibility check.
+ * - ~~**The variable contract** (EPIC-022)~~ — **added in v1, 2026-09-13.** The artifact now carries
+ *   `variables`. The *compatibility check itself* — comparing a caller's arguments against this
+ *   declaration and deciding what counts as a breaking change — is still EPIC-050's.
  * - **Live/Draft pointers**, which are not part of the artifact itself.
  */
-export const ARTIFACT_SCHEMA_VERSION = 0;
+export const ARTIFACT_SCHEMA_VERSION = 1;
+// v0 → v1 on 2026-09-13: EPIC-022 added `variables`. Bumped because the comment above says to bump
+// when the shape changes, and a version field that does not move when the format moves is the one
+// thing the first shipped reader cannot recover from. Nothing reads artifacts yet, which is exactly
+// why it is free to do now and expensive to start doing later.
 
 import { hash } from "../compile/hash.js";
 import { COMPILER_VERSION } from "../compile/hash.js";
 import type { Check, Compiled, CompiledSpan, PromptBlok } from "../compile/types.js";
+import type { VariableDeclaration } from "../variables/types.js";
 
 /**
  * One compiled prompt, everything needed to serve it, and everything needed to explain it.
@@ -48,6 +55,18 @@ export interface Artifact {
   readonly checks: readonly Check[];
   readonly bloks: readonly PromptBlok[];
   /**
+   * What a caller must supply, and what they may leave out.
+   *
+   * **In name order**, so two artifacts declaring the same variables serialise identically — v1 has
+   * no canonical serialisation yet (see the header) and an incidental ordering would make two equal
+   * artifacts hash differently for no reason anybody could see.
+   *
+   * This is the half of "the variable contract" EPIC-022 owns: the declaration. The other half —
+   * what a *compatibility check* considers breaking — is EPIC-050's, and it needs this to exist
+   * before it can be written.
+   */
+  readonly variables: readonly ArtifactVariable[];
+  /**
    * Content hash of the compiled artifact.
    *
    * **Named `buildHash`, not `buildSha`, and the two halves of `CLAUDE.md` disagree about that.**
@@ -61,13 +80,36 @@ export interface Artifact {
 }
 
 /**
+ * A declared variable, as it travels in an artifact.
+ *
+ * ## `type` is reserved and always absent in v1
+ *
+ * EPIC-022 ruling Q1: a value type is a **compatibility surface** — the thing a contract check
+ * compares a caller's arguments against — and EPIC-050 freezes this format. Shipping a type system
+ * nobody had thought hard about would freeze that too, so v1 ships the field and not the feature.
+ *
+ * It is here rather than added later on purpose. A reader that has always seen the field can start
+ * receiving values in it without anything breaking; a reader that has never seen it must be taught
+ * about a new field by a version bump it may be too old to understand. **Do not bump the schema
+ * version when this starts carrying values** — that is the whole reason for reserving it.
+ */
+export interface ArtifactVariable extends VariableDeclaration {
+  readonly type?: string;
+}
+
+/**
  * Assemble an artifact from a compiled prompt and the bloks it came from.
  *
  * **Provisional, and here so that v0 is something you can construct and test rather than a shape
  * nobody has ever built.** EPIC-050 owns the real one, along with the canonical serialisation this
  * deliberately does not have.
  */
-export function artifactOf(promptId: string, compiled: Compiled, bloks: readonly PromptBlok[]): Artifact {
+export function artifactOf(
+  promptId: string,
+  compiled: Compiled,
+  bloks: readonly PromptBlok[],
+  variables: readonly ArtifactVariable[] = []
+): Artifact {
   const body = {
     schemaVersion: ARTIFACT_SCHEMA_VERSION,
     compilerVersion: COMPILER_VERSION,
@@ -75,7 +117,10 @@ export function artifactOf(promptId: string, compiled: Compiled, bloks: readonly
     text: compiled.text,
     spans: compiled.spans,
     checks: compiled.checks,
-    bloks
+    bloks,
+    // Sorted here rather than trusted from the caller: the ordering is part of what the hash means,
+    // and a caller passing rows in database order would make an equal artifact hash differently.
+    variables: [...variables].sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
   };
   return { ...body, buildHash: hash(JSON.stringify(body)) };
 }

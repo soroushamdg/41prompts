@@ -227,3 +227,136 @@
     min-height: 46px;
   }
 }
+
+/* EPIC-022 · Variables
+   The tab strip the mockup shows above the editor, and the tab itself. Two lists and a preview:
+   what disagrees first, because one of those two ships a literal {{name}} to somebody's customer. */
+
+.workbench > .tabs-list {
+  display: flex;
+  gap: var(--spacing-s2);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  margin-bottom: var(--spacing-s4);
+}
+
+.workbench .tab {
+  appearance: none;
+  background: none;
+  border: none;
+  border-bottom: var(--border-ink) solid transparent;
+  color: var(--color-ink-3);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: var(--spacing-s2) var(--spacing-s3);
+}
+
+.workbench .tab[aria-selected="true"] {
+  border-bottom-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+/* The tabpanel is focusable (ARIA tabs pattern) but must not draw a box around the whole editor
+   when it receives focus from the arrow keys — the tab itself is the visible focus. */
+.workbench .tab-panel:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.variables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-s6);
+  max-width: 72ch;
+}
+
+.variables h2 {
+  margin: 0 0 var(--spacing-s2);
+}
+
+.variables-note {
+  color: var(--color-ink-3);
+  margin: 0 0 var(--spacing-s3);
+}
+
+.variables-list,
+.variables-declared {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-s3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.variables-list li {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+}
+
+.variables-name {
+  background: var(--color-sunken);
+  border-radius: var(--radius-card);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  padding: 2px 6px;
+}
+
+.variables-where,
+.variables-required {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+}
+
+.variables-declared-item {
+  border: var(--border-hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-s3);
+  padding: var(--spacing-s3);
+}
+
+.variables-declared-head {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+}
+
+.variables-declared-controls,
+.variables-add,
+.variables-rename,
+.variables-details {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+}
+
+.variables-details,
+.variables-rename {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.variables-has-default {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-s2);
+}
+
+/* Read-only, and it says so in the copy above it. Wraps rather than scrolls sideways: a compiled
+   prompt is prose, and horizontal scrolling makes prose unreadable. */
+.variables-preview {
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12.5px;
+  margin: var(--spacing-s3) 0 0;
+  padding: var(--spacing-s3);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

@@ -67,3 +67,53 @@ describe("no component hard-codes a radius or shadow literal", () => {
     });
   }
 });
+
+/**
+ * **Every `var(--…)` in a stylesheet resolves to a token that exists.**
+ *
+ * Added 2026-09-13 after EPIC-022 shipped a whole section of `canvas.css` written against the
+ * *mockup's* variable names — `--s3`, `--ink-3`, `--line`, `--surface-2`, `--mono`, `--focus` — none
+ * of which this package defines. CSS does not fail on an unknown custom property: the declaration is
+ * simply dropped, so the section rendered unstyled and every existing gate passed. The radius guard
+ * above caught one hard-coded `4px` in the same block and said nothing about the ten variables
+ * beside it that pointed at nothing.
+ *
+ * A variable with a fallback — `var(--font-mono, ui-monospace, monospace)` — is fine and is the
+ * established convention for the two fonts, which Next's font loader sets at runtime rather than
+ * `tokens.css` defining them.
+ *
+ * This is a guard rather than a structural fix because there is no structure available: CSS custom
+ * properties are late-bound by design. The next best thing is that a typo fails a build instead of
+ * quietly removing a rule.
+ */
+describe("every custom property a stylesheet reads is one this package defines", () => {
+  /**
+   * Supplied by the consuming app, not by this package: `apps/web`'s layout sets both from Next's
+   * font loader onto the document. They are a real contract with the app rather than typos, and the
+   * guard would otherwise report them for ever.
+   *
+   * Nothing else belongs here. A variable that is neither defined in this package nor on this list
+   * is a name that resolves to nothing, and CSS drops the whole declaration rather than complaining.
+   */
+  const SUPPLIED_BY_THE_APP = new Set(["--font-sans", "--font-mono"]);
+
+  const definitions = new Set<string>();
+  for (const file of walk(srcDir, [".css"]).concat([join(srcDir, "tokens.css")])) {
+    for (const match of readFileSync(file, "utf-8").matchAll(/(--[a-z0-9-]+)\s*:/g)) {
+      definitions.add(match[1] as string);
+    }
+  }
+
+  const cssFiles = walk(srcDir, [".css"]);
+
+  it.each(cssFiles.map((f) => [f.replace(srcDir, "")] as const))("%s reads only defined tokens", (relative) => {
+    const content = readFileSync(join(srcDir, relative.slice(1)), "utf-8");
+    const unresolved: string[] = [];
+    // `var(--name)` with no comma is a bare read; `var(--name, fallback)` carries its own answer.
+    for (const match of content.matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/g)) {
+      const name = match[1] as string;
+      if (!definitions.has(name) && !SUPPLIED_BY_THE_APP.has(name)) unresolved.push(name);
+    }
+    expect([...new Set(unresolved)], `${relative} reads tokens nothing defines`).toEqual([]);
+  });
+});

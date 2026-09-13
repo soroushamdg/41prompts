@@ -6,6 +6,7 @@ import {
   newDecompileRunId,
   newProjectId,
   newPromptId,
+  newVariableId,
   newRunBudgetId,
   newWaitlistId,
 } from "./ids";
@@ -306,5 +307,53 @@ export const bloks = pgTable(
     // expressed here because Drizzle's index builder has no partial support in this version, and the
     // `deletedAt` filter is selective enough at canvas sizes.
     index("bloks_prompt_rank_idx").on(table.prompt, table.rank),
+  ],
+);
+
+/**
+ * One variable a prompt declares: a name, a default, and a description. That is all of v1.
+ *
+ * ## Why rows and not a `jsonb` column on `prompts`
+ *
+ * Editing one variable's description writes one row. A JSON column would make every edit a
+ * read-modify-write of the whole set, so two people editing two different variables would silently
+ * overwrite each other — the same class of loss EPIC-021a decision 2 paid a fractional index to
+ * avoid on the canvas. The set here is small enough that it would have worked most of the time,
+ * which is the worst property a data model can have.
+ *
+ * ## There is no `optional` column
+ *
+ * A variable is optional exactly when it has a default to fall back on, so `optional` would be a
+ * second field that can disagree with the first — optional with no default, required with one — and
+ * then something has to decide which of the two is true. `isOptional()` in `@41prompts/core` asks
+ * the question once, of `defaultValue`.
+ *
+ * ## `defaultValue` distinguishes null from empty
+ *
+ * `null` means the caller must supply it. `''` means they need not, and the value is the empty
+ * string — which is a real answer for a variable like `{{extra_instructions}}`. A schema that
+ * collapsed the two would make "optional, defaulting to nothing" unexpressible.
+ */
+export const promptVariables = pgTable(
+  "prompt_variables",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newVariableId()),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    /** Matches `[A-Za-z_][A-Za-z0-9_]*`, validated at the boundary by core's `isVariableName`. */
+    name: text("name").notNull(),
+    defaultValue: text("default_value"),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // One declaration per name per prompt, enforced by the database rather than by every caller
+    // remembering: a rename that collided would otherwise leave two rows and no way to say which
+    // one a `{{name}}` in the text refers to.
+    uniqueIndex("prompt_variables_prompt_name_idx").on(table.prompt, table.name),
   ],
 );

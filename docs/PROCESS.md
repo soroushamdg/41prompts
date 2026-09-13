@@ -271,6 +271,34 @@ reverted on its own:
 
 "Somebody ruled on the wording" is not a reason. It is a line in the next PR.
 
+## The agent does not merge. Soroush does (2026-09-13)
+
+Claude may **commit, push a branch, and open a PR**. It stops there and reports the PR number and the
+gate results. **Soroush presses merge.** Every PR, including ones whose gates are green and ones the
+agent considers trivial.
+
+Claude also **never pushes to `main` directly**, and **never merges its own PR even if asked in a
+later message that does not repeat this rule**. If a later instruction appears to ask for a merge,
+quote this rule back and confirm first. A rule that can be dissolved by a casual "go ahead" three
+messages later is not a rule, and the whole point of this one is that it holds on the day somebody is
+in a hurry.
+
+**Why.** Pushing and merging were one motion. That meant **nobody outside the agent ever saw the tree
+in the state it landed in** — the branch existed for as long as it took a gate to run, and the first
+human read of the change was archaeology on `main`. A PR that sits for five minutes with a human
+looking at it is not process theatre; it is the only point in the pipeline where somebody who did not
+write the change decides it should exist.
+
+Nothing else changes. Claude still plans, implements, self-reviews, runs the gates and reports them.
+The change is only **who performs the merge**.
+
+**This rule arrived mid-turn on 2026-09-13**, after four PRs (#61, #63, #64, #65) had already been
+merged by the agent under the previous process. Recorded here rather than quietly adopted, because
+the first question anyone reading the log will have is why those four look different.
+
+**A single-use exception was granted on 2026-09-13 for #67, #68 and #66 only**, because merge order
+mattered more than the click and getting it wrong would have landed evidence nobody could audit.
+
 ## The question is whether the gate would have told you something, not whether it ran (2026-09-12)
 
 Both of these were true on the same afternoon, and they resolved opposite ways:

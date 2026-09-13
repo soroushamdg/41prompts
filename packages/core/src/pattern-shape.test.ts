@@ -107,7 +107,19 @@ const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
   ["summarise/contract.ts", "^[0-9a-f]{16}$"],
   // Every character that starts a new line in something. A single class, no quantifier at all.
   ["summarise/contract.ts", "[\\n\\r\\v\\f\\u0085\\u2028\\u2029]"],
-  ["summarise/heuristic.ts", "^[ \\t]*(?:[-*+\u2022][ \\t]+|\\d{1,9}[.)][ \\t]+)"]
+  ["summarise/heuristic.ts", "^[ \\t]*(?:[-*+\u2022][ \\t]+|\\d{1,9}[.)][ \\t]+)"],
+  // EPIC-022. The brace form, and the name shape on its own.
+  //
+  // Both are single quantifiers over single classes with no nesting and nothing optional wrapping
+  // anything repeated, so neither can backtrack: `\s*` and `[A-Za-z0-9_]*` each have exactly one way
+  // to match any given input, and the literal `{{` and `}}` anchor both ends of the first.
+  //
+  // The name class is deliberately narrower than it could be — no dots, dashes or spaces — because
+  // every character allowed here is a character a rename has to survive and a future path syntax
+  // (`{{ user.name }}`) would have to reinterpret. Starting narrow is reversible; starting wide is
+  // not, because prompts written against the wider syntax would break.
+  ["variables/extract.ts", "\\{\\{(\\s*)([A-Za-z_][A-Za-z0-9_]*)\\s*\\}\\}"],
+  ["variables/extract.ts", "^[A-Za-z_][A-Za-z0-9_]*$"]
 ];
 
 function sourceFiles(dir: string): string[] {

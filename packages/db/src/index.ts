@@ -7,4 +7,5 @@ export * from "./hash-identity";
 export * from "./m1-count";
 export * from "./rank";
 export * from "./canvas";
+export * from "./variables";
 export * from "./testing";
