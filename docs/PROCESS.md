@@ -317,6 +317,14 @@ written against the mockup's variable names, and a heading-order failure.
 **Paste the summary, not the adjective.** "clean" is a claim about a run nobody else can see; the
 table is the run.
 
+**It found a second thing on the way in.** The public mirror copies the monorepo's root
+`package.json` verbatim, and most of its scripts cannot work in a tree with no `apps/`,
+`packages/db` or `scripts/` — `db:migrate`, `e2e`, `compliance`, `hooks:install`, `binary-files`.
+Only `test` was ever invoked there, so the rest sat broken and unnoticed until `test` started
+pointing at `scripts/gates.mjs`, which the mirror deliberately excludes. `mirror-dry-run` now
+rewrites the root scripts to the ones a public tree can run, which is what EPIC-056 has to do at the
+real split anyway.
+
 ## CI runs twice per change. We are not fixing it, and here is why (2026-09-12)
 
 A decision, not an observation, because it is the **largest single item in the Actions spend** and it
