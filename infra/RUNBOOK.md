@@ -169,6 +169,22 @@ sudo kill -9 <that pid>
 This is a real, unexpected process death from Docker's point of view, so the restart policy engages normally —
 `docker ps -a` shows `Restarting (137)` within a couple of seconds, then `Up ... (healthy)` shortly after.
 
+## Deploying by hand (EPIC-009, 2026-09-13)
+
+Press **Deploy on the application**, never the project-level Deploy. The project-level button fans out
+to every resource in the project: one press on 2026-09-13 started a staging deployment and a production
+deployment eight seconds apart, and production was down for 38 seconds for nothing. Production's
+`is_auto_deploy_enabled: false` does not protect against this — it guards the git trigger, not the
+button.
+
+**Every deploy currently drops the apex for about half a minute**, on both environments, because there
+is one replica and the router switches before the new container serves. Measured 2026-09-13: staging
+≤ 32 s, production ≤ 38 s, `503` on both the apex and the `app.` host. Expect it; do not deploy
+production during anything that matters. Fixing it is open work, not a runbook step.
+
+Timings from the same day, for expectation-setting: an on-box staging build is **about nine and a half
+minutes** end to end (the `web` image is roughly five of it); a production image pull is about four.
+
 ## Roll back a deploy
 
 Since EPIC-008, Coolify never builds — it only pulls `:staging`/`:production` from GHCR, so its own

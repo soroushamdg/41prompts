@@ -180,6 +180,69 @@ calls Coolify's deploy webhook; Coolify's job shrinks to "pull this tag and rest
 
 Rollback procedure and its timed run are in `infra/RUNBOOK.md`'s "Roll back a deploy" section.
 
+## Coolify application settings, recorded (EPIC-009, 2026-09-13)
+
+EPIC-009 put staging back to building on the box. The settings that make that work were **read out of
+the Coolify API rather than set** — every one of them was already correct. They are written down here
+because nothing else in the repo holds them, and a rebuild of the box from `infra/` would lose them.
+
+Read them with `GET /api/v1/applications/<uuid>`. The **list** endpoint `/api/v1/applications` returns
+no expanded `settings`, so a check that uses the list reports `is_auto_deploy_enabled` as `null`
+whether it is on or off. Use the per-application endpoint or you will read a flag that is not there.
+
+| field | staging | production |
+|---|---|---|
+| uuid | `pboa5wxrnggay30epiq0pmzd` | `d180rye1i9dtab789t9jyjmh` |
+| `name` | `41prompts:main-pboa5wxrnggay30epiq0pmzd` | `41prompts:main-d180rye1i9dtab789t9jyjmh` |
+| `fqdn` | `null` | `null` |
+| `build_pack` | `dockercompose` | `dockercompose` |
+| `docker_compose_location` | `/infra/docker-compose.staging.yml` | `/infra/docker-compose.production.yml` |
+| `base_directory` | `/` | `/` |
+| `git_branch` | `main` | `main` |
+| `git_repository` | `soroushamdg/41prompts` | `soroushamdg/41prompts` |
+| `settings.is_auto_deploy_enabled` | **`true`** | **`false`** |
+
+Three things in that table are worth more than the values.
+
+**`build_pack` is `dockercompose` on both, and always was.** Coolify has no separate "prebuilt image"
+build pack for a compose resource. Whether the box builds or pulls is decided **inside the compose
+file** — `build:` versus `image:` plus `pull_policy: always` — not by any Coolify setting. That is why
+EPIC-008 needed no Coolify reconfiguration to stop the box building, and why EPIC-009's revert needed
+none to start it again. Both changes lived in git.
+
+**`fqdn` is `null` on both, and the names are identical but for the uuid.** The hostnames come from
+`SERVICE_FQDN_*` environment variables and the compose file's Traefik labels. So the API's `name` and
+`fqdn` **cannot tell the two applications apart**. Identify them by `docker_compose_location`, and
+corroborate with `DEPLOY_ENV` on the running container before any write.
+
+**The auto-deploy flags differ on purpose**: staging deploys on every push to `main`, production only
+on a `v*` tag. Note that EPIC-008's step 2 above asked for auto-deploy **off on both**. Production is
+off; staging is on. Whether that setting was never applied to staging or was applied and later
+reverted is not recoverable from the API, but the current state is the one EPIC-009 wants, so it was
+left alone rather than "fixed" in either direction.
+
+### Healthchecks live in two places and must agree
+
+Coolify's panel reports **"Healthcheck: Not configured"** when the *compose file* has no `healthcheck:`
+key for a service — it does not look inside the image. `apps/web/Dockerfile` and
+`apps/worker/Dockerfile` have carried a `HEALTHCHECK` instruction since EPIC-002, and `docker ps` has
+reported every container `(healthy)` throughout, so the panel was reporting its own blind spot rather
+than a real gap.
+
+Both compose files now declare `healthcheck:` for `web` and `worker`, mirroring the Dockerfile's test
+and thresholds. **If you change one, change the other** — nothing enforces the agreement. Keep `${...}`
+out of those blocks for the EPIC-001 F2 reason at the top of each compose file.
+
+### A project-level Deploy redeploys production
+
+Coolify's **Deploy** button exists at the project level as well as on each application. The project-level
+one fans out to every resource in the project, staging and production together — observed on
+2026-09-13, when one press started two deployments eight seconds apart and took production down for 38
+seconds. **Use the application's own Deploy button.**
+
+The safeguard people reach for does not cover this: production's `is_auto_deploy_enabled: false` guards
+the git trigger, not the button.
+
 ## Auth secrets (EPIC-002, 2026-09-05)
 
 Six secrets plus one non-secret, environment-specific URL, needed once before staging/production

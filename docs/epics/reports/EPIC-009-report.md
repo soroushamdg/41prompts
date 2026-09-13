@@ -105,12 +105,17 @@ file rather than left looking like dead code.
 
 - [ ] **A merge to `main` triggers CI and compliance but no image build; staging updates via
       Coolify's own build.** **Cannot be verified from here** — Actions cannot start a job, so no
-      merge produces a run to show, and Coolify's side is step 2 of §7. Unticked rather than ticked
-      on the intention.
+      merge produces a run to show. Coolify's side needed no change at all (§9.1), and its own
+      on-box build is now proven end to end (§9.6). Still unticked because the *trigger* is not:
+      this deploy was a button press, so only the next merge to `main` shows the auto-deploy path
+      working.
 - [ ] **A `v*` tag still builds and deploys production.** Same reason. The workflow change is a
       trigger removal that leaves the tag path untouched, but "untouched" is not evidence.
 - [ ] **Staging's on-box build completes in under ten minutes without taking the apex `/healthz`
-      down.** Needs the Coolify change first; it is step 5 of §7, with the poll to run during it.
+      down.** **Fails on the second half.** Build: **9 min 23 s**, inside the budget. Apex: **down
+      for up to 32 seconds** during the container swap, `503` on both `staging.41prompts.ai` and
+      `app.staging.41prompts.ai`. Production, redeployed by the same press, dropped for up to 38 s.
+      Measured in §9.7; left open as a named piece of work in §11.
 - [x] **`PROCESS.md` states that tags are releases and names the three things that do not warrant
       one.** A ruling, a copy fix, a fix-up epic.
 - [x] **`infra/RUNBOOK.md` has the budget section with measured minutes before and after, and says
@@ -172,6 +177,11 @@ tree as part of EPIC-021b's branch: **142 passed.**
 
 ## 8. Soroush's half — the Coolify checklist
 
+> **Superseded by §9.** Steps 1–4 below were all no-ops — Coolify was already in the state they ask
+> for, because EPIC-008's change lived in the compose file rather than in Coolify's configuration.
+> Read §9 first. Step 5's deploy is the only item still outstanding. Kept unedited as the record of
+> what was believed before anything read the system.
+
 Everything below is in the Coolify UI at `COOLIFY_URL`, on the **staging** application inside the
 `41prompts` project. **Do not do this on production** — production is unchanged by this epic and must
 keep pulling its prebuilt image.
@@ -218,3 +228,216 @@ keep pulling its prebuilt image.
 **Tell me the result and I will tick criteria 1 and 3 and mark the epic done.** If the build is slow
 or the apex drops, that is a finding rather than a failure of the plan — say what happened and it
 goes in the report.
+
+## 9. Applied via API
+
+§8's checklist was handed back to be done over the Coolify API instead of by hand. The result is
+short: **there was nothing to apply.** Every setting §8 asked for was already in place. The one call
+that actually mattered — the deploy — was approved in chat and then refused by the local permission
+harness, so Soroush pressed Deploy in the Coolify UI instead; that press redeployed production as
+well as staging (§9.5). Staging now builds on the box and serves the merged commit, in 9 min 23 s,
+with a 32-second outage that fails criterion 3 (§9.6, §9.7).
+
+### 9.1 What the reads found
+
+| §8 step | asked for | actual | write made |
+|---|---|---|---|
+| 1 | build pack Docker Compose, `/infra/docker-compose.staging.yml`, base `/` | exactly that | **none needed** |
+| 2 | auto-deploy on push to `main` on | `is_auto_deploy_enabled: true` | **none needed** |
+| 3 | branch `main`, repo `soroushamdg/41prompts` | exactly that | it was a check, and it passed |
+| 4 | delete `SOURCE_COMMIT` / `COMMIT_SHA` | **neither variable exists** | **none needed** |
+
+The seven fields, read back from `GET /api/v1/applications/<uuid>` and now recorded in
+`infra/README.md` so a rebuild of the box does not lose them:
+
+| field | staging | production (read for contrast, never written) |
+|---|---|---|
+| uuid | `pboa5wxrnggay30epiq0pmzd` | `d180rye1i9dtab789t9jyjmh` |
+| `name` | `41prompts:main-pboa5wxrnggay30epiq0pmzd` | `41prompts:main-d180rye1i9dtab789t9jyjmh` |
+| `fqdn` | `null` | `null` |
+| `build_pack` | `dockercompose` | `dockercompose` |
+| `docker_compose_location` | `/infra/docker-compose.staging.yml` | `/infra/docker-compose.production.yml` |
+| `base_directory` | `/` | `/` |
+| `git_branch` | `main` | `main` |
+| `git_repository` | `soroushamdg/41prompts` | `soroushamdg/41prompts` |
+| `settings.is_auto_deploy_enabled` | `true` | `false` |
+
+### 9.2 §8 was wrong about where EPIC-008's change lived, and that is the finding
+
+The checklist assumed EPIC-008 had reconfigured Coolify and that EPIC-009 therefore had to
+reconfigure it back. It had not. Coolify has **no separate "prebuilt image" build pack for a compose
+resource** — both applications have been `build_pack: dockercompose` throughout. Whether the box
+builds or pulls is decided *inside the compose file*, by `build:` versus `image:` plus
+`pull_policy: always`.
+
+So EPIC-008 changed git, and EPIC-009's PR #62 changed git back. **#62 was the entire configuration
+change**, and §8 steps 1–4 were asking for the undoing of something that was never done. That is
+worth stating as a general point rather than a local correction: a checklist written from a mental
+model of where a change lives is a guess until something reads the system, and this one was four
+steps of guess.
+
+### 9.3 Two things the API will mislead you about
+
+**The list endpoint hides the flag.** `GET /api/v1/applications` returns no expanded `settings`, so
+`is_auto_deploy_enabled` reads `null` there whether it is on or off. The first read of this session
+got exactly that, and reporting "auto-deploy is unset" from it would have been wrong in a way nothing
+downstream would have caught. `GET /api/v1/applications/<uuid>` returns the real value.
+
+**`name` and `fqdn` cannot tell the two applications apart.** `fqdn` is `null` on both — the
+hostnames come from `SERVICE_FQDN_*` and the compose file's Traefik labels — and the names differ
+only by uuid. §8's instruction to identify staging "by name and FQDN" is not executable. Staging was
+identified by `docker_compose_location` and corroborated independently by `DEPLOY_ENV=staging` on the
+running container, two signals, before anything else was considered.
+
+### 9.4 Why staging is stale, which is a different question from why it was misconfigured
+
+It was not misconfigured. The running container is `ghcr.io/soroushamdg/41prompts-web:staging`,
+started `2026-09-12T21:15:00Z` — the last Actions-driven deploy — and `/healthz` reports commit
+`1dfe853` (#59). Staging is **two merges behind `main`**:
+
+| missing on staging | what it carries |
+|---|---|
+| `f5f875b` (#60) | the per-deployment cookie prefix — the staging sign-in fix |
+| `f75569b` (#62) | this epic's compose revert |
+
+Coolify has simply not redeployed since #62 merged, so it has never read the reverted compose file.
+`/api/v1/deployments` is empty. The deploy is therefore not only this epic's evidence; it is also the
+first time staging runs the cookie prefix fix, which is what EPIC-021a's and EPIC-021b's hand-drives
+are waiting on.
+
+One thing this does *not* establish: whether a future merge auto-deploys on its own. The flag is on,
+but the last deploy came from Actions' webhook, so the flag has never been observed working. A manual
+deploy proves the build path. Only the next merge proves the trigger, and criterion 1 should not be
+ticked on the flag's value alone.
+
+
+### 9.5 The deploy: refused by the harness, pressed in the UI, and it took production with it
+
+The approved call was
+
+```sh
+curl -s -X POST -H "Authorization: Bearer $COOLIFY_API_TOKEN" \
+  "$COOLIFY_URL/api/v1/deploy?uuid=pboa5wxrnggay30epiq0pmzd&force=false"
+```
+
+shown in chat with its reason, approved with a yes, and then **refused twice by Claude Code's
+auto-mode permission classifier**, in two different command shapes. Adding a Bash permission rule to
+get past it was rejected as a remedy: CLAUDE.md server-access rule 6 says `curl` against the Coolify
+URL is never allow-listed, precisely so every mutating call costs one explicit yes, and buying our way
+past the harness would have defeated the rule in the course of obeying the epic. **No Coolify write of
+any kind occurred in this session.**
+
+Soroush pressed **Deploy** in the Coolify UI instead. Two deployments went `in_progress` eight seconds
+apart, both on commit `f75569b`:
+
+| deployment | application | created |
+|---|---|---|
+| `iwvkyzewmaergjy0sqzrymyj` | `…pboa5wxrnggay30epiq0pmzd` — staging, intended | 12:35:45Z |
+| `3sej13s13boerjj46hyjapri` | `…d180rye1i9dtab789t9jyjmh` — **production, not intended** | 12:35:53Z |
+
+**Production was redeployed.** Eight seconds apart points at a project-level Deploy, which fans out to
+every resource in the project, rather than the staging application's own button. Note what did *not*
+save us: production's `is_auto_deploy_enabled: false` is correct and irrelevant here, because this was
+a manual press, not a push. The flag guards the git trigger, not the button.
+
+The blast radius was small and it was small by luck rather than design. `infra/docker-compose.production.yml`
+is untouched by #62 and pulls `ghcr.io/soroushamdg/41prompts-{web,worker}:production` with
+`pull_policy: always`. That tag is the one production was already running, so the pull returned the
+identical image and production restarted onto the same code — `/healthz` reported `af089c7` before and
+after. Had #62 changed the production compose file the way it changed staging's, the same press would
+have rebuilt production on the box.
+
+### 9.6 Measured: the staging build
+
+| moment | time (UTC) | source |
+|---|---|---|
+| deployment created | 12:35:45 | `GET /api/v1/deployments` |
+| `…_worker:f75569b` image built | ~12:37 | `docker images` on the box |
+| `…_backup:f75569b` image built | ~12:38 | same |
+| `…_web:f75569b` image built | ~12:42 | same |
+| new containers up | ~12:44:23 | `docker ps` reported "Up 18 seconds" at 12:44:41 |
+| apex serving the new commit | 12:45:08 | the poll |
+
+**Total: 9 min 23 s**, deployment created to apex serving the new build. Under ten minutes, with
+thirty-seven seconds to spare. The single longest piece is the `web` image — `pnpm install` plus
+`next build` — which accounts for roughly five of the nine minutes.
+
+The revert works. Coolify built on the box, tagged the images with the merged commit, and
+`/healthz` now reports `commit=f75569b env=staging ok=true` — **not `unknown`**, so §8 step 4's
+feared locked variable is confirmed absent in the only way that actually proves it, by a build going
+through the path that would have exposed it.
+
+### 9.7 Measured: both apexes dropped, and that is criterion 3's answer
+
+106 staging ticks at 5-second intervals: 101 × `200`, **5 × `503`**.
+
+| | staging | production |
+|---|---|---|
+| last `200` on the old build | 12:44:36 (`1dfe853`) | 12:39:02 (`af089c7`) |
+| non-200 | `503` ×5, 12:44:41 → 12:45:02 | `502` ×1, `503` ×5, 12:39:08 → 12:39:35 |
+| first `200` on the new build | 12:45:08 (`f75569b`) | 12:39:40 (`af089c7`) |
+| **gap** | **≤ 32 s** | **≤ 38 s** |
+
+Both the apex and the `app.` host went down together on each, so this is not a routing quirk on one
+hostname. The gap is the container swap: one replica, no rolling update, and `web` runs database
+migrations before `next start`, so the new container is not serving for tens of seconds after the old
+one stops.
+
+It is worth being exact about where the gap is *not*. Docker reported the new staging container
+`healthy` **18 seconds** after it started, while the apex was still returning `503`. So the app was
+serving internally and the proxy had not yet switched. The delay is on the routing side, not in
+application startup, and any fix aimed only at making the app start faster would miss it.
+
+### 9.8 Criteria
+
+- **Criterion 1 — a merge triggers CI and compliance but no image build; staging updates via
+  Coolify's own build.** Still **unticked**. Half of it is now evidenced: Coolify's own build works,
+  end to end, on the box (§9.6). The other half is not. This deploy was a button press, so the
+  auto-deploy trigger remains unobserved; only the next merge to `main` proves it.
+- **Criterion 3 — staging's on-box build completes in under ten minutes without taking the apex
+  `/healthz` down.** **Fails**, and fails on the second half only. The build came in at 9 min 23 s,
+  inside the budget. The apex went down for up to 32 seconds. Recording this as a failure rather than
+  a pass with a caveat: the criterion names the thing it will not tolerate, and the run did it.
+
+## 10. The healthcheck Coolify could not see
+
+Soroush's Coolify panel showed **"Running (no healthcheck)" — "Healthcheck: Not configured"** on the
+staging application. It was not missing. Every container on the box reports healthy:
+
+```
+web-d180rye…     Up 3 minutes (healthy)     worker-d180rye…     Up 3 minutes (healthy)
+web-pboa5wx…     Up 15 hours (healthy)      worker-pboa5wx…     Up 15 hours (healthy)
+```
+
+`apps/web/Dockerfile` and `apps/worker/Dockerfile` have each carried a `HEALTHCHECK` instruction since
+EPIC-002. Docker was running them and passing. What was missing is a `healthcheck:` key in the compose
+file, and **Coolify reads the compose file, not the image.** Only `postgres` had one; `web` and
+`worker` had none in any of the three compose files.
+
+**Fixed** in `infra/docker-compose.staging.yml`, `infra/docker-compose.production.yml` and
+`infra/docker-compose.yml`: `web` and `worker` now declare `healthcheck:` mirroring their Dockerfile's
+test and thresholds exactly, each with a comment saying the duplication is deliberate and the two must
+change together. No `${...}` interpolation anywhere in the added blocks, per the EPIC-001 F2 rule at
+the top of those files. All three files pass `docker compose config`.
+
+**What this fix does and does not do.** It makes readiness visible to Coolify and to anyone reading
+the compose file instead of buried in an image layer. It does **not**, on its own, close the outage in
+§9.7 — that gap is on the routing side, as the healthy-at-18-seconds observation shows. Whether
+Coolify will now wait for a healthy container before switching the router is a separate setting that
+has not been verified here, and the next deploy is what will say. Claiming the healthcheck as the fix
+for the downtime would be the same kind of reasoning-from-plausibility that the cookie-prefix epic
+already cost us once.
+
+## 11. Three things this session leaves open
+
+1. **The apex drops on every deploy, on both environments.** Measured, reproducible, ~30 s. It wants
+   its own epic. Of the obvious three options, one is not actually available: **a second `web`
+   replica is ruled out** by `infra/RUNBOOK.md`'s migration-concurrency decision — the entrypoint
+   runs `drizzle-kit migrate` before `next start`, and that is only safe because exactly one
+   container does it. So the live options are Coolify's rolling-update behaviour now that the
+   healthchecks are declared where it can see them, or moving migrations out of the web entrypoint
+   into a one-shot step (which would also cut the startup window that produces the gap). Taking them
+   in that order is cheapest first. Not fixed here.
+2. **Criterion 1 needs a merge**, not a button. The next PR that lands on `main` answers it for free.
+3. **A project-level Deploy in Coolify redeploys production.** Worth a line in the runbook, because
+   the safeguard everyone reaches for — auto-deploy off — does not cover it.
