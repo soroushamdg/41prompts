@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip } from "@41prompts/db";
 import { getAuth } from "./auth";
 
 async function requestMagicLink(email: string): Promise<void> {
@@ -24,7 +25,9 @@ async function postMagicLinkOverHttp(email: string): Promise<Response> {
   );
 }
 
-describe("magic-link rate limiting", () => {
+announceDatabaseSkip("magic-link rate limiting");
+
+describe.skipIf(!HAS_TEST_DATABASE)("magic-link rate limiting", () => {
   it("returns a clear message once the same email is requested too often", async () => {
     const email = `rate-email-${Date.now()}@example.com`;
 

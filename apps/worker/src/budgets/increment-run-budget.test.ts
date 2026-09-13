@@ -1,6 +1,7 @@
 import { createDb, planBudgetDefaults, runBudgets, users, type Db } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "@41prompts/db";
 import { getOrCreateRunBudget, incrementRunBudget } from "./increment-run-budget";
 
 const TEST_PLAN = "budget-test-plan";
@@ -10,14 +11,13 @@ function testUserId(suffix: string): string {
   return `budget-test-user-${suffix}`;
 }
 
-describe("run budget increment", () => {
+announceDatabaseSkip("run budget increment");
+
+describe.skipIf(!HAS_TEST_DATABASE)("run budget increment", () => {
   let db: Db;
 
   beforeAll(async () => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL is required to run this test");
-    }
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
     await db
       .insert(planBudgetDefaults)

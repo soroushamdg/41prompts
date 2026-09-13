@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "./testing";
 import { eq } from "drizzle-orm";
 import {
   addBlok,
@@ -23,13 +24,14 @@ import { bloks, projects, prompts, users } from "./schema";
 const OWNER = "canvas-test-owner";
 const OTHER = "canvas-test-other";
 
-describe("the canvas, owner-scoped", () => {
+announceDatabaseSkip("the canvas suite");
+
+describe.skipIf(!HAS_TEST_DATABASE)("the canvas, owner-scoped", () => {
   let db: Db;
   let promptId: string;
 
   beforeAll(() => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL is required to run this test");
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
   });
 

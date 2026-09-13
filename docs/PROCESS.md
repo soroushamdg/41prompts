@@ -290,6 +290,41 @@ guarantee.
 Say which of the two a PR is, in its description, rather than leaving a reader to work out why one
 merged un-CI'd and the other did not.
 
+## A local gate is evidence only when it reports every package (2026-09-13)
+
+`pnpm test` used to stop at the first failing package and print `Tasks: 5 successful, 8 total`. That
+line means *the packages that ran, ran*. It was read as "local gates pass" — including in two epic
+reports written while CI could not run, where a local pass was standing in for CI.
+
+`pnpm lint` had the same shape for a different reason: four checks chained with `&&`, so a lint
+failure meant dependency-cruiser, turbo boundaries and the forbidden-word grep never ran at all.
+
+**The rule: a local gate is evidence only when the run reports every package's result, and any epic
+report quoting a local pass must include that summary rather than the word "clean".**
+
+`pnpm test`, `pnpm typecheck` and `pnpm lint` now go through `scripts/gates.mjs`, which runs
+everything, names every package with its own verdict, and exits non-zero if any failed. Three
+verdicts, and the third is the point: **PASS**, **FAIL**, and **PARTIAL** — a package whose
+database-backed suites did not run, named with the reason. A run with any `PARTIAL` in it says in as
+many words that it is not a full pass.
+
+It also starts a throwaway Postgres for the run, so the normal case is that nothing is partial. The
+database-dependent suites used to *throw* when `DATABASE_URL` was unset, which made "no database
+here" indistinguishable from "this code is broken" — and, because the run stopped there, hid every
+package scheduled after it. Two real defects reached CI that way in one afternoon: a stylesheet
+written against the mockup's variable names, and a heading-order failure.
+
+**Paste the summary, not the adjective.** "clean" is a claim about a run nobody else can see; the
+table is the run.
+
+**It found a second thing on the way in.** The public mirror copies the monorepo's root
+`package.json` verbatim, and most of its scripts cannot work in a tree with no `apps/`,
+`packages/db` or `scripts/` — `db:migrate`, `e2e`, `compliance`, `hooks:install`, `binary-files`.
+Only `test` was ever invoked there, so the rest sat broken and unnoticed until `test` started
+pointing at `scripts/gates.mjs`, which the mirror deliberately excludes. `mirror-dry-run` now
+rewrites the root scripts to the ones a public tree can run, which is what EPIC-056 has to do at the
+real split anyway.
+
 ## CI runs twice per change. We are not fixing it, and here is why (2026-09-12)
 
 A decision, not an observation, because it is the **largest single item in the Actions spend** and it

@@ -1,6 +1,7 @@
 import { createDb, DECOMPILE_RETENTION_DAYS, decompiles, type Db } from "@41prompts/db";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "@41prompts/db";
 import { purgeDecompiles } from "./purge-decompiles";
 
 const REFERENCE_NOW = () => new Date("2026-01-31T00:00:00.000Z");
@@ -15,12 +16,13 @@ async function insert(db: Db, id: string, createdAt: Date): Promise<void> {
   await db.insert(decompiles).values({ id, source: "You are a test.", createdAt });
 }
 
-describe("purgeDecompiles", () => {
+announceDatabaseSkip("purgeDecompiles");
+
+describe.skipIf(!HAS_TEST_DATABASE)("purgeDecompiles", () => {
   let db: Db;
 
   beforeAll(() => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL is required to run this test");
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
   });
 

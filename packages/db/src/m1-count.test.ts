@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "./testing";
 import { createDb, type Db } from "./client";
 import { readM1 } from "./m1-count";
 import { decompileRuns, decompiles, waitlist } from "./schema";
@@ -23,12 +24,13 @@ const MARK = "m1counttest";
 const YEAR_START = new Date("2031-01-01T00:00:00.000Z");
 const YEAR_END = new Date("2032-01-01T00:00:00.000Z");
 
-describe("readM1", () => {
+announceDatabaseSkip("readM1");
+
+describe.skipIf(!HAS_TEST_DATABASE)("readM1", () => {
   let db: Db;
 
   beforeAll(() => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL is required to run this test");
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
   });
 

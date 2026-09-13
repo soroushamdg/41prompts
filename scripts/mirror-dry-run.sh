@@ -51,6 +51,28 @@ for forbidden in packages/db packages/ui packages/logger apps infra scripts docs
   fi
 done
 
+# The root package.json is copied through the filter verbatim, and most of its scripts cannot work
+# in a tree with no apps/, packages/db or scripts/ -- `db:migrate`, `e2e`, `compliance`,
+# `hooks:install`, `binary-files` and now `test` itself, which runs scripts/gates.mjs. Only `test`
+# was ever invoked here, so the rest went unnoticed until the gates runner landed and broke it.
+#
+# Replacing the script block is what EPIC-056 will have to do at the real split anyway: the public
+# repository needs its own root manifest, not the monorepo's with holes in it. Doing it here makes
+# the rehearsal honest -- `pnpm test` in this tree now runs the same command a consumer of the
+# public repository would, and it works.
+echo "[mirror-dry-run] rewriting the root package.json scripts to the ones a public-only tree can run"
+node -e '
+  const fs = require("node:fs");
+  const manifest = JSON.parse(fs.readFileSync("package.json", "utf-8"));
+  manifest.scripts = {
+    test: "turbo run test",
+    typecheck: "turbo run typecheck",
+    lint: "turbo run lint",
+    build: "turbo run build",
+  };
+  fs.writeFileSync("package.json", JSON.stringify(manifest, null, 2) + "\n");
+'
+
 echo "[mirror-dry-run] pnpm install (not --frozen-lockfile: the filtered tree is a real subset of the lockfile it started from, not a lockfile drift bug)"
 pnpm install --no-frozen-lockfile
 

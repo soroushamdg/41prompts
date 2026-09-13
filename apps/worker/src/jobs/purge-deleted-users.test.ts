@@ -1,6 +1,7 @@
 import { createDb, users, type Db } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "@41prompts/db";
 import { purgeDeletedUsers } from "./purge-deleted-users";
 
 const TEST_EMAIL_PREFIX = "purge-job-test+";
@@ -25,14 +26,13 @@ async function insertSoftDeletedUser(db: Db, id: string, deletedAt: Date): Promi
   });
 }
 
-describe("purgeDeletedUsers", () => {
+announceDatabaseSkip("purgeDeletedUsers");
+
+describe.skipIf(!HAS_TEST_DATABASE)("purgeDeletedUsers", () => {
   let db: Db;
 
   beforeAll(() => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) {
-      throw new Error("DATABASE_URL is required to run this test");
-    }
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
   });
 
