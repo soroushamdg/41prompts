@@ -20,7 +20,10 @@ during the window.** A thirty-day measurement with three product changes inside 
 1. **No announcement of any kind** during the window. No HN, no Product Hunt, no Twitter, no LinkedIn, no Reddit,
    no newsletter. If someone finds it and posts it, that is a signal, not a breach.
 2. **Production is where this happens.** Everything ships to `app.41prompts.ai` and `41prompts.ai` via a `v*` tag.
-   The staging URL stays private.
+   The staging URL is not advertised.
+   **Amended 2026-09-13:** this read "the staging URL stays private". It is not private — it appears
+   throughout a public repository (`infra/`, `docs/`, this file). Not advertising it is the actual
+   decision and the only one that was ever enforceable; the site itself is behind a session.
 3. **`llms.txt`** at the root, plus `llms-full.txt` if the content warrants it: what 41Prompts is, what the
    decompiler does, the six finding kinds in plain language, and the fact that no account is needed. This is how
    an AI assistant answering "how do I check my prompt for contradictions" finds you. Written for a model reading

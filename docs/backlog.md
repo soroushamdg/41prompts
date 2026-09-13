@@ -25,6 +25,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-008 | Prebuilt images: GitHub Actions builds web + worker to private GHCR on `main` and `v*`, Coolify pulls fixed tags and deploys via webhook; no builds on the box. Owns the healthz `commit` criterion deferred from EPIC-001 F2 | S | 001 | done — staging half reverted by EPIC-009 |
 | EPIC-009 | Actions budget: image builds move off `main` to `v*` tags only, staging builds on the box again, tags become releases, measured budget in the runbook | S | 008 | done — two criteria carried, see report §13 |
 | EPIC-006b | Zero-downtime container replacement on staging: close the ~25 s apex gap on every deploy | S | 009 | deferred — not scheduled |
+| EPIC-006c | Coolify control plane not on a public hostname: `coolify.41prompts.ai` is discoverable and named throughout the repo | S | 001 | deferred — not scheduled |
 
 **EPIC-009 is a late Stage 0 entry (2026-09-12).** EPIC-008 moved both image builds to Actions at
 6.58 billed minutes a merge; 81 builds, 73 of them from merges to `main`, helped spend **2,175 billed
@@ -51,6 +52,23 @@ One correction to how this was scoped: **production is affected too.** It was me
 prebuilt image, so its deploy is shorter overall, and it deploys rarely because only a `v*` tag
 triggers it. Rarely is the mitigation; immunity is not. Anyone treating a release as zero-downtime on
 the strength of "production pulls an image" would be wrong.
+
+**EPIC-006c is Stage 0 debt, not scheduled (2026-09-13).** The Coolify control plane answers on
+`coolify.41prompts.ai`, and the 2026-09-13 public-repository audit found that name in ten places
+across `infra/` and `docs/`, alongside the SSH alias `41p-box`, both application uuids, the GitHub
+account, the GHCR image paths and the provider and region. None of that is a credential and none of
+it was leaked — it is ordinary infrastructure documentation, and the audit found no live secret
+anywhere in 160 commits. What changed is that the repository went public, so the single
+highest-value target on the box is now discoverable by reading rather than by scanning: an attacker
+who would previously have had to find the control plane is handed its hostname.
+
+The fix is to stop serving the control plane on a guessable public name — a non-public hostname, or
+no public hostname at all with access over the SSH tunnel that `infra/ACCESS.md` already assumes.
+That is a DNS change, a Coolify `FQDN` change, a certificate, and an update to every document and
+token that names it, which is why it is its own row: it is a bigger change than the audit that found
+it, and doing it inside an unrelated PR would be the kind of quiet infrastructure edit that later
+turns out to have broken deploys. Renaming it does not make the old name unpublished — the history
+keeps it — so this is about the live endpoint, not about scrubbing the repository.
 
 ## Stage 1 · Decompiler, soft-public
 

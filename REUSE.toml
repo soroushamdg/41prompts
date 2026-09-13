@@ -12,6 +12,11 @@ SPDX-PackageDownloadLocation = "https://github.com/soroushamdg/41prompts"
 # header comment to every config file, doc, and proprietary source file individually — many of
 # these (JSON, SQL, .env.example, .gitignore, lockfiles) cannot carry a comment header at all.
 
+# **These globs are load-bearing, not bookkeeping (2026-09-13).** `scripts/license-gate.mjs` fails the
+# build if no annotation here covers `packages/ui`, `packages/db`, `packages/logger` or `apps/worker`.
+# While the repository is public, this file and those four `LICENSE` files are the whole of what
+# separates "you may use this" from "you may not". Narrowing a glob below is a licensing change.
+
 [[annotations]]
 path = [
   ".dependency-cruiser.cjs",
