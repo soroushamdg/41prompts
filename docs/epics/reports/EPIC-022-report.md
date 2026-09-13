@@ -106,6 +106,7 @@ fail and asserts the blok text and the declaration are both untouched.
 |---|---|
 | `pnpm typecheck` | 8/8 |
 | `pnpm lint` | 482 files, no issues; dependency-cruiser clean |
+| `@41prompts/ui` tests | 98, including two new guards — see §6 |
 | forbidden-word grep | clean — **no UI string in this epic says "schema"** (ADR-003) |
 | `pnpm binary-files` | clean |
 | `license-gate` | proprietary boundary intact |
@@ -117,7 +118,33 @@ The package's regex guard caught both new literals and refused the build until t
 reviewed list with their reasoning. That is the gate working exactly as intended on the first new
 patterns since it was written.
 
-## 6. Open, and deliberately so
+## 6. CI caught a defect three local gates did not
+
+`pnpm test` stops at the first failing package, and locally that was `@41prompts/db` needing
+`DATABASE_URL`. **`@41prompts/ui` never ran**, so the first honest run of it was CI's, and it failed.
+
+The reported failure was one hard-coded `border-radius: 4px` where `var(--radius-card)` belongs.
+Fixing it exposed the larger one beside it: **the whole EPIC-022 CSS block was written against the
+mockup's variable names** — `--s3`, `--ink-3`, `--line`, `--surface-2`, `--mono`, `--focus` — and this
+package defines none of them. Ten reads pointing at nothing.
+
+That defect is invisible by construction. CSS does not fail on an unknown custom property; it drops
+the declaration. The section would have rendered unstyled on staging with every gate green, and the
+radius guard that *did* fire said nothing about the ten variables on the lines around it.
+
+**Fixed, and then guarded.** `token-contract.test.ts` gains a check that every bare `var(--name)` in
+every stylesheet resolves to a token this package defines, with `--font-sans` and `--font-mono`
+named as supplied by the app's font loader rather than silently tolerated. Proved by introducing a
+typo and watching it fail.
+
+It also found a pre-existing bare `var(--font-mono)` in `recipes.css` — correct, and now explicitly
+so rather than accidentally so.
+
+**The process point**, which is the part worth keeping: *a local run that stops early is not a local
+run.* The habit of reading "5 successful, 8 total" as "passing" is what let this through, and the
+three packages that did not run were the ones the change touched most.
+
+## 7. Open, and deliberately so
 
 1. **The `Assertions` tab is not stubbed.** Two tabs ship. A disabled tab that does nothing is a
    worse promise than an absent one. The note about ADR-003's objection to the word is in
