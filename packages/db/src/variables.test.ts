@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "./testing";
 import { eq } from "drizzle-orm";
 import { addBlok, bloksForPrompt } from "./canvas";
 import {
@@ -22,13 +23,14 @@ import { projects, prompts, users } from "./schema";
  */
 const OWNER = "variables-test-owner";
 
-describe("declared variables, owner-scoped", () => {
+announceDatabaseSkip("declared variables");
+
+describe.skipIf(!HAS_TEST_DATABASE)("declared variables, owner-scoped", () => {
   let db: Db;
   let promptId: string;
 
   beforeAll(() => {
-    const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("DATABASE_URL is required to run this test");
+    const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
   });
 
