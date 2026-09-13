@@ -1,5 +1,5 @@
 Copyright 2026 <legal entity>. All rights reserved.
 
-This software is proprietary and confidential. No licence is granted to use, copy,
+This software is proprietary. No licence is granted to use, copy,
 modify, distribute, or create derivative works of it except under a written agreement
 with <legal entity>.

@@ -25,6 +25,15 @@ modify, distribute, or create derivative works of it except under a written agre
 with <legal entity>.
 ```
 
+**Amended 2026-09-13.** The word **"confidential" was removed** from
+`LICENSES/LicenseRef-41Prompts-Proprietary.txt`; the quote above is left as it stood so the record
+shows what was corrected. The repository was public for a period in September 2026 as a cost
+decision about GitHub Actions minutes, which made "confidential" a false statement about how the
+material had been handled, and taking the repository private again does not un-publish it. Only the
+false word was deleted — no new legal language, no change of intent. "All rights reserved" carries
+the same protection without depending on secrecy, which is the point: the licence never rested on
+the material being unseen.
+
 SPDX headers in public source files follow a shebang line where one exists; the header is then lines 2–3.
 
 ## Why

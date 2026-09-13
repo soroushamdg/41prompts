@@ -4,6 +4,7 @@ import { db } from "./db";
 import { purgeDecompiles, purgeRunCounts } from "./jobs/purge-decompiles";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
 import { initSentry, Sentry } from "./sentry";
+import { misconfiguredBudgetEnv } from "./summarise/abuse-check";
 
 const PURGE_QUEUE = "purge-deleted-users";
 const PURGE_CRON = "0 3 * * *"; // daily, 03:00 UTC
@@ -19,6 +20,19 @@ const logger = createLogger("worker");
 export async function main(): Promise<void> {
   initSentry();
   logger.info("worker up");
+
+  // The summariser's budget bounds are deployment configuration, not constants, precisely so the
+  // published defaults are not the deployed numbers (see summarise/abuse-check.ts). A value the
+  // dashboard holds but this process could not parse falls back to that published default, which
+  // is the failure this arrangement exists to prevent — so it is said out loud at startup rather
+  // than left to be noticed in a bill.
+  const badBudgetEnv = misconfiguredBudgetEnv();
+  if (badBudgetEnv.length > 0) {
+    logger.error(
+      { vars: badBudgetEnv },
+      `summary budget env unusable, fell back to the published defaults: ${badBudgetEnv.join(", ")}`
+    );
+  }
 
   const heartbeat = setInterval(() => {
     logger.info(`worker heartbeat ${new Date().toISOString()}`);

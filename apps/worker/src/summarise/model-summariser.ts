@@ -2,7 +2,8 @@ import { heuristicSummariser, summaryInputHash, type AsyncSummariser, type Blok,
 
 /**
  * The model-backed summariser. Lives here, not in `packages/core`, because models label and
- * summarise from the worker (`CLAUDE.md` rule 2) and because the prompt below is proprietary.
+ * summarise from the worker (`CLAUDE.md` rule 2) and because the prompt below is proprietary —
+ * which is a statement about its licence, not about who can see it; see the prompt's own comment.
  *
  * ## What this epic builds, and what it does not
  *
@@ -62,7 +63,18 @@ export interface ModelSummariserOptions {
 }
 
 /**
- * The prompt. Proprietary, and it never leaves the worker.
+ * The prompt. Proprietary, and published.
+ *
+ * It used to say "never leaves the worker". That stopped being true on 2026-09-13, when the
+ * repository was made public to get free Actions minutes. The repository went private again the
+ * same day, which does not undo it: the prompt was readable, and anyone who cloned it has it. The
+ * claim is removed rather than softened, because a comment asserting a confidentiality the record
+ * contradicts is worse than no comment — it tells a reader the code is protected by secrecy when
+ * it is protected only by licence.
+ *
+ * **The licence is unchanged.** `apps/worker` is `LicenseRef-41Prompts-Proprietary`, all rights
+ * reserved, and visibility grants nothing — see `apps/worker/LICENSE` and the README. What is
+ * gone is the secrecy, not the ownership.
  *
  * Written to make the model do the same job the heuristic does, only better: describe what the blok
  * *says*, in one line, without inventing anything. It is not asked to judge, rank or improve the

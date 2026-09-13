@@ -24,7 +24,11 @@ Getting the seam right matters more than the summary quality, which will be tune
    clause or first sentence, truncated at a named constant, with the blok's kind prefixed where it helps. It never
    guesses intent and never paraphrases. `source: "heuristic"`.
 4. The **model-backed implementation lives in `apps/worker`** (rule 2: models label and summarise, from the
-   worker). Its prompt is proprietary and never leaves the worker. `source: "model"`.
+   worker). Its prompt is proprietary. `source: "model"`.
+   **Amended 2026-09-13:** this decision originally read "proprietary and never leaves the worker".
+   The repository was made public for a limited period and the prompt is now readable by anyone, so
+   the second half was struck rather than left to stand as a false claim. The licence is unchanged;
+   only the secrecy is gone.
 5. **Caching is by content hash**: `inputHash` is a hash of the blok's verbatim text plus the summariser's own
    version identifier. Change the prompt, change the version, invalidate the cache. Hashing is a pure function in
    core; the cache store is the worker's problem, not core's.

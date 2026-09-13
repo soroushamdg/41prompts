@@ -5,7 +5,7 @@
 // isn't checked here); the same finding anywhere else in the workspace is a warning, not a block.
 // Also emits the CycloneDX SBOM `pnpm sbom` uses (see .github/workflows/compliance.yml).
 import { execFileSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
 const PUBLIC_PACKAGES = ["@41prompts/core", "@41prompts/cli", "@41prompts/sdk-ts"];
@@ -14,6 +14,87 @@ const PUBLIC_PACKAGES = ["@41prompts/core", "@41prompts/cli", "@41prompts/sdk-ts
 // each package's own package.json `license` field, which is why both hyphen styles for BSD show
 // up in practice.
 const ALLOWED_LICENSES = new Set(["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "Unlicense", "Python-2.0"]);
+
+// --- The proprietary boundary (2026-09-13) -----------------------------------------------------
+//
+// The repository is public for a limited period, which makes the licence split the only thing
+// separating "you may use this" from "you may not". Nothing enforced that split before: the four
+// proprietary packages were proprietary by convention, and a convention erodes quietly — a copied
+// file header, a package scaffolded from a public sibling, a REUSE glob edited without noticing
+// what it covered. None of those would have failed a build.
+//
+// Two failures, both hard, because both are the boundary moving rather than a style slip:
+//   1. a proprietary package losing its marker (LICENSE file, package.json licence, REUSE cover);
+//   2. an Apache-2.0 SPDX header appearing on a file inside one, which is a grant by accident.
+// REUSE-IgnoreStart
+// Every SPDX identifier below is a string this gate MATCHES ON. None of them is a licence
+// declaration for this file, which is proprietary by REUSE.toml's `scripts/**` glob like the
+// rest of scripts/. Without these markers REUSE reads the first literal as this file's own tag
+// and the compliance job fails on a file nobody relicensed.
+const PROPRIETARY_PACKAGES = ["packages/ui", "packages/db", "packages/logger", "apps/worker"];
+const PROPRIETARY_SPDX = "LicenseRef-41Prompts-Proprietary";
+// npm's own word for "no licence granted". Kept alongside the SPDX ref because the two say the
+// same thing to different readers — npm/pnpm, and REUSE.
+const ACCEPTED_PACKAGE_LICENSE = new Set(["UNLICENSED", PROPRIETARY_SPDX]);
+
+function checkProprietaryBoundary() {
+  const failures = [];
+  const reuse = existsSync("REUSE.toml") ? readFileSync("REUSE.toml", "utf-8") : "";
+
+  for (const pkg of PROPRIETARY_PACKAGES) {
+    const licensePath = `${pkg}/LICENSE`;
+    if (!existsSync(licensePath)) {
+      failures.push(`${pkg}: no LICENSE file. A proprietary package must say so where a reader lands.`);
+    } else {
+      const text = readFileSync(licensePath, "utf-8");
+      if (!/all rights reserved/i.test(text)) {
+        failures.push(`${pkg}/LICENSE: does not say "All rights reserved".`);
+      }
+      if (!text.includes(PROPRIETARY_SPDX)) {
+        failures.push(`${pkg}/LICENSE: missing "SPDX-License-Identifier: ${PROPRIETARY_SPDX}".`);
+      }
+    }
+
+    const manifestPath = `${pkg}/package.json`;
+    if (existsSync(manifestPath)) {
+      const declared = JSON.parse(readFileSync(manifestPath, "utf-8")).license;
+      if (!ACCEPTED_PACKAGE_LICENSE.has(declared)) {
+        failures.push(
+          `${manifestPath}: license is ${JSON.stringify(declared)}; expected one of ${[...ACCEPTED_PACKAGE_LICENSE].join(" or ")}.`,
+        );
+      }
+    }
+
+    if (!reuse.includes(`"${pkg}/**"`) && !reuse.includes(`"${pkg.split("/")[0]}/**"`)) {
+      failures.push(`REUSE.toml: no annotation glob covers ${pkg}.`);
+    }
+
+    // An Apache-2.0 header inside a proprietary package is a licence grant nobody decided to make.
+    const files = execFileSync("git", ["ls-files", "-z", pkg], { encoding: "utf-8" }).split("\0").filter(Boolean);
+    for (const file of files) {
+      let body;
+      try {
+        body = readFileSync(file, "utf-8");
+      } catch {
+        continue; // unreadable or binary; binary-files.mjs owns that failure
+      }
+      if (body.includes("SPDX-License-Identifier: Apache-2.0")) {
+        failures.push(`${file}: carries an Apache-2.0 SPDX header inside a proprietary package.`);
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    console.error(`License gate: the proprietary boundary has ${failures.length} problem(s):`);
+    for (const line of failures) console.error(`  ${line}`);
+    console.error("Source being visible is not a grant of a licence, and this gate is what keeps that true.");
+    process.exit(1);
+  }
+  console.log(`License gate: proprietary boundary intact (${PROPRIETARY_PACKAGES.length} packages checked).`);
+}
+
+checkProprietaryBoundary();
+// REUSE-IgnoreEnd
 
 function runLicensesList(args) {
   const raw = execFileSync("pnpm", ["licenses", "list", "--json", ...args], { encoding: "utf-8" });

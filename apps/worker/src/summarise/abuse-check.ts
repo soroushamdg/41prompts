@@ -22,13 +22,73 @@
  * gets a slightly duller card and never an error, because they may well have done nothing wrong.
  */
 
+/**
+ * ## The numbers below are defaults, and the deployed values are deliberately different
+ *
+ * This file was published: the repository was public for a period in September 2026, and closing
+ * it again does not un-publish it — anyone who cloned it still has these numbers. The budget was
+ * always the real defence — the phrase list below says so itself and always has — but it was sized
+ * on the assumption that an attacker had to *discover* the bound by probing. Published, the bound
+ * stops being a bound and becomes an instruction: stay under 200 an hour and 4,000 characters and
+ * you are never refused.
+ *
+ * So each of the three is read from the environment, and **staging and production set values that
+ * are not these**. What is written here is the local-development default and the test fixture. It
+ * is not what is deployed, and reading this file tells you nothing about what is deployed beyond
+ * the shape of the check.
+ *
+ * Two consequences worth stating rather than leaving to be discovered:
+ *
+ * 1. **A malformed value falls back to the default rather than crashing the worker**, because a
+ *    typo in a dashboard should not take summarisation down. It would, however, silently restore
+ *    the published number — which is the exact failure this change exists to prevent — so every
+ *    bad value is collected in `misconfiguredBudgetEnv` and the worker logs it at startup. An
+ *    empty log line there is part of the check, not noise.
+ * 2. **Changing these does not invalidate any cache.** They gate whether a model is asked at all;
+ *    they are not part of `MODEL_SUMMARISER_VERSION`.
+ */
+const BUDGET_ENV = {
+  maxBlokCharacters: "SUMMARY_MAX_BLOK_CHARACTERS",
+  budgetPerWindow: "SUMMARY_BUDGET_PER_WINDOW",
+  windowMs: "SUMMARY_BUDGET_WINDOW_MS"
+} as const;
+
+const misconfigured: string[] = [];
+
+/**
+ * Reads a positive integer from the environment, or returns the default.
+ *
+ * Unset and empty both mean "use the default" and are not misconfiguration — that is the local
+ * and test case. Anything else that is not a positive finite integer is, and is recorded.
+ */
+export function readPositiveInt(
+  name: string,
+  fallback: number,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+  onBad: (name: string) => void = (n) => misconfigured.push(n)
+): number {
+  const raw = env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+    onBad(name);
+    return fallback;
+  }
+  return parsed;
+}
+
+/** Environment variable names that held an unusable value and fell back to the published default. */
+export function misconfiguredBudgetEnv(): readonly string[] {
+  return misconfigured;
+}
+
 /** Characters of a single blok worth sending. Beyond this the heuristic is used. */
-export const MAX_BLOK_CHARACTERS = 4_000;
+export const MAX_BLOK_CHARACTERS = readPositiveInt(BUDGET_ENV.maxBlokCharacters, 4_000);
 
 /** Bloks one caller may have summarised by a model per window. */
-export const MODEL_SUMMARY_BUDGET = 200;
+export const MODEL_SUMMARY_BUDGET = readPositiveInt(BUDGET_ENV.budgetPerWindow, 200);
 
-export const BUDGET_WINDOW_MS = 60 * 60 * 1000;
+export const BUDGET_WINDOW_MS = readPositiveInt(BUDGET_ENV.windowMs, 60 * 60 * 1000);
 
 export type AbuseVerdict =
   | { readonly allowed: true }

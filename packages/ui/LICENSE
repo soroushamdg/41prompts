@@ -1,0 +1,15 @@
+Copyright 2026 <legal entity>. All rights reserved.
+
+This package is proprietary. No licence is granted to use, copy, modify, distribute, or
+create derivative works of it except under a written agreement with <legal entity>.
+
+This repository was public for a period in September 2026 for reasons that had nothing to
+do with licensing, and going private again does not un-publish what was seen. Source being
+visible — then or now — is not a grant of any licence. If you can read this file, you still
+have no permission to use the code beside it.
+
+Four packages in this repository ARE openly licensed, under Apache-2.0, and they are the
+only ones: packages/core, packages/cli, packages/sdk-ts and sdks/python. Each carries its
+own LICENSE file and per-file SPDX headers. This package is not one of them.
+
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
