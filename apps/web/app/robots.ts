@@ -17,17 +17,21 @@ export const dynamic = "force-dynamic";
  * the `X-Robots-Tag` header (EPIC-014), and this is the third and cheapest layer: a crawler that
  * honours robots.txt never fetches one at all.
  *
- * Everything else — `/sign-in`, `/app`, the legal placeholders — is disallowed because none of it is
- * a destination for a search result today, and a placeholder indexed as "41Prompts privacy" is worse
- * than nothing on file.
+ * Everything else — `/sign-in`, `/app` — is disallowed because none of it is a destination for a
+ * search result.
+ *
+ * **`/legal/` moved from disallow to allow in EPIC-017.** It was disallowed while those pages said
+ * "this page is not written yet", because a placeholder indexed as "41Prompts privacy" is worse than
+ * nothing on file. They are written now, and a privacy policy a person cannot find is not much of a
+ * policy — a crawler that can reach it is the point of publishing it.
  */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/decompile", "/guides/", "/llms.txt"],
-        disallow: ["/d/", "/app", "/api/", "/sign-in", "/sign-up", "/legal/", "/contact", "/dev/", "/waitlist/"]
+        allow: ["/", "/decompile", "/guides/", "/legal/", "/llms.txt"],
+        disallow: ["/d/", "/app", "/api/", "/sign-in", "/sign-up", "/contact", "/dev/", "/waitlist/"]
       }
     ],
     sitemap: `${await siteOrigin()}/sitemap.xml`

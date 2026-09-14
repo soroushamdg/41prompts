@@ -10,6 +10,27 @@ async function setTheme(page: Page, theme: "light" | "dark") {
   await page.waitForTimeout(350);
 }
 
+/**
+ * Answer the analytics question before any visual baseline is taken.
+ *
+ * **Determinism, not convenience, and PROCESS.md's helper rule wants the reason written down.** The
+ * consent banner (EPIC-017) mounts from a `useEffect` that reads a cookie, so whether it is on
+ * screen when the screenshot fires depends on whether an effect has run — a baseline that includes
+ * it is flaky by construction, not merely different. Pre-answering makes every run take the same
+ * picture.
+ *
+ * **What it hides, stated so nobody has to find out:** the banner's own appearance and the space it
+ * reserves. Both are covered directly in `legal.spec.ts` — including a test that the page beneath it
+ * stays reachable — so this is not the only thing looking at it.
+ */
+async function dismissConsent(page: Page) {
+  await page.context().addCookies([
+    // Domain form, not `url`: the suite runs on `E2E_PORT` (3100 locally, 3000 in CI) and a
+    // hardcoded origin would read as port-specific even though cookies are not.
+    { name: "41prompts_analytics_consent", value: "denied", domain: "localhost", path: "/" }
+  ]);
+}
+
 const CAPTURING = process.env.E2E_CAPTURE === "1";
 
 const LAPTOP = { width: 1280, height: 800 };
@@ -306,6 +327,7 @@ test.describe("the landing page", () => {
     // real regression moves far more.
     for (const theme of ["light", "dark"] as const) {
       test(`landing page, ${theme} theme`, async ({ page }) => {
+        await dismissConsent(page);
         await page.setViewportSize(LAPTOP);
         await page.goto("/");
         if (theme === "dark") await setTheme(page, "dark");
@@ -360,10 +382,19 @@ test.describe("metadata", () => {
   test("sitemap.xml lists only pages that exist and are indexable", async ({ request }) => {
     const body = await (await request.get("/sitemap.xml")).text();
     const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
-    expect(locs).toEqual(["/", "/decompile", "/guides/what-your-prompt-does-not-check"]);
+    expect(locs).toEqual([
+      "/",
+      "/decompile",
+      "/guides/what-your-prompt-does-not-check",
+      // The legal pages joined the sitemap in EPIC-017, when they stopped being placeholders. A
+      // privacy policy a crawler cannot reach is not much of a policy.
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/sub-processors",
+      "/legal/security"
+    ]);
     // Anything disallowed in robots.txt must not be advertised here.
     expect(body).not.toContain("/d/");
-    expect(body).not.toContain("/legal/");
   });
 
   /**
@@ -416,11 +447,22 @@ test.describe("metadata", () => {
     expect(body.readUInt32BE(20)).toBe(630);
   });
 
-  test("the legal stubs are honest and not indexable", async ({ page }) => {
+  /**
+   * **This test used to assert that the legal pages were placeholders**, in those words: it checked
+   * the body said "not written yet" and that the page was `noindex`. Both were true and both were
+   * the problem — a site collecting email addresses behind unwritten legal pages, with a gate that
+   * could only fail if somebody *wrote* them. `PROCESS.md`, "a helper that normalises state": same
+   * family, a test that encodes the defect as the expectation.
+   *
+   * EPIC-017 wrote them. What is asserted now is what a reader needs: real content, indexable, and
+   * the one honest caveat.
+   */
+  test("the legal pages are written, indexable, and say who wrote them", async ({ page }) => {
     await page.goto("/legal/terms");
     await expect(page.getByRole("heading", { name: "Terms of service" })).toBeVisible();
-    await expect(page.locator("body")).toContainText("not written yet");
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.locator("body")).not.toContainText("not written yet");
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
+    await expect(page.getByText("has not been reviewed by a lawyer")).toHaveCount(1);
   });
 });
 

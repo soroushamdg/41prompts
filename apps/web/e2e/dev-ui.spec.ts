@@ -42,6 +42,18 @@ test.describe("design system gallery (/dev/ui)", () => {
       "visual baselines are Linux-only — see EPIC-016's report"
     );
 
+    // See `landing.spec.ts`'s `dismissConsent` for why: the banner mounts from an effect, so a
+    // baseline that may or may not contain it is flaky rather than merely different. This page is a
+    // component catalogue; a fixed overlay across its foot is noise in every future diff.
+    test.beforeEach(async ({ page }) => {
+      await page.context().addCookies([
+        // Domain form, not `url`: the suite runs on `E2E_PORT` (3100 locally, 3000 in CI) and a
+    // hardcoded origin would read as port-specific even though cookies are not.
+    { name: "41prompts_analytics_consent", value: "denied", domain: "localhost", path: "/" }
+      ]);
+      await page.reload();
+    });
+
     test("visual regression: light theme", async ({ page }) => {
       await expect(page).toHaveScreenshot("gallery-light.png", { fullPage: true, maxDiffPixelRatio: 0.01 });
     });
