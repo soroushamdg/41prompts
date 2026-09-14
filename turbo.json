@@ -30,6 +30,7 @@
       "outputs": []
     },
     "typecheck": {
+      "dependsOn": ["build"],
       "outputs": []
     },
     "lint": {
