@@ -343,9 +343,22 @@ here. No editor dependency is added before this evaluation.
 
 ### EPIC-030 core: checks and deterministic graders · M
 **Goal.** Expected bloks become executable checks with a stable result shape.
-**Tasks.** `Check { id, blokId, kind, params }` from expected bloks: `json_shape`, `contains`, `not_contains`, `pattern`, `max_words`, `max_chars`, `one_of`, `refusal`; `grade()` pure; `RunResult`; suggestion engine for unmatched expected text; display names for every kind in plain words ("valid JSON shape", "one of the allowed values", "word limit").
+**Tasks.** `Check { id, blokId, kind, params }` from expected bloks, for **the eight kinds in `CHECK_KINDS`** (`packages/core/src/compile/types.ts`) and no others; `grade()` pure; `RunResult`; suggestion engine for unmatched expected text. Display phrases are already fixed by ADR-003 and already implemented as `CHECK_KIND_PHRASES`; this epic uses them rather than inventing any.
 **Tests.** 5 positive + 5 negative per grader; Northwind derivation fixture; evidence strings readable.
 **Review.** No internal identifier is a display string.
+
+> **Corrected 2026-09-14.** This line used to name the eight kinds itself, as `json_shape`,
+> `contains`, `not_contains`, `pattern`, `max_words`, `max_chars`, `one_of`, `refusal` — the right
+> *count*, the wrong *identifiers*. EPIC-020 shipped them as `json_shape`, `allowed_values`,
+> `word_limit`, `character_limit`, `must_contain`, `must_not_contain`, `matches_pattern`,
+> `refuses_to_answer`, with a compile-time exhaustiveness guard and ADR-003's phrases verbatim.
+>
+> **ADR-003 is authoritative and the roadmap was stale**, so the list is not restated here at all —
+> it points at the code that already enforces it. A second copy of a list is how the last one drifted:
+> `CLAUDE.md` records that the same set was once written down as a sample of four, read as the whole
+> set, and cost a ruling when EPIC-012b went looking for a phrase for a prohibition that had been
+> there all along. Fixed as its own change, before EPIC-030 is written, so the epic is written against
+> a document that agrees with itself.
 
 ### EPIC-031 worker: run engine, Anthropic · M
 **Goal.** Runs execute safely in the background.
