@@ -24,3 +24,20 @@ export const DECOMPILE_RETENTION_DAYS = 30;
  * The row holds no prompt text — a keyed hash, two integers and a timestamp.
  */
 export const RUN_COUNT_RETENTION_DAYS = 180;
+
+/**
+ * A run's raw provider payload is kept this many days.
+ *
+ * **The number the privacy page promises** (EPIC-017's retention table), so it must never be a bare
+ * literal in the job that enforces it — the same rule the three constants above live under, and the
+ * mechanism that stops the page and the code drifting apart.
+ *
+ * 365 rather than "12 months" because a purge does arithmetic in days and months are not a unit it
+ * can use. The page may say either; the enforcement says this.
+ *
+ * **This is the privacy-sensitive column in the whole run record.** The payload is whatever a model
+ * said about whatever a user put in, which is the one thing in a run that cannot be predicted, and
+ * the clock on it is why `runs.purgeAfter` is a stored column rather than a policy somebody
+ * remembers.
+ */
+export const RUN_PAYLOAD_RETENTION_DAYS = 365;

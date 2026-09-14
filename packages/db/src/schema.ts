@@ -1,4 +1,4 @@
-import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import {
   newApiKeyId,
   newBlokId,
@@ -8,6 +8,7 @@ import {
   newPromptId,
   newVariableId,
   newRunBudgetId,
+  newRunId,
   newWaitlistId,
 } from "./ids";
 
@@ -356,4 +357,93 @@ export const promptVariables = pgTable(
     // one a `{{name}}` in the text refers to.
     uniqueIndex("prompt_variables_prompt_name_idx").on(table.prompt, table.name),
   ],
+);
+
+
+// ── EPIC-031: the run engine ──────────────────────────────────────────────────────────────────
+
+/**
+ * One provider call, and everything `CLAUDE.md` rule 6 requires a run to store.
+ *
+ * > *Every run stores the raw provider payload (purged after 12 months), prompt hash, input hash,
+ * > model, params, latency, cost.*
+ *
+ * ## What is here and what is deliberately not
+ *
+ * **Hashes, not copies.** `promptHash` and `inputHash` identify what was sent without storing a
+ * second copy of it: the prompt already lives in `bloks` and the input in its input set, and a
+ * second copy is a second thing to keep in step. A hash answers "was this the same request" exactly
+ * as well, and it cannot drift.
+ *
+ * **`payload` is the provider's response, unedited.** `jsonb` rather than `text` so a later question
+ * can be asked of it without reparsing every row. It is also **the privacy-sensitive column in the
+ * table** — it is whatever a model said about whatever the user put in — which is what the clock is
+ * for.
+ *
+ * **No API key, ever.** Not in a column, not in `params`, not in an error stored here. EPIC-004
+ * decision 3 and `CLAUDE.md`'s server-access rules; a test asserts no stored payload contains a
+ * key-shaped string.
+ *
+ * **`model` is the resolved, pinned id** — `claude-sonnet-5`, never a floating alias. A row that
+ * records which alias was called cannot answer what actually ran, which makes the run
+ * unreproducible and the cost unattributable.
+ */
+export const runs = pgTable(
+  "runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newRunId()),
+    owner: text("owner")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+
+    /** Rule 6, verbatim: the raw provider payload. */
+    payload: jsonb("payload").notNull(),
+    /** Rule 6: the compiled prompt's content hash, not the compiled prompt. */
+    promptHash: text("prompt_hash").notNull(),
+    /** Rule 6: the input row's hash, not the input. */
+    inputHash: text("input_hash").notNull(),
+    /** Rule 6: what was actually called, resolved and pinned. */
+    model: text("model").notNull(),
+    /** Rule 6: what was sent — temperature, max tokens — as sent rather than as configured. */
+    params: jsonb("params").notNull(),
+    /** Rule 6: wall clock around the provider call only, not around the job. */
+    latencyMs: integer("latency_ms").notNull(),
+    /**
+     * Rule 6: cost, in the same integer cents `run_budgets` already uses.
+     *
+     * **Nullable, and null is not zero.** A model absent from the dated price table has an unknown
+     * cost, and recording zero would silently spend nothing against a budget whose entire job is to
+     * stop spending. Null says "we do not know", which is a thing a reconciliation can act on.
+     */
+    costCents: integer("cost_cents"),
+
+    /**
+     * When this row's payload may be deleted.
+     *
+     * **Written at insert, not derived at read**, and that is the whole design decision in this
+     * column. A `created_at < now() - interval` query would retroactively re-date every existing row
+     * the moment the retention window changed — so a row written under a twelve-month promise would
+     * silently acquire whatever the new promise is. A stored date keeps the promise each row was
+     * written under, which is the direction a promise is supposed to travel.
+     */
+    purgeAfter: timestamp("purge_after").notNull(),
+
+    /** `sha(compiled + input + model + params)`. A hit returns the stored result and calls nobody. */
+    cacheKey: text("cache_key").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow()
+  },
+  (table) => [
+    // The purge sweep's only query, and the overdue count's. Without it both degrade into a full
+    // scan of the largest table in the product, on a schedule, forever.
+    index("runs_purge_after_idx").on(table.purgeAfter),
+    // One cached answer per owner per identical request. Scoped to the owner on purpose: a cache
+    // shared across accounts would let one user's spend answer another user's question, and read
+    // one account's model output into another's results.
+    uniqueIndex("runs_owner_cache_key_idx").on(table.owner, table.cacheKey)
+  ]
 );
