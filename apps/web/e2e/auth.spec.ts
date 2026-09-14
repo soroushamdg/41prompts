@@ -72,6 +72,71 @@ test.describe("auth", () => {
     }
   });
 
+  /**
+   * **BUG-002.** `/app/account` was a bare `<main>` with no container class while `/app/projects`
+   * used `app-page`, so its body sat flush against the viewport's left edge — the same class of
+   * defect as the `/app` stub that caused the 2026-09-13 incident, on a route reachable from the
+   * chrome on every signed-in page.
+   *
+   * Asserted as "the same container as its sibling" rather than against a pixel value, so the test
+   * survives the container being restyled and still fails if this page falls out of it again.
+   */
+  test("the account page sits in the same container as the projects page", async ({ page }) => {
+    const email = uniqueEmail("account-container");
+    try {
+      await signInByMagicLink(page, email);
+      const projects = await page.getByRole("heading", { name: "Projects" }).boundingBox();
+
+      await page.goto("/app/account");
+      const account = await page.getByRole("heading", { name: "Account" }).boundingBox();
+      expect(account!.x).toBeCloseTo(projects!.x, 0);
+      expect(account!.x).toBeGreaterThan(0);
+
+      // The three things the page is for, and a way back.
+      const main = page.getByRole("main");
+      await expect(main.getByText(email)).toBeVisible();
+      await expect(main.getByRole("button", { name: "Sign out" })).toBeVisible();
+      await expect(main.getByRole("link", { name: "Delete account" })).toBeVisible();
+      await expect(main.getByRole("link", { name: "Back" })).toBeVisible();
+    } finally {
+      await deleteTestUser(email);
+    }
+  });
+
+  /**
+   * **BUG-069.** The signed-in chrome wrapped to a second row below 414px and `Account`'s right edge
+   * was exactly the viewport's — a control against the screen edge, which rule 12 is about.
+   *
+   * Checked at 320px as well as 390px, because the first fix passed at 390 and still broke at 320:
+   * the `<form>` around `Sign out` is a block box whose min-content is its longest *word*, so the
+   * label wrapped inside it instead. Measured, not eyeballed, and at more than one width.
+   */
+  test("the signed-in chrome stays on one row with a gutter down to 320px", async ({ page }) => {
+    const email = uniqueEmail("chrome-width");
+    try {
+      await signInByMagicLink(page, email);
+      for (const width of [390, 320]) {
+        await page.setViewportSize({ width, height: 800 });
+        await page.goto("/app/projects");
+        const measured = await page.evaluate(() => {
+          const chrome = document.querySelector(".app-chrome")!;
+          const items = [...chrome.children].filter((c) => !c.className.includes("spacer"));
+          const rects = items.map((c) => c.getBoundingClientRect());
+          return {
+            height: chrome.getBoundingClientRect().height,
+            gutter: document.documentElement.clientWidth - Math.max(...rects.map((r) => r.right)),
+            overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          };
+        });
+        expect(measured.height, `chrome wrapped at ${width}px`).toBeLessThan(48);
+        expect(measured.gutter, `no gutter at ${width}px`).toBeGreaterThanOrEqual(12);
+        expect(measured.overflow, `horizontal scroll at ${width}px`).toBe(0);
+      }
+    } finally {
+      await deleteTestUser(email);
+    }
+  });
+
   test("magic-link sign-up honours an explicit next, and round-trips the email", async ({ page }) => {
     const email = uniqueEmail("signup");
     try {
