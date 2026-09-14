@@ -72,3 +72,159 @@ state 1. The test asserts the four are distinct and asserts this fifth one is si
 **Amber ⟺ `blokChangedSinceSpan`.** States 3 and 4 carry it; state 2 must not, because a hand edit
 whose blok has not moved is not drift (decision 4, and rule 10). No state is carried by colour alone
 — every one of them has the badge and the sentence above.
+
+---
+
+## 2. Acceptance criteria, with evidence
+
+Finished 2026-09-14. Section 1 above was written on 2026-09-12 and is unchanged; everything below is
+the rest of the epic, closed out under Soroush's ruling that 021b is finished properly rather than
+having a report written around it.
+
+- [x] **One element per span, each carrying its blok id and state.**
+      `compiled-pane.spec.ts` › *renders one element per span, each carrying its blok id and state* —
+      asserts `data-blok` matches `^blok_[0-9a-f]{16}$` and `data-presentation` on every span, and
+      that an `expected` blok adds no span (EPIC-020 decision 6).
+- [x] **Hover, focus and tap link in both directions; pinning survives pointer-away; `Escape` and a
+      second tap unpin.** Four tests: *hovering a span surfaces its card*, *hovering a card
+      highlights its span*, *pinning survives the pointer moving away*, *Escape and a second tap both
+      unpin*.
+- [x] **Offsets map correctly to the DOM for CRLF, tabs, emoji and RTL; the highlighted characters
+      are exactly the span.** Two layers, because the criterion has two claims in it.
+      **Model:** `lib/canvas/compiled-view.test.ts` › *offsets map to the DOM for every shape*, the
+      four fixtures, plus *concatenating every piece rebuilds the whole prompt* and *holds when a
+      blok's own text contains the separator*.
+      **DOM, added 2026-09-14:** `compiled-pane.spec.ts` › *a pinned span of &lt;shape&gt; text
+      highlights exactly its own characters*, ×4. This is the half that was missing: the model tests
+      assert `piece.text`, which is a different claim from what a rendered, pinned element contains.
+      EPIC-013 got offset mapping wrong twice in opposite directions and the model was right both
+      times.
+      **What the CRLF row does not cover, stated rather than implied.** A `<textarea>` normalises
+      `\r\n` to `\n` in its value — measured, not assumed — so **raw CRLF cannot reach a blok through
+      the UI at all.** That row exercises the multi-line shape and the separator boundary; a blok
+      holding real CRLF arrives by import and is covered at the model level and by `toDisplayText`.
+      A fixture named "CRLF" that silently tests LF would be exactly the over-claim this epic's notes
+      warn about.
+- [x] **All four states render with distinct sentences; a test fails if two produce the same text.**
+      `compiled-view.test.ts` › *gives the four visible states four distinct sentences and four
+      distinct badges*, and *says something for every state a reader can act on, and nothing for the
+      ones they cannot*. The four strings are in §1. The fifth cell is deliberately silent and §1
+      says why.
+- [x] **Amber appears only on the drift state.** `compiled-view.test.ts` › *treats only the
+      blok-has-changed states as drift*; `span-state.test.tsx` › *gives the drift class only to the
+      two states where the blok has changed* and *agrees with isDriftPresentation, which is the
+      single definition*. State 2 — hand-edited, blok unchanged — must not carry it, and a test fails
+      if it does.
+- [x] **No state is conveyed by colour alone.** `span-state.test.tsx` › *renders nothing at all for
+      the in-step state* and *puts the action beside the sentence*; every visible state has a badge
+      and a sentence.
+- [x] **Editing marks the span edited by hand at the moment of editing; text stored verbatim.** Two
+      tests: *marks the span edited by hand at the moment of the edit*, *stores the text verbatim — no
+      trimming, no normalisation*.
+- [x] **"Update from blok" returns exactly that span and touches no other; undo restores the hand
+      edit including its retained hash.** Two tests: *returns exactly that span to compiled and
+      touches no other*, *undo restores the hand edit*. Plus *offers no bulk update anywhere on the
+      route* (decision 5).
+- [x] **A hand edit survives adding an unrelated blok, driven through the pane.**
+      `compiled-pane.spec.ts` › *a hand edit survives adding an unrelated blok*. Decision 6 holds
+      from the pane's side with nothing extra: the hand edit lives on the blok row, so adding a blok
+      is one INSERT that writes no other row. The pane needs nothing beyond what the row gives it.
+- [x] **Copy produces byte-identical text, compared against `compile()`.** *copy produces exactly
+      what the model would receive, separators included*. **Changed 2026-09-14**: it compared against
+      a hardcoded `"…\n\n…\n\n"`, which asserts today's `BLOK_SEPARATOR` — a value that has already
+      changed once (`compile@2`, 2026-09-12). It now calls `compile()` and compares to its output, as
+      the criterion asks. A literal expectation is the same failure as a convenience reload, wearing
+      different clothes.
+- [x] **Axe clean in both themes; full keyboard operation; 44px targets; reduced-motion end states.**
+      Four tests: *axe is clean on the pane in the light theme* / *…dark theme*, *every span is
+      reachable and pinnable by keyboard alone*, *the pane's controls clear 44px on a phone*,
+      *reduced motion shows end states rather than skipping them*.
+- [x] **Forbidden-word grep passes.** `Forbidden-word grep clean (packages/ui/src, apps/web/app, apps/web/lib)`.
+- [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.** §3.
+- [~] **Deployed to staging and driven by hand; screenshots of all four states.** Driven, and the
+      screenshots are in §4 — but **three states, not four.** State 4 is not reachable through the UI
+      as the app is built, because the page recompiles every non-hand-edited span on each render.
+      Split rather than ticked, because half of it genuinely happened and the other half describes a
+      state the running product cannot be in. §4 has the mechanism and §6 the ruling it needs.
+- [x] **Report and session log written; backlog updated.** This file,
+      `docs/epics/sessions/EPIC-021b-session.md`, and the backlog row.
+
+## 3. Verification
+
+```
+e2e        156 passed, 4 skipped, 0 failed   (against the BUILT app)
+           compiled-pane.spec.ts alone: 22 passed (18 before; +4 DOM shape fixtures)
+test       8 checked, 8 passed    (throwaway container, no PARTIAL)
+typecheck  8 checked, 8 passed
+lint       11 checked, 11 passed  (incl. dependency-cruiser, turbo boundaries, forbidden words)
+```
+
+## 4. The staging hand-drive
+
+Driven 2026-09-14 on `app.staging.41prompts.ai` at `d4df9b7`, signed in through the magic-link
+mechanism `PROCESS.md` now records. Screenshots in `docs/epics/reports/screenshots/EPIC-021b/`.
+
+| what | result |
+|---|---|
+| four spans render for four bloks | **PASS** |
+| state 2 reached: `data-presentation="edited"` | **PASS** |
+| distinct presentations on one screen | **PASS** — `["in-step","edited","edited-changed","in-step"]` |
+| every non-silent state carries words, not colour alone | **PASS** |
+| `Copy prompt` present | **PASS** |
+| update from blok returns that span to compiled | **PASS** |
+| undo restores the hand edit | **PASS** |
+
+`60-four-states.png` shows all three visible treatments at once: state 1 with no badge and no
+sentence, state 2 with a grey `edited by hand` badge and its sentence, state 3 with an **amber**
+`edited by hand · blok changed` badge, its own sentence and an amber left border. **Amber appears
+exactly once on the page, on state 3** — decision 4 and rule 10, visible rather than asserted.
+
+### The criterion says four states and I drove three. Here is why, and it is not a shortcut
+
+**State 4 — "out of date": nobody typed here and the blok changed — is not reachable through the UI
+as the app is currently built.** It is not a missing screenshot; it is a state the running product
+cannot be in.
+
+The model defines it as a *stored compiled span* whose text no longer matches its blok
+(`compiledView(compile(OLD), movedBloks)` in `compiled-view.test.ts` › *4 · out of date*). But
+`app/app/pr/[promptId]/page.tsx` calls `compiledForBloks(found.bloks)` on **every render**, so a span
+nobody has hand-edited is always recompiled from the current blok text and is `in-step` by
+construction. Only hand edits are persisted; there is no stored stale compiled span for a live prompt
+to disagree with. The drive proves this rather than assuming it: changing blok 4's text under an
+untouched span produced `in-step`, not `out-of-date`.
+
+**So this half of the criterion is left unticked above rather than ticked on three-quarters of the
+evidence.** State 4 is covered by `compiled-view.test.ts` at the model level, where it is
+constructible, and it becomes reachable in the product when something stores a compiled artefact and
+compares it against moved bloks — which is EPIC-040's versioning and EPIC-050's build artefact, not
+this epic.
+
+**Worth a ruling** (§6): either the pane keeps a state the product cannot currently show, on the
+grounds that Stage 4 will reach it, or the epic's criterion is amended to say three states are
+reachable today. It should not quietly stay as "four" while the drive can only ever find three.
+
+## 5. What was already built, and what this session added
+
+The pane itself shipped on 2026-09-12 and its behaviour was correct; what was missing was evidence
+for four criteria and the two documents. Stated plainly because "finish the epic" and "write the
+report" are different jobs and only one of them was outstanding for most of it:
+
+- **Added:** the four DOM-level highlight-exactness fixtures, and the copy test's comparison against
+  `compile()` instead of a literal.
+- **Fixed on the way, as its own PR (#73):** BUG-021b-compiled-pane-stale — a blok's span rendered
+  empty until the page was reloaded, hidden by a `page.reload()` in this file's own `addBlok` helper.
+  Found by the helper audit, not by driving.
+- **Unchanged:** every other criterion was already met by tests that existed; §2 names each one
+  rather than asserting the set.
+
+
+## 6. For the advisor
+
+1. **State 4 is unreachable in the product today.** §4 has the mechanism. Either the pane keeps a
+   state Stage 4 will reach, or the criterion is amended to say three are reachable now. It should
+   not stay as "four" while the drive can only find three.
+2. **Two layout observations from the 2026-09-14 drive**, offered as observations and not defects:
+   the `Edit by hand` buttons stack in a column under the compiled text with nothing tying each to
+   its span, so which button belongs to which is not visible until a span is pinned; and the `example`
+   span renders centre-aligned while its neighbours are left-aligned. Both are in
+   `60-four-states.png`.
