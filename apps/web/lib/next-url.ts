@@ -1,4 +1,6 @@
-const DEFAULT_NEXT_PATH = "/app";
+// Where sign-in lands. **Must be a page a user can work from** — it was `/app` until 2026-09-14,
+// a stub with no project list and no link to one, so everyone who signed in was stranded there.
+export const DEFAULT_NEXT_PATH = "/app/projects";
 
 // Only a same-origin relative path is ever returned. An open redirect here would let
 // `/sign-in?next=<attacker-controlled>` bounce a signed-in user anywhere after sign-in — the

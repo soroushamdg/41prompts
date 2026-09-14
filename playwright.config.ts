@@ -37,10 +37,35 @@ export default defineConfig({
     baseURL: `http://localhost:${port}`,
   },
   webServer: {
-    command: `pnpm --filter @41prompts/web dev --port ${port}`,
+    /**
+     * **Against the built app, not the dev server.**
+     *
+     * This ran `next dev` until 2026-09-14, which meant the suite could never see a build-time or
+     * asset-serving failure: the dev server generates every chunk on request and serves CSS from
+     * memory, so a stylesheet that fails to build, a chunk that 404s, or anything that only exists
+     * in a production bundle is invisible to it. 151 assertions passed green while the deployed
+     * `/app` rendered as unstyled text — see `docs/incidents/2026-09-13-production-outage.md`.
+     *
+     * `E2E_DEV=1` puts it back on the dev server for fast local iteration. Use it while writing a
+     * test; never to make a failing one pass. CI has no escape hatch on purpose.
+     *
+     * The cost is a build on every run, which is minutes. That is the price of the suite testing the
+     * artifact that ships rather than a development convenience that resembles it.
+     *
+     * **Through turbo, not `pnpm --filter … build`.** `turbo.json`'s build task carries
+     * `dependsOn: ["^build"]`, and `packages/core/dist` is a gitignored artifact: invoking Next
+     * directly builds the app against whatever `dist` happens to be lying around. Writing it the
+     * direct way here failed on the first run with `The export variableIssues was not found in
+     * module packages/core/dist/index.js` — a stale September 12 build, from before EPIC-022 added
+     * the variables module.
+     */
+    command: process.env.E2E_DEV === "1"
+      ? `pnpm --filter @41prompts/web dev --port ${port}`
+      : `npx turbo run build --filter=@41prompts/web && pnpm --filter @41prompts/web start --port ${port}`,
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    // A production build is minutes, not seconds; the old 120s was sized for `next dev`.
+    timeout: process.env.E2E_DEV === "1" ? 120_000 : 600_000,
     env: {
       /**
        * **Pinned to the port the suite actually drives.**

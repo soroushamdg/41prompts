@@ -14,7 +14,7 @@ export default async function AccountPage() {
         <a href="/app/account/delete">Delete account</a>
       </p>
       <p>
-        <a href="/app">Back</a>
+        <a href="/app/projects">Back</a>
       </p>
     </main>
   );

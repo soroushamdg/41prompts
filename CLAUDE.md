@@ -104,6 +104,9 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
   tracked source file under `packages/` or `apps/` is binary; `.gitattributes` forces a textual diff
   so the mistake surfaces rather than hides.
 - This file is still accurate; update it in the same PR if a convention changed.
+- **The deployed page was loaded in a browser and looked right**, with a screenshot in the report.
+  Not "the tests pass" — the page, on its real URL, rendered styled and complete, with the feature
+  driven by hand. `docs/PROCESS.md` says why the e2e suite cannot stand in for this.
 - `docs/epics/reports/EPIC-xxx-report.md` written: built, skipped, open questions, exact verify commands.
 - `docs/epics/sessions/EPIC-xxx-session.md` written per PROCESS.md.
 

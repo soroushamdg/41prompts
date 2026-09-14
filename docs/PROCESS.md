@@ -318,6 +318,65 @@ guarantee.
 Say which of the two a PR is, in its description, rather than leaving a reader to work out why one
 merged un-CI'd and the other did not.
 
+## A test written from the implementation asserts the implementation (2026-09-14)
+
+`auth.spec.ts` navigated to `/app` and asserted the sign-in `next` value was `/app`. Both were true.
+Both were also the bug: `/app` was a stub with no project list and no link to one, so **every user
+who signed in was stranded**, and the suite asserted that destination as correct. The gate could not
+fail on the defect, because the defect was what it asserted. It ran green for the whole of
+EPIC-021a, 021b and 022.
+
+This is not a missing test. It is a test that was written by reading the handler and writing down
+what it did.
+
+**The defence: a test for a user-facing route asserts that the user can get where they are going, and
+the assertion comes from the mockup or the epic, never from reading the handler.**
+
+In practice:
+
+- **Assert a destination, not a path.** "Signing in lands somewhere with your projects on it", not
+  "`next` equals `/app`". If the route changes and the user still arrives, the test should pass; if
+  the route is unchanged and the user is stranded, it should fail. A test that inverts those is
+  testing the code's memory of itself.
+- **Write the assertion before the handler**, or from a source outside it. The mockup and the epic
+  file both say what a screen is for; the handler only says what someone typed.
+- **Ask what a person does next.** A page nobody can leave passes every assertion about what it
+  renders. The question that catches it is "and then what" — which is also why the browser-drive rule
+  above exists, because that question is much easier to ask with the page in front of you.
+
+## Plan, implement, drive it in a browser, then push (2026-09-13)
+
+**Pushing is the last step, not the middle one.** The order is: plan → implement → **test in a real
+browser** → iterate until there are no bugs → commit and push.
+
+"Test in a real browser" means two things, and the second is the one that matters.
+
+**1. Before pushing: drive the feature locally against the BUILT app**, not the dev server, signed in
+as a seeded test user. Do the actual journey — create the thing, edit it, look at it — not just
+assertions about it.
+
+**2. After the deploy lands: smoke-drive the deployed URL.** Load the real page, confirm it renders
+**styled and complete**, and confirm the feature works. **An epic is not done until this passes.**
+
+**Why both, and why step 2 is not redundant.** EPIC-021a and EPIC-021b passed every e2e gate in CI —
+151 Playwright assertions green — while the deployed `/app` rendered as unstyled text with no project
+list. Playwright runs against a **dev server**, where CSS is served from memory by the dev middleware
+and every chunk is generated on request. A build-time or asset-serving failure is therefore invisible
+to it, and would have been invisible to a local drive too if that drive used `pnpm dev`. Only the
+built app can fail the way the built app fails, and only the deployed one can fail the way the
+deployed one does.
+
+**Credentials: there are none, and there must not be.** The seeded test user signs in through the
+**magic-link token the harness reads from the database** — the mechanism `apps/web/e2e/db.ts` already
+uses. Nothing is stored: the token is minted by the ordinary sign-in flow and read back from the row
+it was written to, so there is no password in the repository, no secret in a transcript, and nothing
+for anyone to type into a chat window. A Playwright storage-state fixture was the alternative and was
+rejected: a committed session cookie is a bearer credential, and one that outlives its usefulness.
+
+For a deployed environment the same flow needs one read of the database on the box, which is a
+`docker exec` and therefore needs Soroush's yes each time (`CLAUDE.md` server-access rule 3). That is
+the cost of having no standing credential anywhere, and it is the right trade.
+
 ## A local gate is evidence only when it reports every package (2026-09-13)
 
 `pnpm test` used to stop at the first failing package and print `Tasks: 5 successful, 8 total`. That

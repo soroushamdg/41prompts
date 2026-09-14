@@ -33,6 +33,16 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // `/app` is not a page; it is a redirect to `/app/projects` (see `app/app/page.tsx`). Doing it
+  // here as well as in the page matters for the **signed-out** case: the gate below builds the
+  // sign-in `next` value from the path it was given, so without this a signed-out visitor to `/app`
+  // is sent to `/sign-in?next=%2Fapp`, signs in, and lands back on a redirect — which works, but
+  // puts the dead end's name in a URL people bookmark and share. Redirecting before the gate means
+  // the `next` they get is the page they will actually use.
+  if (pathname === "/app") {
+    return NextResponse.redirect(new URL(`/app/projects${search}`, request.url));
+  }
+
   // Optimistic check only: confirms a session cookie is present, without a database round trip
   // on every request to a matched path. The authoritative check — is the session actually still
   // valid, has the user been soft-deleted since — happens in the page itself via
