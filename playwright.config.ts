@@ -27,6 +27,19 @@ const capturing = process.env.E2E_CAPTURE === "1";
 export default defineConfig({
   testDir: "./apps/web/e2e",
   testIgnore: capturing ? [] : ["**/capture/**"],
+  /**
+   * Playwright's own default, plus one that says what the run **skipped**.
+   *
+   * The first entry restates the default rather than changing it — `list` locally, `dot` under `CI`
+   * — because naming a reporter replaces the default outright, and quietly losing the per-test
+   * output would be a worse trade than the line it took to keep it.
+   *
+   * The second is `docs/PROCESS.md`'s failure 4. The four visual-regression tests skip on macOS and
+   * the suite exits 0 reporting `4 skipped` next to `178 passed`, which reads as a pass; CI #206 was
+   * a layout change that survived every local run because of it. `apps/web/e2e/skips.ts` has the
+   * reasoning and the two verdicts.
+   */
+  reporter: [[process.env.CI ? "dot" : "list"], ["./apps/web/e2e/skip-reporter.ts"]],
   // Serial, single worker: the magic-link rate limit (lib/auth.ts) is keyed per IP in an
   // in-memory store shared by every request the dev server handles. Parallel workers hitting
   // the same server would share that budget and make the suite flaky depending on run order.
