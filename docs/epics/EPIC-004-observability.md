@@ -18,6 +18,30 @@ keys in Coolify; ask for all of it in **one** checklist message with exact varia
    `run_passed`, `publish`. Adding an event means editing that file, not scattering strings.
 3. **No PII anywhere in logs or analytics**: no email, no prompt text, no provider payload. Ids only. This is a
    privacy-policy promise, not a preference.
+
+   > **Amended 2026-09-14 — analytics consent is universal, reversing part of this epic.**
+   >
+   > This epic made analytics opt-in for anonymous visitors and **granted for a signed-in user in
+   > production who had never chosen**. That exception was reasonable when it was made: there was no
+   > consent mechanism anywhere in the product, so requiring a yes would have meant measuring
+   > nothing at all. **EPIC-017 built the mechanism, and the exception stopped having a reason.**
+   >
+   > Soroush's ruling: a signed-in user who has never chosen is not counted. `isSignedIn` is gone
+   > from `hasAnalyticsConsent`'s signature rather than kept and ignored. The deciding argument was
+   > that EPIC-017's privacy page says declining stops everything, and **a privacy page that
+   > describes a rule the code does not follow is the precise inaccuracy that epic's retention work
+   > existed to avoid.**
+   >
+   > **A larger hole was found underneath it, and it is the part worth remembering.** `lib/auth.ts`
+   > called `captureEvent` **directly** for `signup` and `login`, so those two events never reached
+   > `hasAnalyticsConsent` at all — not the cookie, not `DNT`, not `Sec-GPC`. The reported problem
+   > was that the gate *granted* for signed-in users; the real one was that the only two events a
+   > signed-in person generates never met the gate to be granted anything. Both now go through
+   > `captureAccountEvent`, and `visitor.test.ts` guards the class rather than the two instances: it
+   > fails if anything outside `lib/analytics/` imports `captureEvent` again.
+   >
+   > Recorded here so the reversal is visible rather than looking like drift, which is the same
+   > reason `hasAnalyticsConsent`'s own comment keeps EPIC-015's one-day round trip.
 4. **Logs**: pino JSON to stdout, request id per request, level from an environment variable. Docker keeps them;
    no log shipper on one box.
 5. **Uptime**: an external check on `https://app.41prompts.ai/healthz` and `https://staging.41prompts.ai/healthz`,

@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const captureEvent = vi.fn();
@@ -13,7 +15,7 @@ vi.mock("./posthog-server", async (importOriginal) => {
   return { ...actual, captureEvent };
 });
 
-const { captureVisitorEvent } = await import("./visitor");
+const { captureVisitorEvent, captureAccountEvent } = await import("./visitor");
 
 const originalEnv = { deploy: process.env.DEPLOY_ENV, salt: process.env.IP_HASH_SALT };
 
@@ -110,5 +112,59 @@ describe("a visitor who declines is not counted", () => {
     headerStore.set("dnt", "0");
     await captureVisitorEvent("decompile_view");
     expect(captureEvent).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * **The hole this block exists for.** `lib/auth.ts` called `captureEvent` directly for `signup` and
+ * `login`, so those two events never met the consent gate — not the cookie, not `DNT`, not
+ * `Sec-GPC`. EPIC-017's privacy page said declining stops everything, and for exactly the two events
+ * a signed-in person generates, it did not.
+ *
+ * Asserted as "nothing was captured" rather than as "the gate returned false", because the gate
+ * returning false was never the problem — not being asked was.
+ */
+describe("an event about a signed-in account", () => {
+  it("sends nothing in production when nobody has chosen", async () => {
+    await captureAccountEvent("user_1", "login");
+    expect(captureEvent).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the visitor declined", async () => {
+    cookieStore.set("41prompts_analytics_consent", "denied");
+    await captureAccountEvent("user_1", "signup");
+    expect(captureEvent).not.toHaveBeenCalled();
+  });
+
+  it.each([["dnt"], ["sec-gpc"]])("sends nothing when %s says so, even with consent granted", async (header) => {
+    withConsent();
+    headerStore.set(header, "1");
+    await captureAccountEvent("user_1", "login");
+    expect(captureEvent).not.toHaveBeenCalled();
+  });
+
+  it("sends the user id, and only the user id, once consent is granted", async () => {
+    withConsent();
+    await captureAccountEvent("user_42", "signup");
+    expect(captureEvent).toHaveBeenCalledWith("user_42", "signup");
+  });
+});
+
+/**
+ * **The class, guarded, not just the two instances.**
+ *
+ * Fixing `auth.ts`'s two calls fixes today. This fails if any module outside `lib/analytics/` calls
+ * `captureEvent` directly again, because that is the shape of the defect rather than its location:
+ * a capture that does not go through the gate is a capture nobody can decline.
+ *
+ * The same construction `apps/web/e2e-writes.test.ts` uses for its own class of mistake.
+ */
+describe("nothing captures outside the gate", () => {
+  it("auth.ts goes through captureAccountEvent rather than captureEvent", () => {
+    const source = readFileSync(join(import.meta.dirname, "..", "auth.ts"), "utf8");
+    expect(source, "auth.ts should not import captureEvent directly").not.toMatch(
+      /import\s*\{[^}]*\bcaptureEvent\b[^}]*\}\s*from/
+    );
+    expect(source).toContain("captureAccountEvent");
   });
 });

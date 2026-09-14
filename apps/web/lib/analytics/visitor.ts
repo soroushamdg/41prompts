@@ -1,7 +1,7 @@
 import { clientAddress, hashIdentity } from "@41prompts/db";
 import { cookies, headers } from "next/headers";
 import type { EventName } from "./events";
-import { captureEvent, CONSENT_COOKIE_NAME, hasAnalyticsConsent } from "./posthog-server";
+import { captureEvent, CONSENT_COOKIE_NAME, hasAnalyticsConsent, identifyUser } from "./posthog-server";
 
 /**
  * Counting anonymous visitors for EPIC-015's thirty-day window, without learning anything new
@@ -26,7 +26,6 @@ export async function captureVisitorEvent(name: EventName, properties?: Record<s
   const header = await headers();
 
   const allowed = hasAnalyticsConsent({
-    isSignedIn: false,
     consentCookie: (await cookies()).get(CONSENT_COOKIE_NAME)?.value,
     doNotTrack: header.get("dnt"),
     globalPrivacyControl: header.get("sec-gpc")
@@ -34,4 +33,33 @@ export async function captureVisitorEvent(name: EventName, properties?: Record<s
   if (!allowed) return;
 
   captureEvent(hashIdentity(clientAddress(header)) ?? UNKNOWN_CALLER, name, properties);
+}
+
+/**
+ * An event about a signed-in account, through the same gate.
+ *
+ * ## The hole this closes
+ *
+ * `lib/auth.ts` called `captureEvent` **directly** for `signup` and `login`, so those two events
+ * never met `hasAnalyticsConsent` at all — not the cookie, not `DNT`, not `Sec-GPC`. "Declining
+ * stops everything" was therefore false for exactly the two events a signed-in person generates,
+ * and EPIC-017's privacy page had already been written saying otherwise.
+ *
+ * Found on 2026-09-14 while making consent universal: the reported problem was that the gate
+ * *granted* for signed-in users, and the larger one underneath was that these two calls never
+ * reached the gate to be granted anything.
+ *
+ * The user id is the distinct id, never the email (EPIC-004 decision 3), and that is unchanged.
+ */
+export async function captureAccountEvent(userId: string, name: EventName): Promise<void> {
+  const header = await headers();
+  const allowed = hasAnalyticsConsent({
+    consentCookie: (await cookies()).get(CONSENT_COOKIE_NAME)?.value,
+    doNotTrack: header.get("dnt"),
+    globalPrivacyControl: header.get("sec-gpc")
+  });
+  if (!allowed) return;
+
+  identifyUser(userId);
+  captureEvent(userId, name);
 }

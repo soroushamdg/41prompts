@@ -5,7 +5,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins";
 import { and, eq, gte, sql } from "drizzle-orm";
-import { captureEvent, identifyUser } from "./analytics/posthog-server";
+import { captureAccountEvent } from "./analytics/visitor";
 import { getDb } from "./db";
 import { sessionCookiePrefix } from "./site/cookie-prefix";
 import { sendMagicLinkEmail } from "./email";
@@ -119,9 +119,13 @@ function buildAuth() {
           // Fires once, on account creation — before the sign-in that immediately follows it
           // fires its own "login" below (decision 2's `signup` and `login` are deliberately
           // distinct events, both real for a brand-new user's first request).
+          // **Through the consent gate, from 2026-09-14.** These two calls used to reach
+          // `captureEvent` directly, which meant `signup` and `login` were the only events that
+          // never met the cookie, `DNT` or `Sec-GPC` — so "declining stops everything" was false for
+          // precisely the events a signed-in person generates. `captureAccountEvent` is the same
+          // capture behind the same gate everything else uses.
           after: async (user) => {
-            identifyUser(user.id);
-            captureEvent(user.id, "signup");
+            await captureAccountEvent(user.id, "signup");
           },
         },
       },
@@ -139,8 +143,7 @@ function buildAuth() {
           // User id only, never the email (decision 3) — identify+capture happen here, not
           // client-side, so a sign-in is tracked even if the browser never runs any JS after.
           after: async (session) => {
-            identifyUser(session.userId);
-            captureEvent(session.userId, "login");
+            await captureAccountEvent(session.userId, "login");
           },
         },
       },
