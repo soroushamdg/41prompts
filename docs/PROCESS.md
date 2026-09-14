@@ -528,6 +528,49 @@ reason as before — a committed session cookie is a bearer credential that outl
 report the drive as passing on the strength of the half that ran. Name which assertions did not run
 and why, and leave them unticked.
 
+### The drive cleans up after itself (2026-09-14)
+
+**The browser drive is now a Definition-of-Done item on every epic, so it creates test data on every
+epic.** The first day of it left six throwaway projects on staging. Two futures were available —
+the drive tidies up, or staging accumulates rubbish forever — and only one of them survives contact
+with a year of epics. **The drive tidies up.**
+
+**The identity is the scope.** Every drive signs in as
+
+```
+claude-drive-<label>-<timestamp>@example.com
+```
+
+and cleanup is one statement:
+
+```sql
+delete from users where email like 'claude-drive-%@example.com';
+```
+
+Deleting the user is enough: `projects.owner`, `prompts.project`, `bloks.prompt` and the variable
+tables all cascade, so one row removes the whole tree and nothing is orphaned.
+
+**Two independent guards, which is why this is safe to make standing:**
+
+1. **The prefix** `claude-drive-` is ours and appears nowhere else.
+2. **`example.com` is reserved by RFC 2606** and can never be a deliverable address, so no real
+   user's row can ever match this pattern — not by accident, not by someone signing up adversarially.
+
+Either guard alone would do; both together mean the blast radius is a set that cannot contain a real
+account.
+
+**Soroush granted this as a standing permission on 2026-09-14**, narrowed to exactly this statement
+on **staging**. It is the only write covered — the read-only `SELECT` above is otherwise still the
+whole of what a drive may do to the database, and anything else is one command, one yes.
+
+**Run it at the end of the drive, and again at the start.** Running it first makes a drive whose
+browser crashed before cleanup self-healing rather than leaving a row for the next person to find;
+the statement is idempotent and deleting nothing is a normal outcome.
+
+**Not `DELETE FROM projects`.** Scoping by project name would mean matching on a string a person can
+type, on a table real users own rows in. Scoping by identity means the pattern lives on the column
+that decides ownership, which is the one that cannot be coincidentally satisfied.
+
 ## A local gate is evidence only when it reports every package (2026-09-13)
 
 `pnpm test` used to stop at the first failing package and print `Tasks: 5 successful, 8 total`. That

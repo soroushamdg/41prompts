@@ -199,9 +199,19 @@ constructible, and it becomes reachable in the product when something stores a c
 compares it against moved bloks — which is EPIC-040's versioning and EPIC-050's build artefact, not
 this epic.
 
-**Worth a ruling** (§6): either the pane keeps a state the product cannot currently show, on the
-grounds that Stage 4 will reach it, or the epic's criterion is amended to say three states are
-reachable today. It should not quietly stay as "four" while the drive can only ever find three.
+### Ruled, 2026-09-14: not a defect, and no machinery
+
+**Soroush's ruling: the model expresses four states and the product reaches three, and that is
+correct behaviour rather than a gap to close.** EPIC-020 modelled two genuinely different facts —
+`differs` and `changed` as independent booleans — and the product currently exercises three of the
+four combinations because recompiling on render is the right thing for a live editor to do. The
+criterion is amended in `EPIC-021b-compiled-pane.md` to say so, this criterion stays **split**, and
+the backlog row becomes `done` on that basis.
+
+**No path to state 4 is to be built unless a later epic needs one.** It becomes reachable when
+something stores a compiled artefact and compares it against moved bloks — EPIC-040's versioning and
+EPIC-050's build artefact. Until then, building a way to reach it would be machinery whose only
+purpose is to satisfy a screenshot.
 
 ## 5. What was already built, and what this session added
 
@@ -220,9 +230,8 @@ report" are different jobs and only one of them was outstanding for most of it:
 
 ## 6. For the advisor
 
-1. **State 4 is unreachable in the product today.** §4 has the mechanism. Either the pane keeps a
-   state Stage 4 will reach, or the criterion is amended to say three are reachable now. It should
-   not stay as "four" while the drive can only find three.
+1. ~~**State 4 is unreachable in the product today.**~~ **Ruled 2026-09-14** — see §4. Not a defect,
+   no machinery, criterion amended and split, row `done`.
 2. **Two layout observations from the 2026-09-14 drive**, offered as observations and not defects:
    the `Edit by hand` buttons stack in a column under the compiled text with nothing tying each to
    its span, so which button belongs to which is not visible until a span is pinned; and the `example`
