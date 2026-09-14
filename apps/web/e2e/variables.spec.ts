@@ -39,7 +39,10 @@ async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   await expect(
     page.locator(".canvas-list > li").nth(before).locator(".blok-editor-state")
   ).toHaveAttribute("data-state", "saved");
-  await page.reload();
+  // **No reload.** There was one here, and it hid BUG-022 from all four tests in this file: a
+  // reload is a fresh server render, which is exactly what made stale client state look correct.
+  // `PROCESS.md`, "A helper that normalises state hides the defect from every test that uses it".
+  // What this helper waits on instead is the real condition — the blok reporting itself saved.
 }
 
 /**
@@ -74,6 +77,31 @@ test.describe("variables", () => {
   });
 
   test.use({ storageState: STATE_FILE });
+
+  /**
+   * **BUG-022, named so nobody puts the reload back.**
+   *
+   * Every other test in this file would now fail if the defect returned, because `addBlok` no longer
+   * reloads. This one exists anyway, because what the others assert is *variables behaviour* and
+   * what this asserts is *that no reload was needed* — if someone re-adds a convenience reload to
+   * the helper, the others go green again and only this test says why that is wrong.
+   *
+   * The bug: `saveBlokTextAction` was the one write in `lib/canvas/actions.ts` with no
+   * `revalidatePath`. Adding a blok revalidated, so the tab learned a blok existed; saving its text
+   * did not, so the tab never learned what it said, and told the user to write `{{a_name}}` in a
+   * blok immediately after they had.
+   */
+  test("a variable typed into a blok is seen without reloading the page", async ({ page }) => {
+    await newPrompt(page);
+    await addBlok(page, "context", "Reply to {{customer}} on behalf of {{company}}.");
+
+    // No reload anywhere between the typing and the looking.
+    await openVariables(page);
+    const undeclared = page.getByRole("region", { name: "Used but not declared" });
+    await expect(undeclared).toBeVisible();
+    await expect(undeclared.getByText("customer", { exact: true })).toBeVisible();
+    await expect(undeclared.getByText("company", { exact: true })).toBeVisible();
+  });
 
   test("a used name that nothing declares is reported, and declaring it clears the report", async ({ page }) => {
     await newPrompt(page);
