@@ -115,7 +115,7 @@ isolation defect found by reading the script, not an incident.
 | EPIC-012a | core: detectors — repeated, contradiction, untestable, padding, too-long; Finding schema, severity | M | 011b | done |
 | EPIC-012b | core: rules-without-checks detector; suggested-fix wording; false-positive audit on corpus | S | 012a | done |
 | EPIC-013 | web: public `/decompile`; source map, bloks, bidirectional hover + keyboard pin, markers, dim, findings; touch default | M | 003, 012b | done |
-| EPIC-017 | Legal minimum: terms, privacy, cookie choice, sub-processor page, retention table, transfer note, DPA-on-request draft | S | 002 | todo |
+| EPIC-017 | Legal minimum: terms, privacy, cookie choice, sub-processor page, retention table | M | 002 | done |
 | EPIC-014 | Capture: permalink with `noindex` + removal endpoint, 30-day purge job, rate limits, Turnstile, abuse check before provider, waitlist capture | S | 013, 017 | done |
 | EPIC-016 | Landing page v1: nav, hero with ask bar and compile pass, three-step strip, decompiler CTA, footer, sign in / sign up | M | 003, 013 | done |
 | EPIC-015 | Soft ship: `llms.txt`, companion article, PostHog funnel, Search Console; no announcement | S | 014, 016 | done |
@@ -133,13 +133,25 @@ implicit. EPIC-010 was interview-proof anyway — no research finding moves wher
 built has shipped with a report: 010, 011a, 011b, 012a, 012b, 013, 014, 016, 015. EPIC-080 and
 EPIC-005 are `cut`, EPIC-084 is `cancelled`.
 
-**One item is carried rather than done, and it is named here so the stage line is not read as more
-than it is: `EPIC-017` (legal minimum) is still `todo`.** Terms, privacy, cookie choice, the
-sub-processor page and the retention table are stubs — EPIC-016's baseline literally captures a
-placeholder that says it is one. EPIC-014 shipped against it anyway, which is how the dependency got
-away. It is a Stage 1 obligation carried into Stage 2, not a Stage 2 epic, and the usual rule — a
-report for every epic in a stage before the next one starts — is being waived for it by decision, not
-met.
+**EPIC-017 is done, 2026-09-14, and Stage 1 has no carried items left.** It was `todo` through
+Stage 2 — terms, privacy, cookie choice, the sub-processor page and the retention table were all
+stubs, and EPIC-016's visual baseline literally captured a placeholder that said so. EPIC-014 shipped
+against it anyway, which is how the dependency got away.
+
+It was closed under Soroush's ruling of 2026-09-14: **no lawyer**, written in full by Claude Code,
+with one line at the top of terms and privacy saying it has not been reviewed by one. Its row size is
+corrected from S to M, which is what it actually was.
+
+**Its scope shrank in one place and grew in another, both deliberately.** The DPA-on-request draft
+and the standalone Law 25 transfer assessment moved to **EPIC-071**, whose row already depends on
+this one — they are documents for a service with business customers, which this is not yet, and the
+assessment's substance is on the privacy page regardless. What grew: the retention table gained a
+fourth number nobody's brief had (`RUN_COUNT_RETENTION_DAYS = 180`, enforced in
+`purge-decompiles.ts`), and the processor list turned out to be **seven in use, not the roadmap's
+eight** — AWS and GitHub were missing from it, and four of the eight are not wired at all.
+
+Every retention number is imported from the constant that enforces it, so the page cannot drift from
+the code, and a test walks each cited file path and fails if it does not exist.
 
 ## Stage 2 · Bloks and compiler
 
