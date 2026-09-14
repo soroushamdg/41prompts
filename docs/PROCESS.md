@@ -102,6 +102,37 @@ removes only volumes no container references, and any image removed re-pulls on 
 attached first (`docker ps -a` and `docker inspect <name> --format '{{range .Mounts}}…'`); a running
 project's data volume is not "unused" just because it is not ours.
 
+### The e2e step does not move into that container, and the skip is loud instead (2026-09-14)
+
+Failure 4 below — the visual tests skip on darwin and a skip reads as a pass — has an obvious fix:
+run `pnpm e2e` inside `mcr.microsoft.com/playwright:v<version>-noble` as part of `gates.mjs ci`, on
+Linux, where the four baselines are real. **We are not doing it**, and the reasons are numbers rather
+than taste.
+
+- **It does not fit.** Docker Desktop's VM disk is **7.8 GB with 3.8 GB free** (measured
+  2026-09-14; the host's 24 GB free is not the constraint — the VM's overlay is). The image is
+  larger than the free space, so every run would begin by evicting something.
+- **It roughly doubles the mode.** The container shares nothing with the host: Linux platform
+  binaries mean its own `pnpm install`, its own cold Next build, then 182 tests. On top of the
+  measured 5m32s that lands somewhere past ten minutes — and the decision to run CI mode before
+  every push was argued at 5m39s–6m31s, ninety seconds over the line that would have made it
+  automatic. **A gate nobody runs because it is slow covers nothing**, which is a worse outcome than
+  the gap it closes.
+- **The gap is narrower than it looks.** CI runs these four on every push already. The local mode
+  exists to stop *avoidable* red PRs, and a screenshot diff is not avoided by rerunning it locally —
+  it is read off the diff image CI produces.
+
+So the cost went on the honest report instead. `apps/web/e2e/skip-reporter.ts` names every skipped
+test at the end of **any** `pnpm e2e` run, with the reason the spec gave, and says in as many words
+that the visual gate did not execute. On **linux** the same verdict fails the run: there is no
+platform to explain a skip there, so it means a missing `-linux.png` — which `landing.spec.ts`'s
+`existsSync` guard would otherwise turn into a silent pass in CI. The verdict is a pure function in
+`apps/web/e2e/skips.ts` with its own tests, because the case that matters is Linux and this is
+mostly run from a Mac.
+
+Regenerating the baselines still uses the container. That is a deliberate, occasional act with a
+person watching, which is a different thing from a gate on every push.
+
 ## "Environmental" is a hypothesis, not a finding
 
 A failing test explained as environmental — a slow runner, a local quirk, "it passes in CI" — is an
@@ -622,7 +653,7 @@ named.
 | 1 | Compliance #209, `fix/key-collision-gate` | `mirror-dry-run` | `packages/core/src/key-collision.test.ts` read `apps/worker/src/runs/execute.ts` to assert the collision test still exists. The path is there in the monorepo, so `pnpm test` was green. The mirror dry run filters the repo down to the four public packages, where `apps/` does not exist, and the whole `@41prompts/core` suite failed on `ENOENT`. **Local ran a different tree than CI's last job did**, and only CI ran that job. |
 | 2 | Compliance #202, `epic/031-run-engine` | `binary-files` | `apps/worker/src/runs/execute.ts` contained a raw NUL byte at offset 2540. The gate read `git ls-files`, which reads the **index**; the file was written and not yet staged, so it was invisible — the gate reported "486 checked" and passed. The commit staged it, CI cloned a tree where it was tracked, and the same gate found the NUL immediately. **Local was asked about a set of files that did not include the new one.** |
 | 3 | CI #209, `fix/universal-analytics-consent` | `pnpm e2e` | `legal.spec.ts` measured `document.querySelector(".consent").offsetHeight` inside an `expect.poll`. The banner mounts from an effect, and **a poll whose callback throws gives up rather than retrying** — so on a 2-core runner the first attempt landed before the element existed and the poll aborted with a `TypeError`. **Machine speed, not tree state.** Fixed in the test (`df036c8`), and no local mode can reproduce it. |
-| 4 | CI #206, `epic/017-legal-minimum` | `pnpm e2e` | The four visual-regression baselines are committed as `-linux.png`, and their specs carry `test.skip(process.platform !== "linux")` — deliberately, because on macOS Playwright writes a new `-darwin` baseline and passes. So the local run **skipped** them, while CI ran them and found the page 117px taller than the baseline: the new consent banner. **Local never executed the gate at all**, and a skip reads as a pass in a summary line. |
+| 4 | CI #206, `epic/017-legal-minimum` | `pnpm e2e` | The four visual-regression baselines are committed as `-linux.png`, and their specs carry `test.skip(process.platform !== "linux")` — deliberately, because on macOS Playwright writes a new `-darwin` baseline and passes. So the local run **skipped** them, while CI ran them and found the page 117px taller than the baseline: the new consent banner. **Local never executed the gate at all**, and a skip reads as a pass in a summary line. Closed on 2026-09-14, not by running them locally but by making the silence impossible: see "The e2e step does not move into that container, and the skip is loud instead". |
 | 5 | Compliance #149, `chore/local-gates-report-every-package` | `mirror-dry-run` | The commit that pointed root `test` at `scripts/gates.mjs` — a path the mirror deliberately excludes. `pnpm test` inside the filtered tree died on `Cannot find module …/scripts/gates.mjs`. **The gate was never run locally**: `mirror-dry-run` is in `pnpm compliance`, and the change was validated with `pnpm test`. |
 
 Read as a set: one was a tree the local run could not produce (1), one was a file set the local run
@@ -733,7 +764,11 @@ seconds, every package reported, and the right tool for diagnosing a gate that C
    does. The only fix is the test.
 2. **The runner is Linux.** Failure 4 is this. The four visual baselines skip on darwin and CI mode
    skips them too — it prints the skipped count rather than letting a green table imply coverage.
-   "Visual-regression baselines" above has the Docker procedure that does run them.
+   Since 2026-09-14 the suite itself also names them: `apps/web/e2e/skip-reporter.ts` lists every
+   skipped test and its reason at the end of any `pnpm e2e` run, so the gap is stated by the run
+   that has it and not only by the mode that wraps it. The tests still do not execute here —
+   "Visual-regression baselines, and Docker disk" above has the procedure that runs them, and the
+   measured reasons the e2e step does not move into that container.
 3. **A `pull_request` run tests the merge**, not the branch tip. CI mode prints how many commits
    `origin/main` has that the checkout does not.
 
