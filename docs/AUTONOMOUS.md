@@ -19,7 +19,7 @@ finishes:
 
 | # | step | done when |
 |---|---|---|
-| 1 | `epic-file` | `docs/epics/EPIC-xxx-<name>.md` exists in `PROCESS.md`'s format. Write it if it is absent — goal, scope, out of scope, acceptance criteria, verification, notes. Copy it to `docs/epics/CURRENT.md`. |
+| 1 | `epic-file` | `docs/epics/EPIC-xxx-<name>.md` exists in `PROCESS.md`'s format — read it, and copy it to `docs/epics/CURRENT.md`. **You are never handed an epic that has no file**; the picker stops on a `todo` row without one rather than starting it (see below). If the file you were handed is missing, something is wrong upstream: say so and stop rather than inventing the epic. |
 | 2 | `plan` | `docs/epics/plan-EPIC-xxx.md` written. Plan first, always; `CLAUDE.md` says stop and show the plan, and unattended "show" means write it down before you write code. |
 | 3 | `implement` | the code is written, on the branch the runner named. |
 | 4 | `gates` | `node scripts/gate-run.mjs` green, with every package reporting. A `PARTIAL` is not a pass. **Run that, not a list of gate commands** — see below. **Commit your work first:** `gates.mjs` now advertises a `ci` mode, so `gate-run.mjs` resolves to it and runs it alone — and that mode tests a clean checkout of a **commit** and refuses a dirty tree (exit 2, with the files named). |
@@ -255,6 +255,26 @@ account on somebody else's service, a domain purchase, a signature, an interview
 human being. The backlog cannot always tell in advance. When you find that out, that is a
 `BLOCKER`: write `docs/epics/BLOCKER-EPIC-xxx.md` saying which step needs a person and what
 exactly they have to do, and exit. Do not build a half version. Do not tick the row.
+
+### A row with no epic file stops the loop
+
+**A `todo` row that has no `docs/epics/EPIC-xxx-*.md` is a full stop, like a gate.** The runner
+names the row, says what is missing, and exits; it does not step over it to the row below.
+
+**EPIC-006 is why.** Its row said `todo`, it was the first row of the first stage, and no epic
+file existed — so nothing told the picker that every one of its tasks needs Soroush's own
+accounts and a payment method. It was picked ahead of every epic that was actually ready, and
+the run would have discovered the problem at the first namespace.
+
+**A stop rather than a skip, deliberately.** An unwritten row is not known to be
+human-blocked — it is unknown. The epic file is where an epic says it needs a person, which is
+exactly what cannot be read when there is no file, and stepping over it would start a later
+epic on the assumption that whatever was skipped was safe to leave behind. Someone writes the
+epic, or marks the row `deferred` or `blocked` with a reason, and the loop moves again.
+
+**This is not yours to fix from inside a run.** Writing the epic file for a row nobody has
+scoped is the advisor's job, and `docs/backlog.md` is on the "never touch" list. The loop
+stopping is the correct outcome.
 
 ### A blockered epic is not handed back
 

@@ -118,6 +118,17 @@ backlog() {
   } > "$dir/docs/backlog.md"
 }
 
+# A pickable row needs an epic file: the picker stops on a `todo` row that has none. Kept out
+# of backlog() on purpose, so a scenario can leave a row deliberately unwritten.
+epic_files() {
+  local dir="$1"; shift
+  local id
+  for id in "$@"; do
+    printf '# %s\n\nA fixture epic file. Its only job is to exist.\n' "$id" \
+      > "$dir/docs/epics/$id-fixture.md"
+  done
+}
+
 roadmap() {
   cat > "$1/docs/roadmap.md" <<'RM'
 # Roadmap
@@ -199,6 +210,7 @@ if want staging-down; then
 head2 "staging-down — staging is not serving, so no epic starts"
   D="$(make_fixture)"; roadmap "$D"
   backlog "$D" '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |'
+  epic_files "$D" EPIC-031
   run_loop "$D" "STAGING_APEX_URL=http://127.0.0.1:9" "STAGING_APP_URL=http://127.0.0.1:9" "STAGING_CHECK_TIMEOUT_MS=2000"
   RC=$?
   check "run-epics.sh propagates the failure" 3 "$RC"
@@ -226,6 +238,7 @@ if want stop-mid-epic; then
 head2 "stop-mid-epic — STOP appears while an epic is running"
   D="$(make_fixture)"; roadmap "$D"
   backlog "$D" '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |'
+  epic_files "$D" EPIC-031
   echo hang > "$D/.stub-behaviour"
   PORT="$(fake_staging_ok "$D")"
   ( cd "$D" && env "STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT" \
@@ -255,6 +268,7 @@ if want resume; then
 head2 "resume — a run dies after step 4; the next invocation continues at step 5"
   D="$(make_fixture)"; roadmap "$D"
   backlog "$D" '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |'
+  epic_files "$D" EPIC-031
   PORT="$(fake_staging_ok "$D")"
   ENVP=("STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT" "AUTONOMOUS_MAX_ATTEMPTS=1")
 
@@ -287,6 +301,7 @@ head2 "two-blockers — one blocker keeps going, two in a row stop the loop"
     '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |' \
     '| EPIC-032 | web: input sets | M | 031 | todo |' \
     '| EPIC-033 | LLM-judge grader | S | 031 | todo |'
+  epic_files "$D" EPIC-031 EPIC-032 EPIC-033
   echo blocker > "$D/.stub-behaviour"
   PORT="$(fake_staging_ok "$D")"
   run_loop "$D" "STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT"
@@ -315,6 +330,7 @@ head2 "release-cadence — three completed epics, then stop and write RELEASE-DU
     '| EPIC-032 | web: input sets | M | 031 | todo |' \
     '| EPIC-033 | LLM-judge grader | S | 031 | todo |' \
     '| EPIC-034 | Activation onboarding | S | 032 | todo |'
+  epic_files "$D" EPIC-031 EPIC-032 EPIC-033 EPIC-034
   # A real repository, because release-due.mjs reads git history.
   ( cd "$D" && git init -q && git config user.email t@example.com && git config user.name t \
       && git add -A >/dev/null && git commit -qm one && git branch -M main \
@@ -349,6 +365,7 @@ if want rate-limit; then
 head2 "rate-limit — the usage window closes, the runner waits and resumes the same epic"
   D="$(make_fixture)"; roadmap "$D"
   backlog "$D" '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |'
+  epic_files "$D" EPIC-031
   echo ratelimit > "$D/.stub-behaviour"
   PORT="$(fake_staging_ok "$D")"
   run_next "$D" "STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT" \
@@ -375,6 +392,9 @@ head2 "human-blocked — rows whose dependency is a person are skipped, named, n
     '| EPIC-045 | web: the real one | M | 040 | todo |'
   printf '# EPIC-044\n\nThis needs an account on a third-party service, so it waits on Soroush.\n' \
     > "$D/docs/epics/EPIC-044-something.md"
+  # EPIC-040 to EPIC-043 are deliberately left unwritten: a row skipped on its status is never
+  # read for an epic file, so the status tests above come first and this scenario proves it.
+  epic_files "$D" EPIC-045
   PORT="$(fake_staging_ok "$D")"
   run_next "$D" "STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT"
   stop_fake_staging "$D"
@@ -387,6 +407,36 @@ head2 "human-blocked — rows whose dependency is a person are skipped, named, n
     'waits on Soroush' "$D/out.txt"
   contains "and the one that is actually ours is picked" "PICKED EPIC-045" "$D/out.txt"
   absent "no skipped row was ticked" "| EPIC-040 | core: version snapshot | M | 030 | done |" "$D/docs/backlog.md"
+  rm -rf "$D"
+fi
+
+if want unwritten; then
+head2 "unwritten — a todo row with no epic file stops the loop instead of starting it"
+  D="$(make_fixture)"; roadmap "$D"
+  backlog "$D" \
+    '| EPIC-030 | core: check model | M | 020 | done |' \
+    '| EPIC-031 | worker: pg-boss runner | M | 030 | todo |' \
+    '| EPIC-032 | web: input sets | M | 031 | todo |'
+  epic_files "$D" EPIC-032   # EPIC-031 is deliberately left unwritten
+  PORT="$(fake_staging_ok "$D")"
+  run_loop "$D" "STAGING_APEX_URL=http://127.0.0.1:$PORT" "STAGING_APP_URL=http://127.0.0.1:$PORT"
+  RC=$?
+  stop_fake_staging "$D"
+  check "run-epics.sh exit code" 0 "$RC"
+  check "outcome" "unwritten-epic" "$(outcome_of "$D")"
+  contains "the row is named" "UNWRITTEN EPIC: EPIC-031" "$D/out.txt"
+  contains "and the file that is missing" "missing: docs/epics/EPIC-031-<name>.md" "$D/out.txt"
+  contains "and why that is a stop" "an epic nobody has written is not an epic a machine should begin" "$D/out.txt"
+  contains "and what would move it" "write the epic file, or mark the row" "$D/out.txt"
+  contains "the loop stopped rather than going round again" "the next row has no epic file" "$D/out.txt"
+  absent  "the unwritten row was not started" "PICKED EPIC-031" "$D/out.txt"
+  absent  "and the written row below it was not started in its place" "PICKED EPIC-032" "$D/out.txt"
+  absent  "no epic file was invented for it" "EPIC-031-" "$D/docs/backlog.md"
+  if ls "$D/docs/epics/" | grep -q '^EPIC-031-'; then
+    bad "the runner wrote an epic file for a row nobody has scoped"
+  else
+    ok "the runner wrote no epic file for it"
+  fi
   rm -rf "$D"
 fi
 

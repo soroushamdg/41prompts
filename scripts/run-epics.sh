@@ -8,6 +8,9 @@
 #   the backlog has nothing todo      nothing to do
 #   a ▣ GATE row is next              a gate is Soroush's decision; the epics behind it are
 #                                     not reachable by skipping past
+#   the next row has no epic file     an epic nobody has written is not an epic a machine
+#                                     should begin, and an unwritten row cannot say whether
+#                                     it needs a person
 #   two consecutive BLOCKERs          one blocker is a hard epic; two in a row means
 #                                     something upstream is wrong and every further epic is
 #                                     paying for it
@@ -143,6 +146,11 @@ while :; do
 
     no-todo)
       log "the backlog has no todo rows left — stopping"
+      break
+      ;;
+
+    unwritten-epic)
+      log "the next row has no epic file — stopping. Write it, or mark the row, and restart."
       break
       ;;
 

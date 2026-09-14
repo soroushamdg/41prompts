@@ -8,6 +8,13 @@ ICP: AI engineers at companies of 10–500 people who own a production prompt. E
 
 Stages ship in order. Nothing in a later stage starts until the stage before has a report for every epic.
 
+**Four rows are `deferred`, 2026-09-14, and `deferred` means later.** EPIC-006, EPIC-090, EPIC-031a
+and EPIC-071 each wait on something only Soroush can do — an account and a payment method, recruited
+participants, a key set in Coolify, a lawyer — so none of them is work an unattended run can start.
+His ruling: they come back after the product is built. **They are not `cut`.** `cut` is the list at
+the foot of this file and it means never; these four mean not yet. Each status cell names what a
+person has to do, and the note under each stage says what deferring it costs.
+
 ---
 
 ## Stage 0 · Foundation
@@ -16,7 +23,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 |---|---|---|---|---|
 | EPIC-000 | Repo scaffold: monorepo, TS strict, lint, Vitest, CI, Apache-2.0 + SPDX on public packages, boundary allow-list | M | — | done |
 | EPIC-005 | Customer discovery: 10 interviews with ICP engineers, 5 written use cases, pricing check, activation definition | S | — | cut |
-| EPIC-006 | Namespaces and marks: npm org, GitHub org, PyPI names, trademark knockout search, domain check | S | — | todo |
+| EPIC-006 | Namespaces and marks: npm org, GitHub org, PyPI names, trademark knockout search, domain check | S | — | deferred — Soroush must open the npm, GitHub and PyPI accounts and put a payment method behind the domain and the searches; 2026-09-14 |
 | EPIC-001 | Infra: AWS Lightsail Montréal + Coolify, Compose (postgres, web, worker), staging + prod, TLS, nightly backups to R2, restore drill; infra as code, no agent SSH | M | 000 | done |
 | EPIC-002 | Data + auth: Drizzle baseline, migrations, Better Auth (Google, GitHub, email), protected routes, account purge window | M | 001 | done |
 | EPIC-003 | Design system: Resolution tokens in Tailwind v4 `@theme`, base components with ARIA, light/dark, reduced motion | M | 000 | done |
@@ -104,6 +111,25 @@ procedure.
 **What is not being claimed.** Nothing is known to have been lost or cross-restored. This is an
 isolation defect found by reading the script, not an incident.
 
+**EPIC-006 is deferred, 2026-09-14.** Nobody else can take the names — but taking them needs
+Soroush's npm, GitHub and PyPI accounts, and a payment method behind `41prompts.com` and the CIPO,
+USPTO and EUIPO searches. None of that is reachable from a terminal, and no part of the epic is worth
+doing without the part that registers something.
+
+**Nothing declares a dependency on it and three rows need it anyway.** No `Depends` cell names 006.
+But **EPIC-056** creates `github.com/41prompts/41prompts` and turns on npm and PyPI trusted
+publishing — and `packages/core`, `packages/cli` and `packages/sdk-ts` each carry a `prepublishOnly`
+that tests `GITHUB_REPOSITORY = 41prompts/41prompts`, so nothing publishes at all until that org
+exists; **EPIC-054** publishes `fortyone-prompts` to PyPI; and **EPIC-071** confirms a trademark
+filing this epic was to make. All three are Stage 5b or later, behind GATE 5, so the deferral blocks
+nothing before then. What it costs meanwhile is that the names stay available to whoever registers
+them first — which is the risk the epic exists to close, now knowingly carried.
+
+**It also had no epic file**, which is why nothing told the unattended runner that it was
+human-blocked: the row said `todo`, the picker picked it, and the run would have found out at the
+first namespace. `scripts/pick-next-epic.mjs` now stops on a `todo` row with no epic file rather than
+starting it.
+
 ## Stage 1 · Decompiler, soft-public
 
 | ID | Epic | Size | Depends | Status |
@@ -157,7 +183,7 @@ the code, and a test walks each cited file path and fails if it does not exist.
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
-| EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
+| EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | deferred — Soroush must recruit and pay 6–8 ICP engineers, and its input EPIC-084 is cancelled; 2026-09-14 |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, empty states; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
 | EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | done |
@@ -178,7 +204,7 @@ permission on 2026-09-14.
 
 Its row title also drops "override" and "eject" for "hand-edited spans" and "update from blok":
 ADR-003 replaced the first and the second is not in EPIC-021b's scope. Its `Depends` loses 090, which
-is `todo` and gated behind the cancelled EPIC-084 — the epic file names only 021a and 003.
+is `deferred` and gated behind the cancelled EPIC-084 — the epic file names only 021a and 003.
 
 **EPIC-021a is `done`** (`docs/epics/reports/EPIC-021a-report.md`). The one criterion it was holding
 open — the staging deploy and its screenshots — was driven on 2026-09-14: create a project, create a
@@ -219,8 +245,20 @@ the model on purpose, and getting it wrong loses somebody's typing silently — 
 mockup's single banner can express only one of the two states the model distinguishes.
 
 **Stage 2 is complete, 2026-09-14.** All four built epics are `done` with reports and session logs:
-EPIC-020, EPIC-021a, EPIC-021b, EPIC-022. EPIC-090 (the clickable prototype study) is `todo` and
-gated behind the cancelled EPIC-084; nothing was blocked on it and nothing waits on it now.
+EPIC-020, EPIC-021a, EPIC-021b, EPIC-022.
+
+**EPIC-090 is deferred, 2026-09-14**, and it is the row that would have stopped the unattended loop
+second, after EPIC-006. It is a study: it needs Soroush to recruit and pay 6–8 ICP engineers, which
+is not something a run can do, and its input — EPIC-084's live read — is cancelled, so it would start
+without the numbers that were to tell it what to test.
+
+**What it costs, since the stage it was to inform has already shipped.** No `Depends` cell names it —
+EPIC-021b's dropped 090 when it shipped. What still cites it is `docs/roadmap.md`, in four Task and
+Review lines: EPIC-021a's grouping-and-collapse and its 60-blok target (both `done`, so moot),
+EPIC-021b's "Vocabulary from EPIC-090" (`done`), and **EPIC-040's "One vocabulary for version state
+(EPIC-090)"**, which is not done and is in Stage 4. That last one is the only live consequence: the
+Draft/Live/Versions wording EPIC-040, EPIC-041 and EPIC-055 share now rests on ADR-003 and Soroush's
+ruling rather than on eight engineers being asked. It is a ruling to make, not a blocker.
 
 **EPIC-022 closed last**, on 2026-09-14. Its hand-drive criterion failed on 2026-09-13 — the
 Variables tab did not see a `{{placeholder}}` until the page was reloaded — and the defect, BUG-022,
@@ -248,7 +286,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 |---|---|---|---|---|
 | EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
 | EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | done |
-| EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | todo — scoped, not scheduled |
+| EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | deferred — Soroush must set `ANTHROPIC_API_KEY` in Coolify and watch the first call go out; 2026-09-14 |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | todo |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | todo |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
@@ -291,7 +329,7 @@ cache hit spends nothing. Hitting the cap keeps the work already done. And at th
 `fullyChecked: false` sentence from EPIC-030, and — from this epic — that the cost shown to a user
 must say what it counts, because a re-run is free and the number stops matching what they ran.
 
-**EPIC-031a is scoped on 2026-09-14 and not scheduled.** Scope only; no work started.
+**EPIC-031a is scoped on 2026-09-14 and deferred the same day.** Scope only; no work started.
 
 **Why it is a row rather than a line in a report.** EPIC-031's adapter sits behind an interface and
 **every test uses a fake — no test calls Anthropic.** That is the right design and it leaves one
@@ -311,7 +349,18 @@ number anybody will have for what a run actually costs.
 
 **It needs a human step**: the Anthropic key is set in Coolify by Soroush, and the drive is against
 deployed staging. That makes it the `built — awaiting` shape once the work is done rather than
-something an unattended run can close on its own.
+something an unattended run can close on its own. Deferred on that basis, 2026-09-14.
+
+**One consequence, and EPIC-032 is where it lands.** Nothing declares a dependency on 031a — EPIC-032
+depends on 031, not on 031a — so deferring it blocks no row. What it leaves is this: `execute.ts`
+declares a `Provider` interface and **there is no `@ai-sdk/anthropic` call site in `apps/worker/src`
+at all** (the dependency is declared in `apps/worker/package.json` and nothing imports it), and the
+key is not in Coolify. EPIC-032 is the Runs page, and its step-10 drive on staging is "trigger a run
+and read the results". Its own Tests line says the end-to-end test mocks the provider, so the tests
+are fine — the deployed drive is the question, and it is the first place the missing call site and
+the missing key become visible. Whoever builds EPIC-032 decides there whether the drive covers the
+cached and refused paths only, or whether the first real call arrives inside that epic by accident,
+which is the precise thing EPIC-031a exists to prevent.
 
 ## Stage 4 · Versions and three providers
 
@@ -346,9 +395,25 @@ something an unattended run can close on its own.
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-070 | Stripe: Free / Pro / Team, usage meter, run gating, BYO-key unlock, dunning | M | 004 | todo |
-| EPIC-071 | Legal full: lawyer review, Team DPA, provider ToS re-check for published comparisons, trademark filing status | S | 017 | todo |
+| EPIC-071 | Legal full: lawyer review, Team DPA, provider ToS re-check for published comparisons, trademark filing status | S | 017 | deferred — Soroush must engage the lawyer, which he has declined for now; 2026-09-14 |
 | EPIC-072 | Marketing site final: all pages from the mockup, run demo, rotator, counters wired to real data, third-party notices page | M | 016, 055 | todo |
 | EPIC-073 | Launch 2: content series from run data, outreach to 30 teams paying for evals, launch dashboard | S | 035, 072 | todo |
+
+**EPIC-071 is deferred, 2026-09-14.** Its first task is a lawyer review and Soroush has declined the
+lawyer for now; the rest of the row — the Team DPA, the provider-terms re-check for published
+comparisons, the trademark filing status — is either for business customers this service does not
+have yet or reads a filing EPIC-006 was to make, and EPIC-006 is deferred too. Nothing declares a
+dependency on it.
+
+**The exposure is known and accepted, which is the reason to write it here rather than only in the
+status cell.** EPIC-017 shipped the terms and privacy pages under the same ruling, in full, with a
+line at the top of each saying they have not been reviewed by a lawyer. That line is live on the
+deployed site today, and it stays true for as long as this row is deferred. It is a stated position,
+not an oversight — and it is the one deferral of the four that is visible to a user.
+
+**There is no EPIC-017b.** The DPA-on-request draft and the standalone Law 25 transfer assessment
+that EPIC-017 dropped moved into this row on 2026-09-14 (see Stage 1), so this is where that work
+lives and this is the row that carries the deferral.
 
 ## Stage 7 · Lessons
 
