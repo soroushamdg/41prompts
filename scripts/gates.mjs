@@ -112,7 +112,11 @@ function turbo(name) {
   const before = Date.now();
   const result = run("npx", ["turbo", "run", name, "--continue", "--summarize"]);
   const summary = newestSummary(before);
-  const rows = (summary?.tasks ?? []).map((t) => ({
+  // **Filter to the task that was asked for.** A task with `dependsOn` pulls its dependencies into
+  // the same run summary, so `typecheck` — which now depends on `build` — returns twelve rows for
+  // eight packages, several of them named twice. A table headed "every package, every result" that
+  // lists a package twice invites exactly the misreading this script exists to prevent.
+  const rows = (summary?.tasks ?? []).filter((t) => t.task === name).map((t) => ({
     name: t.package,
     ok: t.execution?.exitCode === 0,
     note: t.cache?.status === "HIT" ? "cached" : "",

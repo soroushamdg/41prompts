@@ -360,3 +360,56 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* App chrome (2026-09-14)
+   Every signed-in page shares this. The mockup's rail puts identity and account in persistent
+   chrome rather than on any one page; this is that shape, minimally, and it is where the rail
+   goes when Stage 3 builds it. Before it existed, Sign out and the only link to /app/account
+   lived on /app — a stub with no route onward, so signing in stranded you. */
+
+.app-chrome {
+  align-items: center;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  margin-bottom: var(--spacing-s5);
+  padding-bottom: var(--spacing-s3);
+}
+
+.app-chrome-spacer {
+  flex: 1 1 auto;
+}
+
+.app-chrome-home {
+  font-weight: 700;
+}
+
+.app-chrome-who {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A button that reads as a link: Sign out is a form submit, because signing out is a state change
+   and must not be a GET something can prefetch. It should still look like the link beside it. */
+.app-chrome-signout {
+  appearance: none;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.app-chrome-link:focus-visible,
+.app-chrome-home:focus-visible,
+.app-chrome-signout:focus-visible {
+  outline: var(--border-ink) solid var(--color-focus);
+  outline-offset: 2px;
+}

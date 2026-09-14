@@ -14,29 +14,73 @@ async function signInByMagicLink(page: import("@playwright/test").Page, email: s
   await expect(page.getByRole("status")).toBeVisible();
 
   const token = await latestMagicLinkTokenFor(email);
-  await page.goto(`/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(next ?? "/app")}`);
+  await page.goto(`/api/auth/magic-link/verify?token=${token}&callbackURL=${encodeURIComponent(next ?? "/app/projects")}`);
 }
 
 test.describe("auth", () => {
-  test("unauthenticated GET /app redirects to /sign-in with next", async ({ page }) => {
+  test("signing in from a standing start lands somewhere you can work from", async ({ page }) => {
+    // Asserted as a destination a person can use, not as a path the code happened to produce.
+    // The previous version of this test navigated to `/app` and asserted `next=/app` — and `/app`
+    // was a dead end with no route to any project. The gate could not fail on the defect because
+    // the defect was what it asserted. See PROCESS.md, "a test written from the implementation".
     await page.goto("/app");
-    await expect(page).toHaveURL(/\/sign-in\?next=%2Fapp/);
+    await expect(page).toHaveURL(/\/sign-in\?next=%2Fapp%2Fprojects/);
   });
 
   test("rejects an absolute URL and a protocol-relative URL as next", async ({ page }) => {
     await page.goto("/sign-in?next=https://evil.example");
-    await expect(page.locator('input[name="next"]').first()).toHaveValue("/app");
+    await expect(page.locator('input[name="next"]').first()).toHaveValue("/app/projects");
 
     await page.goto("/sign-in?next=//evil.example");
-    await expect(page.locator('input[name="next"]').first()).toHaveValue("/app");
+    await expect(page.locator('input[name="next"]').first()).toHaveValue("/app/projects");
   });
 
-  test("magic-link sign-up lands on /app showing the email, and next round-trips", async ({ page }) => {
+  /**
+   * The assertion the old suite never made: **a person who signs in can reach their work.**
+   *
+   * Everything here is stated as something a user needs — they land on a page with their projects
+   * on it, they can see who they are signed in as, and they can get to Account and sign out from
+   * there. None of it is read off the handler. `/app` is exercised as an entry point people still
+   * have bookmarked, and what is asserted is where it *takes* them.
+   */
+  test("signing in reaches the projects page, and account controls are there", async ({ page }) => {
+    const email = uniqueEmail("lands");
+    try {
+      await signInByMagicLink(page, email);
+      await expect(page).toHaveURL(/\/app\/projects$/);
+      await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+
+      // A new account has nothing yet; the empty state is the page, not a blank.
+      await expect(page.getByText("No projects yet")).toBeVisible();
+
+      // The controls that used to exist only on the dead end.
+      await expect(page.getByText(email)).toBeVisible();
+      await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
+      await expect(page.getByRole("link", { name: "Account" })).toBeVisible();
+
+      // The old landing path is still a way in, and it must not strand anyone.
+      await page.goto("/app");
+      await expect(page).toHaveURL(/\/app\/projects$/);
+
+      // And Account gets you back rather than to a page with no way onward.
+      await page.getByRole("link", { name: "Account" }).click();
+      await expect(page).toHaveURL(/\/app\/account$/);
+      await page.getByRole("link", { name: "Back" }).click();
+      await expect(page).toHaveURL(/\/app\/projects$/);
+    } finally {
+      await deleteTestUser(email);
+    }
+  });
+
+  test("magic-link sign-up honours an explicit next, and round-trips the email", async ({ page }) => {
     const email = uniqueEmail("signup");
     try {
       await signInByMagicLink(page, email, "/app/account");
       await expect(page).toHaveURL(/\/app\/account$/);
-      await expect(page.getByText(email)).toBeVisible();
+      // Scoped to the page, not the chrome: the shared app header shows the same address on every
+      // signed-in route, so a bare `getByText` matches twice. What this test is about is that the
+      // *account page* round-tripped the right identity.
+      await expect(page.getByRole("main").getByText(email)).toBeVisible();
     } finally {
       await deleteTestUser(email);
     }
@@ -46,7 +90,7 @@ test.describe("auth", () => {
     const email = uniqueEmail("signout");
     try {
       await signInByMagicLink(page, email);
-      await expect(page).toHaveURL(/\/app$/);
+      await expect(page).toHaveURL(/\/app\/projects$/);
       await expect(page.getByText(email)).toBeVisible();
 
       await page.getByRole("button", { name: "Sign out" }).click();
@@ -74,7 +118,7 @@ test.describe("auth", () => {
     const email = uniqueEmail("replay");
     try {
       await signInByMagicLink(page, email);
-      await expect(page).toHaveURL(/\/app$/);
+      await expect(page).toHaveURL(/\/app\/projects$/);
 
       const before = (await context.cookies()).find((cookie) => cookie.name.endsWith("session_token"));
       expect(before, "no session cookie was set on sign-in").toBeDefined();
@@ -108,7 +152,7 @@ test.describe("auth", () => {
     const email = uniqueEmail("nav");
     try {
       await signInByMagicLink(page, email);
-      await expect(page).toHaveURL(/\/app$/);
+      await expect(page).toHaveURL(/\/app\/projects$/);
 
       await page.goto("/");
       await expect(page.getByTestId("nav-dashboard")).toBeVisible();
