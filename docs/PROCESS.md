@@ -602,6 +602,31 @@ the statement is idempotent and deleting nothing is a normal outcome.
 type, on a table real users own rows in. Scoping by identity means the pattern lives on the column
 that decides ownership, which is the one that cannot be coincidentally satisfied.
 
+## Nothing loads the root `.env`, and `pnpm e2e` used to fail eleven tests without saying so (2026-09-14)
+
+There is no `apps/web/.env` and nothing sources the root one, so a Node process gets the repo's
+`.env` only if a person exported it first. `pnpm e2e` in a fresh shell therefore started an app with
+no `BETTER_AUTH_SECRET`: Better Auth could not construct itself, every magic-link sign-in returned
+**"Something went wrong."**, and the three serial suites cascaded off it — eleven failures, none of
+which named an environment variable.
+
+`gates.mjs` already had the placeholders that fix this and applied them **only to its own gates**.
+That is the PARTIAL failure again — "no database here" indistinguishable from "this code is broken"
+— arriving through the one door it did not cover. **It is not a nuisance: the unattended runner reads
+an unexplained failure as a blocker and stops, so this parked the loop on its first epic.**
+
+**`pnpm e2e` now either has what it needs or refuses and names what is missing.** The placeholders
+live in `apps/web/e2e/env.mjs` and nowhere else — they had been written out three times, and a copy
+goes stale silently. `playwright.config.ts` fills in every one that is unset and **prints which**,
+because injecting a signing secret in silence is a quieter version of the same defect. `DATABASE_URL`
+is the one thing it will not invent: a made-up URL moves the failure somewhere further from its
+cause, so the run stops with exit 2 and a command that fixes it, before the two-minute build rather
+than after it. A real `.env`, an exported value or CI's own block always wins.
+
+Proved rather than asserted: `auth.spec.ts` went **8 failed → 10 passed** with only those values
+added and nothing else changed. `ci.yml` keeps its own literal because a workflow cannot import a
+module; `apps/web/e2e-env.test.ts` pins the two together so they cannot drift.
+
 ## A local gate is evidence only when it reports every package (2026-09-13)
 
 `pnpm test` used to stop at the first failing package and print `Tasks: 5 successful, 8 total`. That

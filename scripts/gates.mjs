@@ -28,6 +28,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import { applyWhenUnset, placeholders } from "../apps/web/e2e/env.mjs";
+
 const task = process.argv[2];
 if (!["test", "typecheck", "lint", "ci"].includes(task ?? "")) {
   console.error("usage: node scripts/gates.mjs <test|typecheck|lint|ci>");
@@ -193,13 +195,9 @@ function ciEnvironment(port, databaseUrl) {
     // build and the suite driving whatever was already on the port.
     CI: "1",
     DATABASE_URL: databaseUrl,
-    DEPLOY_ENV: "development",
-    BETTER_AUTH_SECRET: "ci-secret-not-for-prod-0123456789",
-    BETTER_AUTH_URL: `http://localhost:${port}`,
-    GOOGLE_CLIENT_ID: "ci-google-client-id",
-    GOOGLE_CLIENT_SECRET: "ci-google-client-secret",
-    GITHUB_CLIENT_ID: "ci-github-client-id",
-    GITHUB_CLIENT_SECRET: "ci-github-client-secret",
+    // The same placeholders `pnpm e2e` fills in for itself, from the same module — CI mode forces
+    // them rather than filling gaps, because it has already stripped the environment.
+    ...placeholders(port),
     E2E_PORT: String(port),
     // Not CI's, but noise either way, and telemetry from a throwaway checkout is worse than noise.
     TURBO_TELEMETRY_DISABLED: "1",
@@ -531,24 +529,10 @@ const step = (label, cmd, args) => [{ name: label, ok: run(cmd, args).status ===
 // database alone moved the failure rather than fixing it.
 //
 // **These are the same values `.github/workflows/ci.yml` sets**, deliberately, so that a local run
-// and a CI run are looking at the same configuration. They are placeholders and not credentials:
-// nothing in the suite drives a real OAuth round trip, and the magic-link tests read their token
-// straight from the database. Set only when unset, so a real local `.env` always wins.
-const CI_PLACEHOLDERS = {
-  DEPLOY_ENV: "development",
-  BETTER_AUTH_SECRET: "ci-secret-not-for-prod-0123456789",
-  BETTER_AUTH_URL: "http://localhost:3000",
-  GOOGLE_CLIENT_ID: "ci-google-client-id",
-  GOOGLE_CLIENT_SECRET: "ci-google-client-secret",
-  GITHUB_CLIENT_ID: "ci-github-client-id",
-  GITHUB_CLIENT_SECRET: "ci-github-client-secret",
-};
-
-if (task === "test") {
-  for (const [key, value] of Object.entries(CI_PLACEHOLDERS)) {
-    if (process.env[key] === undefined || process.env[key] === "") process.env[key] = value;
-  }
-}
+// and a CI run are looking at the same configuration. They now live in `apps/web/e2e/env.mjs` and
+// nowhere else in this file: they were written out twice here and once in `playwright.config.ts`
+// had this stayed inline, and a copy goes stale silently.
+if (task === "test") applyWhenUnset(process.env, placeholders());
 
 // --- decide about the database --------------------------------------------------------------------
 
