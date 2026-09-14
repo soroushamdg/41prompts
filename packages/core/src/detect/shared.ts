@@ -80,6 +80,16 @@ export function makeFinding(
   copy: { message: string; suggestion?: string }
 ): Finding {
   // Content-derived, so a user can share a link to a finding and two runs produce the same one.
+  //
+  // **Joined by a space, and safe only because no part can contain one** — audited 2026-09-14 after
+  // EPIC-031 shipped a cache key with this shape that *was* exploitable. `kind` and `severity` are
+  // closed sets, a blok id is `blok_` plus hex, and a range renders as digits-colon-digits. None of
+  // them is user text.
+  //
+  // It is safe by the shape of the values rather than by construction, which is a weaker guarantee
+  // than the one next door: `summarise/hash.ts` and `compile/hash.ts` length-prefix their
+  // user-controlled field, and `cluster.ts` joins on `\u0000`. **If a part here ever becomes text a
+  // person wrote, length-prefix it** — a separator that can occur in a field is not a separator.
   const parts = [kind, severity, ...bloks, ...ranges.map((range) => `${range.start}:${range.end}`)];
   return {
     id: `find_${hash(parts.join(" "))}`,

@@ -105,11 +105,18 @@ landing as `\x00`. `pnpm binary-files` failed the build in CI with exactly the m
 give: *a file git considers binary shows no diff and would be invisible in review, which is how
 `cluster.ts` went unreviewed for two epics.*
 
-**And it passed locally, which is the part worth keeping.** `scripts/binary-files.mjs` checks
-**tracked** files. `execute.ts` was still untracked when I ran it, so the local gate reported
-`486 checked` and said nothing. A new file carrying a NUL is invisible to that gate until the moment
-it is committed — so the local run is not equivalent to the CI run for any file being added, which is
-every file in a new epic.
+**And it passed locally, which is the part worth keeping.** `scripts/binary-files.mjs` read
+`git ls-files`, which reads the index — so a *staged* new file was already covered, and what it could
+not see was a file that existed and had not been staged yet. That is the ordinary case: write a file,
+run the gate, see `486 checked`, then stage and commit and watch CI go red.
+
+**Fixed on 2026-09-14**, in the same change as this finding: the gate now unions tracked, staged and
+untracked-but-not-ignored files. Proved by staging a file containing a NUL and watching the local gate
+fail, and by running the previous version against the same file untracked and watching it pass.
+
+The narrower statement matters because an unattended runner that merges on a local green needs the
+local green to mean what CI's means, and overstating which cases were broken would misdescribe how
+much of that gap is now closed.
 
 **The fix was better than an escape.** The guidance says to write an intended NUL as `\u0000`, and a
 NUL separator is defensible — but the underlying design was wrong anyway: *any* separator that can
@@ -120,6 +127,68 @@ identically, and a cache collision here serves one request's model output as the
 The key now serialises the tuple with `JSON.stringify`, which is injective whatever the fields
 contain. Two regression tests: one asserting the moved-boundary pair produce different keys, one
 asserting the file contains no NUL byte.
+
+## 5c. Finding · a separator that can occur in a field is not a separator
+
+**The most serious defect found this week, and it was found by accident** — a NUL-byte gate failing
+for an unrelated reason made me look at the line.
+
+### What it was
+
+`cacheKeyFor` built the run cache key by concatenating four fields with a separator. With any
+separator a field can contain, two different requests produce the same key:
+
+| | compiled | input | concatenated |
+|---|---|---|---|
+| request A | `a b` | `c` | `a b c` |
+| request B | `a` | `b c` | `a b c` |
+
+The fields are **a person's prompt and a person's input**. There is no character they cannot contain,
+so there is no separator that makes this safe.
+
+**What it would have done:** the cache is keyed per owner, so this serves *one of your own* requests'
+model output as the answer to another. Silently, with a `cached` status and a cost of zero, and
+looking exactly like a correct cache hit. Grading would then run against the wrong output and
+attribute the result to the wrong input.
+
+### The rule
+
+> **A separator that can occur in a field is not a separator.**
+
+Two constructions satisfy it, and the repo already used both:
+
+- **Length-prefix each field** — `${text.length}:${text}` — so the boundary is stated rather than
+  inferred.
+- **Serialise the tuple** — `JSON.stringify([...])` — whose escaping is injective whatever the
+  fields contain. This is what `cacheKeyFor` now does.
+
+A third, joining on a character the fields cannot contain, is only as good as that claim — and the
+claim is usually about today's values rather than the type.
+
+### The audit
+
+Every place in the repo where a key or hash is built from more than one field:
+
+| site | construction | verdict |
+|---|---|---|
+| `apps/worker/src/runs/execute.ts` · `cacheKeyFor` | was: join on a separator | **the defect. Fixed** — serialises the tuple |
+| `packages/core/src/summarise/hash.ts` · `summaryInputHash` | length-prefixes each range's text | **safe** — and its comment already states this exact rule: *`["ab","c"]` and `["a","bc"]` must not hash alike* |
+| `packages/core/src/compile/hash.ts` · `blokHash` | length-prefixes the text; version and kind are closed sets | **safe** |
+| `packages/core/src/cluster/cluster.ts` · blok id | joins on `\u0000`, and each part carries unique offsets | **safe** — and notable as the correct way to use a NUL: an escape, not a raw byte |
+| `packages/core/src/detect/shared.ts` · `makeFinding` | joins on a space | **same shape, not exploitable** — see below |
+| `packages/db/src/api-keys.ts`, `hash-identity.ts` | hash one value | **safe** — nothing is joined |
+
+**`makeFinding` is the one worth naming.** It joins on a space, and it is safe only because no part
+*can* contain a space: `kind` and `severity` are closed sets, a blok id is `blok_` plus hex, and a
+range renders as digits-colon-digits. That is safety by the shape of today's values, not by
+construction — a weaker guarantee than its three neighbours have.
+
+It was **not changed**, deliberately: it is not a defect today, and altering it would change every
+finding id and every committed snapshot for no present benefit. A comment now records why it is safe
+and what would break it — if a part ever becomes text a person wrote, length-prefix it.
+
+**So: one real defect, one fragile-by-accident, three already correct** — two of which carry comments
+stating the rule. The rule was known in this repo before EPIC-031 and the new code did not follow it.
 
 ## 6. Verification
 

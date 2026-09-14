@@ -248,6 +248,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 |---|---|---|---|---|
 | EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
 | EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | done |
+| EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | todo — scoped, not scheduled |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | todo |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | todo |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
@@ -289,6 +290,28 @@ cache hit spends nothing. Hitting the cap keeps the work already done. And at th
 **Two things handed to EPIC-032**, both in its file rather than only in a report: the
 `fullyChecked: false` sentence from EPIC-030, and — from this epic — that the cost shown to a user
 must say what it counts, because a re-run is free and the number stops matching what they ran.
+
+**EPIC-031a is scoped on 2026-09-14 and not scheduled.** Scope only; no work started.
+
+**Why it is a row rather than a line in a report.** EPIC-031's adapter sits behind an interface and
+**every test uses a fake — no test calls Anthropic.** That is the right design and it leaves one
+thing untested by construction: the `@ai-sdk/anthropic` call site itself. The first time it runs
+against the real provider, something will be wrong with a key, a header, a model id, a token count or
+a response shape, and it should be a person doing that deliberately rather than whoever is unlucky.
+
+**What it covers.** One real call from staging against one pinned model, with: the key present in
+Coolify and never in a log; the resolved model id matching a priced row; `usage` arriving in the shape
+`costCentsFor` expects; the reservation reconciling against a real token count rather than an
+estimated one; the raw payload stored and `purge_after` stamped; and `latencyMs` plausible. Then the
+same call a second time, to confirm the cache answers and calls nobody.
+
+**What it is not.** Not the Runs page (EPIC-032), not a second provider, and not a load test. One
+call, watched, with the result written down — including the real cost in cents, which is the first
+number anybody will have for what a run actually costs.
+
+**It needs a human step**: the Anthropic key is set in Coolify by Soroush, and the drive is against
+deployed staging. That makes it the `built — awaiting` shape once the work is done rather than
+something an unattended run can close on its own.
 
 ## Stage 4 · Versions and three providers
 
