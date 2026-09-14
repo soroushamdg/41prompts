@@ -357,31 +357,91 @@ guarantee.
 Say which of the two a PR is, in its description, rather than leaving a reader to work out why one
 merged un-CI'd and the other did not.
 
-## A test written from the implementation asserts the implementation (2026-09-14)
+## A helper that normalises state hides the defect from every test that uses it (2026-09-14)
 
-`auth.spec.ts` navigated to `/app` and asserted the sign-in `next` value was `/app`. Both were true.
-Both were also the bug: `/app` was a stub with no project list and no link to one, so **every user
-who signed in was stranded**, and the suite asserted that destination as correct. The gate could not
-fail on the defect, because the defect was what it asserted. It ran green for the whole of
-EPIC-021a, 021b and 022.
+**This replaces two earlier entries** — "A test written from the implementation asserts the
+implementation" and the named `next dev` mechanism under the browser-drive rule. They were two
+write-ups of one failure, and a third instance arrived before anyone noticed they were the same
+thing. One rule, three instances.
 
-This is not a missing test. It is a test that was written by reading the handler and writing down
-what it did.
+### The three
 
-**The defence: a test for a user-facing route asserts that the user can get where they are going, and
-the assertion comes from the mockup or the epic, never from reading the handler.**
+1. **`auth.spec.ts` asserted the dead end as correct.** It navigated to `/app` and asserted the
+   sign-in `next` value was `/app`. Both true; both the bug. `/app` was a stub with no project list
+   and no link to one, so every user who signed in was stranded, and the suite named that destination
+   as the expected one. Green for the whole of EPIC-021a, 021b and 022.
+2. **`playwright.config.ts` ran the suite against `next dev`** for twenty epics. The dev server
+   generates every chunk on request and serves CSS from memory, so a stylesheet that fails to build,
+   a chunk that 404s or a stale workspace `dist` **cannot reach the suite**. That is how 151
+   assertions stayed green while the deployed `/app` rendered as unstyled text.
+3. **`addBlok` ends in `await page.reload()`** in `variables.spec.ts` and in `compiled-pane.spec.ts`.
+   Every test in both files therefore reloads between writing a blok and looking at the result — and a
+   reload is a fresh server render, which is precisely the thing that makes the stale client state
+   look correct.
 
-In practice:
+### The general form
 
+**A convenience that normalises state — reload, wait, retry, reset, a friendlier server — makes the
+system look settled, and a defect in how the system settles by itself then cannot be observed.** The
+helper is not wrong about anything; it is silent about the one thing that matters.
+
+**Why a helper is worse than the same line inside a test.** A normalising line in a test body is
+visible to whoever reads that test, and it is one test. In a helper it is invisible at every call
+site and it disables **every test in the file at once**. `variables.spec.ts` has four tests and none
+of them could fail on BUG-022. That is not four chances to catch it; it is zero, bought with one line
+written for tidiness.
+
+### The rule
+
+**A helper that normalises state must justify itself in a comment that says what it is waiting for
+and what it could therefore hide. No justification, no normalisation — delete the line and let the
+test wait on a real condition instead.**
+
+Concretely:
+
+- **Wait on a condition, not a duration.** `expect(locator).toHaveText(…)` retries against the real
+  thing. `waitForTimeout(350)` asserts that 350ms is enough on every machine forever, and passes when
+  the value never arrives at all.
+- **A `reload()` inside a helper is the sharpest case**, because it converts "the app updated" into
+  "the server rendered", and those are different claims. If the test is about what the user sees after
+  they act, reloading is not a detail — it is the assertion, replaced.
 - **Assert a destination, not a path.** "Signing in lands somewhere with your projects on it", not
   "`next` equals `/app`". If the route changes and the user still arrives, the test should pass; if
-  the route is unchanged and the user is stranded, it should fail. A test that inverts those is
-  testing the code's memory of itself.
-- **Write the assertion before the handler**, or from a source outside it. The mockup and the epic
-  file both say what a screen is for; the handler only says what someone typed.
+  the route is unchanged and the user is stranded, it should fail.
+- **Write the assertion from outside the implementation** — the mockup or the epic file — never by
+  reading the handler and writing down what it does.
 - **Ask what a person does next.** A page nobody can leave passes every assertion about what it
-  renders. The question that catches it is "and then what" — which is also why the browser-drive rule
-  above exists, because that question is much easier to ask with the page in front of you.
+  renders. "And then what" is the question that catches it, and it is much easier to ask with the
+  page in front of you, which is why the browser-drive rule below exists.
+
+### What the harness itself owes
+
+The same rule applies to the harness, because instance 2 was the harness. **`pnpm e2e` builds** —
+through turbo, because `turbo.json`'s build task carries `dependsOn: ["^build"]` and a workspace
+`dist` is a gitignored artifact that will otherwise be whatever was lying around. `E2E_DEV=1` returns
+to the dev server for fast iteration while writing a test; never to make a failing one pass, and CI
+has no escape hatch. The cost is a build on every run, and that is the price of testing the artifact
+that ships rather than a development convenience that resembles it.
+
+### The audit, 2026-09-14
+
+Every helper in `apps/web/e2e/` was read for this shape. What it found:
+
+| helper | file | normaliser | verdict |
+|---|---|---|---|
+| `addBlok` | `variables.spec.ts` | `page.reload()` | **hid BUG-022** |
+| `addBlok` | `compiled-pane.spec.ts` | `page.reload()` | **hid BUG-021b-compiled-pane-stale** |
+| `addBlok` | `canvas.spec.ts` | none | clean — and the three are otherwise near-identical, which is how the other two were spotted |
+| `setTheme` | `landing`, `soft-ship`, `dev-ui`, `decompile` | `waitForTimeout(350)` | duration, not condition — justify or replace |
+| `decompile` | `decompile.spec.ts` | `waitForTimeout(350)` | same |
+| `signIn` / `newPrompt` | canvas, compiled-pane, variables, capture | navigation only, each awaited on a real condition | clean |
+| `editSpanByHand` | `compiled-pane.spec.ts` | none; ends on a state assertion | clean |
+| `expectSaved`, `setBlokText` | `canvas.spec.ts` | none; assert a real attribute | clean |
+| `declaredName`, `spansOf`, `toDisplayText`, `asSubmitted`, `uniqueEmail` | various | pure, no page interaction | clean |
+
+**Two live defects, both found by the audit rather than by a test**, and they are almost certainly one
+bug: after an autosave, neither the compiled pane nor the Variables tab reflects the change until a
+server render. Both helpers that hide it were written the same way in the same week.
 
 ## Plan, implement, drive it in a browser, then push (2026-09-13)
 
@@ -405,18 +465,8 @@ to it, and would have been invisible to a local drive too if that drive used `pn
 built app can fail the way the built app fails, and only the deployed one can fail the way the
 deployed one does.
 
-**The mechanism, named, because it is the whole reason step 2 exists.** `playwright.config.ts` ran the
-suite against **`next dev`** for twenty epics. The dev server generates every chunk on request and
-serves CSS from memory, so a stylesheet that fails to build, a chunk that 404s, a stale workspace
-`dist`, or anything that exists only in a production bundle **cannot reach the suite**. That is how
-151 assertions stayed green while the deployed `/app` rendered as unstyled text with no project list.
-
-So **`pnpm e2e` now builds** — through turbo, because `turbo.json`'s build task carries
-`dependsOn: ["^build"]` and a workspace `dist` is a gitignored artifact that will otherwise be
-whatever was lying around. `E2E_DEV=1` returns to the dev server for fast iteration while writing a
-test; never to make a failing one pass, and CI has no escape hatch. The cost is a build on every run.
-That is the price of the suite testing the artifact that ships instead of a development convenience
-that resembles it.
+**The mechanism that made this possible is now the rule above**, "A helper that normalises state hides
+the defect from every test that uses it", instance 2 — along with what `pnpm e2e` does about it.
 
 **Credentials: there are none, and there must not be.** The seeded test user signs in through the
 **magic-link token the harness reads from the database** — the mechanism `apps/web/e2e/db.ts` already

@@ -280,9 +280,25 @@ by the prototypes, and the first real test of any of them is EPIC-084's live rea
 
 ### EPIC-021a web: project, prompt, canvas · M
 **Goal.** Create and arrange bloks, at scale, with a starting point.
-**Tasks.** Schema `prompts`, `bloks` (ranges JSONB), `prompt_versions` stub; project and prompt lists; canvas: add (kind picker), inline edit, reorder by drag and keyboard, delete, filter, count; seeded starter bloks for a new prompt (three templates) so the blank canvas never appears; grouping and collapse if EPIC-090 says so; autosave with conflict toast.
+**Tasks.** Schema `prompts`, `bloks` (ranges JSONB), `prompt_versions` stub; project and prompt lists; canvas: add (kind picker), inline edit, reorder by drag and keyboard, delete, filter, count; ~~seeded starter bloks for a new prompt (three templates) so the blank canvas never appears~~ **— replaced by empty states, 2026-09-14** (see below); grouping and collapse if EPIC-090 says so; autosave with conflict toast.
 **Tests.** Playwright create/reorder/reload. Order integrity after delete. 60-blok fixture navigable within the EPIC-090 target.
 **Review.** Matches mockup. Touch drag works. No blok logic outside `core`.
+
+**Seeded starter bloks are not owed. Ruling, 2026-09-14.** The task line above promised three
+starter templates "so the blank canvas never appears". It was written before EPIC-013 shipped the
+empty states from the illustration system, and `EPIC-021a-canvas.md`'s Scope had already narrowed it
+to `packages/db`: "a seed script" plus `apps/web`: "empty states" — which is what was built and what
+the 2026-09-14 staging hand-drive found: a new prompt opens with zero bloks and a canvas that says
+what to do next.
+
+**"No projects yet. The first one is where a prompt lives" does the job without fabricating someone's
+content**, and that is the reason rather than the cost being the reason. A seeded prompt hands a user
+three bloks they did not write, on a product whose whole claim is that a blok stores your verbatim
+text. The empty state says the same thing and lies about nothing.
+
+The line is struck through rather than deleted so the promise is visibly retired rather than quietly
+absent — it was carried in the backlog row and this task line for three epics after it stopped being
+the plan, and the hand-drive read it as an unmet requirement before the Scope settled it.
 
 **Named evaluation this epic must make: BlockNote, or a plain textarea per blok card.** Decide it in
 the report before building the canvas, and judge it on three things: (a) whether a blok's verbatim
