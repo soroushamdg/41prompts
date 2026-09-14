@@ -230,6 +230,43 @@ visitor throughout — so `PROCESS.md`'s drive-cleanup statement had nothing to 
 because "no cleanup was needed" and "cleanup was skipped" look identical in a report that does not
 say which.
 
+## 10b. Consent went universal after this epic shipped, and was driven again
+
+Soroush ruled on §6's open question on 2026-09-14: **consent is universal**, and a signed-in user who
+has never chosen is not counted. Shipped in #81, driven on staging at `d3fb87f`.
+
+| what | result |
+|---|---|
+| the privacy page says the choice covers everyone, account or not | **PASS** |
+| …and covers the sign-up / sign-in record | **PASS** |
+| the old signed-in caveat is gone from the page | **PASS** |
+| a signed-in user who never chose is still offered the choice | **PASS** |
+| no consent cookie exists after signing in | **PASS** |
+| a signed-in user can decline | **PASS** — `denied` |
+| …and change it later from the permanent control | **PASS** |
+
+Screenshot `92-staging-signed-in-banner.png` — the banner, on a signed-in page, for a user who has not
+answered. Before #81 that user was counted and the banner was the only thing that would have suggested
+otherwise.
+
+**Two corrections to this report's own work came out of that change**, and both are recorded rather
+than quietly fixed:
+
+1. **§6 described the smaller problem.** It said the gate *granted* for signed-in users. The larger
+   one underneath: `lib/auth.ts` called `captureEvent` **directly**, so `signup` and `login` never
+   reached the gate at all — not the cookie, not `DNT`, not `Sec-GPC`. This report's §2 and the
+   privacy page both already claimed declining stopped everything. It did not, for exactly the two
+   events a signed-in person generates.
+2. **§2's "asserted as behaviour rather than as a cookie" was not true.** That e2e test intercepted
+   **browser** traffic, and PostHog is called server-side through `posthog-node` with no client-side
+   tag anywhere — so it could never observe a capture and would have passed if every event fired. It
+   is kept, renamed and re-commented for what it genuinely catches (a client-side tag appearing and
+   bypassing the server gate), and the gate is proved where captures are observable: the unit tests,
+   with the capture function mocked.
+
+Both are the same family as everything else this week — a claim that reads as evidence and is not.
+`docs/epics/sessions/EPIC-017-session.md` and `EPIC-004-observability.md` carry the rest.
+
 ## 11. Out of scope, and where it went
 
 The roadmap's task list also named a DPA-on-request draft, a standalone Law 25 transfer assessment,
