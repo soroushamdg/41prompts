@@ -22,9 +22,9 @@ finishes:
 | 1 | `epic-file` | `docs/epics/EPIC-xxx-<name>.md` exists in `PROCESS.md`'s format. Write it if it is absent — goal, scope, out of scope, acceptance criteria, verification, notes. Copy it to `docs/epics/CURRENT.md`. |
 | 2 | `plan` | `docs/epics/plan-EPIC-xxx.md` written. Plan first, always; `CLAUDE.md` says stop and show the plan, and unattended "show" means write it down before you write code. |
 | 3 | `implement` | the code is written, on the branch the runner named. |
-| 4 | `gates` | `node scripts/gate-run.mjs` green, with every package reporting. A `PARTIAL` is not a pass. **Run that, not a list of gate commands** — see below. |
+| 4 | `gates` | `node scripts/gate-run.mjs` green, with every package reporting. A `PARTIAL` is not a pass. **Run that, not a list of gate commands** — see below. **Commit your work first:** `gates.mjs` now advertises a `ci` mode, so `gate-run.mjs` resolves to it and runs it alone — and that mode tests a clean checkout of a **commit** and refuses a dirty tree (exit 2, with the files named). |
 | 5 | `local-drive` | the feature driven in a real browser against the **built** app, signed in as a fresh throwaway user. Not `next dev`. |
-| 6 | `push` | branch pushed, PR opened, description says what changed and — per `PROCESS.md` — which kind of PR it is with respect to CI. |
+| 6 | `push` | step 4's gate was green **on the commit being pushed** — if anything has been committed since, run it again; it is minutes and a red PR is not. Act on its closing "what a green here still does not cover" block rather than scrolling past it: it names the CI failures a local run cannot see (`PROCESS.md`, "Local green is not CI green"). Then branch pushed, PR opened, description says what changed and — per `PROCESS.md` — which kind of PR it is with respect to CI. |
 | 7 | `ci` | CI green on the PR, or provably had nothing to say about it. |
 | 8 | `merge` | merged to `main`. Record the PR number and the merge commit. |
 | 9 | `deploy` | staging has redeployed and `/healthz` reports the merge commit. |

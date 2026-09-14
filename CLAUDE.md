@@ -106,6 +106,12 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
 
 - All acceptance criteria in the epic file checked with evidence (test name, screenshot path, or command output).
 - `pnpm test`, `pnpm typecheck`, `pnpm lint` pass in CI.
+- **`node scripts/gates.mjs ci` green on the commit before it is pushed.** Clean checkout, frozen
+  lockfile, cold cache, every gate both workflows run in the order they run them. The three tasks
+  above run against a working tree that has state CI does not, and five consecutive CI failures on
+  locally-green PRs had five different mechanisms; `docs/PROCESS.md`, "Local green is not CI green",
+  names each one. Read the run's closing "what a green here still does not cover" block — it is part
+  of the result, not a footer.
 - New behaviour has tests in the package that owns it.
 - No new dependency without a one-line reason in the PR description.
 - Forbidden-word grep over UI strings passes.
