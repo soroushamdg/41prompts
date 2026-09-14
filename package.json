@@ -16,6 +16,7 @@
     "test": "node scripts/gates.mjs test",
     "typecheck": "node scripts/gates.mjs typecheck",
     "lint": "node scripts/gates.mjs lint",
+    "gates:ci": "node scripts/gates.mjs ci",
     "boundaries": "depcruise --config .dependency-cruiser.cjs packages/core/src packages/cli/src packages/sdk-ts/src apps/web/app apps/web/lib",
     "forbidden-words": "node scripts/forbidden-words.mjs",
     "binary-files": "node scripts/binary-files.mjs",

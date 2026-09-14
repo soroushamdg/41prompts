@@ -606,6 +606,140 @@ pointing at `scripts/gates.mjs`, which the mirror deliberately excludes. `mirror
 rewrites the root scripts to the ones a public tree can run, which is what EPIC-056 has to do at the
 real split anyway.
 
+## Local green is not CI green. Five failures, five different mechanisms (2026-09-14)
+
+Three causes were found and fixed earlier in the week: `binary-files` read only tracked files,
+`pnpm test` stopped at the first failing package, and `pnpm e2e` ran against `next dev` while CI
+builds. Rather than wait for the fourth, the **last five CI failures on PRs whose local gates were
+green** were read one at a time.
+
+**No two had the same cause.** That is the finding. There is no single flakiness to fix; there are
+classes of difference between a working tree and a fresh clone, and each one has to be closed or
+named.
+
+| # | run | gate | the mechanism, exactly |
+|---|---|---|---|
+| 1 | Compliance #209, `fix/key-collision-gate` | `mirror-dry-run` | `packages/core/src/key-collision.test.ts` read `apps/worker/src/runs/execute.ts` to assert the collision test still exists. The path is there in the monorepo, so `pnpm test` was green. The mirror dry run filters the repo down to the four public packages, where `apps/` does not exist, and the whole `@41prompts/core` suite failed on `ENOENT`. **Local ran a different tree than CI's last job did**, and only CI ran that job. |
+| 2 | Compliance #202, `epic/031-run-engine` | `binary-files` | `apps/worker/src/runs/execute.ts` contained a raw NUL byte at offset 2540. The gate read `git ls-files`, which reads the **index**; the file was written and not yet staged, so it was invisible — the gate reported "486 checked" and passed. The commit staged it, CI cloned a tree where it was tracked, and the same gate found the NUL immediately. **Local was asked about a set of files that did not include the new one.** |
+| 3 | CI #209, `fix/universal-analytics-consent` | `pnpm e2e` | `legal.spec.ts` measured `document.querySelector(".consent").offsetHeight` inside an `expect.poll`. The banner mounts from an effect, and **a poll whose callback throws gives up rather than retrying** — so on a 2-core runner the first attempt landed before the element existed and the poll aborted with a `TypeError`. **Machine speed, not tree state.** Fixed in the test (`df036c8`), and no local mode can reproduce it. |
+| 4 | CI #206, `epic/017-legal-minimum` | `pnpm e2e` | The four visual-regression baselines are committed as `-linux.png`, and their specs carry `test.skip(process.platform !== "linux")` — deliberately, because on macOS Playwright writes a new `-darwin` baseline and passes. So the local run **skipped** them, while CI ran them and found the page 117px taller than the baseline: the new consent banner. **Local never executed the gate at all**, and a skip reads as a pass in a summary line. |
+| 5 | Compliance #149, `chore/local-gates-report-every-package` | `mirror-dry-run` | The commit that pointed root `test` at `scripts/gates.mjs` — a path the mirror deliberately excludes. `pnpm test` inside the filtered tree died on `Cannot find module …/scripts/gates.mjs`. **The gate was never run locally**: `mirror-dry-run` is in `pnpm compliance`, and the change was validated with `pnpm test`. |
+
+Read as a set: one was a tree the local run could not produce (1), one was a file set the local run
+could not see (2), one was a machine (3), one was a platform (4), and one was a gate nobody ran (5).
+Four of the five are structural. Only (3) is not.
+
+### `node scripts/gates.mjs ci` — the mode that reproduces CI
+
+Everything except (3) and (4) comes from the same root: **a local run has state CI does not.** An
+installed `node_modules`, a warm turbo cache, a built `dist/`, a loaded `.env`, and files on disk
+that are in no commit. So the mode removes the state rather than arguing about which piece of it
+mattered:
+
+- a fresh `git clone --no-hardlinks` of a **commit**, into a temp directory, with full history
+  (the mirror dry run filters history, and a shallow clone would truncate what it exists to prove);
+- `pnpm install --frozen-lockfile`;
+- a cold turbo cache and no `dist/`, because there is nothing there to hit;
+- **no inherited environment.** Only the names a toolchain needs to find its own store and cache
+  cross over; `ci.yml`'s env block is then set explicitly. A stray `E2E_DEV=1` from an afternoon of
+  iterating cannot reach it;
+- its own throwaway Postgres, on its own container name and port, so it does not evict the one a
+  concurrent `pnpm test` is using;
+- **every gate both workflows run, in the order they run them** — `ci.yml`'s steps top to bottom,
+  then `compliance.yml`'s four jobs in declaration order. Including the three `compliance.yml` runs
+  a second time after `pnpm lint` has already run them, because CI genuinely pays for both and a
+  mode that prunes CI's list is a mode that can diverge from it.
+
+**A dirty tree is a hard stop**, not a warning. This mode tests a commit, because that is what CI
+tests and what a push sends; a green about a slightly different tree is the shape of failures 1, 2
+and 5. `--allow-dirty` runs anyway and says in the summary that those files were not in it.
+
+It refuses to start at all if Docker or `uv` is missing, rather than running thirteen gates out of
+fifteen. A run missing a gate is the failure this whole file is about.
+
+**And it found one thing about itself on the first real run.** Docker was purged from under a live
+e2e suite — image, container and volumes all gone — and 178 passing tests became `ECONNREFUSED
+127.0.0.1:55433`, reported as a plain `pnpm e2e` FAIL. That is precisely the confusion this file's
+`PARTIAL` verdict exists to prevent, reintroduced by a new gate. CI mode now probes the container
+after **every** step and, if it has gone, says on the row and again in the summary that the run is
+not a result. An environment event must never be readable as a code failure.
+
+**Proved rather than asserted.** `node scripts/gates.mjs ci --ref 7c20987 --only install,mirror-dry-run`
+reproduces failure 1 above on the commit it actually happened on — the same
+`ENOENT … /mirror/apps/worker/src/runs/execute.ts`, exit 1, in 43 seconds. `pnpm test`, `pnpm typecheck`
+and `pnpm lint` are all green on that commit and always were. That is what `--ref` is for: a CI failure
+that has already happened gets reproduced from a run id, not by pushing a guess.
+
+### What it costs, and therefore when to run it
+
+**5m39s to 6m31s wall, all sixteen steps green**, measured four times on 2026-09-14. The variance
+is install, `reuse` and `uv` warming their own caches between runs; nothing in the gates themselves
+moves. The breakdown below is the 6m30s run, which is the one to plan against:
+
+| step | | step | |
+|---|---|---|---|
+| `git clone` + checkout | 0m02s | `uv run pytest -q` | 0m13s |
+| `pnpm install --frozen-lockfile` | 0m07s | `reuse lint` | 0m11s |
+| `pnpm lint` | 0m26s | `pnpm boundaries` | 0m04s |
+| `pnpm typecheck` (cold web build) | 1m02s | `turbo boundaries` | 0m08s |
+| `pnpm db:migrate` | 0m03s | `pnpm forbidden-words` | 0m01s |
+| `pnpm test` | 0m52s | `pnpm binary-files` | 0m01s |
+| `playwright install chromium` | 0m02s | `license-gate --sbom` | 0m02s |
+| `pnpm e2e` (build + 178 tests, 4 skipped) | 2m40s | `pnpm mirror-dry-run` | 0m35s |
+
+Two steps are 57% of it — `pnpm e2e` and the cold build inside `pnpm typecheck` — and neither can
+be cut without giving up the thing the mode is for.
+
+**So it is the default before a push.** That is a decision, not a reading of the clock: the fast
+end is forty seconds over the five minutes that would have made it automatic without argument and
+the slow end is ninety. Three things settle it the other way.
+
+- **It is cheaper than being wrong.** A red PR costs a `ci` run, a fix, a push, and a second `ci`
+  run. One of those runs alone is six to ten billed minutes; six minutes of local wall time is less
+  than half of the pair, and it is not billed.
+- **It is faster than CI.** Serial, on one machine, it finishes inside what CI's `ci` job takes by
+  itself — because it skips the checkout, the toolchain setup and the browser download that a runner
+  pays for every time.
+- **Nobody is waiting on the unattended runner.** Six minutes of wall time in a loop that has
+  already spent an hour on an epic is not a cost worth optimising. Merging something CI would have
+  stopped is.
+
+**And the 6m30s is measured on a handicapped runtime, which nobody had noticed.**
+`/usr/local/bin/node` on this machine is an **x86_64 build running under Rosetta 2 on an arm64 Mac**
+— `process.arch` reports `x64`, `uname -m` reports `arm64`, and every Next build in the run printed
+the translation warning. A native arm64 Node would very likely take a large bite out of the ~1m
+typecheck, the ~40s test and the 2m40s e2e. Unmeasured, and the cheapest single change available to
+this number — it would also make every inner-loop gate faster, and it changes what the perf-gated
+suites are measuring.
+
+Run it:
+
+- **before pushing any branch** — `docs/AUTONOMOUS.md` step 6, after the local drive and before
+  `git push`. This is the one that matters: the unattended runner merges on a green, so its green
+  has to mean what CI's means;
+- **and never mind the size of the change.** Failure 2 above was one unstaged file, failure 5 was
+  one line of `package.json`.
+
+`--fail-fast` stops at the first failure when you are iterating on a known problem. `--ref <rev>`
+runs it against any commit, which is how a CI failure that has already happened gets reproduced
+locally rather than by pushing again.
+
+Not while writing code. `pnpm test`, `pnpm typecheck` and `pnpm lint` are still the inner loop —
+seconds, every package reported, and the right tool for diagnosing a gate that CI mode just failed.
+
+### What a green in CI mode still does not cover, and it prints this every time
+
+1. **The runner is slower.** Failure 3 is this, and a faster machine cannot fail the way a slower one
+   does. The only fix is the test.
+2. **The runner is Linux.** Failure 4 is this. The four visual baselines skip on darwin and CI mode
+   skips them too — it prints the skipped count rather than letting a green table imply coverage.
+   "Visual-regression baselines" above has the Docker procedure that does run them.
+3. **A `pull_request` run tests the merge**, not the branch tip. CI mode prints how many commits
+   `origin/main` has that the checkout does not.
+
+Printing those three is the point, not a disclaimer. A gate that quietly covers 90% of the gap is
+how "local gates were green" became a sentence nobody could act on.
+
 ## CI runs twice per change. We are not fixing it, and here is why (2026-09-12)
 
 A decision, not an observation, because it is the **largest single item in the Actions spend** and it
