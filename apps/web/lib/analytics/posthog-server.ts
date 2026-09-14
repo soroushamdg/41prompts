@@ -73,8 +73,12 @@ export function hasAnalyticsConsent(options: {
   return options.consentCookie === "granted";
 }
 
-/** The cookie EPIC-017's banner will write. Named here so both epics use one spelling. */
-export const CONSENT_COOKIE_NAME = "41prompts_analytics_consent";
+/**
+ * The cookie EPIC-017's banner writes. **Defined in `./consent-cookie` and re-exported here**, so a
+ * client component can import the name without dragging `posthog-node` and `next/headers` into the
+ * browser bundle. Every existing importer keeps working.
+ */
+export { CONSENT_COOKIE_NAME } from "./consent-cookie";
 
 // User id only, never an email or any other PII (decision 3).
 export function identifyUser(distinctId: string): void {

@@ -4,6 +4,7 @@ import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { siteOrigin } from "@/lib/site/url";
+import { ConsentBanner } from "./consent-banner";
 import "./globals.css";
 
 /**
@@ -65,6 +66,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             flash of the wrong theme. */}
         {!theme && <script dangerouslySetInnerHTML={{ __html: themeInitScript(THEME_COOKIE_NAME) }} />}
         {children}
+        {/* Every page, because a visitor can land on any of them and the choice is about the visit
+            rather than the page. It renders nothing once answered. */}
+        <ConsentBanner />
       </body>
     </html>
   );

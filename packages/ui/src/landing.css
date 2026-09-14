@@ -543,3 +543,114 @@ a.logo {
 .article-cta {
   min-height: 46px;
 }
+
+/* ─────────────────────────── legal pages and consent (EPIC-017) ─────────────────────────── */
+
+.prose-page h2 {
+  font-size: 19px;
+  margin-top: var(--spacing-s6);
+}
+.legal-list {
+  margin-top: var(--spacing-s4);
+  padding-left: var(--spacing-s5);
+  color: var(--color-ink-2);
+  font-size: 16px;
+}
+.legal-list li {
+  margin-top: var(--spacing-s2);
+}
+
+/* One line, at the top, on terms and privacy. Bordered rather than coloured: green, red and amber
+   mean pass, fail and drift (rule 10) and this is none of them. */
+.legal-unreviewed {
+  border-left: var(--border-ink) solid var(--color-ink-3);
+  padding-left: var(--spacing-s3);
+  margin-top: var(--spacing-s4);
+  color: var(--color-ink-2);
+  font-size: 15px;
+}
+
+/* Its own scroll container, so a four-column table cannot make the page scroll sideways. */
+.legal-tablewrap {
+  margin-top: var(--spacing-s4);
+  overflow-x: auto;
+}
+.legal-table {
+  border-collapse: collapse;
+  font-size: 14px;
+  min-width: 34rem;
+  width: 100%;
+}
+.legal-table caption {
+  caption-side: top;
+  color: var(--color-ink-3);
+  font-size: 13px;
+  padding-bottom: var(--spacing-s2);
+  text-align: left;
+}
+.legal-table th,
+.legal-table td {
+  border: var(--border-hairline) solid var(--color-line);
+  padding: var(--spacing-s2) var(--spacing-s3);
+  text-align: left;
+  vertical-align: top;
+}
+.legal-table thead th {
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.legal-table tbody th {
+  font-weight: 600;
+}
+
+.legal-consent {
+  border-top: var(--border-hairline) solid var(--color-line);
+  margin-top: var(--spacing-s7);
+  padding-top: var(--spacing-s5);
+}
+.legal-consent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  margin-top: var(--spacing-s4);
+}
+
+/* The banner. Pinned to the bottom, above the page, and it does not trap focus — trapping focus in
+   something the visitor did not open is itself a dark pattern. */
+.consent {
+  background: var(--color-surface);
+  border-top: var(--border-ink) solid var(--color-ink);
+  bottom: 0;
+  left: 0;
+  position: fixed;
+  right: 0;
+  z-index: 40;
+}
+.consent-inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s4);
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 68rem;
+  padding: var(--spacing-s4) var(--spacing-s5);
+}
+.consent-heading {
+  font-size: 15px;
+  margin: 0;
+}
+.consent-body {
+  color: var(--color-ink-2);
+  font-size: 14px;
+  margin: var(--spacing-s1) 0 0;
+  max-width: 58ch;
+}
+/* Equal size, equal weight, equal treatment — decision 2. If these ever diverge, the banner is a
+   dark pattern and the test below it in `legal.spec.ts` fails. */
+.consent-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--spacing-s3);
+}

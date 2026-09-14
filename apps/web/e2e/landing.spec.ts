@@ -360,10 +360,19 @@ test.describe("metadata", () => {
   test("sitemap.xml lists only pages that exist and are indexable", async ({ request }) => {
     const body = await (await request.get("/sitemap.xml")).text();
     const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
-    expect(locs).toEqual(["/", "/decompile", "/guides/what-your-prompt-does-not-check"]);
+    expect(locs).toEqual([
+      "/",
+      "/decompile",
+      "/guides/what-your-prompt-does-not-check",
+      // The legal pages joined the sitemap in EPIC-017, when they stopped being placeholders. A
+      // privacy policy a crawler cannot reach is not much of a policy.
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/sub-processors",
+      "/legal/security"
+    ]);
     // Anything disallowed in robots.txt must not be advertised here.
     expect(body).not.toContain("/d/");
-    expect(body).not.toContain("/legal/");
   });
 
   /**
@@ -416,11 +425,22 @@ test.describe("metadata", () => {
     expect(body.readUInt32BE(20)).toBe(630);
   });
 
-  test("the legal stubs are honest and not indexable", async ({ page }) => {
+  /**
+   * **This test used to assert that the legal pages were placeholders**, in those words: it checked
+   * the body said "not written yet" and that the page was `noindex`. Both were true and both were
+   * the problem — a site collecting email addresses behind unwritten legal pages, with a gate that
+   * could only fail if somebody *wrote* them. `PROCESS.md`, "a helper that normalises state": same
+   * family, a test that encodes the defect as the expectation.
+   *
+   * EPIC-017 wrote them. What is asserted now is what a reader needs: real content, indexable, and
+   * the one honest caveat.
+   */
+  test("the legal pages are written, indexable, and say who wrote them", async ({ page }) => {
     await page.goto("/legal/terms");
     await expect(page.getByRole("heading", { name: "Terms of service" })).toBeVisible();
-    await expect(page.locator("body")).toContainText("not written yet");
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.locator("body")).not.toContainText("not written yet");
+    await expect(page.locator('meta[name="robots"][content*="noindex"]')).toHaveCount(0);
+    await expect(page.getByText("has not been reviewed by a lawyer")).toHaveCount(1);
   });
 });
 

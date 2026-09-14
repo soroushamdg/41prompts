@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { ALL_FOOTER_LINKS, FOOTER_GROUPS } from "./links";
-import { LEGAL_SLUGS } from "./stubs";
+import { LEGAL_DOC_SLUGS } from "./legal";
 
 const appDir = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "app");
 
@@ -19,7 +19,7 @@ function routeExistsFor(href: string): boolean {
   // The literal route, then the one dynamic segment this site actually has.
   if (existsSync(join(appDir, ...segments, "page.tsx"))) return true;
   if (segments[0] === "legal" && segments.length === 2) {
-    return LEGAL_SLUGS.includes(segments[1] ?? "") && existsSync(join(appDir, "legal", "[slug]", "page.tsx"));
+    return LEGAL_DOC_SLUGS.includes(segments[1] ?? "") && existsSync(join(appDir, "legal", "[slug]", "page.tsx"));
   }
   return false;
 }
