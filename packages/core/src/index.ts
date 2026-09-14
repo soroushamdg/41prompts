@@ -57,6 +57,20 @@ export { drift } from "./compile/drift.js";
 export { checkCompiledInvariants } from "./compile/invariants.js";
 export { blokHash, BLOK_SEPARATOR, COMPILER_VERSION } from "./compile/hash.js";
 export { checkKindFor } from "./compile/checks.js";
+
+// Checks and deterministic graders (EPIC-030). An expected blok becomes a check; `grade()` executes
+// one against a model's output and answers pass, fail, or "nobody can tell yet" — never a guess
+// dressed as an answer. Pure, deterministic, and still zero-dependency.
+export { grade, gradeAll, summarise } from "./check/grade.js";
+export { GRADERS, countCharacters, countWords } from "./check/graders.js";
+export { paramsFor } from "./check/params.js";
+export { isPatternSafe, rejectUnsafePattern, MAX_PATTERN_LENGTH } from "./check/pattern-safety.js";
+export { suggestFor } from "./check/suggest.js";
+export type { CheckOutcome, CheckResult, CountingUnit, Evidence, NotGradedReason, RunSummary } from "./check/types.js";
+export type { CheckParams } from "./check/params.js";
+export type { Grader, GraderVerdict } from "./check/graders.js";
+export type { PatternRejection } from "./check/pattern-safety.js";
+export type { CheckSuggestion } from "./check/suggest.js";
 export { CHECK_KINDS, CHECK_KIND_PHRASES } from "./compile/types.js";
 export type {
   Check,

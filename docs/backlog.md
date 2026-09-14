@@ -246,13 +246,31 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
-| EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | todo |
+| EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
 | EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | todo |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | todo |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | todo |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
 | ▣ GATE 3 | Stage 3 exit + loud launch decision: criteria in roadmap | — | 034 | — |
 | EPIC-035 | Loud launch: Show HN, Product Hunt, one content piece from our own run data | S | GATE 3 | todo |
+
+**Stage 3 has started, 2026-09-14, with EPIC-030 done.** Stage 2 closed with a report and a session
+log for every epic, so `PROCESS.md`'s stage rule is met rather than waived for the first time.
+
+EPIC-030 shipped the three outcomes that everything downstream reads: `pass`, `fail`, and
+**`not_graded`**, which is neither. The summary carries two booleans rather than one — `noFailures`
+gates Live per rule 9, and `fullyChecked` is the honesty half that is **never folded into a pass**.
+There is deliberately no field called `passed`.
+
+Two things it hands forward. **EPIC-032 owes the sentence** that `fullyChecked: false` gets at the
+publish moment; the field exists, the words are a UI decision and should be in that epic before it is
+built. **EPIC-033 inherits the `no_kind` queue** — `checkKindFor` declines to name a kind for a large
+share of real expected bloks, which is honest and is also a lot of unchecked rules, and
+`refuses_to_answer` is now explicitly `not_graded` with `needs_judgement` waiting for it.
+
+**No browser drive, and that is not a skipped criterion**: the epic ships no route, no component and
+no user-visible string. Its report says so in §11 rather than leaving an unticked box that reads like
+an omission.
 
 ## Stage 4 · Versions and three providers
 
