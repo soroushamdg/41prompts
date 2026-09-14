@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 <legal entity>
 // SPDX-License-Identifier: Apache-2.0
 
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { cluster } from "./cluster/cluster.js";
@@ -161,6 +161,21 @@ describe("the canonical colliding pair", () => {
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
 const SCAN_ROOTS = ["packages/core/src", "packages/db/src", "apps/worker/src", "apps/web/lib"];
 
+/**
+ * **`packages/core` is public and has to test standalone in a tree with no `apps/`.**
+ *
+ * The mirror dry-run caught this: the first version of these assertions read
+ * `apps/worker/src/runs/execute.ts`, which does not exist in the public mirror, and the whole
+ * `@41prompts/core` suite failed there. Rule 11 is about imports, and the same reasoning covers a
+ * test that reads a path — a public package cannot depend on a private one being next to it.
+ *
+ * So an `apps/` path is checked when `apps/` is there and skipped when it is not. **Absence is only
+ * tolerated wholesale**: if the directory exists, the specific file must, or the assertion fails.
+ * A per-file "skip if missing" would quietly stop checking the moment somebody moved the file, which
+ * is the failure mode this whole file exists to prevent.
+ */
+const APPS_PRESENT = existsSync(join(REPO_ROOT, "apps"));
+
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
   let entries: string[];
@@ -183,6 +198,7 @@ describe("every multi-field key builder is registered", () => {
     const found: string[] = [];
 
     for (const root of SCAN_ROOTS) {
+      if (root.startsWith("apps/") && !APPS_PRESENT) continue;
       for (const file of sourceFiles(join(REPO_ROOT, root))) {
         const text = readFileSync(file, "utf-8");
         // A hash built from something joined, or from a template with more than one interpolation.
@@ -202,12 +218,17 @@ describe("every multi-field key builder is registered", () => {
 
   it("every registered builder still exists, and the out-of-package one still has its own test", () => {
     for (const builder of BUILDERS) {
+      if (builder.site.startsWith("apps/") && !APPS_PRESENT) continue;
       const text = readFileSync(join(REPO_ROOT, builder.site), "utf-8");
       expect(text, `${builder.site} no longer contains ${builder.marker}`).toContain(builder.marker);
     }
-    // `cacheKeyFor` cannot be imported here, so this asserts its guard rather than trusting a comment.
-    const workerTest = readFileSync(join(REPO_ROOT, "apps/worker/src/runs/execute.test.ts"), "utf-8");
-    expect(workerTest).toContain("does not collide when a field boundary moves");
+
+    // `cacheKeyFor` cannot be imported here — `packages/core` imports nothing — so this asserts its
+    // guard exists rather than trusting the comment beside it.
+    if (APPS_PRESENT) {
+      const workerTest = readFileSync(join(REPO_ROOT, "apps/worker/src/runs/execute.test.ts"), "utf-8");
+      expect(workerTest).toContain("does not collide when a field boundary moves");
+    }
   });
 
   it("records how each builder is defended, and that only one relies on today's values", () => {
