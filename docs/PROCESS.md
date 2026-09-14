@@ -366,6 +366,19 @@ to it, and would have been invisible to a local drive too if that drive used `pn
 built app can fail the way the built app fails, and only the deployed one can fail the way the
 deployed one does.
 
+**The mechanism, named, because it is the whole reason step 2 exists.** `playwright.config.ts` ran the
+suite against **`next dev`** for twenty epics. The dev server generates every chunk on request and
+serves CSS from memory, so a stylesheet that fails to build, a chunk that 404s, a stale workspace
+`dist`, or anything that exists only in a production bundle **cannot reach the suite**. That is how
+151 assertions stayed green while the deployed `/app` rendered as unstyled text with no project list.
+
+So **`pnpm e2e` now builds** — through turbo, because `turbo.json`'s build task carries
+`dependsOn: ["^build"]` and a workspace `dist` is a gitignored artifact that will otherwise be
+whatever was lying around. `E2E_DEV=1` returns to the dev server for fast iteration while writing a
+test; never to make a failing one pass, and CI has no escape hatch. The cost is a build on every run.
+That is the price of the suite testing the artifact that ships instead of a development convenience
+that resembles it.
+
 **Credentials: there are none, and there must not be.** The seeded test user signs in through the
 **magic-link token the harness reads from the database** — the mechanism `apps/web/e2e/db.ts` already
 uses. Nothing is stored: the token is minted by the ordinary sign-in flow and read back from the row
