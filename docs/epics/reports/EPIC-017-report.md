@@ -200,7 +200,35 @@ sub-processors, the privacy page at 390px, and dark theme.
 
 ## 10. The staging drive
 
-<staging-drive>
+Driven 2026-09-14 on the deployed site at `4913f3e`, as a first-time visitor with no cookie, on
+`staging.41prompts.ai` and `app.staging.41prompts.ai`. Every request was intercepted for the whole
+drive.
+
+| what | result |
+|---|---|
+| banner offered on the deployed apex | **PASS** |
+| **nothing sent to `i.posthog.com` before a choice** | **PASS** — 0 calls |
+| no consent cookie exists before choosing | **PASS** |
+| the banner reserves the space it covers | **PASS** |
+| declining dismisses it, and is recorded | **PASS** — `denied` |
+| `/legal/terms` · `/privacy` · `/sub-processors` · `/security` render (200) | **PASS** — 4048 / 6232 / 1328 / 1243 characters |
+| retention numbers match the code (30 / 180 / 30) | **PASS** |
+| the 12-month row says not built, and names EPIC-031 | **PASS** |
+| all seven processors named | **PASS** |
+| the not-reviewed line appears once | **PASS** |
+| the permanent control is there, and changes the choice | **PASS** — `denied` → `granted` |
+| `robots.txt` allows `/legal/`, sitemap lists all four | **PASS** |
+
+The first two rows are the epic. A visitor arrives, is asked, and **nothing about them has left the
+site while the question is on screen** — measured on the deployed build rather than inferred from the
+cookie.
+
+Screenshots `80-staging-banner.png` and `81-staging-privacy.png`.
+
+**Cleanup:** this drive created no account and wrote nothing to the database — it is an anonymous
+visitor throughout — so `PROCESS.md`'s drive-cleanup statement had nothing to remove. Worth stating
+because "no cleanup was needed" and "cleanup was skipped" look identical in a report that does not
+say which.
 
 ## 11. Out of scope, and where it went
 
