@@ -36,7 +36,8 @@
   display: grid;
   gap: var(--spacing-s2);
 }
-.app-list a {
+.app-list a,
+.app-list .app-list-action {
   display: block;
   border: var(--border-hairline) solid var(--color-line);
   padding: var(--spacing-s3);
@@ -44,6 +45,22 @@
   min-height: 44px;
   display: flex;
   align-items: center;
+}
+
+/* A form submit that reads as the links beside it — signing out and deleting an account are state
+   changes and must not be a GET something can prefetch, but they belong to the same set on screen. */
+.app-list .app-list-action {
+  appearance: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+
+.app-account-email {
+  margin: 0;
 }
 .app-create {
   display: flex;
@@ -367,28 +384,58 @@
    goes when Stage 3 builds it. Before it existed, Sign out and the only link to /app/account
    lived on /app — a stub with no route onward, so signing in stranded you. */
 
+/* BUG-069: the side padding was missing, so at 414px and below `Account` sat with its right edge
+   exactly on the viewport's — a control against the screen edge, which rule 12 is about. The
+   gutter matches `.app-page`'s so the chrome and the page below it line up. */
 .app-chrome {
   align-items: center;
   border-bottom: var(--border-hairline) solid var(--color-line);
   display: flex;
-  flex-wrap: wrap;
+  /* **Not `flex-wrap: wrap`, and that was the other half of BUG-069.** With wrapping on, flexbox
+     breaks a line *before* it shrinks anything, so the email's `min-width: 0` never got used and
+     `Sign out` dropped to a second row below 414px instead. Without it the deficit is taken out of
+     the one item that can give — the email, which ellipsises — and the four controls stay on one
+     row down to 320px. Everything else has `min-width: auto`, so its own text is its floor. */
   gap: var(--spacing-s3);
   margin-bottom: var(--spacing-s5);
-  padding-bottom: var(--spacing-s3);
+  padding: 0 var(--spacing-s4) var(--spacing-s3);
 }
 
 .app-chrome-spacer {
   flex: 1 1 auto;
 }
 
+/* **The email is the only item allowed to give.** Without this the `<form>` around `Sign out` was
+   shrunk to 39px at 390px wide — a form is a block box whose min-content is its longest *word*, so
+   the button's label wrapped to two lines inside it and made the whole chrome 58px tall. That is the
+   same BUG-069 symptom arriving by a different route once the line stopped wrapping, and it is why
+   the fix is measured at six widths rather than looked at once. */
+.app-chrome-home,
+.app-chrome-link,
+.app-chrome > form {
+  flex: 0 0 auto;
+}
+
+.app-chrome-home,
+.app-chrome-link,
+.app-chrome-signout {
+  white-space: nowrap;
+}
+
 .app-chrome-home {
   font-weight: 700;
 }
 
+/* The email is the only elastic thing in the row, so it is the thing that gives.
+   `min-width: 0` is what lets a flex item shrink below its content width — without it the nowrap
+   text sets an unshrinkable floor. With it, and with wrapping off above, `text-overflow: ellipsis`
+   does the work and the four controls stay on one row down to 320px. */
 .app-chrome-who {
   color: var(--color-ink-3);
+  flex: 0 1 auto;
   font-size: 12.5px;
   max-width: 28ch;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
