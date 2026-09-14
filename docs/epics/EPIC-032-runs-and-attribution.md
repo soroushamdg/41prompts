@@ -54,6 +54,33 @@ Source: `docs/epics/reports/EPIC-030-report.md` §4 and §12.1.
 
 ---
 
+## Inherited requirement — the cost shown to a user must say what it counts
+
+**From EPIC-031, ruled 2026-09-14.** A second requirement alongside the `fullyChecked` sentence, and
+it arrives for the same reason: the code makes the state unambiguous, and the only place it becomes
+visible to a person is a number on this page.
+
+**A cache hit spends nothing.** It calls nobody, so it costs nothing, so it reserves nothing against
+the budget — which is correct, and which means **a re-run is free and the number in front of the user
+stops matching what they ran.**
+
+Somebody who runs 200 inputs, sees "$1.40", changes one blok and re-runs, will see a much smaller
+number for what looks like the same work. Both numbers are true. Neither is self-explanatory, and a
+cost display that silently means two different things on two consecutive screens is the same class of
+problem as a pass that silently means two different things.
+
+**The requirement:**
+
+1. **The cost says what it counts** — spend on this run, not the cost of everything on screen.
+2. **Cache hits are visible as such**, so a smaller number has a reason attached rather than looking
+   like a price change or a mistake.
+3. A test asserts a re-run of an identical prompt shows **zero calls and zero spend**, distinctly from
+   a first run that cost something.
+
+Source: `docs/epics/EPIC-031-run-engine.md` decision 5.
+
+---
+
 ## Scope (from `docs/roadmap.md`, to be completed by the advisor)
 Input sets from CSV and manual rows; run trigger (Anthropic only); results by check with meters and
 pass/fail icons alongside colour; KPI strip; polling progress; failure detail with the failing region

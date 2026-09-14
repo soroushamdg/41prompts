@@ -2,6 +2,7 @@ import {
   ACCOUNT_PURGE_WINDOW_DAYS,
   DECOMPILE_RETENTION_DAYS,
   RUN_COUNT_RETENTION_DAYS,
+  RUN_PAYLOAD_RETENTION_DAYS,
 } from "@41prompts/db";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
@@ -38,6 +39,7 @@ describe("the retention table cannot drift from the code", () => {
     ["a shared decompile", DECOMPILE_RETENTION_DAYS],
     ["a counted run", RUN_COUNT_RETENTION_DAYS],
     ["an account after deletion", ACCOUNT_PURGE_WINDOW_DAYS],
+    ["a raw model response", RUN_PAYLOAD_RETENTION_DAYS],
   ])("states the enforced number of days for %s", (_what, days) => {
     expect(textOf(LEGAL_DOCS.privacy!)).toContain(`${days} days`);
   });
@@ -59,16 +61,37 @@ describe("the retention table cannot drift from the code", () => {
   });
 
   /**
-   * The one number with no code behind it.
+   * **This test used to assert the opposite**, and that was correct until EPIC-031 shipped.
    *
-   * Runs are EPIC-031 and are not built, so "12 months" is a plan rather than a behaviour. Stating
-   * it flat would be describing the future as the present in a document whose whole value is that it
-   * is accurate.
+   * It read: *says the 12-month payload retention is not built yet, and names the epic* — checking
+   * the page contained the literal "12 months — not built yet". True then, and a test asserting a
+   * placeholder the moment the placeholder stopped being true. `PROCESS.md`'s helper rule covers the
+   * family; this is the one place in the codebase where the inversion was planned in advance rather
+   * than discovered.
+   *
+   * What it asserts now is what the other four rows assert: the enforced number, and a citation that
+   * exists. The "not built yet" wording must never come back while the job does.
    */
-  it("says the 12-month payload retention is not built yet, and names the epic", () => {
+  it("no longer says the payload retention is unbuilt, because it is built", () => {
     const text = textOf(LEGAL_DOCS.privacy!);
-    expect(text).toContain("12 months — not built yet");
-    expect(text).toContain("EPIC-031");
+    expect(text).not.toContain("not built yet");
+    expect(text).toContain(`${RUN_PAYLOAD_RETENTION_DAYS} days`);
+  });
+
+  /**
+   * Prose and table say the same duration in the units each is for: "12 months" is what a person
+   * reads, `365 days` is what the code counts and what the test above compares to the constant.
+   */
+  it("keeps the prose in months and the cell in days, and they agree", () => {
+    expect(RUN_PAYLOAD_RETENTION_DAYS).toBe(365);
+    const table = LEGAL_DOCS.privacy!.parts.find(
+      (part): part is Extract<LegalPart, { kind: "table" }> =>
+        part.kind === "table" && part.head.includes("Enforced by")
+    )!;
+    const payloadRow = table.rows.find((row) => row[0]!.includes("Raw model responses"))!;
+    expect(payloadRow[1]).toBe(`${RUN_PAYLOAD_RETENTION_DAYS} days`);
+    expect(payloadRow[2]).toContain("Twelve months");
+    expect(payloadRow[3]).toBe("apps/worker/src/jobs/purge-run-payloads.ts");
   });
 });
 
