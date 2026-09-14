@@ -98,7 +98,15 @@ fail and asserts the blok text and the declaration are both untouched.
       and a required variable keeps its braces.
 - [x] **Shape forward-compatible with the Stage 5 contract check.** The artifact carries the
       declarations; the reserved `type` field means adding types later is not a breaking change.
-- [ ] **Hand-driven on staging.** Driven 2026-09-14 on `app.staging.41prompts.ai` at `e5fa776`, and
+- [x] **Hand-driven on staging.** **Passed on the re-drive, 2026-09-14**, after BUG-022 was fixed in
+      #73: on `app.staging.41prompts.ai` at `d3bcc03`, typing `{{customer}}` and `{{company}}` into a
+      blok and opening the tab shows both under "Used but not declared" **with no reload**, and an
+      edit to the blok follows into the compiled span while you watch. Screenshot
+      `docs/epics/reports/screenshots/workbench-stale-fix/50-deployed-variables-no-reload.png`.
+
+      The first attempt is kept below rather than deleted, because what it found is the point.
+
+- [~] **First attempt, 2026-09-14 on `e5fa776` — failed.** Kept as the record. It was driven, and
       **it failed.** Stays unticked. The Variables tab opens and renders, but a `{{placeholder}}`
       typed into a blok is **not seen until the page is reloaded**: with the blok saved and its span
       showing correctly in the compiled pane, the tab says *"Nothing declared yet. Write `{{a_name}}`

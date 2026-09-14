@@ -149,7 +149,7 @@ met.
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, empty states; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
 | EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | done |
-| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — hand-drive failed, see BUG-022 |
+| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | done |
 
 **The staging hand-drives are done, 2026-09-14, and the agent did them.** All three Stage 2 rows that
 were waiting on "a person to sign in to staging and look" have been driven on
@@ -205,6 +205,16 @@ assertion on it in `page.test.tsx`, `BLOK_SEPARATOR` moved to a single newline t
 what the pane does when a blok is **added** to a prompt with hand-edited spans — no answer exists in
 the model on purpose, and getting it wrong loses somebody's typing silently — and the fact that the
 mockup's single banner can express only one of the two states the model distinguishes.
+
+**Stage 2 is complete, 2026-09-14.** All four built epics are `done` with reports and session logs:
+EPIC-020, EPIC-021a, EPIC-021b, EPIC-022. EPIC-090 (the clickable prototype study) is `todo` and
+gated behind the cancelled EPIC-084; nothing was blocked on it and nothing waits on it now.
+
+**EPIC-022 closed last**, on 2026-09-14. Its hand-drive criterion failed on 2026-09-13 — the
+Variables tab did not see a `{{placeholder}}` until the page was reloaded — and the defect, BUG-022,
+turned out to share one line with BUG-021b-compiled-pane-stale. Both were fixed in #73 and the drive
+was re-run on `app.staging.41prompts.ai` at `d3bcc03`: the tab sees `customer` and `company` with no
+reload. The row is `done` on the re-drive, not on the first attempt.
 
 **EPIC-021b is `done`, with one criterion deliberately split and the split ruled on.** Every
 criterion is met and evidenced (`docs/epics/reports/EPIC-021b-report.md` §2). The exception: the
