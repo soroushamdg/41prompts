@@ -43,6 +43,13 @@
       "when": 1789309177269,
       "tag": "0005_good_bromley",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789412258095,
+      "tag": "0006_curved_firestar",
+      "breakpoints": true
     }
   ]
 }

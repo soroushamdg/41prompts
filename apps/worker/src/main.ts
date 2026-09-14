@@ -2,6 +2,7 @@ import { createLogger, withRequestId } from "@41prompts/logger";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
 import { purgeDecompiles, purgeRunCounts } from "./jobs/purge-decompiles";
+import { countOverdueRunPayloads, purgeRunPayloads } from "./jobs/purge-run-payloads";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
 import { initSentry, Sentry } from "./sentry";
 import { misconfiguredBudgetEnv } from "./summarise/abuse-check";
@@ -71,10 +72,23 @@ export async function main(): Promise<void> {
         // Riding the same schedule rather than taking its own queue: both are retention sweeps, both
         // are idempotent, and a second cron entry is a second thing that can silently stop.
         const purgedRuns = await purgeRunCounts(db);
+        // EPIC-031. Rides this sweep for the same reason `purgeRunCounts` does, and needs it more:
+        // its window is twelve months, so it will delete nothing for a year and a second cron entry
+        // would be a second thing that can silently stop with nobody the wiser.
+        const purgedPayloads = await purgeRunPayloads(db);
+        // **Read after the delete, and the number that matters.** A twelve-month purge that works
+        // and one whose WHERE never matches both log `0 purged` every night for a year; this is the
+        // number that differs. Zero when the sweep is doing its job, growing when it is not — it
+        // asks whether the outcome is true rather than whether the job is scheduled, which is
+        // exactly what EPIC-006d's machinery could not answer about itself.
+        const overduePayloads = await countOverdueRunPayloads(db);
         // The count is logged on every run, including zero: the acceptance criterion for this job is
         // that it is *observed running*, and a job that only speaks when it deletes something is
         // indistinguishable from a job that is not scheduled.
-        logger.info({ jobId, purged, purgedRuns }, `${PURGE_DECOMPILES_QUEUE}: purged ${purged} decompiles, ${purgedRuns} run counts`);
+        logger.info(
+          { jobId, purged, purgedRuns, purgedPayloads, overduePayloads },
+          `${PURGE_DECOMPILES_QUEUE}: purged ${purged} decompiles, ${purgedRuns} run counts, ${purgedPayloads} run payloads; ${overduePayloads} overdue`
+        );
       } catch (error) {
         logger.error({ jobId, err: error }, `${PURGE_DECOMPILES_QUEUE} failed`);
         Sentry.captureException(error);

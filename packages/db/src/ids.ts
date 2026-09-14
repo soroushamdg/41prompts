@@ -73,3 +73,14 @@ export function newVariableId(): string {
 export function newDecompileRunId(): string {
   return newId("dr", 6);
 }
+
+/**
+ * One provider call.
+ *
+ * Eight hex, matching `newBlokId`'s neighbourhood rather than the six the anonymous counters use:
+ * a run is referenced from a result, from a budget reconciliation and from a purge audit, and an
+ * id that collides is a wrong answer in three places rather than a duplicated tally in one.
+ */
+export function newRunId(): string {
+  return newId("run", 8);
+}
