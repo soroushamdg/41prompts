@@ -10,6 +10,8 @@ import {
   users,
   type Db
 } from "@41prompts/db";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { cacheKeyFor, executeRun, executeRunSet, type Provider, type RunRequest } from "./execute";
@@ -217,6 +219,28 @@ describe("the cache key", () => {
     expect(cacheKeyFor(base)).not.toBe(cacheKeyFor(request({ compiled: "different" })));
     expect(cacheKeyFor(base)).not.toBe(cacheKeyFor(request({ model: "claude-sonnet-5" })));
     expect(cacheKeyFor(base)).not.toBe(cacheKeyFor(request({ params: { temperature: 1 } })));
+  });
+
+  /**
+   * **The collision a separator would have allowed**, and the reason the key serialises rather than
+   * concatenates.
+   *
+   * With any separator that can occur in a field — a space, a newline, anything a person can type —
+   * these two different requests produce the same concatenation and therefore the same key. A cache
+   * that collides here serves one request's model output as the answer to another's.
+   */
+  it("does not collide when a field boundary moves", () => {
+    const a = request({ compiled: "a b", input: "c" });
+    const b = request({ compiled: "a", input: "b c" });
+    expect(cacheKeyFor(a)).not.toBe(cacheKeyFor(b));
+  });
+
+  it("contains no raw NUL byte in its own source, because a binary file cannot be reviewed", () => {
+    // The first version used a raw NUL as the separator and put three of them in the source.
+    // `pnpm binary-files` caught it in CI — and not locally, because that script only checks
+    // *tracked* files and the file was still untracked when it ran.
+    const source = readFileSync(join(import.meta.dirname, "execute.ts"));
+    expect(source.includes(0)).toBe(false);
   });
 
   it("does not depend on the order parameters were written in", () => {

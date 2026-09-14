@@ -89,6 +89,38 @@ The row's note also records why the whole row is deleted rather than the payload
 without its payload still records that this person ran this prompt that day, which is technically
 inside the promise and practically misleading.
 
+## 5b. Two things I got wrong, and how each was caught
+
+**A `git add -A` swept up two files I had not written or read** — `scripts/check-staging.mjs` and
+`scripts/pick-next-epic.mjs`, sitting untracked in the working tree and referencing an `AUTONOMOUS.md`
+that does not exist in this branch. They went into the first push. Removed from the commit and left
+untracked where they were.
+
+Caught by reading `git status --short` after committing, which is late. The DoD is explicit that every
+changed file's diff must be visible during self-review, and two files whose contents I had never
+opened were in a commit with my name on it.
+
+**Three raw NUL bytes reached the source**, in `cacheKeyFor`'s separators — written as `" "` and
+landing as `\x00`. `pnpm binary-files` failed the build in CI with exactly the message it exists to
+give: *a file git considers binary shows no diff and would be invisible in review, which is how
+`cluster.ts` went unreviewed for two epics.*
+
+**And it passed locally, which is the part worth keeping.** `scripts/binary-files.mjs` checks
+**tracked** files. `execute.ts` was still untracked when I ran it, so the local gate reported
+`486 checked` and said nothing. A new file carrying a NUL is invisible to that gate until the moment
+it is committed — so the local run is not equivalent to the CI run for any file being added, which is
+every file in a new epic.
+
+**The fix was better than an escape.** The guidance says to write an intended NUL as `\u0000`, and a
+NUL separator is defensible — but the underlying design was wrong anyway: *any* separator that can
+occur in a field allows a collision, and these fields are a person's prompt and a person's input,
+which can contain anything. `compiled: "a b", input: "c"` and `compiled: "a", input: "b c"` would hash
+identically, and a cache collision here serves one request's model output as the answer to another's.
+
+The key now serialises the tuple with `JSON.stringify`, which is injective whatever the fields
+contain. Two regression tests: one asserting the moved-boundary pair produce different keys, one
+asserting the file contains no NUL byte.
+
 ## 6. Verification
 
 ```
