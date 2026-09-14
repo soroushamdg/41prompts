@@ -30,6 +30,11 @@ because of.
    browser. `docs/PROCESS.md`, "Driving a deployed environment: the one supported mechanism", is the
    whole of it — staging only, read-only, token to a scratchpad file and never the transcript.
    Nothing else about `docker exec` changes: every other use still needs one command, one yes.
+
+   **A second standing exception, granted 2026-09-14**, for the same reason and equally narrow:
+   `delete from users where email like 'claude-drive-%@example.com'` on **staging**, so the browser
+   drive clears the test data it creates instead of staging accumulating it forever. `example.com` is
+   reserved by RFC 2606, so the pattern cannot match a real account. No other `DELETE` is covered.
 4. Never touch `coolify`, `coolify-db`, `coolify-redis`, `coolify-realtime`, `coolify-proxy`, `coolify-sentinel`,
    or anything under `/data/coolify/` except read.
 5. Every change made on the box is also made in `infra/` in the same session, or reverted before the session

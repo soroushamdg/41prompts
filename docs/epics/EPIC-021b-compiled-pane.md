@@ -73,6 +73,16 @@ recover their work.
       span. Evidence: four fixtures.
 - [ ] All four states render with distinct sentences, and a test fails if two states produce the same text.
       Evidence: test name and the four strings in the report.
+      **Amended 2026-09-14, by ruling: the model expresses four states and the product reaches three.**
+      "Out of date" — nobody typed here and the blok changed — is not reachable in the running app,
+      because `app/app/pr/[promptId]/page.tsx` recompiles every non-hand-edited span on each render,
+      so such a span is `in-step` by construction; only hand edits are persisted. Proved on staging
+      at `d4df9b7` rather than reasoned about: changing a blok under an untouched span produced
+      `in-step`. **This is correct behaviour, not a gap.** EPIC-020 modelled two genuinely different
+      facts (`differs` and `changed` as independent booleans) and the product currently exercises
+      three of the four combinations. The fourth becomes reachable when something stores a compiled
+      artefact and compares it against moved bloks — EPIC-040's versioning and EPIC-050's build
+      artefact. **No path to state 4 is to be built unless a later epic needs one.**
 - [ ] Amber appears only on the drift state; a test fails if a hand-edited-but-unchanged span carries amber.
       Evidence: test name.
 - [ ] No state is conveyed by colour alone; each has text. Evidence: test name.
@@ -88,7 +98,10 @@ recover their work.
       test names.
 - [ ] Forbidden-word grep passes over every string on the route.
 - [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm e2e`, `pnpm compliance`, `pnpm binary-files` clean.
-- [ ] Deployed to staging and driven by hand; screenshots of all four states in the report.
+- [ ] Deployed to staging and driven by hand; screenshots of **the three states the product reaches**
+      in the report — see the amendment above. Ticked as split: the drive happened and is
+      screenshotted; the fourth state is described with its mechanism rather than photographed,
+      because it cannot occur.
 - [ ] Report and session log written; backlog updated.
 
 ## Notes for the implementer

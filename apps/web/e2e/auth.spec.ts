@@ -92,12 +92,16 @@ test.describe("auth", () => {
       expect(account!.x).toBeCloseTo(projects!.x, 0);
       expect(account!.x).toBeGreaterThan(0);
 
-      // The three things the page is for, and a way back.
+      // What the page is for, and a way back.
       const main = page.getByRole("main");
       await expect(main.getByText(email)).toBeVisible();
-      await expect(main.getByRole("button", { name: "Sign out" })).toBeVisible();
       await expect(main.getByRole("link", { name: "Delete account" })).toBeVisible();
       await expect(main.getByRole("link", { name: "Back" })).toBeVisible();
+
+      // Signing out lives in the chrome, once, on every signed-in route — not twice on this one
+      // (ruled 2026-09-14). Asserted as a count so putting it back here fails rather than passes.
+      await expect(main.getByRole("button", { name: "Sign out" })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Sign out" })).toHaveCount(1);
     } finally {
       await deleteTestUser(email);
     }

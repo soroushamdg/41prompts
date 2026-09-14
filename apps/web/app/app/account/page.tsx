@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { signOutAction } from "@/lib/account-actions";
 import { requireSession } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Account — 41Prompts", robots: { index: false, follow: false } };
@@ -17,6 +16,11 @@ export const metadata: Metadata = { title: "Account — 41Prompts", robots: { in
  * It now uses exactly the container and heading its sibling uses, and the list treatment the
  * projects list uses — which already carries the 44px touch target rule 12 asks for. Nothing here is
  * new design; it is the existing vocabulary applied to a page that had been missed.
+ *
+ * **No Sign out here, by ruling (2026-09-14).** It shipped with one because the ruling that created
+ * this page listed sign out among its contents; the chrome above already carries one on every
+ * signed-in route, so the page had two and the second was the smaller of the two honest readings.
+ * One control, one place.
  */
 export default async function AccountPage() {
   const session = await requireSession("/app/account");
@@ -31,15 +35,6 @@ export default async function AccountPage() {
       <p className="app-account-email">{session.user.email}</p>
 
       <ul className="app-list">
-        <li>
-          <form action={signOutAction}>
-            {/* A form submit, not a link: signing out is a state change and must not be a GET
-                something can prefetch. Styled as the list's other rows so it reads as one set. */}
-            <button className="app-list-action" type="submit">
-              Sign out
-            </button>
-          </form>
-        </li>
         <li>
           <a href="/app/account/delete">Delete account</a>
         </li>
