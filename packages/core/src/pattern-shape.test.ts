@@ -84,6 +84,34 @@ describe("checkPattern", () => {
 // unaudited by the test that claimed to force it. Found in self-review.
 
 const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
+  // EPIC-030. Deriving a check's parameters from the blok's verbatim text, and counting words.
+  //
+  // **Every one is linear, and each for the same structural reason**: a single quantifier over a
+  // single character class, with nothing repeated inside anything else repeated. `findNestedQuantifiers`
+  // asserts that mechanically in the test below; this note is why it is true rather than lucky.
+  //
+  // - `\b(\d{1,6})\b` — a bounded run of digits between word boundaries.
+  // - the two quote-delimited ones — a bounded negated class between two single-character classes.
+  //   `[^\x22\u201D]{1,200}` cannot overlap its delimiters, so there is one way to match any input.
+  // - `\bone of\b[^:]{0,30}:?\s*(.+)$` — `[^:]{0,30}` and `.+` are separated by a literal that
+  //   neither can contain, so they cannot trade characters with each other.
+  // - `\s*(?:,|\bor\b)\s*` — an alternation of two literals with no quantifier on the group.
+  // - the trim pattern — two anchored single-character classes, no quantifier at all.
+  // - `\s+` in `graders.ts` — `countWords`. Deliberately not `Intl.Segmenter`: that is locale- and
+  //   ICU-version-dependent, so the same output could be 79 words on one Node build and 80 on
+  //   another, and `grade()` has to answer the same everywhere.
+  //
+  // **Quote characters are written as escapes** (`\x22`, `\u201C`) rather than literally, because
+  // the audit below blanks quoted strings before scanning and a `"` inside a literal comes back
+  // mangled. A pattern whose audited form is corrupted is one nobody can review, which defeats the
+  // point of this list.
+  ["check/graders.ts", "\\s+"],
+  ["check/params.ts", "\\b(\\d{1,6})\\b"],
+  ["check/params.ts", "[\\x22\\u201C]([^\\x22\\u201D]{1,200})[\\x22\\u201D]"],
+  ["check/params.ts", "\\bone of\\b[^:]{0,30}:?\\s*(.+)$"],
+  ["check/params.ts", "\\s*(?:,|\\bor\\b)\\s*"],
+  ["check/params.ts", "^[\\x22\\u201C\\u2018]|[\\x22\\u201D\\u2019.]$"],
+  ["check/params.ts", "[\\x60\\x22\\u201C\\u2018]([A-Za-z_][A-Za-z0-9_]{0,60})[\\x60\\x22\\u201D\\u2019]"],
   ["classify/classify.ts", "^[ \\t]*(?:[-*+\u2022][ \\t]+|\\d{1,9}[.)][ \\t]+)"],
   ["cluster/invariants.ts", "^blok_[0-9a-f]{16}$"],
   // Moved out of cluster.ts in EPIC-012a so the detectors reuse one similarity measure rather than
