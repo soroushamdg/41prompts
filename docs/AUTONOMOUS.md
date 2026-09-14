@@ -22,7 +22,7 @@ finishes:
 | 1 | `epic-file` | `docs/epics/EPIC-xxx-<name>.md` exists in `PROCESS.md`'s format. Write it if it is absent — goal, scope, out of scope, acceptance criteria, verification, notes. Copy it to `docs/epics/CURRENT.md`. |
 | 2 | `plan` | `docs/epics/plan-EPIC-xxx.md` written. Plan first, always; `CLAUDE.md` says stop and show the plan, and unattended "show" means write it down before you write code. |
 | 3 | `implement` | the code is written, on the branch the runner named. |
-| 4 | `gates` | `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance` all green locally, with every package reporting. A `PARTIAL` is not a pass. |
+| 4 | `gates` | `node scripts/gate-run.mjs` green, with every package reporting. A `PARTIAL` is not a pass. **Run that, not a list of gate commands** — see below. |
 | 5 | `local-drive` | the feature driven in a real browser against the **built** app, signed in as a fresh throwaway user. Not `next dev`. |
 | 6 | `push` | branch pushed, PR opened, description says what changed and — per `PROCESS.md` — which kind of PR it is with respect to CI. |
 | 7 | `ci` | CI green on the PR, or provably had nothing to say about it. |
@@ -118,6 +118,38 @@ absolute.
 staging, both already granted as standing permissions in `CLAUDE.md`. Every other mutating
 command on the box needs one command, one yes — and there is nobody to say yes, so the answer
 is no.
+
+### The gate is `scripts/gates.mjs`, whatever it currently does
+
+**Run `node scripts/gate-run.mjs`. Never `pnpm test && pnpm typecheck && pnpm lint && pnpm
+compliance`, and never any other list written down in advance.**
+
+`scripts/gates.mjs` is the repository's definition of the local gate, and it is being worked
+on: the direction is a mode that reproduces CI exactly — clean checkout, frozen lockfile, cold
+cache. A list of commands copied into this file, or into a run's head, is a copy of a decision
+that lives somewhere else, and it goes stale **silently**. The day the parity mode lands, a
+hardcoded list keeps running the old, weaker check and reports it as a pass — which is the
+`PARTIAL`-read-as-pass failure again, one level up.
+
+`gate-run.mjs` asks `gates.mjs` what modes it accepts, reading the answer out of the tool's own
+usage line rather than guessing at a name, and then:
+
+- if a **CI-parity mode** is advertised — as a positional `ci`, or a flag like `--ci` or
+  `--ci-parity` — it runs **that, alone**, because a mode claiming parity with CI covers what
+  CI covers;
+- otherwise it runs **every** advertised mode, and then `pnpm compliance`, because today
+  `gates.mjs` does not carry `reuse`, `license-gate`, `binary-files` or `mirror-dry-run` and
+  dropping them silently is the thing being avoided;
+- and if `gates.mjs` says nothing about itself, it **fails** rather than substituting a gate of
+  its own invention.
+
+It prints which it chose and why before it runs anything, so the run log says in one line
+which gate actually executed. `node scripts/gate-run.mjs --explain` prints the plan without
+running it.
+
+**Nothing needs editing when the parity mode lands**, and nothing in this repository needs to
+coordinate with whoever lands it. If you find yourself about to write a gate command into a
+script, a report or a plan, you are re-creating the copy this exists to delete.
 
 ### Three strikes on the same cause, then stop
 

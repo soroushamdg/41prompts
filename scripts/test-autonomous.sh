@@ -51,7 +51,7 @@ make_fixture() {
   cp "$REPO/scripts/pick-next-epic.mjs" "$REPO/scripts/check-staging.mjs" \
      "$REPO/scripts/run-state.mjs" "$REPO/scripts/rate-limit.mjs" \
      "$REPO/scripts/release-due.mjs" "$REPO/scripts/run-next-epic.sh" \
-     "$REPO/scripts/run-epics.sh" "$dir/scripts/"
+     "$REPO/scripts/run-epics.sh" "$REPO/scripts/gate-run.mjs" "$dir/scripts/"
   chmod +x "$dir/scripts/"*.sh
 
   cat > "$dir/scripts/stub-claude" <<'STUB'
@@ -387,6 +387,76 @@ head2 "human-blocked — rows whose dependency is a person are skipped, named, n
     'waits on Soroush' "$D/out.txt"
   contains "and the one that is actually ours is picked" "PICKED EPIC-045" "$D/out.txt"
   absent "no skipped row was ticked" "| EPIC-040 | core: version snapshot | M | 030 | done |" "$D/docs/backlog.md"
+  rm -rf "$D"
+fi
+
+if want gate-resolution; then
+head2 "gate-resolution — the gate is whatever gates.mjs says it is, with no list kept here"
+  D="$(make_fixture)"
+
+  # Writes a fake gates.mjs whose usage line is $2, accepting the modes in $3.
+  gates_shaped() {
+    cat > "$D/scripts/gates.mjs" <<STUB
+#!/usr/bin/env node
+const task = process.argv[2];
+if (!$2.includes(task ?? "")) { console.error(\`$1\`); process.exit(2); }
+console.log("stub gates.mjs ran " + task);
+STUB
+  }
+  plan() { ( cd "$D" && node scripts/gate-run.mjs --explain 2>&1 ); }
+
+  # 1. Today's gates.mjs: three modes, no parity mode, so compliance is not dropped.
+  gates_shaped 'usage: node scripts/gates.mjs <test|typecheck|lint>' '["test","typecheck","lint"]'
+  plan > "$D/plan.txt"
+  contains "today: runs every advertised mode" "will run: gates.mjs test" "$D/plan.txt"
+  contains "today: and typecheck"              "will run: gates.mjs typecheck" "$D/plan.txt"
+  contains "today: and lint"                   "will run: gates.mjs lint" "$D/plan.txt"
+  contains "today: and compliance, which gates.mjs does not cover" "will run: pnpm compliance" "$D/plan.txt"
+
+  # 2. A parity mode arrives as a positional. Nothing in the runner changes.
+  gates_shaped 'usage: node scripts/gates.mjs <test|typecheck|lint|ci>' '["test","typecheck","lint","ci"]'
+  plan > "$D/plan.txt"
+  contains "positional parity mode is picked up" "will run: gates.mjs ci" "$D/plan.txt"
+  absent  "and it runs alone"                    "will run: gates.mjs test" "$D/plan.txt"
+  absent  "compliance is not run twice"          "will run: pnpm compliance" "$D/plan.txt"
+
+  # 3. A parity mode arrives as a bracketed optional flag.
+  gates_shaped 'usage: node scripts/gates.mjs <test|typecheck|lint> [--ci]' '["test","typecheck","lint"]'
+  plan > "$D/plan.txt"
+  contains "bracketed flag is picked up" "will run: gates.mjs --ci" "$D/plan.txt"
+  absent  "and it runs alone"            "will run: gates.mjs lint" "$D/plan.txt"
+
+  # 4. A proper --help, with parity documented as a long flag among others.
+  cat > "$D/scripts/gates.mjs" <<'STUB'
+#!/usr/bin/env node
+console.log(`usage: node scripts/gates.mjs <test|typecheck|lint>
+
+Options:
+  --ci-parity   reproduce CI exactly: clean checkout, frozen lockfile, cold cache
+  --help        show this`);
+process.exit(0);
+STUB
+  plan > "$D/plan.txt"
+  contains "--help output is read too" "will run: gates.mjs --ci-parity" "$D/plan.txt"
+  absent  "--help is not mistaken for a gate" "will run: gates.mjs --help" "$D/plan.txt"
+
+  # 5. A mode nobody here has heard of, and only one of them: use it.
+  gates_shaped 'usage: node scripts/gates.mjs <test|typecheck|lint|clean-checkout>' '["test","typecheck","lint","clean-checkout"]'
+  plan > "$D/plan.txt"
+  contains "an unfamiliar single mode is used" "will run: gates.mjs clean-checkout" "$D/plan.txt"
+
+  # 6. The override pins it.
+  gates_shaped 'usage: node scripts/gates.mjs <test|typecheck|lint>' '["test","typecheck","lint"]'
+  ( cd "$D" && AUTONOMOUS_GATE_MODE="--ci --frozen-lockfile" node scripts/gate-run.mjs --explain ) > "$D/plan.txt" 2>&1
+  contains "AUTONOMOUS_GATE_MODE wins" "will run: gates.mjs --ci --frozen-lockfile" "$D/plan.txt"
+
+  # 7. gates.mjs that says nothing about itself must fail, not invent a gate.
+  printf '#!/usr/bin/env node\nprocess.exit(2);\n' > "$D/scripts/gates.mjs"
+  ( cd "$D" && node scripts/gate-run.mjs --explain ) > "$D/plan.txt" 2>&1
+  RC=$?
+  check "a silent gates.mjs fails the gate" 2 "$RC"
+  absent "and runs nothing" "will run:" "$D/plan.txt"
+
   rm -rf "$D"
 fi
 
