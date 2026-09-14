@@ -27,3 +27,14 @@ infra/key/
 # writes into the working tree" rule was paid for with a defect that survived two reviews.
 # turbo.json makes `typecheck` depend on `build` so the file exists before anything reads it.
 apps/web/next-env.d.ts
+
+# The unattended runner's working files (scripts/run-epics.sh, docs/AUTONOMOUS.md).
+# All four are machine-local by design: a run log, a stop switch, a pid, and the resume
+# point for an epic in flight. `*.log` above already covers the run log. None of them is a
+# repository artifact, and an epic commit must never sweep one up — `docs/epics/RELEASE-DUE.md`
+# is deliberately NOT here, because that one is for Soroush to read.
+/STOP
+/.run-epics.pid
+docs/epics/.run-state.json
+docs/epics/.run-state.json.corrupt
+docs/epics/.run-outcome.json
