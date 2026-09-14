@@ -98,7 +98,18 @@ fail and asserts the blok text and the declaration are both untouched.
       and a required variable keeps its braces.
 - [x] **Shape forward-compatible with the Stage 5 contract check.** The artifact carries the
       declarations; the reserved `type` field means adding types later is not a breaking change.
-- [ ] **Hand-driven on staging.** Not yet — `built — awaiting the staging hand-drive`.
+- [ ] **Hand-driven on staging.** Driven 2026-09-14 on `app.staging.41prompts.ai` at `e5fa776`, and
+      **it failed.** Stays unticked. The Variables tab opens and renders, but a `{{placeholder}}`
+      typed into a blok is **not seen until the page is reloaded**: with the blok saved and its span
+      showing correctly in the compiled pane, the tab says *"Nothing declared yet. Write `{{a_name}}`
+      in a blok and it will appear above."* Reloading makes `customer` and `company` appear under
+      "Used but not declared" with their use counts. Reproduced twice, on a fresh prompt with one
+      `context` blok. Tracked as **BUG-022-variables-stale-until-reload**, P1.
+
+      **No gate could have caught it.** `apps/web/e2e/variables.spec.ts`'s `addBlok` helper ends with
+      `await page.reload()`, so every variables test does the one thing that hides the defect, as a
+      convenience, in a helper. Removing that reload — or adding one test that deliberately does not
+      reload — has to come before the behaviour is changed, or the fix cannot be proved.
 
 ## 5. Verification
 

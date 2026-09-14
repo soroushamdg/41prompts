@@ -166,9 +166,17 @@ Worth listing because each one is the kind this epic is supposed to be careful a
       rather than skipping it`.
 - [x] **Forbidden-word grep passes.** Clean over `packages/ui/src`, `apps/web/app`, `apps/web/lib`.
 - [x] **`pnpm test`, `typecheck`, `lint`, `e2e`, `compliance`, `binary-files` clean.** See §6.
-- [~] **Staging deploy, and screenshots of the canvas at both viewports.** Deployed and verified;
-      **the "driven by hand" half is a human step and is not done.** See §7 — it is split rather than
-      ticked, because half of it genuinely happened and half of it cannot happen from here.
+- [x] **Staging deploy, and screenshots of the canvas at both viewports.** Completed 2026-09-14, after
+      this report was first written. §7 below says the driven-by-hand half "cannot happen from here";
+      that stopped being true when Soroush granted the magic-link `SELECT` as a standing permission
+      (`docs/PROCESS.md`, "Driving a deployed environment: the one supported mechanism"). Driven on
+      `app.staging.41prompts.ai` at `e5fa776`: project created, prompt created, four bloks of four
+      kinds added, reordered, one edited, one deleted, the delete undone, and every bit of it still
+      there after a reload — at 1440px and at 390px. Screenshots
+      `docs/epics/reports/screenshots/stage2-staging-drive/20-canvas-desktop.png` and
+      `21-canvas-mobile.png`; the run is in `docs/epics/sessions/2026-09-14-session.md` §6.
+      **§7 is left standing rather than rewritten**, because it is an accurate record of what was
+      true at the time and of the constraint that later got fixed.
 - [x] **Report and session log written; backlog updated.**
 
 ---
