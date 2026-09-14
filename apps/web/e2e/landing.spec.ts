@@ -10,6 +10,27 @@ async function setTheme(page: Page, theme: "light" | "dark") {
   await page.waitForTimeout(350);
 }
 
+/**
+ * Answer the analytics question before any visual baseline is taken.
+ *
+ * **Determinism, not convenience, and PROCESS.md's helper rule wants the reason written down.** The
+ * consent banner (EPIC-017) mounts from a `useEffect` that reads a cookie, so whether it is on
+ * screen when the screenshot fires depends on whether an effect has run — a baseline that includes
+ * it is flaky by construction, not merely different. Pre-answering makes every run take the same
+ * picture.
+ *
+ * **What it hides, stated so nobody has to find out:** the banner's own appearance and the space it
+ * reserves. Both are covered directly in `legal.spec.ts` — including a test that the page beneath it
+ * stays reachable — so this is not the only thing looking at it.
+ */
+async function dismissConsent(page: Page) {
+  await page.context().addCookies([
+    // Domain form, not `url`: the suite runs on `E2E_PORT` (3100 locally, 3000 in CI) and a
+    // hardcoded origin would read as port-specific even though cookies are not.
+    { name: "41prompts_analytics_consent", value: "denied", domain: "localhost", path: "/" }
+  ]);
+}
+
 const CAPTURING = process.env.E2E_CAPTURE === "1";
 
 const LAPTOP = { width: 1280, height: 800 };
@@ -306,6 +327,7 @@ test.describe("the landing page", () => {
     // real regression moves far more.
     for (const theme of ["light", "dark"] as const) {
       test(`landing page, ${theme} theme`, async ({ page }) => {
+        await dismissConsent(page);
         await page.setViewportSize(LAPTOP);
         await page.goto("/");
         if (theme === "dark") await setTheme(page, "dark");

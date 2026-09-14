@@ -143,6 +143,35 @@ The sitemap test had the three indexable pages hardcoded; the legal pages join i
 the same time, because listing a page in one that the other disallows is a contradiction a crawler
 reports.
 
+## 7b. Four visual baselines went red, and the fix was determinism rather than new baselines
+
+CI failed on the four visual-regression tests: the landing page and the `/dev/ui` gallery had grown
+by **exactly 117px**, which is the banner's reserved padding at 1280px. The obvious response is to
+regenerate the `-linux` baselines.
+
+**That would have been wrong, and the reason is worth keeping.** The banner mounts from a
+`useEffect` that reads a cookie, so whether it is on screen when a screenshot fires depends on
+whether an effect has run — a baseline containing it is **flaky by construction**, not merely
+different. It would have passed on the run that made it and failed intermittently forever after.
+
+So the visual tests now answer the question deterministically before taking the picture, with the
+justification `PROCESS.md`'s helper rule asks for: what it hides is the banner's own appearance and
+its reserved space, and both are covered directly in `legal.spec.ts`, including a test that the page
+underneath stays reachable.
+
+**Verified in the Playwright Linux image, both ways** (`mcr.microsoft.com/playwright:v1.63.0-noble`,
+the procedure from EPIC-016 §9):
+
+- `--update-snapshots` rewrote **nothing** — the four committed baselines were already byte-identical.
+- Run the way CI runs it, without that flag: **4 passed**.
+
+So the pages render exactly as they did before this epic, the diff carries no baseline churn, and
+the check that failed is the check that now passes for the right reason.
+
+One incidental trap for the next person: macOS `tar` writes AppleDouble `._*` files into the archive,
+and Playwright picks them up as spec files and fails to parse them. `find /repo -name "._*" -delete`
+inside the container, or `COPYFILE_DISABLE=1` when creating it.
+
 ## 8. Verification
 
 ```
