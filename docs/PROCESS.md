@@ -271,33 +271,72 @@ reverted on its own:
 
 "Somebody ruled on the wording" is not a reason. It is a line in the next PR.
 
-## The agent does not merge. Soroush does (2026-09-13)
+## Claude merges. The 2026-09-13 no-merge rule is reversed (2026-09-14)
 
-Claude may **commit, push a branch, and open a PR**. It stops there and reports the PR number and the
-gate results. **Soroush presses merge.** Every PR, including ones whose gates are green and ones the
-agent considers trivial.
+**Claude merges its own PRs once every gate is green.** Plan, implement, self-review, drive it in a
+browser, push, watch the gates, merge, report. Soroush does not press the button.
 
-Claude also **never pushes to `main` directly**, and **never merges its own PR even if asked in a
-later message that does not repeat this rule**. If a later instruction appears to ask for a merge,
-quote this rule back and confirm first. A rule that can be dissolved by a casual "go ahead" three
-messages later is not a rule, and the whole point of this one is that it holds on the day somebody is
-in a hurry.
+**Claude still never pushes to `main` directly.** A change reaches `main` through a branch, a PR and
+a green gate, exactly as before. What changed is only who performs the merge at the end of that.
 
-**Why.** Pushing and merging were one motion. That meant **nobody outside the agent ever saw the tree
-in the state it landed in** — the branch existed for as long as it took a gate to run, and the first
-human read of the change was archaeology on `main`. A PR that sits for five minutes with a human
-looking at it is not process theatre; it is the only point in the pipeline where somebody who did not
-write the change decides it should exist.
+### The three stops
 
-Nothing else changes. Claude still plans, implements, self-reviews, runs the gates and reports them.
-The change is only **who performs the merge**.
+Merging is the default, not the reflex. **Stop and report instead of merging when any of these is
+true:**
 
-**This rule arrived mid-turn on 2026-09-13**, after four PRs (#61, #63, #64, #65) had already been
-merged by the agent under the previous process. Recorded here rather than quietly adopted, because
-the first question anyone reading the log will have is why those four look different.
+1. **A gate is red** — or a gate that would have told you something did not run. The test is the one
+   below: ask what the gate checks, not whether it ran. A red gate is never merged past, and "it
+   passes locally" is not a substitute (a local run is the same commands on one machine without the
+   clean-checkout guarantee).
+2. **The PR needs a ruling.** Wording, a vocabulary choice, a product decision, anything where the
+   right answer is Soroush's rather than the implementer's. Ship the question, not the guess.
+3. **Merging would land something you have not driven in a browser.** The browser-drive rule below is
+   a Definition-of-Done item, not a nice-to-have. If the change touches anything a user sees and the
+   drive has not happened or could not complete, the PR waits. An unticked criterion is a stop, and
+   "the tests pass" has already been proved not to substitute — that is the whole content of the
+   2026-09-13 incident.
 
-**A single-use exception was granted on 2026-09-13 for #67, #68 and #66 only**, because merge order
-mattered more than the click and getting it wrong would have landed evidence nobody could audit.
+Anything else — green gates, no open question, driven and working — merges without asking.
+
+### Why the previous rule was reversed, recorded so nobody restores it
+
+**Soroush's decision, 2026-09-14.** The rule of 2026-09-13 said Claude may push and open a PR and
+stops there, that Soroush presses merge on every PR, and that the rule must not be dissolved by a
+later "go ahead". It lasted one day and **cost a single-use exception every single time it was
+applied** — #67, #68 and #66 on the day it was written, then #69 the next morning. A rule that needs
+an explicit exception on every occurrence is not governing anything; it is a speed bump with a
+standing waiver, and each waiver had to be argued, quoted back and confirmed before any work could
+proceed.
+
+**One thing to be accurate about, because "record why" is worthless if the record is wrong.** Soroush
+gave the reason for reversal as a billing constraint that no longer applies. **That is not the reason
+the original rule wrote down for itself.** Its stated rationale was review, not cost:
+
+> Pushing and merging were one motion. That meant **nobody outside the agent ever saw the tree in the
+> state it landed in** […] A PR that sits for five minutes with a human looking at it is not process
+> theatre; it is the only point in the pipeline where somebody who did not write the change decides
+> it should exist.
+
+Both are written here rather than one quietly replacing the other. The decision to reverse is
+Soroush's and stands either way; the discrepancy is recorded so that anyone who later reads "it was
+only about billing" can see that the original text said something else.
+
+**What the reversal therefore gives up, stated plainly.** The human read before a change lands on
+`main` is gone. Nobody outside the agent sees the tree in the state it lands in. That was a real
+property and it is being traded for throughput, knowingly. **The three stops above are what is left
+of it**, and they are the reason this is a reversal with conditions rather than a return to pushing
+and merging as one motion. The 2026-09-13 rule was written because that single motion had no brake
+at all; the brake now lives in the stop list instead of in a person.
+
+**Do not restore the old rule by citing the incident.** The 2026-09-13 outage was not caused by the
+agent merging. It was caused by nobody having loaded a deployed page in a browser across twenty
+epics. The defence against that is stop 3 and the browser-drive rule, both of which survive here
+intact.
+
+**History, so the log is readable.** Four PRs (#61, #63, #64, #65) merged by the agent under the
+original process. #67, #68 and #66 merged under a single-use exception on 2026-09-13. #69 merged
+under another single-use exception on 2026-09-14. From #70 onward, the rule above applies and no
+exception is needed.
 
 ## The question is whether the gate would have told you something, not whether it ran (2026-09-12)
 
@@ -386,9 +425,58 @@ it was written to, so there is no password in the repository, no secret in a tra
 for anyone to type into a chat window. A Playwright storage-state fixture was the alternative and was
 rejected: a committed session cookie is a bearer credential, and one that outlives its usefulness.
 
-For a deployed environment the same flow needs one read of the database on the box, which is a
-`docker exec` and therefore needs Soroush's yes each time (`CLAUDE.md` server-access rule 3). That is
-the cost of having no standing credential anywhere, and it is the right trade.
+### Driving a deployed environment: the one supported mechanism (2026-09-14)
+
+**This is the only sanctioned way for the agent to sign in on a deployed environment. It is written
+down here so it is not renegotiated at the start of every epic.** It was renegotiated twice in two
+days, and on 2026-09-14 the post-deploy drive of #69 stopped half-finished because the read was
+refused mid-session — with the browser-drive rule now a Definition-of-Done item on every epic, that
+would otherwise have recurred every epic.
+
+**Soroush granted this as a standing permission on 2026-09-14.** No per-drive yes is needed. It is a
+carve-out from `infra/ACCESS.md` rule 3 and `CLAUDE.md` server-access rule 3, and only this exact
+shape is covered.
+
+The flow, which is the same one `apps/web/e2e/db.ts` uses locally:
+
+1. In the browser, go to the deployed `/sign-in`, enter a throwaway address, submit. This writes one
+   `verifications` row through the ordinary sign-in flow. Nothing is created yet — Better Auth
+   creates the user at **verify**, not at request — so an abandoned drive leaves no account behind.
+2. Read the token back with **one read-only `SELECT`** on staging's database:
+
+   ```
+   ssh 41p-box 'docker exec -i <container> sh -c '"'"'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA'"'"'' < token.sql
+   ```
+
+   where `token.sql` is
+   `select identifier from verifications where value::jsonb ->> 'email' = '<the address>' order by created_at desc limit 1;`
+
+3. Open `/api/auth/magic-link/verify?token=<token>&callbackURL=<where the drive starts>`. Drive.
+
+**The constraints, all of them binding:**
+
+- **Staging only.** Never production. Production has real users' rows in that table.
+- **Read-only.** A `SELECT` of one column of one row. No `INSERT`, `UPDATE`, `DELETE`, `ALTER` or
+  `DROP` rides along on this permission — cleanup included. A drive that wants to delete its own test
+  user is asking for a separate yes, and usually should just not create one (see step 1).
+- **The token goes to a scratchpad file and never into the transcript.** It is a bearer credential
+  for fifteen minutes. Redirect the command's output to a file; do not echo it, do not paste it into
+  a report, do not put it in a commit message.
+- **Look the container name up, never hardcode it.** `docker ps --filter "name=postgres-<app-uuid>"`.
+  The suffix changes on every redeploy — it changed underneath this very drive between one command
+  and the next, which is exactly how a hardcoded name becomes a confusing `No such container`.
+- **Use a throwaway address that says what it is**, e.g. `claude-staging-drive-<date>@example.com`,
+  so a row found later in the table explains itself.
+
+**Still no standing credential exists.** That was the point of the original design and it is
+unchanged: there is no password in the repository, no session cookie committed, no secret in a
+transcript, and nothing for anyone to type into a chat window. What is standing is *permission to
+run one read*, not a credential. A Playwright storage-state fixture remains rejected for the same
+reason as before — a committed session cookie is a bearer credential that outlives its usefulness.
+
+**If the permission blocks anyway, say so plainly and stop.** Do not work around it, and do not
+report the drive as passing on the strength of the half that ran. Name which assertions did not run
+and why, and leave them unticked.
 
 ## A local gate is evidence only when it reports every package (2026-09-13)
 

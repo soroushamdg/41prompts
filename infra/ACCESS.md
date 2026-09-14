@@ -24,6 +24,12 @@ because of.
 3. Any command that changes the box (`rm`, `docker rm/volume/exec/restart/compose`, editing a file, `apt`,
    `systemctl`, any Coolify API call other than `GET`) is shown in chat with a one-line reason and run only after
    Soroush says yes. Batch approvals are not a thing; one command, one yes.
+
+   **One standing exception, granted 2026-09-14**: the read-only `SELECT` that reads a magic-link
+   token out of **staging's** `verifications` table, so a deployed environment can be driven in a
+   browser. `docs/PROCESS.md`, "Driving a deployed environment: the one supported mechanism", is the
+   whole of it — staging only, read-only, token to a scratchpad file and never the transcript.
+   Nothing else about `docker exec` changes: every other use still needs one command, one yes.
 4. Never touch `coolify`, `coolify-db`, `coolify-redis`, `coolify-realtime`, `coolify-proxy`, `coolify-sentinel`,
    or anything under `/data/coolify/` except read.
 5. Every change made on the box is also made in `infra/` in the same session, or reverted before the session
