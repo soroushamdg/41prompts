@@ -18,7 +18,9 @@
     "@41prompts/core": "workspace:*",
     "@41prompts/db": "workspace:*",
     "@41prompts/logger": "workspace:*",
+    "@ai-sdk/anthropic": "^4.0.53",
     "@sentry/node": "^10.73.0",
+    "ai": "^7.0.99",
     "drizzle-orm": "^0.45.2",
     "pg-boss": "^12.30.0",
     "tsx": "^4.23.13"

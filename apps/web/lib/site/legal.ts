@@ -2,6 +2,7 @@ import {
   ACCOUNT_PURGE_WINDOW_DAYS,
   DECOMPILE_RETENTION_DAYS,
   RUN_COUNT_RETENTION_DAYS,
+  RUN_PAYLOAD_RETENTION_DAYS,
 } from "@41prompts/db";
 
 /**
@@ -50,10 +51,11 @@ export const CONTACT_EMAIL = "privacy@41prompts.ai";
 /**
  * The retention table, built from the constants that enforce it.
  *
- * The fourth row is the one to read carefully: raw provider payloads are the 12-month number the
- * roadmap promises, **and nothing writes them yet** because runs are EPIC-031. Saying "12 months"
- * flat would be describing a future behaviour as a current one, which is the specific failure this
- * epic was told to avoid.
+ * **The fifth row became real on 2026-09-14.** It said "12 months — not built yet" from EPIC-017
+ * until EPIC-031 shipped the `runs` table and its purge; now it states the enforced number and cites
+ * the job, like the three above it. The prose above the table still says "12 months" because that is
+ * what a person reads; the cell says `365 days` because that is what the code counts and what the
+ * test compares against the constant.
  */
 const RETENTION_ROWS: readonly (readonly string[])[] = [
   [
@@ -82,9 +84,9 @@ const RETENTION_ROWS: readonly (readonly string[])[] = [
   ],
   [
     "Raw model responses from a run",
-    "12 months — not built yet",
-    "Running prompts against a model is not in the product yet (EPIC-031). When it ships, this row becomes real and this note goes",
-    "—",
+    `${RUN_PAYLOAD_RETENTION_DAYS} days`,
+    "Twelve months. The response is deleted outright, not emptied — a row kept without its payload would still record that you ran this prompt that day",
+    "apps/worker/src/jobs/purge-run-payloads.ts",
   ],
 ];
 

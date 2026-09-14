@@ -247,7 +247,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
-| EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | todo |
+| EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | done |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | todo |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | todo |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
@@ -271,6 +271,24 @@ share of real expected bloks, which is honest and is also a lot of unchecked rul
 **No browser drive, and that is not a skipped criterion**: the epic ships no route, no component and
 no user-visible string. Its report says so in §11 rather than leaving an unticked box that reads like
 an omission.
+
+**EPIC-031 is done, 2026-09-14**, in two PRs: the retention and purge work first, then everything the
+four rulings settled.
+
+**It closed a promise the privacy page already made.** That page's retention row said "12 months —
+not built yet" from EPIC-017; it now states `365 days` and cites the job that enforces it, and the
+test that asserted the placeholder is inverted — the one place in the codebase where that inversion
+was planned in advance rather than discovered.
+
+**The money rules, because they are the ones a later epic will want to bend.** Reserve the worst case
+before a call and release the overshoot after, because a cap any single call can blow is not a cap. An
+unpriced model does not run, because reserving against a price you do not have is not a reservation. A
+cache hit spends nothing. Hitting the cap keeps the work already done. And at the cap the answer is
+**refuse**, not queue — *a queue that never drains is an outage that looks like patience*.
+
+**Two things handed to EPIC-032**, both in its file rather than only in a report: the
+`fullyChecked: false` sentence from EPIC-030, and — from this epic — that the cost shown to a user
+must say what it counts, because a re-run is free and the number stops matching what they ran.
 
 ## Stage 4 · Versions and three providers
 
