@@ -657,6 +657,13 @@ and 5. `--allow-dirty` runs anyway and says in the summary that those files were
 It refuses to start at all if Docker or `uv` is missing, rather than running thirteen gates out of
 fifteen. A run missing a gate is the failure this whole file is about.
 
+**And it found one thing about itself on the first real run.** Docker was purged from under a live
+e2e suite — image, container and volumes all gone — and 178 passing tests became `ECONNREFUSED
+127.0.0.1:55433`, reported as a plain `pnpm e2e` FAIL. That is precisely the confusion this file's
+`PARTIAL` verdict exists to prevent, reintroduced by a new gate. CI mode now probes the container
+after **every** step and, if it has gone, says on the row and again in the summary that the run is
+not a result. An environment event must never be readable as a code failure.
+
 **Proved rather than asserted.** `node scripts/gates.mjs ci --ref 7c20987 --only install,mirror-dry-run`
 reproduces failure 1 above on the commit it actually happened on — the same
 `ENOENT … /mirror/apps/worker/src/runs/execute.ts`, exit 1, in 43 seconds. `pnpm test`, `pnpm typecheck`

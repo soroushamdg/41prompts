@@ -101,6 +101,13 @@ function startDatabase(name = CONTAINER, port = PG_PORT) {
 
 const stopDatabase = (name = CONTAINER) => quiet("docker", ["rm", "-f", name]);
 
+// Is the container still there? Asked after **every** CI-mode step, because a database that
+// disappears mid-run makes an environment event look exactly like a code failure — the confusion
+// this whole script exists to remove. It happened on the first verification run of CI mode itself:
+// Docker was purged from under a live e2e suite and 178 passing tests became `ECONNREFUSED`.
+const databaseAlive = (name) =>
+  quiet("docker", ["inspect", "-f", "{{.State.Running}}", name]).out.trim() === "true";
+
 // --- CI mode: a clean checkout, a frozen install, a cold cache, CI's own order -------------------
 //
 // ## The defect this fixes
@@ -312,6 +319,7 @@ function runCi() {
   const began = Date.now();
   const rows = [];
   let startedContainer = false;
+  let databaseVanished = false;
 
   try {
     // --- the clean checkout ------------------------------------------------------------------------
@@ -378,6 +386,12 @@ function runCi() {
         const skipped = readFileSync(logFile, "utf-8").match(/(\d+) skipped/);
         if (skipped) row.note = amber(`${skipped[1]} test(s) skipped on ${process.platform}`);
       }
+      // A vanished database is not a verdict on the code. Say so on the row and again in the
+      // summary, rather than letting the step read as the failure it looks like.
+      if (!databaseAlive(CI_CONTAINER)) {
+        databaseVanished = true;
+        row.note = red("the throwaway database is gone — this step is not a verdict on the code");
+      }
       rows.push(row);
       if (!row.ok && failFast) stopped = true;
     }
@@ -410,6 +424,14 @@ function runCi() {
       `${failed.length === 0 ? green("all passed") : red(`${failed.length} failed`)}` +
       `, ${bold(clock(elapsed))} wall`
   );
+
+  if (databaseVanished) {
+    console.log(
+      red("\n  The throwaway database disappeared during this run, so this is NOT a result.") +
+        "\n  Every step after it lost its Postgres; a failure there says nothing about the code." +
+        "\n  Check `docker system df` and Docker Desktop's disk, then run it again."
+    );
+  }
 
   // --- what a green here still does not cover -----------------------------------------------------
   const caveats = [];
