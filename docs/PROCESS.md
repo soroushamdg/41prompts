@@ -672,7 +672,9 @@ that has already happened gets reproduced from a run id, not by pushing a guess.
 
 ### What it costs, and therefore when to run it
 
-**6m30s wall, all sixteen steps green**, measured on commit `b43173f` (2026-09-14). Where it goes:
+**5m39s to 6m31s wall, all sixteen steps green**, measured four times on 2026-09-14. The variance
+is install, `reuse` and `uv` warming their own caches between runs; nothing in the gates themselves
+moves. The breakdown below is the 6m30s run, which is the one to plan against:
 
 | step | | step | |
 |---|---|---|---|
@@ -688,13 +690,13 @@ that has already happened gets reproduced from a run id, not by pushing a guess.
 Two steps are 57% of it — `pnpm e2e` and the cold build inside `pnpm typecheck` — and neither can
 be cut without giving up the thing the mode is for.
 
-**So it is the default before a push.** That is a decision, not a reading of the clock: 6m30s is
-ninety seconds over the five minutes that would have made it automatic without argument. Three
-things settle it the other way.
+**So it is the default before a push.** That is a decision, not a reading of the clock: the fast
+end is forty seconds over the five minutes that would have made it automatic without argument and
+the slow end is ninety. Three things settle it the other way.
 
 - **It is cheaper than being wrong.** A red PR costs a `ci` run, a fix, a push, and a second `ci`
-  run. One of those runs alone is six to ten billed minutes; 6m30s of local wall time is less than
-  half of the pair, and it is not billed.
+  run. One of those runs alone is six to ten billed minutes; six minutes of local wall time is less
+  than half of the pair, and it is not billed.
 - **It is faster than CI.** Serial, on one machine, it finishes inside what CI's `ci` job takes by
   itself — because it skips the checkout, the toolchain setup and the browser download that a runner
   pays for every time.
@@ -705,8 +707,8 @@ things settle it the other way.
 **And the 6m30s is measured on a handicapped runtime, which nobody had noticed.**
 `/usr/local/bin/node` on this machine is an **x86_64 build running under Rosetta 2 on an arm64 Mac**
 — `process.arch` reports `x64`, `uname -m` reports `arm64`, and every Next build in the run printed
-the translation warning. A native arm64 Node would very likely take a large bite out of the 1m02s
-typecheck, the 52s test and the 2m40s e2e. Unmeasured, and the cheapest single change available to
+the translation warning. A native arm64 Node would very likely take a large bite out of the ~1m
+typecheck, the ~40s test and the 2m40s e2e. Unmeasured, and the cheapest single change available to
 this number — it would also make every inner-loop gate faster, and it changes what the perf-gated
 suites are measuring.
 
