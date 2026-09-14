@@ -41,7 +41,9 @@ async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   await expect(
     page.locator(".canvas-list > li").nth(before).locator(".blok-editor-state")
   ).toHaveAttribute("data-state", "saved");
-  await page.reload();
+  // **No reload.** There was one here, and it hid BUG-021b-compiled-pane-stale from every test in
+  // this file — the pane rendered an empty span and the reload refilled it from the server.
+  // `PROCESS.md`, "A helper that normalises state hides the defect from every test that uses it".
 }
 
 /** Take a span by hand, through the pane, the way a person does. */
@@ -66,6 +68,29 @@ test.describe("the compiled pane", () => {
 
   test.describe("signed in as its owner", () => {
     test.use({ storageState: STATE_FILE });
+
+    /**
+     * **BUG-021b-compiled-pane-stale, named so nobody puts the reload back.**
+     *
+     * The span element appeared as soon as a blok was added — `addBlokAction` revalidates — and then
+     * rendered **empty**, because `saveBlokTextAction` did not. Editing the text never reached the
+     * pane either. `addBlok` reloaded, so every test in this file read a fresh server render and saw
+     * text that a person using the app would not have seen.
+     *
+     * Asserted on the text itself, not on the span count: a count of 1 was true throughout the bug.
+     */
+    test("a blok's text reaches its span without reloading the page", async ({ page }) => {
+      await newPrompt(page);
+      await addBlok(page, "context", "FIRST TEXT");
+      await expect(page.locator(".compiled-span").first()).toHaveText("FIRST TEXT");
+
+      // And a later edit to the same blok follows, which is the half a reload also hid.
+      await page.locator(".canvas-list > li").first().getByLabel("Blok text").fill("SECOND TEXT, CHANGED");
+      await expect(
+        page.locator(".canvas-list > li").first().locator(".blok-editor-state")
+      ).toHaveAttribute("data-state", "saved");
+      await expect(page.locator(".compiled-span").first()).toHaveText("SECOND TEXT, CHANGED");
+    });
 
     test("renders one element per span, each carrying its blok id and state", async ({ page }) => {
       await newPrompt(page);

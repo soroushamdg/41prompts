@@ -112,12 +112,33 @@ export async function addBlokAction(
  * **leave the typed text exactly where it is** and say so. Nothing here ever sends text back for the
  * field to adopt: a server value written into a field somebody is still typing in is how autosave
  * eats a sentence.
+ *
+ * ## Why this revalidates, when it deliberately did not
+ *
+ * This was the only write in this file without a `revalidatePath`, and that asymmetry was
+ * **BUG-022 and BUG-021b-compiled-pane-stale, which are one bug**: `addBlokAction` revalidated, so
+ * the compiled pane and the Variables tab learned that a blok *existed*; nothing revalidated when
+ * its text was saved, so they never learned what it *said*. A span rendered empty and stayed empty,
+ * and the Variables tab told people to write `{{a_name}}` in a blok immediately after they had.
+ * `apps/web/app/app/pr/[promptId]/page.tsx` computes both panels on the server from these rows, so
+ * a server render is the only thing that moves them.
+ *
+ * **It does not break the promise above, and the reason is structural rather than a resolution to be
+ * careful.** `BlokEditor` seeds its field with `useState(initialText)`, which React reads on the
+ * first render and never again, and the canvas keys its list on `blok.id`, which does not change, so
+ * the component is never remounted by a re-render. A new `initialText` arriving as a prop therefore
+ * cannot reach the textarea. The server is still told what the text is and still never tells the
+ * field.
+ *
+ * The cost is one server render per typing pause — `DEBOUNCE_MS` is 600ms, so it is per pause and
+ * not per keystroke, which is what every other action in this file already costs.
  */
 export async function saveBlokTextAction(promptId: string, blokId: string, text: string): Promise<ActionResult> {
   const owned = await ownedPrompt(promptId);
   if (owned === undefined) return REFUSED;
 
   await setBlokText(owned.db, promptId, blokId, text);
+  revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
 
