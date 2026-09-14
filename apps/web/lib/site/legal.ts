@@ -222,7 +222,7 @@ const PRIVACY: LegalDoc = {
         "The decompiler stores nothing unless you ask for a shareable link.",
         "A shared link is deleted for good after thirty days, and you can delete it sooner.",
         "We never store a visitor's IP address. We store a keyed hash of it, which cannot be turned back into an address.",
-        "Analytics are off until you allow them, and if your browser sends Do Not Track or Global Privacy Control we never turn them on.",
+        "Analytics are off until you allow them — for everyone, account or not — and if your browser sends Do Not Track or Global Privacy Control we never turn them on.",
         "We do not sell anything about you, and nothing you paste is used to train a model.",
       ],
     },
@@ -260,7 +260,7 @@ const PRIVACY: LegalDoc = {
     {
       kind: "p",
       text:
-        "One thing stated precisely rather than glossed: if you are signed in and have not yet made a choice, sign-up and sign-in events are recorded against your account id. Declining stops that too.",
+        "This applies whether or not you have an account. If you have not chosen, nothing is sent — including the record that you signed up or signed in.",
     },
 
     { kind: "h2", text: "How long it is kept" },

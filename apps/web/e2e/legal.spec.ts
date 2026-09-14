@@ -4,7 +4,22 @@ import { expect, test, type Page } from "@playwright/test";
 const CONSENT_COOKIE = "41prompts_analytics_consent";
 const PHONE = { width: 390, height: 844 };
 
-/** Where PostHog would be called, if it were called. */
+/**
+ * **What this actually proves, corrected 2026-09-14.**
+ *
+ * PostHog is called **server-side** here (`posthog-node`); there is no `posthog-js` and no
+ * client-side analytics at all. So intercepting browser traffic can never observe a capture, and the
+ * assertion below is *not* evidence that the consent gate works — it would pass even if every event
+ * fired. It was written as though it were, which is the same mistake as a test that asserts its own
+ * helper's reload.
+ *
+ * What it is genuinely worth: it fails the moment somebody adds a client-side analytics tag, which
+ * is the one way analytics could start reaching the browser and bypass the server-side gate
+ * entirely. Kept for that, named for that.
+ *
+ * **The gate itself is proved in `lib/analytics/posthog-server.test.ts` and `visitor.test.ts`**,
+ * where the capture function is mocked and "nothing was captured" is observable.
+ */
 const ANALYTICS_HOST = /i\.posthog\.com/;
 
 async function consentCookie(page: Page): Promise<string | undefined> {
@@ -48,15 +63,7 @@ test.describe("the consent banner", () => {
     await expect(banner.getByRole("button", { name: "Decline" })).toBeVisible();
   });
 
-  /**
-   * **The default, asserted as behaviour rather than as a cookie value.**
-   *
-   * `hasAnalyticsConsent` has defaulted an anonymous visitor to off since EPIC-004; what this checks
-   * is the thing a person actually cares about — that nothing reaches the analytics host while the
-   * question is still on screen. A test that only read the cookie would pass even if something fired
-   * anyway.
-   */
-  test("sends nothing to the analytics host before a choice is made", async ({ page }) => {
+  test("no analytics reaches the browser at all, so nothing can bypass the server-side gate", async ({ page }) => {
     const calls: string[] = [];
     await page.route("**/*", async (route) => {
       const url = route.request().url();
@@ -67,7 +74,7 @@ test.describe("the consent banner", () => {
     await page.goto("/");
     await page.goto("/decompile");
     await expect(page.getByRole("region", { name: "Analytics" })).toBeVisible();
-    expect(calls, "nothing should reach the analytics host before a choice").toEqual([]);
+    expect(calls, "a client-side analytics tag would bypass the server-side consent gate").toEqual([]);
     expect(await consentCookie(page), "no cookie should be written until asked").toBeUndefined();
   });
 
@@ -136,17 +143,25 @@ test.describe("the consent banner", () => {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/legal/terms");
+      // Wait for the banner to exist before measuring anything about it. It mounts from an effect,
+      // so on a slower machine the first evaluate can land before it is there.
+      await expect(page.getByRole("region", { name: "Analytics" })).toBeVisible();
+
       // Polled, not read once: the banner measures itself on mount and again through a
       // ResizeObserver, so the reservation settles a frame or two after the page does. Polling the
       // real numbers still fails if the space is never reserved — it just stops failing for timing.
+      //
+      // `-1` rather than a throw when the bar is missing: a poll whose function throws gives up
+      // instead of retrying, which is how this passed locally and failed on CI.
       await expect
         .poll(
           async () =>
             page.evaluate(() => {
-              const bar = document.querySelector(".consent") as HTMLElement;
+              const bar = document.querySelector<HTMLElement>(".consent");
+              if (!bar) return -1;
               return parseInt(getComputedStyle(document.body).paddingBottom, 10) - bar.offsetHeight;
             }),
-          { timeout: 5_000, message: `no space reserved at ${width}px` }
+          { timeout: 10_000, message: `no space reserved at ${width}px` }
         )
         .toBeGreaterThanOrEqual(0);
     }

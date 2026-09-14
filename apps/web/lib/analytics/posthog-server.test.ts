@@ -22,9 +22,19 @@ describe("hasAnalyticsConsent", () => {
     else process.env.DEPLOY_ENV = originalDeployEnv;
   });
 
-  it("allows a signed-in visitor in production with no consent cookie", () => {
+  /**
+   * **Reversed 2026-09-14, and the old assertion is quoted so the change is visible.**
+   *
+   * This test used to read `expect(hasAnalyticsConsent({ isSignedIn: true })).toBe(true)` — a
+   * signed-in user in production was counted without ever choosing. EPIC-004 decided that when
+   * there was no consent mechanism at all, so requiring a yes would have meant measuring nothing.
+   * EPIC-017 built the mechanism and the exception stopped having a reason; Soroush ruled it
+   * universal. `isSignedIn` is gone from the signature entirely.
+   */
+  it("does not count anybody in production who has not chosen, signed in or not", () => {
     process.env.DEPLOY_ENV = "production";
-    expect(hasAnalyticsConsent({ isSignedIn: true })).toBe(true);
+    expect(hasAnalyticsConsent({})).toBe(false);
+    expect(hasAnalyticsConsent({ consentCookie: undefined })).toBe(false);
   });
 
   it("does not send an anonymous production visitor to PostHog without explicit consent", () => {
@@ -34,23 +44,20 @@ describe("hasAnalyticsConsent", () => {
     // defensible whatever it does for the number — and the measurement moved to our own Postgres
     // instead, where no cookie and no third party are involved. PostHog is supplementary now.
     process.env.DEPLOY_ENV = "production";
-    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(false);
+    expect(hasAnalyticsConsent({})).toBe(false);
   });
 
   it("allows an anonymous visitor in production once consent is granted", () => {
     process.env.DEPLOY_ENV = "production";
-    expect(hasAnalyticsConsent({ isSignedIn: false, consentCookie: "granted" })).toBe(true);
+    expect(hasAnalyticsConsent({ consentCookie: "granted" })).toBe(true);
   });
 
   it("does not count a visitor who declines, anywhere, however they say it", () => {
     for (const env of ["production", "staging"]) {
       process.env.DEPLOY_ENV = env;
-      expect(hasAnalyticsConsent({ isSignedIn: false, doNotTrack: "1" }), `DNT in ${env}`).toBe(false);
-      expect(hasAnalyticsConsent({ isSignedIn: false, globalPrivacyControl: "1" }), `GPC in ${env}`).toBe(false);
-      expect(hasAnalyticsConsent({ isSignedIn: false, consentCookie: "denied" }), `cookie in ${env}`).toBe(false);
-      // Declining outranks being signed in. A setting that only applies to logged-out people is not
-      // a setting anybody can trust.
-      expect(hasAnalyticsConsent({ isSignedIn: true, doNotTrack: "1" }), `signed in, DNT, ${env}`).toBe(false);
+      expect(hasAnalyticsConsent({ doNotTrack: "1" }), `DNT in ${env}`).toBe(false);
+      expect(hasAnalyticsConsent({ globalPrivacyControl: "1" }), `GPC in ${env}`).toBe(false);
+      expect(hasAnalyticsConsent({ consentCookie: "denied" }), `cookie in ${env}`).toBe(false);
     }
   });
 
@@ -58,7 +65,7 @@ describe("hasAnalyticsConsent", () => {
     process.env.DEPLOY_ENV = "production";
     // Browsers send "0" for "tracking is fine" and browsers that have never been asked send nothing.
     // Neither is a *decline*, so neither should block a visitor who has separately said yes.
-    const granted = { isSignedIn: false, consentCookie: "granted" };
+    const granted = { consentCookie: "granted" };
     expect(hasAnalyticsConsent({ ...granted, doNotTrack: "0" })).toBe(true);
     expect(hasAnalyticsConsent({ ...granted, doNotTrack: null })).toBe(true);
     expect(hasAnalyticsConsent({ ...granted, globalPrivacyControl: null })).toBe(true);
@@ -66,11 +73,11 @@ describe("hasAnalyticsConsent", () => {
 
   it("allows an anonymous visitor outside production regardless of consent", () => {
     process.env.DEPLOY_ENV = "staging";
-    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(true);
+    expect(hasAnalyticsConsent({})).toBe(true);
   });
 
   it("defaults to allowed when DEPLOY_ENV is unset (local dev)", () => {
     delete process.env.DEPLOY_ENV;
-    expect(hasAnalyticsConsent({ isSignedIn: false })).toBe(true);
+    expect(hasAnalyticsConsent({})).toBe(true);
   });
 });

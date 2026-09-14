@@ -42,17 +42,29 @@ function getClient(): PostHog | undefined {
  * - **`DNT: 1`** — a browser-level "do not track", respected even though it is advisory.
  * - **`Sec-GPC: 1`** — Global Privacy Control, the one with actual legal weight in some
  *   jurisdictions, and the one a 2026 browser is more likely to send.
- * - **A consent cookie set to anything but `granted`** — EPIC-017's banner writes this; until it
- *   exists nobody has one, which is the whole point of the default.
+ * - **A consent cookie set to anything but `granted`** — EPIC-017's banner writes this.
  *
+ * ## Consent is universal, from 2026-09-14 — and this reverses part of EPIC-004
+ *
+ * **A signed-in user who has never chosen is no longer counted.** EPIC-004 granted for a signed-in
+ * user in production without a cookie, and that decision was made when there was no consent
+ * mechanism at all: there was no way for anyone to say yes, so requiring a yes would have meant
+ * measuring nothing. EPIC-017 built the mechanism, and the exception stopped having a reason.
+ *
+ * It is written here rather than left as a diff because it is a **reversal, not drift**. What
+ * settled it: EPIC-017's privacy page says declining stops everything, and a privacy page that
+ * describes a rule the code does not follow is the precise inaccuracy that epic's retention work
+ * existed to avoid. Soroush's ruling, 2026-09-14.
+ *
+ * `isSignedIn` is gone from the signature rather than kept and ignored, so nobody reads a parameter
+ * that no longer decides anything.
  */
 export function hasAnalyticsConsent(options: {
-  isSignedIn: boolean;
   consentCookie?: string;
   doNotTrack?: string | null;
   globalPrivacyControl?: string | null;
 }): boolean {
-  // Declining wins everywhere, including outside production and including for a signed-in user.
+  // Declining wins everywhere, including outside production.
   // A setting that only applies in some environments is not a setting anybody can trust.
   if (options.doNotTrack === "1" || options.globalPrivacyControl === "1") {
     return false;
@@ -65,11 +77,8 @@ export function hasAnalyticsConsent(options: {
   if (deployEnv !== "production") {
     return true;
   }
-  if (options.isSignedIn) {
-    return true;
-  }
-  // **Explicit consent, and nothing less.** An anonymous visitor who has not said yes is not sent to
-  // PostHog at all. See the note above for why the opposite default lasted less than a day.
+  // **Explicit consent, and nothing less, from anybody.** See the note above for why the opposite
+  // default lasted less than a day, and why the signed-in exception did not survive having a banner.
   return options.consentCookie === "granted";
 }
 
