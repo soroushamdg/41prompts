@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { compile } from "@41prompts/core";
+import { toDisplayText } from "@/lib/site/display-text";
 import { deleteTestUser, latestMagicLinkTokenFor } from "./db";
 
 const PHONE = { width: 375, height: 812 };
@@ -107,6 +109,56 @@ test.describe("the compiled pane", () => {
       await addBlok(page, "expected", "Returns valid JSON.");
       await expect(page.locator(".compiled-span")).toHaveCount(2);
     });
+
+    /**
+     * **Offsets map to the DOM, asserted where the criterion says: on the highlight.**
+     *
+     * `lib/canvas/compiled-view.test.ts` already runs these four shapes, and it asserts the *view
+     * model* — `piece.text`. That is a different claim from "the highlighted characters are exactly
+     * the span", which is about what a rendered, pinned element actually contains. EPIC-013 got
+     * offset mapping wrong twice, in opposite directions, and both times the model was right.
+     *
+     * **What the CRLF row here does and does not cover, measured rather than assumed.** A
+     * `<textarea>` normalises `\r\n` to `\n` in its value — checked, not guessed — so **raw CRLF
+     * cannot reach a blok through the UI at all**; this row exercises the multi-line shape and the
+     * separator boundary, which is the part the pane can get wrong. A blok holding a real `\r\n`
+     * arrives by import, and that path is covered at the model level in
+     * `lib/canvas/compiled-view.test.ts` plus `toDisplayText`'s own tests. Saying so here because a
+     * fixture named "CRLF" that silently tests LF is exactly the kind of quiet over-claim this
+     * epic's own notes warn about.
+     *
+     * The expected value is therefore derived from what the field reports, not from the literal
+     * typed above, and compared in DOM space through the one shared `toDisplayText`.
+     */
+    for (const [name, text] of [
+      ["CRLF", "One.\r\nTwo.\r\nThree."],
+      ["tabs and a trailing space", "\tIndented\tcolumns \nand a trailing space "],
+      ["emoji with combining marks and ZWJ", "Ship it 🚀 — Café, é and 👩‍💻 all intact."],
+      ["RTL", "مرحبا bidi عربى mixed with Latin."],
+    ] as const) {
+      test(`a pinned span of ${name} text highlights exactly its own characters`, async ({ page }) => {
+        await newPrompt(page);
+        await addBlok(page, "context", "BEFORE.");
+        await addBlok(page, "context", text);
+        await addBlok(page, "context", "AFTER.");
+
+        // What the field holds after the browser has had it — the blok's text as stored.
+        const stored = await page.locator(".canvas-list > li").nth(1).getByLabel("Blok text").inputValue();
+
+        const span = page.locator(".compiled-span").nth(1);
+        await span.click();
+        await expect(span).toHaveAttribute("data-pinned", "true");
+
+        // Exactly this blok's characters: not a character more, not one fewer.
+        expect(await span.evaluate((el) => el.textContent)).toBe(toDisplayText(stored));
+        // And it has not swallowed a neighbour or the separator between them.
+        expect(await span.evaluate((el) => el.textContent)).not.toContain("BEFORE.");
+        expect(await span.evaluate((el) => el.textContent)).not.toContain("AFTER.");
+        await expect(page.locator(".compiled-span")).toHaveCount(3);
+        // The pin is on one span alone, which is what makes "the highlighted characters" a set.
+        await expect(page.locator('.compiled-span[data-pinned="true"]')).toHaveCount(1);
+      });
+    }
 
     test.describe("linking", () => {
       test("hovering a span surfaces its card", async ({ page }) => {
@@ -257,8 +309,16 @@ test.describe("the compiled pane", () => {
       await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
 
       const copied = await page.evaluate(() => navigator.clipboard.readText());
-      // Byte for byte against what compile() produces: blok text, blank line, blok text, blank line.
-      expect(copied).toBe("You route inbound support email.\n\nReply in at most 80 words.\n\n");
+      // **Against `compile()`, not against a literal.** The criterion asks for byte-identity with
+      // what the model would receive, and only `compile()` knows that. A hardcoded `"…\n\n…\n\n"`
+      // asserts today's `BLOK_SEPARATOR` — which has already changed once (`compile@2`, 2026-09-12)
+      // — so it would have gone green on a prompt the model no longer receives. PROCESS.md, "a
+      // helper that normalises state": the same failure, wearing a literal instead of a reload.
+      const expected = compile([
+        { id: "a", kind: "context", text: "You route inbound support email.", order: 10 },
+        { id: "b", kind: "constraint", text: "Reply in at most 80 words.", order: 20 },
+      ]).text;
+      expect(copied).toBe(expected);
     });
 
     test.describe("accessibility", () => {

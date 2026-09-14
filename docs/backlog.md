@@ -148,7 +148,7 @@ met.
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
 | EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, empty states; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
-| EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | current |
+| EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | built — awaiting a ruling on state 4, report §6.1 |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — hand-drive failed, see BUG-022 |
 
 **The staging hand-drives are done, 2026-09-14, and the agent did them.** All three Stage 2 rows that
@@ -205,6 +205,18 @@ assertion on it in `page.test.tsx`, `BLOK_SEPARATOR` moved to a single newline t
 what the pane does when a blok is **added** to a prompt with hand-edited spans — no answer exists in
 the model on purpose, and getting it wrong loses somebody's typing silently — and the fact that the
 mockup's single banner can express only one of the two states the model distinguishes.
+
+**EPIC-021b is built and not `done`, deliberately.** Every criterion is met and evidenced
+(`docs/epics/reports/EPIC-021b-report.md` §2) except one, which is **split rather than ticked**: the
+staging drive happened and is screenshotted, but it shows **three** of the four states because the
+fourth is not reachable in the running product. `page.tsx` recompiles every non-hand-edited span on
+each render, so an "out of date" span is `in-step` by construction; it was proved on staging, not
+reasoned about.
+
+`PROCESS.md` is explicit that a row marked `done` with an unticked criterion is the "ticked on the
+intention" failure arriving through the backlog, so this row says what it is waiting for — a ruling
+on whether the pane keeps a state Stage 4 will reach, or the criterion is amended to say three. It
+flips to `done` when that is answered, and nothing is blocked on it in the meantime.
 
 ## Stage 3 · Checks and runs, one provider
 
@@ -272,10 +284,17 @@ keys — 24 hours. P1 a broken acceptance criterion — before the next epic sta
 
 | ID | Bug | P | Found | Status |
 |---|---|---|---|---|
-| BUG-022-variables-stale-until-reload | The Variables tab does not see a `{{placeholder}}` typed into a blok until the page is reloaded | P1 | 2026-09-14 staging hand-drive | todo |
-| BUG-021b-compiled-pane-stale | A blok's span renders **empty** in the compiled pane until the page is reloaded; editing a blok's text never reaches the pane | P1 | 2026-09-14 helper audit | todo |
-| BUG-069-app-chrome-wraps-below-414px | The signed-in header wraps to two rows below 414px and `Account` sits flush against the right edge with no gutter | P2 | 2026-09-14 staging hand-drive | todo |
-| BUG-002-account-page-unstyled | `/app/account` is a bare `<main>` with no container class; the body renders flush to the left edge | P2 | 2026-09-14 staging hand-drive | todo |
+| BUG-022-variables-stale-until-reload | The Variables tab does not see a `{{placeholder}}` typed into a blok until the page is reloaded | P1 | 2026-09-14 staging hand-drive | **fixed** — #73 |
+| BUG-021b-compiled-pane-stale | A blok's span renders **empty** in the compiled pane until the page is reloaded; editing a blok's text never reaches the pane | P1 | 2026-09-14 helper audit | **fixed** — #73, same one line |
+| BUG-069-app-chrome-wraps-below-414px | The signed-in header wraps to two rows below 414px and `Account` sits flush against the right edge with no gutter | P2 | 2026-09-14 staging hand-drive | **fixed** — #74 |
+| BUG-002-account-page-unstyled | `/app/account` is a bare `<main>` with no container class; the body renders flush to the left edge | P2 | 2026-09-14 staging hand-drive | **fixed** — #74, with `/app/account/delete` |
+
+**All four were fixed on 2026-09-14, in two PRs, and the two P1s turned out to be one line.**
+`saveBlokTextAction` was the only write in `lib/canvas/actions.ts` without a `revalidatePath`, so the
+compiled pane and the Variables tab learned that a blok *existed* and never learned what it *said*.
+Both reloads came out of the e2e helpers **first**, so the suites failed on the real defect before
+anything was fixed, and two named regression tests were each proved to fail without it. Rows are kept
+rather than deleted so the shape stays findable; what follows is what they were.
 
 **BUG-022 is the P1 and the only one that breaks a criterion.** Typing `{{customer}}` into a blok,
 waiting for `Saved`, and opening **Variables** shows *"Nothing declared yet. Write `{{a_name}}` in a
