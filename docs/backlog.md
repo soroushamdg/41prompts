@@ -147,7 +147,7 @@ met.
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
-| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
+| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, empty states; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
 | EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | current |
 | EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — hand-drive failed, see BUG-022 |
 
@@ -173,14 +173,14 @@ open — the staging deploy and its screenshots — was driven on 2026-09-14: cr
 prompt, add four bloks of four kinds, reorder, edit, delete, undo the delete, reload and find all of
 it still there, at 1440px and at 390px. Every step passed.
 
-**One thing the drive turned up that is not a 021a defect**, recorded so it is not rediscovered: this
-row's title and `roadmap.md`'s task line both say "seeded starter bloks for a new prompt (three
-templates) so the blank canvas never appears", and a new prompt on staging opens with **zero** bloks.
-That is not a miss — `EPIC-021a-canvas.md`'s Scope says `packages/db`: "a seed script" and
-`apps/web`: "empty states from the illustration system", which is what was built and what the canvas
-shows. The roadmap's task line was narrowed when the epic was written and the narrowing was never
-reflected back. Either the roadmap line is stale or per-prompt seeding is still owed; it needs a
-ruling rather than a silent reading.
+**Seeded starter bloks were never owed — ruled 2026-09-14, and this row's title is corrected to say
+"empty states".** The 2026-09-14 hand-drive found a new prompt opening with zero bloks and read it
+against this row's old title, which promised three starter templates. `EPIC-021a-canvas.md`'s Scope
+had already narrowed that to a seed script plus empty states, and empty states is what shipped.
+Soroush's ruling: not owed, because "No projects yet. The first one is where a prompt lives" does the
+job **without fabricating someone's content** — which matters on a product whose claim is that a blok
+holds your verbatim text. `roadmap.md`'s task line is struck through with the date rather than
+deleted, so the retired promise stays visible.
 
 Decision 5 — a hand edit surviving an unrelated blok being added — is resolved structurally: the hand
 edit lives on the blok row, so adding a blok is one INSERT that writes no other row. Both tests are
@@ -273,6 +273,7 @@ keys — 24 hours. P1 a broken acceptance criterion — before the next epic sta
 | ID | Bug | P | Found | Status |
 |---|---|---|---|---|
 | BUG-022-variables-stale-until-reload | The Variables tab does not see a `{{placeholder}}` typed into a blok until the page is reloaded | P1 | 2026-09-14 staging hand-drive | todo |
+| BUG-021b-compiled-pane-stale | A blok's span renders **empty** in the compiled pane until the page is reloaded; editing a blok's text never reaches the pane | P1 | 2026-09-14 helper audit | todo |
 | BUG-069-app-chrome-wraps-below-414px | The signed-in header wraps to two rows below 414px and `Account` sits flush against the right edge with no gutter | P2 | 2026-09-14 staging hand-drive | todo |
 | BUG-002-account-page-unstyled | `/app/account` is a bare `<main>` with no container class; the body renders flush to the left edge | P2 | 2026-09-14 staging hand-drive | todo |
 
@@ -291,6 +292,18 @@ one thing that hides it, as a convenience, in a helper. This is the same shape a
 failure `PROCESS.md` already records: not a missing test, but a test that cannot observe the bug. The
 fix needs the helper's reload removed, or a test that deliberately does not reload, before the
 behaviour is changed.
+
+**BUG-021b was found by the helper audit, not by driving**, and it is almost certainly the same bug
+as BUG-022. Measured on staging: add a blok, type `FIRST TEXT`, wait for `Saved` — the compiled pane
+shows **one span with no text in it**. Change the text to `SECOND TEXT, CHANGED` — still empty.
+Reload — the text appears. Add a second blok — the first span now has its text (it came from the
+server render) and the **new** span is empty. So the pane learns that a blok exists and never learns
+what it says.
+
+`apps/web/e2e/compiled-pane.spec.ts`'s `addBlok` ends with `await page.reload()`, exactly as
+`variables.spec.ts`'s does, so no test in that file could see it either. Two helpers written the same
+way in the same week, hiding what is probably one defect in how autosaved state reaches the rest of
+the workbench. **Fix them together and remove both reloads first**, per `PROCESS.md`'s helper rule.
 
 **BUG-069 came from the change that fixed the dead end**, and is recorded against the PR rather than
 an epic because that is where the chrome was added — `apps/web/app/app/layout.tsx`. Measured on
