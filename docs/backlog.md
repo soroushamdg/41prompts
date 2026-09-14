@@ -26,6 +26,7 @@ Stages ship in order. Nothing in a later stage starts until the stage before has
 | EPIC-009 | Actions budget: image builds move off `main` to `v*` tags only, staging builds on the box again, tags become releases, measured budget in the runbook | S | 008 | done — two criteria carried, see report §13 |
 | EPIC-006b | Zero-downtime container replacement on staging: close the ~25 s apex gap on every deploy | S | 009 | deferred — not scheduled |
 | EPIC-006c | Coolify control plane not on a public hostname: `coolify.41prompts.ai` is discoverable and named throughout the repo | S | 001 | deferred — not scheduled |
+| EPIC-006d | Staging and production postgres dumps share one R2 bucket and one `postgres/` prefix: neither environment's backups are distinguishable, isolated, or safe from the other's 30-day prune | S | 001 | todo — scoped, not scheduled |
 
 **EPIC-009 is a late Stage 0 entry (2026-09-12).** EPIC-008 moved both image builds to Actions at
 6.58 billed minutes a merge; 81 builds, 73 of them from merges to `main`, helped spend **2,175 billed
@@ -69,6 +70,39 @@ token that names it, which is why it is its own row: it is a bigger change than 
 it, and doing it inside an unrelated PR would be the kind of quiet infrastructure edit that later
 turns out to have broken deploys. Renaming it does not make the old name unpublished — the history
 keeps it — so this is about the live endpoint, not about scrubbing the repository.
+
+**EPIC-006d is Stage 0 debt, scoped on 2026-09-14 and not scheduled.** Carried out of the
+2026-09-13 production incident as an open item; scope only, no fix attempted here.
+
+**What is true today.** `infra/backup.sh` writes `s3://$R2_BUCKET_BACKUPS/postgres/41p-<UTC
+timestamp>.dump`. The prefix is the literal string `postgres`, the filename carries a timestamp and
+nothing else, and **staging and production both run this same script against the same bucket**. Four
+consequences, none of them hypothetical:
+
+1. **A dump cannot be identified by its key.** `postgres/41p-20260913T030000Z.dump` does not say which
+   environment produced it. Timestamp and object size are the only clues, and the two environments
+   back up on the same schedule.
+2. **`restore.sh` takes a key and asks nothing else.** `restore.sh postgres/<key>` will restore a
+   staging dump into production, or the reverse, with no prompt and no mismatch check. The runbook's
+   restore drill (`infra/RUNBOOK.md`) picks a key from a listing that mixes both.
+3. **The 30-day prune is cross-environment.** `backup.sh` lists `--prefix "postgres/"` and deletes
+   *every* object older than the cutoff, so **the staging backup container deletes production's
+   backups** — and does so on a box where staging is the less-defended half.
+4. **Staging's R2 credentials can read and delete production's dumps.** After 2026-09-13 that is not
+   an abstract worry: eleven production environment variables were overwritten with staging's values
+   in one paste, and the incident record names that as hazard 1.
+
+**Scope of the fix, for whoever picks this up.** Separate the two, then prove it: either a distinct
+bucket per environment or — cheaper — an environment segment in the prefix (`postgres/production/`,
+`postgres/staging/`) with `backup.sh` and `restore.sh` both deriving it from `DEPLOY_ENV`, the prune
+scoped to its own prefix, separate R2 tokens whose scope stops at their own prefix, and `restore.sh`
+refusing a key from another environment rather than trusting the operator. Existing objects under the
+bare `postgres/` prefix have to be attributed and moved or re-dumped, and `infra/RUNBOOK.md`'s restore
+drill re-run afterwards, because a restore procedure nobody has executed since the change is not a
+procedure.
+
+**What is not being claimed.** Nothing is known to have been lost or cross-restored. This is an
+isolation defect found by reading the script, not an incident.
 
 ## Stage 1 · Decompiler, soft-public
 
