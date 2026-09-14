@@ -143,17 +143,25 @@ test.describe("the consent banner", () => {
     for (const width of [1280, 390]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto("/legal/terms");
+      // Wait for the banner to exist before measuring anything about it. It mounts from an effect,
+      // so on a slower machine the first evaluate can land before it is there.
+      await expect(page.getByRole("region", { name: "Analytics" })).toBeVisible();
+
       // Polled, not read once: the banner measures itself on mount and again through a
       // ResizeObserver, so the reservation settles a frame or two after the page does. Polling the
       // real numbers still fails if the space is never reserved — it just stops failing for timing.
+      //
+      // `-1` rather than a throw when the bar is missing: a poll whose function throws gives up
+      // instead of retrying, which is how this passed locally and failed on CI.
       await expect
         .poll(
           async () =>
             page.evaluate(() => {
-              const bar = document.querySelector(".consent") as HTMLElement;
+              const bar = document.querySelector<HTMLElement>(".consent");
+              if (!bar) return -1;
               return parseInt(getComputedStyle(document.body).paddingBottom, 10) - bar.offsetHeight;
             }),
-          { timeout: 5_000, message: `no space reserved at ${width}px` }
+          { timeout: 10_000, message: `no space reserved at ${width}px` }
         )
         .toBeGreaterThanOrEqual(0);
     }
