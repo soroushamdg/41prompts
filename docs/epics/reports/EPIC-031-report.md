@@ -190,6 +190,23 @@ and what would break it — if a part ever becomes text a person wrote, length-p
 **So: one real defect, one fragile-by-accident, three already correct** — two of which carry comments
 stating the rule. The rule was known in this repo before EPIC-031 and the new code did not follow it.
 
+### The audit above was incomplete, and the gate found the gap
+
+**Corrected 2026-09-14.** Turning this finding into a test
+(`packages/core/src/key-collision.test.ts`) meant scanning for key builders rather than recalling
+them, and the scan immediately found **a seventh site the hand audit missed**:
+`packages/core/src/compile/checks.ts` · `checkFor`, which builds a check id from the blok id and the
+blok text.
+
+It is **safe** — the blok id is `blok_` plus hex and the text is length-prefixed — so nothing was
+wrong. What was wrong is that a careful manual pass over a small repository, done immediately after
+finding this exact class of bug and while looking for exactly this shape, still missed one of seven.
+
+That is the argument for the gate rather than the comment, made better by accident than the finding
+itself made it. The table above is left as it was written, with this correction under it, because
+"the audit was complete" and "the audit missed one" are different claims and only one of them is
+true.
+
 ## 6. Verification
 
 ```
