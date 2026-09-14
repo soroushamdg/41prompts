@@ -147,24 +147,40 @@ met.
 |---|---|---|---|---|
 | EPIC-090 | research: clickable prototype study; override mental model, canvas at 60+ bloks, Draft/Live/Versions vocabulary | S | 084 | todo |
 | EPIC-020 | core: blok model, per-blok compiler, span cache by content hash, edited-by-hand spans + drift, artifact schema v0 | M | 011b | done |
-| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | built — awaiting the staging hand-drive |
+| EPIC-021a | web: project + prompt CRUD, canvas with blok cards, add/edit/reorder/delete, seeded starter bloks; blok category colour (from EPIC-020) | M | 020, 003, 002 | done |
 | EPIC-021b | web: compiled pane, span linking, hand-edited spans, drift, update from blok, copy | M | 021a, 003 | current |
-| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — awaiting the staging hand-drive |
+| EPIC-022 | Variables: `{{placeholder}}` extraction into a typed schema; validation | S | 020 | built — hand-drive failed, see BUG-022 |
 
-**Two Stage 2 rows read as in-flight, and that is not two epics being built at once.** EPIC-021a is
-finished and merged; its status says `built — awaiting the staging hand-drive` because one criterion
-needs a person to sign in to staging and look, which nothing here can do (its report §7 explains
-why). EPIC-021b is the epic actually being worked on. When Soroush reports on staging, 021a's last
-criterion is ticked and its row becomes `done`.
+**The staging hand-drives are done, 2026-09-14, and the agent did them.** All three Stage 2 rows that
+were waiting on "a person to sign in to staging and look" have been driven on
+`app.staging.41prompts.ai` at `e5fa776`, by the mechanism `PROCESS.md` now records under "Driving a
+deployed environment". EPIC-021a passed and is `done`. EPIC-021b's shipped behaviour drove clean but
+the epic itself is unfinished (see below). EPIC-022 **failed** — BUG-022 below. Results and
+screenshots: `docs/epics/sessions/2026-09-14-session.md` §6 and
+`docs/epics/reports/screenshots/stage2-staging-drive/`.
+
+EPIC-021a's report §7 said the driven-by-hand half "is a human step and is not done" and that "there
+is no read-only path from this machine to a staging session". That was true when it was written and
+is no longer: the path is one read-only `SELECT` of the magic-link token, granted as a standing
+permission on 2026-09-14.
 
 Its row title also drops "override" and "eject" for "hand-edited spans" and "update from blok":
 ADR-003 replaced the first and the second is not in EPIC-021b's scope. Its `Depends` loses 090, which
 is `todo` and gated behind the cancelled EPIC-084 — the epic file names only 021a and 003.
 
-**EPIC-021a is built and its report is written** (`docs/epics/reports/EPIC-021a-report.md`). It stays
-`current` rather than `done` for one reason, stated plainly: **the staging deploy and its screenshots
-have not happened.** Staging tracks `main`, so that step can only follow the merge, and the criterion
-is left unticked rather than ticked on the intention.
+**EPIC-021a is `done`** (`docs/epics/reports/EPIC-021a-report.md`). The one criterion it was holding
+open — the staging deploy and its screenshots — was driven on 2026-09-14: create a project, create a
+prompt, add four bloks of four kinds, reorder, edit, delete, undo the delete, reload and find all of
+it still there, at 1440px and at 390px. Every step passed.
+
+**One thing the drive turned up that is not a 021a defect**, recorded so it is not rediscovered: this
+row's title and `roadmap.md`'s task line both say "seeded starter bloks for a new prompt (three
+templates) so the blank canvas never appears", and a new prompt on staging opens with **zero** bloks.
+That is not a miss — `EPIC-021a-canvas.md`'s Scope says `packages/db`: "a seed script" and
+`apps/web`: "empty states from the illustration system", which is what was built and what the canvas
+shows. The roadmap's task line was narrowed when the epic was written and the narrowing was never
+reflected back. Either the roadmap line is stale or per-prompt seeding is still owed; it needs a
+ruling rather than a silent reading.
 
 Decision 5 — a hand edit surviving an unrelated blok being added — is resolved structurally: the hand
 edit lives on the blok row, so adding a blok is one INSERT that writes no other row. Both tests are
@@ -248,6 +264,47 @@ mockup's single banner can express only one of the two states the model distingu
 | EPIC-061 | Lessons 01–03 content + UI, run 5× demo, temperature control with `aria-valuetext`, sandbox unlock | M | 060 | todo |
 | EPIC-062 | Lessons 04–09 content | M | 061 | todo |
 | EPIC-063 | Companion text page per lesson, indexed and citable | S | 061 | todo |
+
+## Bugs found later
+
+`PROCESS.md`'s `BUG-<epic>-<slug>` convention, used here for the first time. P0 data loss, security or
+keys — 24 hours. P1 a broken acceptance criterion — before the next epic starts. P2 — into EPIC-900.
+
+| ID | Bug | P | Found | Status |
+|---|---|---|---|---|
+| BUG-022-variables-stale-until-reload | The Variables tab does not see a `{{placeholder}}` typed into a blok until the page is reloaded | P1 | 2026-09-14 staging hand-drive | todo |
+| BUG-069-app-chrome-wraps-below-414px | The signed-in header wraps to two rows below 414px and `Account` sits flush against the right edge with no gutter | P2 | 2026-09-14 staging hand-drive | todo |
+| BUG-002-account-page-unstyled | `/app/account` is a bare `<main>` with no container class; the body renders flush to the left edge | P2 | 2026-09-14 staging hand-drive | todo |
+
+**BUG-022 is the P1 and the only one that breaks a criterion.** Typing `{{customer}}` into a blok,
+waiting for `Saved`, and opening **Variables** shows *"Nothing declared yet. Write `{{a_name}}` in a
+blok and it will appear above."* — which is wrong, because the user just did. Reloading the page
+makes both names appear under "Used but not declared" with their use counts. Reproduced twice on
+`app.staging.41prompts.ai` at `e5fa776`, on a prompt with one `context` blok, with the compiled pane
+showing the span correctly the whole time. So the compiled pane updates live and the variables panel
+does not.
+
+**Why no gate caught it, which is the part worth keeping.** `apps/web/e2e/variables.spec.ts`'s
+`addBlok` helper ends with `await page.reload()`. Every variables test therefore reloads between
+writing the placeholder and opening the tab, so **the suite cannot fail on this defect** — it does the
+one thing that hides it, as a convenience, in a helper. This is the same shape as the `auth.spec.ts`
+failure `PROCESS.md` already records: not a missing test, but a test that cannot observe the bug. The
+fix needs the helper's reload removed, or a test that deliberately does not reload, before the
+behaviour is changed.
+
+**BUG-069 came from the change that fixed the dead end**, and is recorded against the PR rather than
+an epic because that is where the chrome was added — `apps/web/app/app/layout.tsx`. Measured on
+staging: at 768px and up the header is 36px and one row; at 414, 390 and 360px it is 70px with the
+`Sign out` form wrapped onto a second row, and `Account`'s right edge is exactly the viewport width
+(0px gutter); at 320px `Account` wraps too. There is no horizontal page scroll at any width, so it is
+untidy rather than broken — but a control touching the screen edge is a touch-target problem under
+`CLAUDE.md` rule 12, and a header that silently doubles in height is not what the mockup draws.
+
+**BUG-002 is the same class of defect as the one that opened the 2026-09-13 incident**, on a different
+route: `/app/account` renders `<main>` with no `className` while its sibling `/app/projects` uses
+`app-page`. It is reachable from the chrome on every signed-in route, so it is not obscure. Left as a
+report rather than fixed in place because there is no account screen in `docs/design/`, so what it
+should look like beyond "not flush to the edge" is a ruling, not an implementation detail.
 
 ## Ongoing
 
