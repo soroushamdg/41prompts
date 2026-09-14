@@ -12,8 +12,9 @@
 #   scripts/run-next-epic.sh --dry-run  print the pick and the exact command, invoke nothing
 #
 # Exit codes, which scripts/run-epics.sh reads:
-#   0  the epic completed, or the backlog had nothing to do, or a gate stopped us, or a
-#      BLOCKER was written, or the STOP file appeared. All of these are ordinary endings.
+#   0  the epic completed, or the backlog had nothing to do, or a gate stopped us, or the next
+#      todo row had no epic file, or a BLOCKER was written, or the STOP file appeared. All of
+#      these are ordinary endings.
 #   3  staging is not serving — an epic must not start when its browser drive cannot pass
 #   4  the run did not finish the epic after AUTONOMOUS_MAX_ATTEMPTS resumes
 #   5  the runner itself failed
@@ -136,6 +137,18 @@ if [ "$RESUMING" -eq 0 ]; then
       log "GATE REACHED: $GATE_ID — this is Soroush's decision, the loop stops here"
       printf '%s' "$PICK" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const g=JSON.parse(s).gate;console.log(`  ${g.id} — ${g.title}`);console.log("  what it requires:");for(const l of (g.criteria??"(criteria not found in docs/roadmap.md)").split("\n")) console.log(`    ${l}`)})' | tee -a "$LOG"
       outcome "gate-stop" "$GATE_ID must be decided before anything behind it starts" "$GATE_ID"
+      exit 0
+      ;;
+    unwritten)
+      # A `todo` row nobody has written an epic file for. A stop, not a skip: the row is not
+      # known to be ready and it is not known to be human-blocked either, because the file is
+      # where an epic would say so. EPIC-006 is the case — every one of its tasks needed
+      # Soroush's accounts and a payment method, and with no file nothing said so.
+      UNWRITTEN_ID="$PICK_ID"
+      log "UNWRITTEN EPIC: $UNWRITTEN_ID — $PICK_TITLE"
+      log "  an epic nobody has written is not an epic a machine should begin; the loop stops here"
+      printf '%s' "$PICK" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const r=JSON.parse(s);for(const k of r.skipped) if(k.reason!=="status done") console.log(`  skipped ${k.id} (${k.status}) — ${k.reason}`);const w=r.row;console.log(`  stage:   ${r.stage}`);console.log(`  status:  ${w.status}`);console.log(`  missing: ${w.expected}`);console.log("  to start it: write the epic file, or mark the row deferred/blocked with the reason")})' | tee -a "$LOG"
+      outcome "unwritten-epic" "$UNWRITTEN_ID is todo with no docs/epics/$UNWRITTEN_ID-*.md" "$UNWRITTEN_ID"
       exit 0
       ;;
     pick) ;;

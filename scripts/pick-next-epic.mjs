@@ -1,9 +1,10 @@
 // Picks the epic an unattended run should do next, by reading docs/backlog.md.
 //
 // The rule, from the top: walk the stage tables in document order. The first row that is
-// either a pickable `todo` or an uncleared gate decides the answer. A gate reached before a
-// todo is a full stop — GATE 3 and GATE 5 are Soroush's decisions and the epics behind them
-// are not reachable by skipping past.
+// either a pickable `todo`, an uncleared gate, or a `todo` nobody has written an epic file for
+// decides the answer. A gate reached before a todo is a full stop — GATE 3 and GATE 5 are
+// Soroush's decisions and the epics behind them are not reachable by skipping past. So is an
+// unwritten row, for the reason in `decide()`.
 //
 // Everything here is a read. Nothing in this file writes to the backlog, and nothing may:
 // CLAUDE.md's "Never touch" list covers docs/backlog.md, and the one carve-out AUTONOMOUS.md
@@ -202,6 +203,34 @@ function decide(rows, skipIds) {
       skipped.push({ id: row.id, status: row.status.raw, reason: `an open blocker — ${blocker}` });
       continue;
     }
+    // An epic nobody has written is not an epic a machine should begin.
+    //
+    // EPIC-006 is why. Its row said `todo` and no `docs/epics/EPIC-006-*.md` existed, so nothing
+    // told this picker that every one of its tasks needs Soroush's accounts and a payment method:
+    // it was picked, first row of the first stage, ahead of every epic that was actually ready.
+    //
+    // A stop rather than a skip, which is the part worth being deliberate about. A `todo` row with
+    // no file is not known to be human-blocked — it is *unknown*, and stepping over it would start
+    // a later epic on the assumption that an unwritten row was safe to leave behind. The file is
+    // where an epic says it needs a person, which is exactly what this cannot read when there is
+    // no file. Someone writes the epic, or marks the row, and the loop moves again.
+    const files = epicFilesFor(row.id);
+    if (files.length === 0) {
+      return {
+        outcome: "unwritten",
+        stage: row.stage,
+        row: {
+          id: row.id,
+          title: row.title,
+          size: row.size,
+          depends: row.depends,
+          status: row.status.raw,
+          expected: join("docs", "epics", `${row.id}-<name>.md`)
+        },
+        skipped
+      };
+    }
+
     const human = humanDependency(row.id);
     if (human) {
       skipped.push({
@@ -221,8 +250,8 @@ function decide(rows, skipIds) {
         size: row.size,
         depends: row.depends,
         status: row.status.raw,
-        files: epicFilesFor(row.id),
-        slug: slugFor(row)
+        files,
+        slug: slugFor(row, files[0])
       },
       skipped
     };
@@ -231,27 +260,14 @@ function decide(rows, skipIds) {
   return { outcome: "none", skipped };
 }
 
-// The branch name PROCESS.md asks for: `epic/xxx-name`. Derived from the epic file when one
-// exists so a resumed run lands on the branch the first run made, and from the row's title
-// otherwise.
-function slugFor(row) {
+// The branch name PROCESS.md asks for: `epic/xxx-name`, derived from the epic file so that a
+// resumed run lands on the branch the first run made. Every pick has a file — a row without one
+// stops the loop above — so there is no title-derived fallback to keep in step with this.
+function slugFor(row, file) {
   const num = row.id.replace(/^EPIC-/, "").toLowerCase();
-  const file = epicFilesFor(row.id)[0];
-  if (file) {
-    const base = file.split("/").pop().replace(/\.md$/, "");
-    const named = base.replace(new RegExp(`^${row.id}-`), "");
-    if (named) return `${num}-${named}`;
-  }
-  const words = row.title
-    .toLowerCase()
-    .split(":")[0]
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "")
-    .split("-")
-    .filter(Boolean)
-    .slice(0, 4)
-    .join("-");
-  return `${num}-${words}`;
+  const base = file.split("/").pop().replace(/\.md$/, "");
+  const named = base.replace(new RegExp(`^${row.id}-`), "");
+  return named ? `${num}-${named}` : num;
 }
 
 const skipIds = new Set(
@@ -281,7 +297,9 @@ if (process.argv.includes("--tsv")) {
       ? [result.outcome, result.epic.id, result.epic.title, result.stage, `epic/${result.epic.slug}`]
       : result.outcome === "gate"
         ? [result.outcome, result.gate.id, result.gate.title, result.stage, ""]
-        : [result.outcome, "", "", "", ""];
+        : result.outcome === "unwritten"
+          ? [result.outcome, result.row.id, result.row.title, result.stage, ""]
+          : [result.outcome, "", "", "", ""];
   process.stdout.write(fields.join("\t") + "\n");
 } else if (process.argv.includes("--json")) {
   process.stdout.write(JSON.stringify(result, null, 2) + "\n");
@@ -289,9 +307,14 @@ if (process.argv.includes("--tsv")) {
   process.stdout.write(`${result.epic.id} — ${result.epic.title}\n`);
   process.stdout.write(`stage:  ${result.stage}\n`);
   process.stdout.write(`branch: epic/${result.epic.slug}\n`);
-  process.stdout.write(`file:   ${result.epic.files[0] ?? "(none yet — the run writes it)"}\n`);
+  process.stdout.write(`file:   ${result.epic.files[0]}\n`);
 } else if (result.outcome === "gate") {
   process.stdout.write(`GATE: ${result.gate.id} — ${result.gate.title}\n`);
+} else if (result.outcome === "unwritten") {
+  process.stdout.write(`UNWRITTEN: ${result.row.id} — ${result.row.title}\n`);
+  process.stdout.write(`stage:   ${result.stage}\n`);
+  process.stdout.write(`status:  ${result.row.status}\n`);
+  process.stdout.write(`missing: ${result.row.expected}\n`);
 } else {
   process.stdout.write("No todo rows.\n");
 }

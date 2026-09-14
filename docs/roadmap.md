@@ -106,7 +106,19 @@ Two survey responses arrived before the cut and are committed at `docs/research/
 marked n=2 and not actionable. `docs/research/discovery/README.md` describes the interview process
 that was cut; it stays as the format if this is ever reopened.
 
-### EPIC-006 Namespaces and marks · S
+### EPIC-006 Namespaces and marks · S — **deferred, 2026-09-14**
+**Deferred, not cut.** Every task below needs Soroush's own accounts and a payment method: the npm,
+GitHub and PyPI registrations, `41prompts.com`, and the CIPO/USPTO/EUIPO knockout searches. He
+returns to it after the product is built.
+
+**What the deferral costs, and when.** No epic's `Depends` names 006, and three still need it:
+EPIC-056 creates the GitHub org and turns on npm and PyPI trusted publishing (and the three
+`prepublishOnly` guards below it test `GITHUB_REPOSITORY = 41prompts/41prompts`, so nothing publishes
+until that org exists), EPIC-054 publishes `fortyone-prompts` to PyPI, and EPIC-071 confirms a
+trademark filing this epic was to make. All three are behind GATE 5, so nothing is blocked before
+then — and until this is done the names stay available to whoever registers them first, which is the
+risk the epic was written to close.
+
 **Goal.** Nobody else can take the names.
 **Tasks.** Create npm org `41prompts` with 2FA required and trusted publishing; create GitHub org `41prompts`; check and register PyPI `fortyone-prompts`, and `fortyone` and `41prompts` if free (if `fortyone` is taken, the Python import becomes `fortyone_prompts` now); trademark knockout search for "41 PROMPTS", "FORTY ONE PROMPTS", "41P" on CIPO, USPTO, EUIPO/TMview; check `41prompts.com`; record results.
 **Tests.** Screenshots of ownership for each namespace in the report.
@@ -266,7 +278,17 @@ by the prototypes, and the first real test of any of them is EPIC-084's live rea
 
 **Demo.** Import Northwind, hover blok ↔ span, add a constraint blok, watch one span change, hand-edit span 4, see the banner, update from blok.
 
-### EPIC-090 research: editor prototype study · S
+### EPIC-090 research: editor prototype study · S — **deferred, 2026-09-14**
+**Deferred, not cut.** It is a study: it needs Soroush to recruit and pay 6–8 ICP engineers, and its
+input — EPIC-084's live read — is cancelled, so it would run without the numbers that were to tell it
+what to test. Stage 2 shipped without it and is complete.
+
+**What still cites it.** EPIC-021a's Tasks and Tests below (grouping and collapse, the 60-blok
+target) and EPIC-021b's Review — all three epics are `done`, so those are settled. The one live
+reference is **EPIC-040's Review, "One vocabulary for version state"**: with this deferred, the
+Draft/Live/Versions wording that EPIC-040, EPIC-041 and EPIC-055 share is a ruling from ADR-003 and
+Soroush rather than a finding from eight engineers. A decision to make, not a blocker.
+
 **Goal.** The override mental model, canvas scale and Draft/Live vocabulary tested before EPIC-021b.
 **Tasks.** Build a small clickable prototype of override → drift → update-from-blok (none exists; the mockup has no click path). Recruit 6–8 ICP engineers ($50). Script: fix a typo in the compiled pane (baseline); discover the override; predict what "Update from blok" does before clicking; on a seeded 60-blok canvas find the markdown blok, reorder it, count constraints; shown "v7 · unsaved", "Draft v7", "v7 · current", say whether they are the same thing.
 **Tests.** ≤1 of 6 stuck >30 s on "why can't I edit"; ≥5 of 6 predict the update correctly; median find-time <45 s at 60 bloks; ≥6 of 8 identify one state.
@@ -408,7 +430,8 @@ Go: proceed to EPIC-035 and Stage 4. No-go: fix-up epic (M) or a two-week onboar
 **Goal.** A version is a snapshot of the blok set; diffs are semantic.
 **Tasks.** `prompt_versions` with snapshot, compiled text and hash, note, pass rate from the latest run; `diff(a, b)` → added, removed, changed, moved, byte delta; version on save and before run.
 **Tests.** Diff fixtures per change type; moved ≠ removed + added.
-**Review.** Snapshot size at 100 × 50 acceptable. One vocabulary for version state (EPIC-090).
+**Review.** Snapshot size at 100 × 50 acceptable. One vocabulary for version state (EPIC-090 was to
+test it and is deferred, 2026-09-14 — the wording is a ruling from ADR-003, not a finding).
 
 ### EPIC-041 web: history, restore, A/B · S
 **Goal.** The Versions page.
@@ -518,7 +541,14 @@ fourth thing to flip here, alongside npm and PyPI trusted publishing.
 **Tests.** Webhook replay; downgrade at period end.
 **Review.** Pricing page equals Stripe.
 
-### EPIC-071 Legal full · S
+### EPIC-071 Legal full · S — **deferred, 2026-09-14**
+**Deferred, not cut.** Soroush declined the lawyer and does not want this in the critical path.
+EPIC-017 shipped the terms and privacy pages in full under that same ruling, each carrying a line at
+the top saying it has not been reviewed by a lawyer — so the exposure is live, known and accepted for
+as long as this row is deferred. The DPA-on-request draft and the standalone Law 25 transfer
+assessment that EPIC-017 dropped are part of this row; the trademark-filing check reads a filing
+EPIC-006 was to make, which is deferred too. Nothing declares a dependency on this row.
+
 **Tasks.** Lawyer review of EPIC-017 documents; Team DPA finalised; provider terms re-checked for any published comparison; trademark filing status confirmed (CIPO + USPTO, classes 9 and 42, Paris priority); third-party notices page generated from the SBOM.
 **Tests.** Retention jobs observed in production logs.
 **Review.** Every lawyer "must" resolved or in backlog.
