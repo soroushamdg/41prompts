@@ -1,5 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
+import { applyWhenUnset, missingRequired, placeholders, refusalLines } from "./apps/web/e2e/env.mjs";
+
 /**
  * The port the suite drives. 3000 unless `E2E_PORT` says otherwise.
  *
@@ -9,6 +11,31 @@ import { defineConfig } from "@playwright/test";
  * unaffected (it starts clean and `reuseExistingServer` is false there).
  */
 const port = Number(process.env.E2E_PORT ?? 3000);
+
+/**
+ * **The suite either has what it needs or says what it does not.**
+ *
+ * Nothing loads the root `.env` into a Node process, so `pnpm e2e` in a fresh shell used to start
+ * an app with no `BETTER_AUTH_SECRET` and fail eleven tests on `Something went wrong.` — a wrong
+ * answer with no reason attached, which `gates.mjs` gave its own gates the placeholders to avoid and
+ * this door never got. It is not only an annoyance: the unattended runner reads an unexplained
+ * failure as a blocker and stops, so this parked the loop on its first epic.
+ *
+ * Done here rather than in a `globalSetup` because this runs **before** the web server does: the
+ * refusal costs a second instead of arriving after a two-minute production build.
+ *
+ * `apps/web/e2e/env.mjs` holds the values and the reasoning. Both steps are deliberately noisy —
+ * filling in a signing secret in silence would be a quieter version of the same defect.
+ */
+const missing = missingRequired(process.env);
+if (missing.length > 0) {
+  for (const line of refusalLines(missing)) console.error(line);
+  process.exit(2);
+}
+const applied = applyWhenUnset(process.env, placeholders(port));
+if (applied.length > 0) {
+  console.log(`[e2e] not set, so using ci.yml's placeholders: ${applied.join(", ")}`);
+}
 
 /**
  * Screenshot generators are excluded from the ordinary run.
