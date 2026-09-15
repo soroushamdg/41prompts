@@ -24,10 +24,15 @@ export function StartFromExample() {
   return (
     <section className="app-example" aria-label="Start from an example">
       <h2>Not sure where to start?</h2>
+      {/* **What it says has to be what it does.** An earlier draft of this paragraph described a
+          different example — it promised that one of the two inputs breaks the rule, which was true
+          of a version that no longer exists. The example now contradicts *itself*, both inputs
+          fail, and this says so. A first screen that misdescribes what it just made is a bad first
+          impression on a product whose argument is that it tells you the truth about your prompt. */}
       <p>
-        We can make you an example: a support-reply prompt with one rule about what it must never
-        say, and two inputs to run it against. One of them breaks the rule, so you will see what a
-        failing check looks like on something small.
+        We can make you an example: a short support-reply prompt with one rule about what it must
+        never say — and, further down, a line telling it to say exactly that. Run it and the rule
+        fails on both inputs. Fixing it takes one edit, and takes about a minute.
       </p>
       {message !== undefined && (
         <p className="app-form-message" role="alert">

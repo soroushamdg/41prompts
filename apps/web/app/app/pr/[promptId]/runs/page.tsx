@@ -1,4 +1,5 @@
 import { isOptional } from "@41prompts/core";
+import { resultCountsFor } from "@41prompts/db";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
@@ -30,8 +31,12 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
     optional: isOptional(declaration),
   }));
 
+  // One query for the whole history, not one per row.
+  const counts = await resultCountsFor(getDb(), found.history.map((run) => run.id));
+  const verdicts = Object.fromEntries(counts);
+
   // Only on the example: onboarding, not a permanent feature (see `ActivationProgress`).
-  const activation = await activationStateFor(getDb(), promptId, session.user.id, found.prompt.name);
+  const activation = activationStateFor(found.prompt.name, found.history, counts);
 
   return (
     <main className="app-page">
@@ -46,7 +51,7 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
       {activation !== undefined && <ActivationProgress steps={activation} />}
 
       <InputSets promptId={promptId} sets={found.inputSets} declarations={declarations} />
-      <RunHistory promptId={promptId} runs={found.history} />
+      <RunHistory promptId={promptId} runs={found.history} verdicts={verdicts} />
     </main>
   );
 }

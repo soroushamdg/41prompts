@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "./client";
 import { inputSets, runs, suiteChecks, suiteResults, suiteRuns } from "./schema";
 
@@ -359,4 +359,35 @@ export async function claimPassedNotification(db: Db, suiteRunId: string, owner:
     .where(and(eq(suiteRuns.id, suiteRunId), eq(suiteRuns.owner, owner), isNull(suiteRuns.passedNotifiedAt)))
     .returning({ id: suiteRuns.id });
   return claimed.length > 0;
+}
+
+/**
+ * How many results each of these runs has, and how many of them failed. **One query, not N.**
+ *
+ * The run history needs to know whether a finished run actually passed, and so does the activation
+ * indicator. Both previously asked per run, which is a query per row of a list that holds thirty —
+ * and the naive version of this function is exactly that loop with a nicer name.
+ *
+ * A run with `total: 0` graded nothing. That is **not** a pass, and the callers are written so that
+ * it cannot be mistaken for one: EPIC-030 deleted `passed` from `RunSummary` so nobody could read a
+ * single boolean as the answer, and the same care applies to a list row's icon.
+ */
+export async function resultCountsFor(
+  db: Db,
+  suiteRunIds: readonly string[],
+): Promise<Map<string, { total: number; failed: number }>> {
+  if (suiteRunIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      suiteRun: suiteChecks.suiteRun,
+      total: sql<number>`count(*)::int`,
+      failed: sql<number>`count(*) filter (where ${suiteResults.outcome} = 'fail')::int`,
+    })
+    .from(suiteResults)
+    .innerJoin(suiteChecks, eq(suiteResults.suiteCheck, suiteChecks.id))
+    .where(inArray(suiteChecks.suiteRun, suiteRunIds as string[]))
+    .groupBy(suiteChecks.suiteRun);
+
+  return new Map(rows.map((row) => [row.suiteRun, { total: row.total, failed: row.failed }]));
 }

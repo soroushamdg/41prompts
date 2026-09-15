@@ -80,6 +80,12 @@ test.describe("activation", () => {
     await page.goto(`/app/pr/${promptId}/runs`);
     await expect(progress).toContainText("3 of 4");
 
+    // **A finished run whose check failed is not decorated with a pass tick.** EPIC-032's history
+    // row showed one for any run that reached `done` without a refusal, on a product whose whole
+    // argument is that it tells you when something failed.
+    const firstRow = page.locator(".runs-history li").first();
+    await expect(firstRow.locator(".status-icon")).toHaveText("✕");
+
     // 5 — fix the blok that tells it to apologise. The real fix, on the canvas.
     await page.goto(`/app/pr/${promptId}`);
     // **Resolved to an index before the edit, not filtered by its text.** A `filter({ hasText })`
@@ -111,6 +117,8 @@ test.describe("activation", () => {
     const seconds = (Date.now() - startedAt) / 1000;
     await page.goto(`/app/pr/${promptId}/runs`);
     await expect(progress).toContainText("4 of 4");
+    // And the newest row now earns its tick.
+    await expect(page.locator(".runs-history li").first().locator(".status-icon")).toHaveText("✓");
 
     // The roadmap's number. Reported as well as asserted, because a journey that crept to four
     // minutes would still pass and would still be worth knowing about.

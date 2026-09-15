@@ -1,5 +1,4 @@
-import { summarise, type CheckResult } from "@41prompts/core";
-import { suiteResultsFor, suiteRunsForPrompt, type Db } from "@41prompts/db";
+import type { SuiteRunRow } from "@41prompts/db";
 import { EXAMPLE_PROMPT_NAME } from "./example";
 import { activationSteps, runFacts, type ActivationStep } from "./progress";
 
@@ -11,35 +10,27 @@ import { activationSteps, runFacts, type ActivationStep } from "./progress";
  * who renames their example has plainly stopped treating it as one — at which point the checklist
  * going away is the right behaviour rather than a bug.
  *
- * The run facts are read from the stored results through EPIC-030's `summarise`, so "passed" means
- * `noFailures` and never "the run finished". A run that graded nothing is not an activation, and a
- * metric that counted one would be wrong in the direction that flatters us.
+ * **Pure, and given its counts rather than fetching them.** The first version read the results of
+ * every run in the history one run at a time, which is a query per row on a page that already knew
+ * how to ask once. The caller now asks once (`resultCountsFor`) and shares the answer with the run
+ * history, which needs exactly the same fact for its icons.
+ *
+ * "Passed" is `failed === 0 && total > 0`, never `state === "done"`. A run that graded nothing is
+ * not an activation, and a metric that counted one would be wrong in the direction that flatters us.
  */
-export async function activationStateFor(
-  db: Db,
-  promptId: string,
-  owner: string,
-  promptName: string
-): Promise<readonly ActivationStep[] | undefined> {
+export function activationStateFor(
+  promptName: string,
+  runs: readonly Pick<SuiteRunRow, "id" | "state">[],
+  counts: ReadonlyMap<string, { total: number; failed: number }>
+): readonly ActivationStep[] | undefined {
   if (promptName !== EXAMPLE_PROMPT_NAME) return undefined;
 
-  const runs = await suiteRunsForPrompt(db, promptId);
-  const noFailures: boolean[] = [];
-  for (const run of runs) {
-    if (run.state !== "done") {
-      noFailures.push(false);
-      continue;
-    }
-    const results = await suiteResultsFor(db, run.id);
-    noFailures.push(summarise(results.map(asCheckResult)).noFailures && results.length > 0);
-  }
+  const noFailures = runs.map((run) => {
+    const count = counts.get(run.id);
+    return count !== undefined && count.total > 0 && count.failed === 0;
+  });
 
   return activationSteps({ hasExample: true, ...runFacts(runs, noFailures) });
-}
-
-/** The stored row, back in the shape `summarise` counts. Only the outcome is read. */
-function asCheckResult(row: { outcome: string }): CheckResult {
-  return { outcome: row.outcome } as CheckResult;
 }
 
 export { EXAMPLE_PROMPT_NAME };
