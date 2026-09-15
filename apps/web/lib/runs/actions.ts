@@ -15,6 +15,7 @@ import {
 } from "@41prompts/db";
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
+import { captureAccountEvent } from "@/lib/analytics/visitor";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { asDeclarations } from "@/lib/variables/queries";
@@ -172,6 +173,12 @@ export async function startRunAction(
       finishedAt: new Date(),
     });
   }
+
+  // EPIC-034. The pair `run_started`/`run_passed` has been in the closed event set since EPIC-004
+  // and emitted by nothing; this is the first half. Consent, `DNT` and `Sec-GPC` are all honoured
+  // inside `captureAccountEvent`, so a person who declined contributes nothing — which is correct,
+  // not a gap to work around.
+  await captureAccountEvent(owner, "run_started");
 
   revalidatePath(`/app/pr/${promptId}/runs`);
   return { ok: true, id: suiteRunId };

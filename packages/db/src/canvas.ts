@@ -1,5 +1,5 @@
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import type { Db } from "./client";
+import type { Db, DbOrTx } from "./client";
 import { bloks, projects, prompts } from "./schema";
 import { needsRebalance, rankBetween, rankSequence } from "./rank";
 
@@ -83,7 +83,7 @@ export async function bloksForPrompt(db: Db, promptId: string): Promise<BlokRow[
  * that is the moment the silent failure becomes possible again.
  */
 export async function addBlok(
-  db: Db,
+  db: DbOrTx,
   promptId: string,
   blok: { kind: string; text: string; id?: string },
   between: { before: string | null; after: string | null } = { before: null, after: null }
@@ -107,7 +107,7 @@ export async function addBlok(
   return row!;
 }
 
-async function lastRank(db: Db, promptId: string): Promise<string | null> {
+async function lastRank(db: DbOrTx, promptId: string): Promise<string | null> {
   const [row] = await db
     .select({ rank: bloks.rank })
     .from(bloks)

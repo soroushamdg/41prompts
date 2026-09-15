@@ -51,7 +51,20 @@ export async function captureVisitorEvent(name: EventName, properties?: Record<s
  *
  * The user id is the distinct id, never the email (EPIC-004 decision 3), and that is unchanged.
  */
-export async function captureAccountEvent(userId: string, name: EventName): Promise<void> {
+export async function captureAccountEvent(
+  userId: string,
+  name: EventName,
+  /**
+   * Properties, for the events that carry a number.
+   *
+   * `captureEvent` has always taken these; this wrapper was the only caller that could not pass
+   * any, which is why `run_passed` could exist in the closed set for two epics without ever being
+   * able to say **how long it took** — and a measurement nobody can compute is not a definition.
+   * EPIC-034 needs seconds-from-signup on exactly one event; the argument is optional so every
+   * existing caller is unchanged.
+   */
+  properties?: Record<string, unknown>
+): Promise<void> {
   const header = await headers();
   const allowed = hasAnalyticsConsent({
     consentCookie: (await cookies()).get(CONSENT_COOKIE_NAME)?.value,
@@ -61,5 +74,5 @@ export async function captureAccountEvent(userId: string, name: EventName): Prom
   if (!allowed) return;
 
   identifyUser(userId);
-  captureEvent(userId, name);
+  captureEvent(userId, name, properties);
 }

@@ -1,5 +1,5 @@
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
-import type { Db } from "./client";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
+import type { Db, DbOrTx } from "./client";
 import { inputSets, runs, suiteChecks, suiteResults, suiteRuns } from "./schema";
 
 /**
@@ -45,6 +45,7 @@ export interface SuiteRunRow {
   judgeCalls: number;
   judgeCachedCalls: number;
   judgeCostCents: number;
+  passedNotifiedAt: Date | null;
   createdAt: Date;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -111,7 +112,7 @@ export async function inputSetForPrompt(
 
 /** One INSERT. The rows go in exactly as parsed — no trim, no normalisation, like every write here. */
 export async function addInputSet(
-  db: Db,
+  db: DbOrTx,
   promptId: string,
   set: { name: string; columns: readonly string[]; rows: readonly (readonly string[])[] },
 ): Promise<InputSetRow> {
@@ -330,4 +331,63 @@ export async function outputForRun(db: Db, runId: string, owner: string): Promis
     .limit(1);
   const payload = row?.payload as { text?: string } | undefined;
   return typeof payload?.text === "string" ? payload.text : undefined;
+}
+
+/**
+ * Claim the right to send this run's `run_passed` event. True exactly once, ever.
+ *
+ * ## Why a conditional UPDATE rather than a read and then a write
+ *
+ * The obvious version — read `passedNotifiedAt`, and if it is null send the event and write the
+ * timestamp — has a race between the read and the write that two open tabs will find immediately,
+ * and two web containers will find constantly. `update … where passed_notified_at is null
+ * returning id` resolves it in the database: both statements run, one returns a row, and the loser
+ * returns nothing and sends nothing.
+ *
+ * ## Why the event is sent from the web at all
+ *
+ * The worker finishes the run, which is the natural place. It cannot send it: `captureAccountEvent`
+ * is built on Next's request context — it reads the consent cookie, `DNT` and `Sec-GPC` from the
+ * incoming request — and the worker has no request. Sending from the first render of a finished,
+ * passing run is also the more honest instant for what this measures: the moment the person could
+ * *see* that they had passed, which is what the five minutes is about.
+ */
+export async function claimPassedNotification(db: Db, suiteRunId: string, owner: string, at: Date): Promise<boolean> {
+  const claimed = await db
+    .update(suiteRuns)
+    .set({ passedNotifiedAt: at })
+    .where(and(eq(suiteRuns.id, suiteRunId), eq(suiteRuns.owner, owner), isNull(suiteRuns.passedNotifiedAt)))
+    .returning({ id: suiteRuns.id });
+  return claimed.length > 0;
+}
+
+/**
+ * How many results each of these runs has, and how many of them failed. **One query, not N.**
+ *
+ * The run history needs to know whether a finished run actually passed, and so does the activation
+ * indicator. Both previously asked per run, which is a query per row of a list that holds thirty —
+ * and the naive version of this function is exactly that loop with a nicer name.
+ *
+ * A run with `total: 0` graded nothing. That is **not** a pass, and the callers are written so that
+ * it cannot be mistaken for one: EPIC-030 deleted `passed` from `RunSummary` so nobody could read a
+ * single boolean as the answer, and the same care applies to a list row's icon.
+ */
+export async function resultCountsFor(
+  db: Db,
+  suiteRunIds: readonly string[],
+): Promise<Map<string, { total: number; failed: number }>> {
+  if (suiteRunIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      suiteRun: suiteChecks.suiteRun,
+      total: sql<number>`count(*)::int`,
+      failed: sql<number>`count(*) filter (where ${suiteResults.outcome} = 'fail')::int`,
+    })
+    .from(suiteResults)
+    .innerJoin(suiteChecks, eq(suiteResults.suiteCheck, suiteChecks.id))
+    .where(inArray(suiteChecks.suiteRun, suiteRunIds as string[]))
+    .groupBy(suiteChecks.suiteRun);
+
+  return new Map(rows.map((row) => [row.suiteRun, { total: row.total, failed: row.failed }]));
 }

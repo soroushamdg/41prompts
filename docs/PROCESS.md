@@ -893,6 +893,23 @@ The same `under 100 ms` pattern is still live and still enforcing in `cluster.pe
 `segment.perf.test.ts`. They will flake the same way eventually; they were left alone while they pass
 rather than pre-emptively demoted.
 
+**2026-09-15: one of them stopped passing, and it is the differential one.**
+`segment.perf.test.ts`'s "costs no more per tag" gate failed three times in one day at an excess of
+0.74 against a bar of 0.5 — twice under `pnpm test` and once inside `gates.mjs ci` — while passing
+5 of 5 in isolation, same machine, same commit. It is now reported rather than enforced.
+
+**The part worth carrying forward is why hardening did not save it.** That test was already doing
+everything the demoted ones were not: thirty round-robin runs, the minimum of each, all four
+measurements interleaved in one window. Its own comment recorded that the naive version swung
+−0.26 to +0.31 — **a range of 0.57 against a bar of 0.5.** That sentence was the finding and nobody
+read it as one: when the noise band is wider than the quantity, more samples do not help, because
+the estimator is unbiased and the bar is inside the spread. A differential of two noisy exponents is
+roughly twice as noisy as either, which is exactly the wrong trade on a contended runner.
+
+**The rule this gives:** before adding samples to a flaky ratio gate, compare the observed *range*
+with the *margin* between the expected value and the bar. If the range is the larger, sampling is
+not the fix and the gate belongs on a quiet machine or nowhere.
+
 
 ## The local pipeline: nothing is pushed, and what each replaced step now is (2026-09-15)
 

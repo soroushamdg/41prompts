@@ -289,7 +289,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 | EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | deferred — Soroush must set `ANTHROPIC_API_KEY` in Coolify and watch the first call go out; 2026-09-14 |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | done |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | done |
-| EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
+| EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on an opt-in example; the path and the instrument, **not** the measurement | S | 032 | done — the measurement is blocked on EPIC-031a; see report §1 |
 | ▣ GATE 3 | Stage 3 exit + loud launch decision: criteria in roadmap | — | 034 | — |
 | EPIC-035 | Loud launch: Show HN, Product Hunt, one content piece from our own run data | S | GATE 3 | todo |
 

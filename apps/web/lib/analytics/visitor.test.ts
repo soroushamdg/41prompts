@@ -143,10 +143,31 @@ describe("an event about a signed-in account", () => {
     expect(captureEvent).not.toHaveBeenCalled();
   });
 
-  it("sends the user id, and only the user id, once consent is granted", async () => {
+  it("sends the user id, and nothing about them, once consent is granted", async () => {
     withConsent();
     await captureAccountEvent("user_42", "signup");
-    expect(captureEvent).toHaveBeenCalledWith("user_42", "signup");
+    // The third argument is the properties bag EPIC-034 added. An event that carries nothing must
+    // still carry nothing: `undefined` is what is asserted, not "some object".
+    expect(captureEvent).toHaveBeenCalledWith("user_42", "signup", undefined);
+  });
+
+  /**
+   * EPIC-034 needs one event to carry a number — seconds from signup, without which "activated
+   * within five minutes" is a definition nobody can compute. `captureEvent` always accepted
+   * properties; this wrapper was the only caller that could not pass any.
+   *
+   * **The gate is unchanged**, which is the half worth asserting: properties do not buy a way past
+   * consent, `DNT` or `Sec-GPC`.
+   */
+  it("forwards properties when an event carries a number", async () => {
+    withConsent();
+    await captureAccountEvent("user_42", "run_passed", { secondsFromSignup: 143 });
+    expect(captureEvent).toHaveBeenCalledWith("user_42", "run_passed", { secondsFromSignup: 143 });
+  });
+
+  it("sends no properties either when consent is absent", async () => {
+    await captureAccountEvent("user_42", "run_passed", { secondsFromSignup: 143 });
+    expect(captureEvent).not.toHaveBeenCalled();
   });
 });
 
