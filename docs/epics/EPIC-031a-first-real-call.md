@@ -104,9 +104,21 @@ Run it twice — once locally, once on staging — and record the staging number
 ## Verification
 
 ```
-node scripts/verify-first-call.mjs            # against the local database
-node scripts/verify-first-call.mjs --staging  # reads staging read-only, per PROCESS.md
+DATABASE_URL=postgres://41p:41p@127.0.0.1:55435/41p node scripts/verify-first-call.mjs
 ```
+
+**Against staging it needs Soroush.** The script runs `SELECT`s and nothing else — it refuses any
+statement that is not one — but reaching staging's database means either a tunnel or
+`docker exec … psql`, and `CLAUDE.md` server-access rule 3 puts `docker exec` behind one command,
+one yes, with a single standing exception for the magic-link token that this is not. So: he runs it,
+or he approves the one command.
+
+**The verifier was itself verified**, on 2026-09-15, before it had anything real to look at. Fed a
+fake-shaped payload and an Anthropic-shaped one it labelled each correctly, verified only the real
+one, re-derived the cost independently and matched it, and surfaced an alias resolving to a dated
+id. Fed only fakes it **refuses and exits 1** rather than blessing them — which is the failure that
+would matter, because three epics' worth of fake runs are sitting in every database this will be
+pointed at.
 
 ## Notes for the implementer
 
