@@ -41,6 +41,10 @@ export interface SuiteRunRow {
   calls: number;
   cachedCalls: number;
   costCents: number;
+  /** The judge's own three, never folded into the three above (EPIC-033 decision 4). */
+  judgeCalls: number;
+  judgeCachedCalls: number;
+  judgeCostCents: number;
   createdAt: Date;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -286,7 +290,14 @@ export async function setSuiteRunState(
 export async function recordSuiteProgress(
   db: Db,
   suiteRunId: string,
-  delta: { calls: number; cachedCalls: number; costCents: number },
+  delta: {
+    calls: number;
+    cachedCalls: number;
+    costCents: number;
+    judgeCalls?: number;
+    judgeCachedCalls?: number;
+    judgeCostCents?: number;
+  },
 ): Promise<void> {
   await db
     .update(suiteRuns)
@@ -295,6 +306,11 @@ export async function recordSuiteProgress(
       calls: sql`${suiteRuns.calls} + ${delta.calls}`,
       cachedCalls: sql`${suiteRuns.cachedCalls} + ${delta.cachedCalls}`,
       costCents: sql`${suiteRuns.costCents} + ${delta.costCents}`,
+      // The judge's three move independently of the three above (EPIC-033 decision 4). Defaulted to
+      // zero rather than made required, so every existing caller stays correct without edit.
+      judgeCalls: sql`${suiteRuns.judgeCalls} + ${delta.judgeCalls ?? 0}`,
+      judgeCachedCalls: sql`${suiteRuns.judgeCachedCalls} + ${delta.judgeCachedCalls ?? 0}`,
+      judgeCostCents: sql`${suiteRuns.judgeCostCents} + ${delta.judgeCostCents ?? 0}`,
     })
     .where(eq(suiteRuns.id, suiteRunId));
 }

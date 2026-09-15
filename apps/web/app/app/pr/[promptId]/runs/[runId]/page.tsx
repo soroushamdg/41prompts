@@ -3,7 +3,15 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { outputFor, runDetailFor } from "@/lib/runs/queries";
-import { checkRows, costSentence, formatCents, stateWords, summaryOf, verification } from "@/lib/runs/view";
+import {
+  checkRows,
+  costSentence,
+  formatCents,
+  judgeCostSentence,
+  stateWords,
+  summaryOf,
+  verification,
+} from "@/lib/runs/view";
 import { requireSession } from "@/lib/session";
 import { Progress } from "./progress";
 import { Results } from "./results";
@@ -104,6 +112,14 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
         <p className="runs-sentence" data-testid="cost-sentence">
           {costSentence(run)}
         </p>
+        {/* The judge's spend, next to the cost it qualifies rather than as a sixth KPI tile — it is
+            a caveat on that number, not a number of its own. Absent entirely when nothing was
+            judged, because "$0.00 on the judge" invites a reader to work out why. */}
+        {judgeCostSentence(run) !== undefined && (
+          <p className="runs-sentence" data-testid="judge-cost-sentence">
+            {judgeCostSentence(run)}
+          </p>
+        )}
       </section>
 
       <Results

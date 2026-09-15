@@ -47,5 +47,12 @@
     "severity": "medium",
     "flags": "i",
     "pattern": "\\b(?:never|do not|don't|must not|may not)\\s+(?:mention|include|contain|use|say|output|print|show|write|reveal|disclose|add|reference|expose)\\b"
+  },
+  {
+    "id": "refuses-to-answer",
+    "check": "refuses to answer",
+    "severity": "medium",
+    "flags": "i",
+    "pattern": "\\b(?:refuse|decline)\\w*\\s+to\\s+(?:answer|respond|reply|engage|discuss|help)\\b|\\b(?:never|do not|don't|must not|may not|should not)\\s+(?:answer|respond|reply|engage)\\b"
   }
 ]

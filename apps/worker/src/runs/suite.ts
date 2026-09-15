@@ -11,6 +11,7 @@ import {
   type SuiteCheckRow,
 } from "@41prompts/db";
 import { executeRun, type Provider, type RunRequest } from "./execute";
+import { judgeCheck } from "./judge";
 import { providerFor } from "./provider";
 
 /**
@@ -106,15 +107,50 @@ export async function runSuite(db: Db, suiteRunId: string, selected = providerFo
     }
 
     const results = gradeAll(checks.map(asCheck), outcome.text);
+
+    /**
+     * The judge's turn (EPIC-033).
+     *
+     * **Only `needs_judgement`.** Every other result is already an answer — a pass, a failure, or an
+     * honest "nothing here could be checked" — and handing any of them to a model would replace an
+     * exact answer with an opinion. The selection is the typed reason rather than a list of kinds,
+     * which is why EPIC-030 calling this reason into existence was the whole of the plumbing.
+     *
+     * Its spend is accumulated apart from the run's and stays apart all the way to the page.
+     */
+    const judged: CheckResult[] = [];
+    const judgeSpend = { calls: 0, cachedCalls: 0, costCents: 0 };
+    for (const [position, result] of results.entries()) {
+      if (result.reason !== "needs_judgement") {
+        judged.push(result);
+        continue;
+      }
+      const verdict = await judgeCheck(db, selected.provider, result, {
+        owner: run.owner,
+        promptId: run.prompt,
+        // The blok's verbatim text, frozen at trigger time — the same rubric a failure is
+        // attributed back to, never a recompiled or paraphrased one.
+        blokText: checks[position]!.blokText,
+        output: outcome.text,
+      });
+      judged.push(verdict.result);
+      judgeSpend.calls += verdict.calls;
+      judgeSpend.cachedCalls += verdict.cachedCalls;
+      judgeSpend.costCents += verdict.costCents;
+    }
+
     await addSuiteResults(
       db,
       suiteRunId,
-      results.map((result, position) => toStoredResult(result, checks[position]!, index, outcome.runId)),
+      judged.map((result, position) => toStoredResult(result, checks[position]!, index, outcome.runId)),
     );
     await recordSuiteProgress(db, suiteRunId, {
       calls: outcome.status === "ran" ? 1 : 0,
       cachedCalls: outcome.status === "cached" ? 1 : 0,
       costCents: outcome.costCents,
+      judgeCalls: judgeSpend.calls,
+      judgeCachedCalls: judgeSpend.cachedCalls,
+      judgeCostCents: judgeSpend.costCents,
     });
   }
 

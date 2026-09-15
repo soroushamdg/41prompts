@@ -559,6 +559,16 @@ export const suiteRuns = pgTable(
     cachedCalls: integer("cached_calls").notNull().default(0),
     /** Spend **on this run**, in the same integer cents `run_budgets` uses. */
     costCents: integer("cost_cents").notNull().default(0),
+    /**
+     * The judge's calls and the judge's spend, counted **separately** (EPIC-033 decision 4).
+     *
+     * Not folded into `calls` and `costCents`, because they answer different questions: what it cost
+     * to run a prompt, and what it cost to check it. A person deciding whether checking is worth the
+     * money cannot do so from one number that contains both.
+     */
+    judgeCalls: integer("judge_calls").notNull().default(0),
+    judgeCachedCalls: integer("judge_cached_calls").notNull().default(0),
+    judgeCostCents: integer("judge_cost_cents").notNull().default(0),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),
