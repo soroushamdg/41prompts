@@ -312,3 +312,11 @@
     align-items: stretch;
   }
 }
+
+/* The run detail head's timestamp, under the state line. Quiet: it identifies the run rather than
+   telling anybody anything they have to act on. */
+.runs-when {
+  margin: 0;
+  color: var(--color-ink-3);
+  font-size: 13px;
+}

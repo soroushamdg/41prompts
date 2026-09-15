@@ -57,10 +57,16 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
         <p className="app-crumb">
           <a href={`/app/pr/${promptId}/runs`}>Runs</a>
         </p>
-        <h1>Run</h1>
+        {/* **Which run this is, not merely that it is one.** Every run detail page read `Run`,
+            so a person with three runs of two input sets had the URL and nothing else to tell them
+            apart — on a page whose whole argument is that it says honestly what happened. The
+            timestamp is the same UTC shape the history list uses, formatted on the server from a
+            fixed slice so it cannot differ between render and hydration. */}
+        <h1>{inputSet === undefined ? "Run" : `Run of ${inputSet.name}`}</h1>
         <p className="app-state" data-state={run.state}>
           {stateWords(run)}
         </p>
+        <p className="runs-when">Triggered {run.createdAt.toISOString().slice(0, 16).replace("T", " ")} UTC</p>
       </header>
 
       {/* Asks the server for this page again while the run is in flight. No reload, no navigation. */}
