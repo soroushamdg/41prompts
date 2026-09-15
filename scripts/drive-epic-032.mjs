@@ -79,6 +79,20 @@ const token = psql(`select identifier from verifications where value::jsonb ->> 
 await page.goto(`/api/auth/magic-link/verify?token=${token}&callbackURL=%2Fapp%2Fprojects`);
 await page.waitForURL(/\/app\/projects/);
 
+/**
+ * Decline analytics before anything is screenshotted.
+ *
+ * The cookie choice is a fixed banner across the foot of every page (EPIC-017), so a full-page
+ * screenshot taken with it open has a strip of the page hidden behind it — which is how the first
+ * run of this drive produced a shot of a failure detail with the evidence line covered. Declining is
+ * also the honest default for a throwaway drive account: it should not be sending events.
+ */
+const decline = page.getByRole("button", { name: "Decline" });
+if (await decline.count()) {
+  await decline.first().click();
+  await decline.first().waitFor({ state: "hidden" }).catch(() => {});
+}
+
 // **The thing only a built app can fail.** Unstyled text is what shipped on 2026-09-13.
 const styled = await page.evaluate(() => {
   const body = getComputedStyle(document.body);
