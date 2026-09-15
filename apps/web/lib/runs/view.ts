@@ -204,6 +204,34 @@ export function costSentence(run: Pick<SuiteRunRow, "calls" | "cachedCalls" | "c
     : `${base} ${run.cachedCalls} more ${run.cachedCalls === 1 ? "input was" : "inputs were"} answered from the cache, which called nobody and cost nothing.`;
 }
 
+/**
+ * What the judge cost, said **separately** from what the run cost (EPIC-033 decision 4).
+ *
+ * Two questions, two numbers: what it cost to run a prompt, and what it cost to check it. Somebody
+ * deciding whether the checking is worth the money cannot decide it from one figure containing
+ * both, and folding them would also make the run look more expensive than running it is.
+ *
+ * **Empty when nothing was judged**, rather than "$0.00 on the judge". A zero invites the reader to
+ * work out why it is zero; silence about a thing that did not happen is the honest shape, and it is
+ * the same reasoning that keeps `fullyChecked: false` out of a pass.
+ */
+export function judgeCostSentence(
+  run: Pick<SuiteRunRow, "judgeCalls" | "judgeCachedCalls" | "judgeCostCents">
+): string | undefined {
+  if (run.judgeCalls === 0 && run.judgeCachedCalls === 0) return undefined;
+
+  if (run.judgeCalls === 0) {
+    const inputs = run.judgeCachedCalls === 1 ? "check was" : "checks were";
+    return `Judging cost nothing: ${run.judgeCachedCalls} ${inputs} answered from the cache of an earlier identical judgement.`;
+  }
+
+  const calls = `${run.judgeCalls} ${run.judgeCalls === 1 ? "judgement" : "judgements"}`;
+  const base = `Judging cost ${formatCents(run.judgeCostCents)} on top of that \u2014 ${calls}, counted apart from the run so each number says what it is.`;
+  return run.judgeCachedCalls === 0
+    ? base
+    : `${base} ${run.judgeCachedCalls} more came from the cache and cost nothing.`;
+}
+
 /** Integer cents, as money. `costCents` is the same unit `run_budgets` uses, so there is no conversion. */
 export function formatCents(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
@@ -253,6 +281,11 @@ export function refusalWords(reason: string | null): string {
  * Every variant is a fact with a shape: a slice with offsets, a measurement with its unit, a thing
  * looked for and not found, or a set of keys. None of them is advice, and none of them is a
  * paraphrase of what the person wrote.
+ *
+ * **`judgement` is the odd one out and is treated as such.** The other four can be re-derived from
+ * the output by anybody; this one is a model's testimony, and presenting it in the same voice as a
+ * character offset would claim an authority it does not have. So it is attributed — the reader is
+ * told a model said it, and which model — and the words are the judge's own, never rewritten.
  */
 export function evidenceSentence(evidence: Evidence | undefined): string | undefined {
   if (evidence === undefined) return undefined;
@@ -267,6 +300,10 @@ export function evidenceSentence(evidence: Evidence | undefined): string | undef
       return evidence.found.length === 0
         ? `Expected ${listOf(evidence.expected)}. The output was not an object.`
         : `Expected ${listOf(evidence.expected)}. Found ${listOf(evidence.found)}.`;
+    case "judgement":
+      return evidence.rationale === ""
+        ? `Judged by ${evidence.judge}, which gave no reason.`
+        : `Judged by ${evidence.judge}: “${evidence.rationale}”`;
   }
 }
 

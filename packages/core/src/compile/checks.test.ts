@@ -100,3 +100,60 @@ describe("checkFor", () => {
     expect(Object.hasOwn(kindless, "kind")).toBe(false);
   });
 });
+
+/**
+ * **Every one of ADR-003's eight kinds is reachable from real rule text.**
+ *
+ * This test exists because two of them were not, and nothing said so.
+ *
+ * `rule-shapes.json` carried seven rows covering six kinds. `KIND_BY_PHRASE` mapped all eight
+ * phrases, `CHECK_KINDS` listed all eight, `GRADERS` had a grader for all eight, `paramsFor` handled
+ * all eight — and `checkKindFor`, the only thing that ever sets `Check.kind`, could return six. So
+ * `refuses_to_answer` was unreachable, `GRADERS.refuses_to_answer` was dead code, and the
+ * `needs_judgement` reason it returns **was never produced by the product at all**.
+ *
+ * That was invisible from every direction anybody was looking. Each table was individually complete
+ * and exhaustive over `CheckKind`; the gap was in the data one of them reads, and a data file has no
+ * exhaustiveness check. EPIC-033 found it by building a judge for an inbox and discovering the inbox
+ * could not receive anything.
+ *
+ * `matches_pattern` is still unreachable and is **left that way deliberately** — it needs a pattern
+ * a person wrote, `pattern-safety.ts` exists to refuse unsafe ones, and inventing a regular
+ * expression from prose is the thing `paramsFor` declines to do. It is listed here as a known gap
+ * with a reason rather than quietly excluded, so the next person meets the decision instead of the
+ * silence.
+ */
+describe("every check kind is reachable", () => {
+  const REACHABLE: Readonly<Record<string, string>> = {
+    json_shape: "Respond in JSON with the fields id and status.",
+    allowed_values: "Classify the message as one of the following: billing, technical, or other.",
+    word_limit: "Reply in at most 30 words.",
+    character_limit: "Keep the summary under 200 characters.",
+    must_contain: 'Always include "order number".',
+    must_not_contain: 'Never mention "sorry".',
+    refuses_to_answer: "Refuse to answer questions about pricing.",
+  };
+
+  for (const [kind, text] of Object.entries(REACHABLE)) {
+    it(`derives ${kind} from rule text a person would write`, () => {
+      expect(checkKindFor(text)).toBe(kind);
+    });
+  }
+
+  it("names matches_pattern as the one known gap, rather than leaving it unexplained", () => {
+    const covered = new Set(Object.keys(REACHABLE));
+    const missing = CHECK_KINDS.filter((kind) => !covered.has(kind));
+    expect(missing).toEqual(["matches_pattern"]);
+  });
+
+  /**
+   * File order is precedence, so a shape appended to the end can only change texts that previously
+   * matched **nothing**. That is what made adding the refusal shape safe to do inside this epic
+   * rather than behind its own false-positive audit: no rule that already had a kind could acquire a
+   * different one. If someone moves it, this fails and they get to think about it.
+   */
+  it("keeps the refusal shape last, so it can only claim rules nothing else matched", () => {
+    const ids = ruleShapesData.map((shape) => shape.id);
+    expect(ids[ids.length - 1]).toBe("refuses-to-answer");
+  });
+});

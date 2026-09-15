@@ -7,6 +7,7 @@ import {
   csvProblemWords,
   evidenceSentence,
   highlightParts,
+  judgeCostSentence,
   refusalWords,
   stateWords,
   summaryOf,
@@ -48,6 +49,9 @@ const run = (overrides: Partial<SuiteRunRow> = {}) =>
     calls: 2,
     cachedCalls: 0,
     costCents: 4,
+    judgeCalls: 0,
+    judgeCachedCalls: 0,
+    judgeCostCents: 0,
     ...overrides,
   }) as SuiteRunRow;
 
@@ -312,5 +316,66 @@ describe("upload refusals, in words", () => {
     const said = columnProblemWords([{ kind: "no_variables_declared" }]);
     expect(said).toContain("declares no variables");
     expect(said).toContain("Variables tab");
+  });
+});
+
+/**
+ * The judge's spend, said apart from the run's (EPIC-033 decision 4).
+ *
+ * Two questions — what it cost to run a prompt, and what it cost to check it — and a single figure
+ * containing both answers neither. The absence case matters as much as the presence one: "$0.00 on
+ * the judge" invites a reader to work out why it is zero, on a page whose whole job is not to make
+ * people work things out.
+ */
+describe("judgeCostSentence", () => {
+  it("says nothing at all when nothing was judged", () => {
+    expect(judgeCostSentence(run())).toBeUndefined();
+  });
+
+  it("never renders a zero as though the judge had run and been free", () => {
+    expect(judgeCostSentence(run({ judgeCalls: 0, judgeCachedCalls: 0, judgeCostCents: 0 }))).toBeUndefined();
+  });
+
+  it("says what judging cost, apart from the run", () => {
+    const said = judgeCostSentence(run({ judgeCalls: 3, judgeCostCents: 2 }))!;
+    expect(said).toContain("$0.02");
+    expect(said).toContain("3 judgements");
+    expect(said).toContain("apart from the run");
+  });
+
+  it("counts a single judgement in the singular", () => {
+    expect(judgeCostSentence(run({ judgeCalls: 1, judgeCostCents: 1 }))!).toContain("1 judgement,");
+  });
+
+  it("says so when every judgement came from the cache", () => {
+    const said = judgeCostSentence(run({ judgeCalls: 0, judgeCachedCalls: 2, judgeCostCents: 0 }))!;
+    expect(said).toContain("nothing");
+    expect(said).toContain("cache");
+  });
+
+  it("is a different sentence from the run's own cost", () => {
+    const both = run({ judgeCalls: 2, judgeCostCents: 3 });
+    expect(judgeCostSentence(both)).not.toBe(costSentence(both));
+  });
+});
+
+/**
+ * A judgement is testimony, not a measurement, and the sentence says who said it.
+ *
+ * The other four evidences are facts anybody can re-derive from the output. Presenting a model's
+ * opinion in the same voice as a character offset would claim an authority it does not have, so the
+ * attribution is part of the sentence rather than a style applied around it.
+ */
+describe("evidenceSentence, for a judgement", () => {
+  it("attributes the words to the pinned judge", () => {
+    const said = evidenceSentence({ kind: "judgement", rationale: "It declines.", judge: "claude-haiku-4-5-20251001" })!;
+    expect(said).toContain("claude-haiku-4-5-20251001");
+    expect(said).toContain("It declines.");
+  });
+
+  it("says a judge gave no reason rather than showing empty quotes", () => {
+    const said = evidenceSentence({ kind: "judgement", rationale: "", judge: "m" })!;
+    expect(said).toContain("no reason");
+    expect(said).not.toContain('\u201c\u201d');
   });
 });

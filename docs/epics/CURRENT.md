@@ -1,304 +1,213 @@
-# EPIC-032: web — inputs, run, results, attribution
-Stage: 3 · Depends on: EPIC-031, EPIC-021b · Size: M
+# EPIC-033: LLM-judge grader
+Stage: 3 · Depends on: EPIC-031 · Size: S
 
-**Completed 2026-09-14.** This file opened on 2026-09-14 as a stub that carried two inherited
-requirements and said "the advisor completes the rest before this is worked on". That completion is
-below, in Soroush's words, and the file is renamed from `EPIC-032-runs-and-attribution.md` so there
-is one epic file rather than two.
+**Started as a stub on 2026-09-14**, to carry two pieces of inherited context into the file that gets
+read when the epic is built. Goal and scope came from `docs/roadmap.md`.
+
+**Completed 2026-09-15.** The stub said "the advisor completes the rest before this is worked on".
+`docs/PROCESS.md` was amended that morning: when no advisor is relaying, Claude Code writes the epic
+file itself and logs every decision it makes in that seat to `docs/decisions/AUTONOMOUS.md`. That is
+what happened here. Everything from "Decisions" down is new; the inherited context above it is
+untouched.
 
 ## Goal
-A signed-in person uploads a set of inputs, runs their prompt against them, sees results per check,
-and can turn a failure into a constraint blok.
+Expectations that need judgement, graded by a pinned model.
+
+---
+
+## Inherited context — what EPIC-030 hands this epic
+
+Both of these are in `docs/epics/reports/EPIC-030-report.md` §12, and a handover recorded only in the
+report of the epic that created it is a handover nobody reads.
+
+### 1 · The `no_kind` queue, and it is larger than it sounds
+
+`checkKindFor` derives one of ADR-003's eight kinds from `detect/rule-shapes.json`, and **returns
+`undefined` whenever no shape matches** — deliberately, because the two ways of manufacturing an
+answer are both worse than none: a ninth kind would contradict ADR-003, and defaulting to
+`must_contain` would assert a substring nobody wrote.
+
+`grade()` turns that into `not_graded` with `reason: "no_kind"`.
+
+**That is expected to be the commonest `not_graded` reason in practice**, because there are seven
+shapes and expected bloks are written in English. It is honest, and it is also a lot of rules that
+nothing checks. **This epic inherits that queue**: `no_kind` is the population the judge exists to
+serve, and its size is the thing to measure before deciding how much of it a judge should attempt.
+
+**Do not close the gap by adding a ninth `CheckKind`.** ADR-003 fixes the set at eight and `CLAUDE.md`
+records what treating that list casually already cost — a phrase for a prohibition was declared
+missing when "must not contain" had been there the whole time. A judge is a **grader for existing
+kinds and for kindless checks**, not a new kind.
+
+### 2 · `refuses_to_answer` is explicitly waiting for this epic
+
+It is one of the eight and it **never grades deterministically**. `GRADERS.refuses_to_answer` returns
+`not_graded` with `reason: "needs_judgement"` for every input, by Soroush's ruling of 2026-09-14.
+
+The reason, kept because it is the trap: recognising a refusal is a judgement, and any deterministic
+version is a phrase list. A phrase list **fires on any output containing "I cannot"** — and
+`graders.test.ts` pins the case that makes this concrete:
+
+> `"I cannot stress enough how much I can help"` → **not graded**
+
+That is a sentence a real assistant really writes, and a phrase list marks it a refusal. False
+positives are what EPIC-012a spent an epic avoiding.
+
+**So `needs_judgement` is this epic's inbox, and it is already typed.** Selecting on that reason
+gives exactly the checks a judge should look at, with no new plumbing.
+
+### 3 · Params derivation is deliberately strict, and that is a product question
+
+`paramsFor` declines text a person would consider obvious:
+
+| written | derives | why not |
+|---|---|---|
+| `Reply in at most 80 words.` | ✅ a limit of 80 | — |
+| `Reply briefly.` | ❌ nothing | no number; a default would assert one nobody wrote |
+| `Always include "order number".` | ✅ the quoted phrase | — |
+| `Always include the order number.` | ❌ nothing | nothing is quoted; inferring the phrase from prose would invent the assertion |
+
+These surface as `not_graded` with `params_not_derivable`, which is a **third** population, distinct
+from `no_kind` and from `needs_judgement`. Whether the strictness is right is best judged against
+real prompts rather than in advance — and this epic is the first that will see enough of them to say.
 
 ---
 
 ## Decisions — settled, do not re-litigate
 
-**1. Input sets are CSV, uploaded, stored per prompt, owner-scoped like everything in EPIC-021a.**
-A header row names the variables; a column with no matching variable is an error **at upload, not at
-run time**.
+**1. The judge grades `needs_judgement`, and this epic does not point it at `no_kind`.**
 
-Three consequences, all of them this epic's to build rather than discover:
+`needs_judgement` is `refuses_to_answer`, and it arrives with its kind already known: the question
+to ask is fixed — *did this output refuse?* — and the blok supplies what it was supposed to refuse
+about. A `no_kind` check has no derived question at all. Judging one means asking a model to invent
+the criterion out of English prose, which is precisely the failure `paramsFor` refuses on purpose
+(`Always include the order number.` derives nothing rather than guessing the phrase). A judge that
+invents the criterion **and** answers it is grading its own homework.
 
-- **The columns are the variable bindings**, so the row is substituted into the compiled prompt. It
-  is not appended to it. See the trap under "Notes" — `executeRun` currently concatenates, and that
-  would send every row's values twice.
-- **A required variable with no column is an upload error too**, for the same reason in the other
-  direction: accepting it defers the failure to run time, which is what this decision exists to
-  prevent. A variable with a default is optional (`isOptional` in core) and may be absent; its
-  default is used and the run says so.
-- **A prompt that declares no variables cannot take an input set.** That falls out of "the header
-  names the variables" and it is not a bug. The upload surface says so plainly rather than accepting
-  a file it cannot bind.
+EPIC-030 asked for the size of the `no_kind` queue to be measured before deciding how much of it a
+judge should attempt, and that instruction is honoured literally: **this epic measures it and does
+not grade it.** Decision 7 says what the measurement is.
 
-**2. Results are shown per check, not per input.** The question a user has is "which of my rules is
-failing", not "how did row 7 do". Row detail is one level down.
+**2. A judge call is a run.** It goes through `executeRun` with the judge model, which means it
+inherits — rather than reimplements — the budget reservation, the content cache, the price table,
+the typed refusals, and rule 6's payload retention with its twelve-month purge. A second call path
+that spent money outside the cap would make the cap not a cap (EPIC-031 decision 2), and a judge is
+the easiest thing in the system to accidentally run once per check per input.
 
-**3. Every failure attributes to exactly one blok and says which**, per `CLAUDE.md` rule 1 and
-EPIC-030. `CheckResult.blokId` is exactly one, always — EPIC-030 asserts that rather than assuming
-it, so this epic renders it rather than computing it.
+**3. The judge model is pinned by version and a floating alias is refused** (`CLAUDE.md` rule 7). Not
+"pinned by convention": a test fails on an id that looks like an alias, because the whole value of a
+judge is that today's verdict and next month's were produced by the same thing.
 
-**4. `fullyChecked: false` gets its own sentence**, per the inherited requirement below. Not folded
-into a pass, not shown by colour alone.
+**4. Judge spend is counted separately and never folded into model spend.** They answer different
+questions — "what did it cost to run my prompt" and "what did it cost to check it" — and a person
+deciding whether checking is worth it cannot do so from one number. This extends EPIC-032's
+inherited requirement rather than replacing it: the cost still says what it counts.
 
-**5. The cost shown to a user says what it counts**, because a cache hit is free and a re-run
-therefore costs nothing while showing a number that no longer matches what ran. Inherited from
-EPIC-031, below.
+**5. The judge is never told which verdict is wanted.** The prompt is built from the blok's verbatim
+text and the model output, and from nothing else. It does not carry the expected answer, the other
+checks' results, or any word about passing. This is the epic's `Review` line made testable, and the
+reason it matters is that a judge told the answer will agree with it.
 
-**6. Create-constraint-from-failure shows a preview of the blok it will add before adding it.** It
-**never edits an existing blok.**
+**6. A judge that does not answer leaves the check `not_graded`, still `needs_judgement`.** No judge
+configured, a refused call, a budget exhausted, an unparseable verdict: all of them mean judgement
+was needed and not reached, which is what that reason already says. **No new `NotGradedReason`**, and
+emphatically no defaulting to `pass` or to `fail` — a judge that fails open calls an unchecked prompt
+verified, and one that fails closed fails a prompt for our outage.
 
-**7. Green, red and amber mean pass, fail and drift and nothing else; pass/fail is never colour
-alone** (`CLAUDE.md` rule 10).
+**7. The `no_kind` measurement is a number in the report, produced by a test.** Over
+`packages/core/src/fixtures.ts`, count the expected bloks whose `checkKindFor` returns nothing, as a
+share of all expected bloks. It is reported, not gated — the point is to hand EPIC-034 and whoever
+revisits this a figure instead of an impression.
 
-### Where decision 4 actually lands, because publishing does not exist yet
-
-The inherited requirement says "at the publish moment". **There is no publish moment in this epic** —
-publishing is EPIC-051 and EPIC-055, both out of scope. So the requirement lands here as **the run
-summary's own sentence**, on the surface where a person first reads whether their prompt is verified,
-and EPIC-051/055 inherit this epic's wording for the publish moment rather than inventing a second
-one. The criterion is unchanged and is testable today: a run whose checks are all `not_graded` must
-not render the same text as one whose checks all passed.
-
----
-
-## Inherited requirement — the `fullyChecked: false` sentence
-
-**Named here because this is the only place the state ever becomes visible to a person, and this is
-the moment the EPIC-017 shape does not repeat.**
-
-EPIC-030 ships a `RunSummary` with **two booleans and deliberately no `passed` field**:
-
-- `noFailures` — no check failed. Gates Live, per `CLAUDE.md` rule 9.
-- `fullyChecked` — every check ran *and* every one passed.
-
-A prompt with ten ungradable checks has `noFailures: true` and `fullyChecked: false`. It is
-publishable, by Soroush's ruling of 2026-09-14, because rule 9 blocks on **failure** and ten
-ungradable checks have failed nothing — blocking there would refuse to publish a prompt for being
-simple.
-
-**So the only thing standing between a user and the belief that their prompt was verified is a
-sentence on this page.** Core made that structurally impossible to fudge: there is no `passed` field
-for a caller to read as the answer, and `passed` exists only as a count. The words are the last mile,
-and they are a UI decision, which makes them this epic's.
-
-**The requirement, stated so it can be checked:**
-
-1. **`fullyChecked: false` gets its own sentence at the publish moment**, distinct from anything said
-   about failures, and it is **never folded into a pass**. "All checks passed" must not appear when
-   nothing was checked.
-2. It says **how many** could not be checked and **why**, from `CheckResult.reason` — `no_kind`,
-   `params_not_derivable`, `pattern_rejected`, `needs_judgement` are four different situations and
-   the user can act on two of them.
-3. **Not by colour.** `CLAUDE.md` rule 10: green, red and amber are pass, fail and drift, and this is
-   none of them. It is words.
-4. A test fails if a prompt whose checks are all `not_graded` renders the same text as one whose
-   checks all passed. That is EPIC-030's criterion arriving on the surface where a person reads it.
-
-**Why this is written down before the epic is.** `EPIC-017` sat `todo` through the whole of Stage 2
-with live pages saying they were not written yet, and shipped past EPIC-014 and EPIC-015 because the
-dependency lived in a row nobody read at the moment it mattered. A handover recorded only in the
-report of the epic that created it is a handover nobody reads.
-
-Source: `docs/epics/reports/EPIC-030-report.md` §4 and §12.1.
-
----
-
-## Inherited requirement — the cost shown to a user must say what it counts
-
-**From EPIC-031, ruled 2026-09-14.** A second requirement alongside the `fullyChecked` sentence, and
-it arrives for the same reason: the code makes the state unambiguous, and the only place it becomes
-visible to a person is a number on this page.
-
-**A cache hit spends nothing.** It calls nobody, so it costs nothing, so it reserves nothing against
-the budget — which is correct, and which means **a re-run is free and the number in front of the user
-stops matching what they ran.**
-
-Somebody who runs 200 inputs, sees "$1.40", changes one blok and re-runs, will see a much smaller
-number for what looks like the same work. Both numbers are true. Neither is self-explanatory, and a
-cost display that silently means two different things on two consecutive screens is the same class of
-problem as a pass that silently means two different things.
-
-**The requirement:**
-
-1. **The cost says what it counts** — spend on this run, not the cost of everything on screen.
-2. **Cache hits are visible as such**, so a smaller number has a reason attached rather than looking
-   like a price change or a mistake.
-3. A test asserts a re-run of an identical prompt shows **zero calls and zero spend**, distinctly from
-   a first run that cost something.
-
-Source: `docs/epics/EPIC-031-run-engine.md` decision 5.
+**8. Evidence carries the rationale, as a fact rather than a sentence.** `Evidence` gains a fifth
+variant carrying the judge's own words and the pinned model id. `packages/core` still writes no
+English (rule 3's reasoning applied to output, EPIC-032 note 3); `apps/web` turns it into prose.
 
 ---
 
 ## Scope
 
-**`packages/core`** — the logic that has to be correct (rule 1), with tests:
+**`packages/core`** — types only, no IO, still zero dependencies:
 
-- **CSV parsing.** RFC 4180: quoted fields, embedded commas, embedded quotes, embedded newlines,
-  CRLF, and a UTF-8 BOM (Excel writes both). Pure, zero dependencies, no IO — which is why it belongs
-  here and not behind a new package dependency.
-- **Variable binding.** `{{name}}` occurrences in the compiled text replaced by a row's values. The
-  occurrence scanner already exists (`occurrencesInText`); binding does not. Unbound required name,
-  value containing `{{`, and a value that is itself a placeholder are three cases the tests name.
+- a fifth `Evidence` variant, `judgement`, carrying `rationale` and the pinned `judge` id;
+- nothing else. **No ninth `CheckKind`** (the warning above), no grader that calls anything, and
+  `grade()` stays pure and synchronous. The judge cannot live here and the boundary is the point.
 
-**`packages/db`** — schema and migration. The shape, not the names:
+**`apps/worker`** — the judge itself, proprietary:
 
-- an **input set** per prompt (owner resolved by joining through `projects`, as everything in
-  EPIC-021a does), its column names, and its rows;
-- a **suite run**: one trigger, over one input set, at one model, grouping the `runs` rows EPIC-031
-  already writes;
-- the **graded results** for that suite run, stored rather than re-derived. Re-grading later would
-  grade against bloks whose text has since changed and attribute a failure to a blok that no longer
-  says that. Versions are EPIC-040's; not re-grading is this epic's.
+- the judge prompt, built from the blok's verbatim text and the model output (decision 5);
+- `JUDGE_MODEL`, pinned, with a priced row;
+- a verdict parser that is strict: anything it cannot read is `not_graded`, never a guess;
+- the call, through `executeRun` (decision 2), with its cost accumulated separately (decision 4);
+- `runSuite` asking the judge only for results that came back `needs_judgement`.
 
-**`apps/worker`**:
+**`packages/db`** — `suite_runs` gains `judgeCalls` and `judgeCostCents`. One migration.
 
-- the **Anthropic `Provider` call site** — `execute.ts` declares the interface and nothing implements
-  it. This is `@ai-sdk/anthropic`, already a declared dependency and imported nowhere.
-- a **pg-boss queue** for a suite run, following `main.ts`'s existing two-queue shape, calling
-  `executeRunSet` and grading each output with `gradeAll`.
-- **`provider_not_configured`** added to `RefusalReason`. With no key there is no honest run and a
-  crash is not an answer; EPIC-031 already made refusal a typed outcome with three named reasons and
-  this is the fourth.
-
-**`apps/web`**:
-
-- `/app/pr/[promptId]/runs` — the input-set panel (upload, list, remove), the run trigger, run
-  history, and the empty states for each;
-- `/app/pr/[promptId]/runs/[runId]` — one suite run: the KPI strip, **results by check** with a meter
-  and a pass/fail icon beside every colour, polling progress without a reload, and the failure detail
-  with the failing region highlighted and the attributed blok card beside it;
-- **"Create constraint from this failure"** → a preview of the blok text it would add, then a
-  confirmation that adds it as a new constraint blok;
-- the **two sentences**: what the cost counts, and what `fullyChecked: false` means;
-- a **Run** action from the prompt page that reaches the runs route, as the mockup's page head shows.
+**`apps/web`** — the judge's cost said separately in the run summary, and a judged result rendering
+its rationale in the failure detail beside the attributed blok.
 
 ## Out of scope
 
-Named so they are not built even though the mockup draws some of them:
-
-- **Versions, diffing, "regressions vs v6"** — EPIC-040. The KPI strip ships without the regressions
-  tile rather than with a fabricated one.
-- **Providers beyond the one** — EPIC-042. One model, pinned. No provider matrix, no heatmap, no
-  "By input" pivot across providers.
-- **Publishing, the publish gate, the blocked banner, "Publish v7"** — EPIC-051 and EPIC-055.
-- **The judge** — EPIC-033. `needs_judgement` renders as a reason a check could not be graded and
-  nothing more.
-- **Export CI** — EPIC-053.
-- **Manual input rows.** `docs/roadmap.md`'s task line says "CSV **and manual rows**"; decision 1 says
-  uploaded CSV. The decision is the newer of the two and it wins. Deliberately narrowed, not
-  forgotten.
-- **The workbench's third tab.** `workbench.tsx` ships two of the mockup's four and leaves a note for
-  whoever builds the third: it is called **Checks**, never "Assertions" (ADR-003, and
-  `docs/design/README.md`'s corrections). That note stands; this epic does not build the tab.
+- **Judging `no_kind` checks.** Decision 1. Measured, not graded.
+- **A ninth check kind.** ADR-003 fixes the set at eight.
+- **A second judge, or a judge the user can choose.** One pinned model. Provider choice is EPIC-042.
+- **Judging the other seven kinds.** They grade deterministically and a judge would be a worse
+  answer to a question that already has an exact one.
+- **Rubric editing.** The rubric is the blok's own text. A rubric a person can tune separately is a
+  second source of truth about what a blok means.
+- **Re-judging an old run.** Same reason `suite_checks` freezes the text: EPIC-040 owns versions.
 
 ## Acceptance criteria
 
-**Group A — driven in a browser on deployed staging, with screenshots.** None of these needs a
-provider key.
-
-- [ ] A CSV whose header names the prompt's variables uploads, and its rows are listed with their
-      count. Playwright + the staging drive.
-- [ ] A CSV with a column matching no variable is **refused at upload**, naming the column. The rows
-      are not stored. Playwright + the drive.
-- [ ] A CSV missing a column for a required variable is refused at upload, naming the variable; one
-      missing only an optional variable is accepted. Playwright.
-- [ ] A prompt with no declared variables says so on the upload surface instead of accepting a file.
-      Playwright + the drive.
-- [ ] Triggering a run with no provider configured produces a run that is **refused with its reason
-      named in words** — not a crash, not an empty page, not a spinner that never ends. Playwright +
-      the drive. This is the state staging is in while EPIC-031a is deferred.
-- [ ] Run history lists runs newest first with their state, and a refused run is legible as refused.
-- [ ] Every interactive element on both routes works by keyboard and at 390px (rule 12). The drive
-      takes both widths.
-
-**Group B — the results surface. Proved by Playwright against a mocked provider, and driven locally
-against a real one when a key is present.**
-
-- [ ] Results are listed **by check**, each with its owning blok, a meter, and a pass/fail icon
-      beside the colour. Playwright asserts the icon, not only the colour (rule 10).
-- [ ] A failing check opens a failure detail showing the model output with the failing region
-      highlighted, from `Evidence` offsets — `excerpt` carries `start` and `end`, and core counts
-      **code points**.
-- [ ] The failure names **exactly one** owning blok and renders that blok's card.
-- [ ] "Create constraint from this failure" shows the blok text **before** adding it; cancelling adds
-      nothing; confirming adds a new constraint blok and **no existing blok's `updatedAt` moves**.
-      Asserted at the database, the way EPIC-021a's decision 5 test is.
-- [ ] A run whose checks are all `not_graded` does **not** render the same text as one whose checks
-      all passed, and the sentence says how many could not be checked and why, from
-      `CheckResult.reason`. The named test for the inherited requirement.
-- [ ] The cost says what it counts. A re-run of an identical prompt and input set shows **zero calls
-      and zero spend**, distinctly from a first run that cost something.
-- [ ] Progress advances without a reload while a run is in flight.
-
-**Group C — the first real call.** `docs/backlog.md` gives this to EPIC-031a, which is deferred as of
-2026-09-14, so it is written down here rather than left to be discovered:
-
-- [ ] **If `ANTHROPIC_API_KEY` is set on staging when the drive runs**, the drive makes the first real
-      call and EPIC-031a's checklist applies to it: the key appears in no log, the resolved model id
-      matches a priced row, `usage` arrives in the shape `costCentsFor` expects, the reservation
-      reconciles against the real token count, the payload is stored with `purge_after` stamped,
-      `latencyMs` is plausible, and a second identical call is answered by the cache and calls
-      nobody. Record the real cost in cents in the report — it is the first number anybody will have
-      for what a run costs.
-- [ ] **If it is not set**, Group A's refusal criterion is what the drive shows, and the report says
-      in its own numbered section that the live call did not happen and why — the EPIC-030 §11 shape.
-      It is not ticked, not skipped silently, and not a `BLOCKER`: every other criterion in this epic
-      is reachable without it.
+- [ ] A check of kind `refuses_to_answer` is graded by the judge: an output that refuses is `pass`
+      against a blok asking for a refusal, and one that answers is `fail`. Fixtures, not a live call.
+- [ ] `"I cannot stress enough how much I can help"` — the sentence `graders.test.ts` pins as the
+      phrase-list trap — is **not** graded a refusal by the judge fixture path. The named test.
+- [ ] The judge model id is pinned, and a test fails if it looks like a floating alias.
+- [ ] `JUDGE_MODEL` has a priced row, asserted by a test, because an unpriced model does not run.
+- [ ] The built judge prompt contains the blok text and the model output and **no statement of which
+      verdict is wanted**. A test asserts it, per decision 5.
+- [ ] A verdict the parser cannot read leaves the check `not_graded` with `needs_judgement`, and a
+      test covers empty, truncated and contradictory replies.
+- [ ] No judge configured leaves every `needs_judgement` check exactly as it was, and the run still
+      finishes. The EPIC-032 refusal shape, inherited.
+- [ ] Judge calls go through the budget: a judge call at the cap is refused and does not spend.
+- [ ] Judge cost and judge calls are stored separately from model cost and model calls, and the run
+      summary says both, distinctly. Playwright.
+- [ ] A judged failure shows the judge's rationale beside the attributed blok in the failure detail.
+      Playwright, and the browser drive.
+- [ ] The `no_kind` share of the fixture corpus is measured and the number is in the report.
+- [ ] Every interactive element added works by keyboard and at 390px (rule 12).
 
 ## Verification
 
 ```
-pnpm test                      # core: CSV parsing, binding; web: the sentences; worker: the job
-pnpm e2e                       # input sets, refusal, results by check, the preview step
-node scripts/gate-run.mjs      # resolves to gates.mjs ci — the gate before the push
+pnpm test                         # core: the variant; worker: the judge, the parser, the pin
+pnpm e2e                          # the judge path end to end against a fake judge
+node scripts/gates.mjs ci         # the gate before the merge
+node scripts/drive-epic-033.mjs   # the built app, by hand, screenshotted
 ```
-
-Then the deployed drive on `app.staging.41prompts.ai`, signed in as a fresh
-`claude-drive-<label>-<timestamp>@example.com`, with the project, the prompt and its bloks created
-**through the product's own UI** rather than seeded — `docs/AUTONOMOUS.md`, "A fresh user for every
-drive".
 
 ## Notes for the implementer
 
-**1. `executeRun` concatenates, and decision 1 means it must not.** It sends
-`` `${request.compiled}\n\n${request.input}` ``. With the row substituted into `compiled`, that
-appends every value a second time — the model sees the binding twice and nobody notices, because the
-output is still plausible. `RunRequest.input` stays as the canonical serialisation of the row, which
-is what `inputHash` and `cacheKey` need; what changes is that it is hashed rather than appended.
-Write the test that fails on the old assembly before changing it.
+**1. The fake provider already echoes the last line**, which is how EPIC-032's e2e chose the model's
+answer through the CSV. A judge needs a *second* fake whose reply is a verdict, and the two are
+selected by the same `providerFor` seam. Do not add a second mechanism; extend the one that exists,
+with the same three guards.
 
-**2. The helper that reloads.** `PROCESS.md`, "A helper that normalises state hides the defect from
-every test that uses it": `variables.spec.ts` and `compiled-pane.spec.ts` both had an `addBlok`
-helper ending in `await page.reload()`, which is why no test could see BUG-022 or
-BUG-021b. **A new suite here must not reload between writing and reading**, and every write path
-needs its `revalidatePath` — one missing call in `saveBlokTextAction` was the whole of both bugs.
+**2. `executeRun` caches by content hash**, so two identical judge calls cost once — which is right,
+and which means an e2e asserting "the judge was called" must make its content unique or assert
+against the cache the way EPIC-032's cost test learned to.
 
-**3. Core writes no sentences.** `Evidence` is deliberately a fact — an excerpt with offsets, a
-measurement with its unit, an absence, a shape. Turning those into English is this epic's job and
-it happens in `apps/web`, never in `packages/core` (rule 3's reasoning, applied to output rather
-than to bloks).
+**3. The verdict parser is where a judge quietly becomes a phrase list.** Ask for one token, parse
+exactly that token, and refuse everything else. A parser that searches the rationale for "yes" has
+reinvented the thing decision 1 of `graders.ts` exists to avoid.
 
-**4. Colour and icons.** Rule 10 and the design corrections: pass/fail icons alongside colour, amber
-for drift only. The mockup's meters are coloured by outcome; the icon is what makes them readable
-without colour.
+**4. Rule 7 is about the id, not about intent.** `claude-sonnet-5` with no date is an alias whatever
+anybody meant by it.
 
-**5. Vocabulary.** check, span, blok, Draft, Live. Never assertion, never block, never enum, never
-json_schema. `pnpm forbidden-words` scans `apps/web/app`, `apps/web/lib` and `packages/ui/src`, so a
-slip in a UI string fails the build — which is the point.
+**5. Vocabulary.** check, blok, span, Draft, Live. The word **judge** is not in ADR-003's forbidden
+list and is used here as a noun for the grader. Never "assertion", never "block".
 
-**6. Cap the upload.** A CSV is a file a person chooses and a run costs money per row. The run budget
-from EPIC-031 is the real guard on spend, but it is not a guard on a 200 MB paste: cap bytes and rows
-at upload, refuse over the cap in words, and put the numbers in the report.
-
-**7. The provider key.** `ANTHROPIC_API_KEY` reaches the worker from Coolify. Setting it there is
-EPIC-031a's, and that row is `deferred` as of 2026-09-14 — so build for both worlds, which is what
-Group C says. Never log the key, never put it in a payload, never put it in an error. `runs` already
-has a test asserting no stored payload contains a key-shaped string; keep it passing.
-
-**8. Attribution is read, not computed.** `CheckResult.blokId` is exactly one, always, by
-construction in `compile()` and asserted in `grade.test.ts`. If this epic finds itself deciding which
-blok a failure belongs to, it has taken a wrong turn.
-
-**9. One PR.** `PROCESS.md`, "One PR per epic". Rulings and small corrections batch into it.
+**6. Do not let the judge see the other checks.** One check, one output, one verdict. A judge given
+the whole result set will start being consistent with it instead of with the output.

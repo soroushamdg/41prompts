@@ -320,3 +320,12 @@
   color: var(--color-ink-3);
   font-size: 13px;
 }
+
+/* Evidence that came from a model rather than from a measurement (EPIC-033). Set apart because it
+   is testimony: the four deterministic evidences can be re-derived from the output above it, and
+   this one can only be trusted or not. Not a pass/fail colour — it is neither. */
+.runs-evidence[data-judged="true"] {
+  border-left: 2px solid var(--color-ink-3);
+  padding-left: 10px;
+  font-style: italic;
+}

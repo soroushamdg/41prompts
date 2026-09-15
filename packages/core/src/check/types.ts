@@ -49,7 +49,21 @@ export type Evidence =
   /** Something was looked for and was not present. */
   | { readonly kind: "absent"; readonly sought: string }
   /** The output did not parse, or parsed to the wrong shape. Carries what was expected, not advice. */
-  | { readonly kind: "shape"; readonly expected: readonly string[]; readonly found: readonly string[] };
+  | { readonly kind: "shape"; readonly expected: readonly string[]; readonly found: readonly string[] }
+  /**
+   * A model was asked to judge, and this is what it said (EPIC-033).
+   *
+   * **The odd one out, and deliberately so.** The four above are facts anybody can re-derive from
+   * the output: a slice, a count, an absence, a shape. This one is testimony — it is only as good
+   * as the thing that produced it, which is why `judge` is here at all. The pinned model id travels
+   * with the verdict so a result can always be traced to what produced it, and so two runs judged by
+   * different versions are never silently compared (`CLAUDE.md` rule 7).
+   *
+   * `rationale` is the judge's own words, stored verbatim and never rewritten — the same discipline
+   * rule 3 applies to a blok's source text. `packages/core` still writes no English: this is what
+   * was said, and `apps/web` decides how to present it.
+   */
+  | { readonly kind: "judgement"; readonly rationale: string; readonly judge: string };
 
 /**
  * What a limit counts.

@@ -172,7 +172,15 @@ function FailureDetail({
           </p>
         )}
         {said !== undefined && (
-          <p className="runs-evidence" data-testid="evidence">
+          /* `data-judged` when this came from a model rather than from a measurement. The four
+             deterministic evidences are facts a reader can re-derive from the output above; a
+             judgement is testimony, and it is marked so it is never read as the same kind of
+             thing. The attribution is in the sentence itself (`evidenceSentence`). */
+          <p
+            className="runs-evidence"
+            data-testid="evidence"
+            {...(failure.evidence?.kind === "judgement" ? { "data-judged": "true" } : {})}
+          >
             {said}
           </p>
         )}

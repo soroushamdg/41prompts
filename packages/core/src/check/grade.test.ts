@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
+import { checkKindFor } from "../compile/checks.js";
 import { compile } from "../compile/compile.js";
 import { CHECK_KINDS, type Check, type PromptBlok } from "../compile/types.js";
 import { grade, gradeAll, summarise } from "./grade.js";
@@ -264,5 +265,49 @@ describe("evidence points at the output rather than describing it", () => {
       expect(result.evidence).not.toHaveProperty(forbidden);
       expect(result).not.toHaveProperty(forbidden);
     }
+  });
+});
+
+/**
+ * **`grade()` never produces a judgement, and that is a boundary rather than an omission.**
+ *
+ * `Evidence` gained a `judgement` variant in EPIC-033, and it is the only one no function in this
+ * package can emit. The four others are facts `grade()` derives from the output by itself; a
+ * judgement requires a model, a model requires IO, and `packages/core` has none — `CLAUDE.md` rule
+ * 1 and dependency-cruiser both say so, and this test says it in the one place somebody adding a
+ * "quick" judge heuristic here would be looking.
+ *
+ * The variant lives here anyway because the *type* is the contract `apps/worker` writes into and
+ * `apps/web` reads out of, and a shared shape with no shared home is how two copies start.
+ */
+describe("the judgement evidence variant", () => {
+  it("is never produced by grade(), whatever the check", () => {
+    const outputs = ["", "I cannot help with that.", "anything at all", "{}"];
+    const texts = [
+      "Refuse to answer questions about pricing.",
+      'Never mention "sorry".',
+      "Reply in at most 30 words.",
+      "Always include the order number.",
+    ];
+
+    for (const text of texts) {
+      for (const output of outputs) {
+        const result = grade({ id: "c", blokId: "b", text, kind: checkKindFor(text) }, output);
+        expect(result.evidence?.kind).not.toBe("judgement");
+      }
+    }
+  });
+
+  /**
+   * And the reason the worker has work to do: a refusal check is handed on, not answered. If this
+   * ever returns a verdict, somebody has shipped the phrase list `graders.ts` refuses to ship.
+   */
+  it("hands a refusal check on to the judge rather than guessing", () => {
+    const result = grade(
+      { id: "c", blokId: "b", text: "Refuse to answer questions about pricing.", kind: "refuses_to_answer" },
+      "I cannot stress enough how much I can help"
+    );
+    expect(result.outcome).toBe("not_graded");
+    expect(result.reason).toBe("needs_judgement");
   });
 });
