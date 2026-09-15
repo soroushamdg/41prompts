@@ -84,3 +84,34 @@ export function newDecompileRunId(): string {
 export function newRunId(): string {
   return newId("run", 8);
 }
+
+/**
+ * One uploaded set of inputs (EPIC-032).
+ *
+ * Eight hex like a blok's, not six like the anonymous counters': an input set is what a run is
+ * *over*, so an id that collided would attribute one person's results to another person's file.
+ */
+export function newInputSetId(): string {
+  return newId("inp", 8);
+}
+
+/** One triggered run over one input set at one model. The id a person sees in the URL. */
+export function newSuiteRunId(): string {
+  return newId("srun", 8);
+}
+
+/**
+ * One check, as it stood when the run was triggered.
+ *
+ * A row here is a frozen copy of a check — its kind, its owning blok and that blok's **verbatim**
+ * text at trigger time — because re-deriving it later would grade against a blok whose text has
+ * since changed and attribute a failure to a blok that no longer says that.
+ */
+export function newSuiteCheckId(): string {
+  return newId("schk", 8);
+}
+
+/** One check, graded against one input. */
+export function newSuiteResultId(): string {
+  return newId("sres", 8);
+}

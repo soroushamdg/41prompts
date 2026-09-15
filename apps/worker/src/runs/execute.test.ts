@@ -115,6 +115,33 @@ describe.skipIf(!HAS_TEST_DATABASE)("executeRun", () => {
     expect(budget!.spentCents).toBe(actual);
   });
 
+  /**
+   * **EPIC-032 note 1, and it was a live defect when this test was written.**
+   *
+   * `executeRun` sent `` `${compiled}\n\n${input}` ``. Once the row is *substituted* into the
+   * compiled prompt — which is what decision 1 means by "the columns are the variable bindings" —
+   * appending it sends every value a second time. The model sees the binding twice, and nobody
+   * notices, because the output is still plausible.
+   *
+   * `RunRequest.input` stays the canonical serialisation of the row: it is what `inputHash` and the
+   * cache key are computed over, so two different rows are still two different requests. What
+   * changed is that it is **hashed rather than appended**.
+   */
+  it("sends the compiled prompt and nothing else, because the row is already bound into it", async () => {
+    const seen: string[] = [];
+    const provider: Provider = {
+      async complete({ prompt }) {
+        seen.push(prompt);
+        return { text: "ok", inputTokens: 10, outputTokens: 10, raw: {} };
+      }
+    };
+
+    await executeRun(db, provider, request({ compiled: "Reply to Ada.", input: '[["customer","Ada"]]' }), NOW);
+
+    expect(seen).toEqual(["Reply to Ada."]);
+    expect(seen[0]).not.toContain("customer");
+  });
+
   it("refuses an unpriced model rather than running it at zero", async () => {
     const provider = fakeProvider();
     const outcome = await executeRun(db, provider, request({ model: "some-model-nobody-priced" }), NOW);

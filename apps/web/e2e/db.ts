@@ -1,4 +1,4 @@
-import { createDb, sessions, users, verifications } from "@41prompts/db";
+import { bloks, createDb, sessions, users, verifications } from "@41prompts/db";
 import { desc, eq, sql } from "drizzle-orm";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -35,4 +35,19 @@ export async function sessionCountFor(email: string): Promise<number> {
 
 export async function deleteTestUser(email: string): Promise<void> {
   await db.delete(users).where(eq(users.email, email));
+}
+
+/**
+ * Every blok of a prompt with its `updatedAt`, read straight from the table.
+ *
+ * EPIC-021a decision 5's criterion is a **database** fact — "no existing blok's `updatedAt` moves"
+ * — and EPIC-032 inherits it for "create constraint from this failure". Asserting it through the
+ * page would only prove the page did not re-render something, which is a different claim.
+ */
+export async function blokTimestampsFor(promptId: string): Promise<{ id: string; updatedAt: Date }[]> {
+  return db
+    .select({ id: bloks.id, updatedAt: bloks.updatedAt })
+    .from(bloks)
+    .where(eq(bloks.prompt, promptId))
+    .orderBy(bloks.createdAt);
 }

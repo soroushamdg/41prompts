@@ -1,0 +1,344 @@
+import {
+  CHECK_KIND_PHRASES,
+  type CheckKind,
+  type ColumnProblem,
+  type CsvProblem,
+  type Evidence,
+  type NotGradedReason,
+  type RunSummary,
+} from "@41prompts/core";
+import type { SuiteCheckRow, SuiteResultRow, SuiteRunRow } from "@41prompts/db";
+
+/**
+ * **Where the facts become English.**
+ *
+ * `packages/core` states what it found — an excerpt with offsets, a measurement with its unit, an
+ * absence, a shape, a count, a reason — and deliberately writes no prose about a person's output
+ * (EPIC-030 decision 5, and `CLAUDE.md` rule 3's reasoning applied to output rather than to bloks).
+ * Turning those into sentences is this epic's job, it happens here, and it is pure so that every
+ * sentence has a test rather than a screenshot.
+ *
+ * Two of the sentences arrived as inherited requirements and are the reason this file is separate
+ * from the components that render it: the `fullyChecked: false` sentence, and the one that says
+ * what the cost counts.
+ */
+
+/** One check, with every input's verdict for it rolled up. The unit the results list is made of. */
+export interface CheckRowView {
+  readonly suiteCheckId: string;
+  readonly blokId: string;
+  readonly blokKind: string;
+  readonly blokText: string;
+  /** ADR-003's plain phrase, or the sentence for a check no kind could be named for. */
+  readonly phrase: string;
+  readonly passed: number;
+  readonly failed: number;
+  readonly notGraded: number;
+  readonly total: number;
+  /**
+   * Green or red, and **never amber** — amber is drift and nothing on this page is drift
+   * (`CLAUDE.md` rule 10). `undefined` where there is nothing to colour, which is a check that
+   * could not be graded at all: it is neither a pass nor a failure and must not be painted as one.
+   */
+  readonly status: "pass" | "fail" | undefined;
+  /** 0–100 over the results that were **graded**. A check nothing could grade has no rate. */
+  readonly meterValue: number;
+  readonly firstFailure?: {
+    readonly inputIndex: number;
+    readonly runId: string | null;
+    readonly evidence: Evidence | undefined;
+  };
+}
+
+export function checkRows(checks: readonly SuiteCheckRow[], results: readonly SuiteResultRow[]): CheckRowView[] {
+  return checks.map((check) => {
+    const mine = results.filter((result) => result.suiteCheck === check.id);
+    const passed = mine.filter((result) => result.outcome === "pass").length;
+    const failed = mine.filter((result) => result.outcome === "fail").length;
+    const notGraded = mine.filter((result) => result.outcome === "not_graded").length;
+    const graded = passed + failed;
+
+    const failure = mine
+      .filter((result) => result.outcome === "fail")
+      .sort((a, b) => a.inputIndex - b.inputIndex)[0];
+
+    return {
+      suiteCheckId: check.id,
+      blokId: check.blokId,
+      blokKind: check.blokKind,
+      blokText: check.blokText,
+      phrase: phraseFor(check.kind),
+      passed,
+      failed,
+      notGraded,
+      total: mine.length,
+      status: graded === 0 ? undefined : failed > 0 ? "fail" : "pass",
+      meterValue: graded === 0 ? 0 : Math.round((passed / graded) * 100),
+      ...(failure === undefined
+        ? {}
+        : {
+            firstFailure: {
+              inputIndex: failure.inputIndex,
+              runId: failure.run,
+              evidence: (failure.evidence ?? undefined) as Evidence | undefined,
+            },
+          }),
+    };
+  });
+}
+
+/**
+ * ADR-003's phrase, or a sentence for the checks that have no kind.
+ *
+ * The internal identifiers never reach a screen; `CHECK_KIND_PHRASES` is the only bridge, and this
+ * is the only place that crosses it.
+ */
+export function phraseFor(kind: string | null): string {
+  if (kind === null) return "no check could be named from these words";
+  return CHECK_KIND_PHRASES[kind as CheckKind] ?? "no check could be named from these words";
+}
+
+export function summaryOf(results: readonly SuiteResultRow[]): RunSummary {
+  const passed = results.filter((result) => result.outcome === "pass").length;
+  const failed = results.filter((result) => result.outcome === "fail").length;
+  const notGraded = results.filter((result) => result.outcome === "not_graded").length;
+  return {
+    total: results.length,
+    passed,
+    failed,
+    notGraded,
+    noFailures: failed === 0,
+    fullyChecked: results.length > 0 && passed === results.length,
+  };
+}
+
+/**
+ * Why a check could not be checked, in words a person can act on.
+ *
+ * Four different situations, and **two of them are things the author can fix** — which is why
+ * `NotGradedReason` is typed rather than a string, and why this does not collapse them into "we
+ * could not check this".
+ */
+const REASON_PHRASES: Readonly<Record<NotGradedReason, string>> = {
+  no_kind: "we could not tell from the words what to check",
+  params_not_derivable: "the rule does not say what to measure",
+  pattern_rejected: "the pattern was refused as unsafe to run",
+  needs_judgement: "it needs judgement, which no grader here can give yet",
+};
+
+/**
+ * The three sentences about whether this run verified anything.
+ *
+ * **They are three and not one.** The inherited requirement is that `fullyChecked: false` gets its
+ * own sentence, distinct from anything said about failures, and that it is never folded into a
+ * pass — so "All checks passed" cannot appear when nothing was checked. Keeping them in separate
+ * fields is what makes that structural rather than a rule the component has to remember.
+ */
+export interface Verification {
+  /** Whether this was verified. Never says "passed" unless everything ran and everything passed. */
+  readonly headline: string;
+  /** Present exactly when something could not be checked. Its own sentence, by requirement. */
+  readonly notChecked?: string;
+  /** Present exactly when something failed. Separate, by requirement. */
+  readonly failures?: string;
+}
+
+export function verification(summary: RunSummary, results: readonly SuiteResultRow[]): Verification {
+  if (summary.total === 0) {
+    return { headline: "Nothing here was verified: this prompt has no checks yet." };
+  }
+
+  const headline = summary.fullyChecked
+    ? "Every check ran, and every one passed."
+    : summary.notGraded === summary.total
+      ? "Nothing here was verified."
+      : summary.failed > 0
+        ? "This prompt is not verified: something failed."
+        : "Some of this was checked and some of it was not.";
+
+  const counts = new Map<NotGradedReason, number>();
+  for (const result of results) {
+    if (result.outcome !== "not_graded") continue;
+    const reason = (result.reason ?? "no_kind") as NotGradedReason;
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+
+  const notChecked =
+    summary.notGraded === 0
+      ? undefined
+      : `${summary.notGraded} of ${summary.total} could not be checked: ` +
+        [...counts.entries()]
+          .map(([reason, count]) => `${count} because ${REASON_PHRASES[reason]}`)
+          .join("; ") +
+        ".";
+
+  const failures =
+    summary.failed === 0 ? undefined : `${summary.failed} of ${summary.total} failed.`;
+
+  return { headline, ...(notChecked === undefined ? {} : { notChecked }), ...(failures === undefined ? {} : { failures }) };
+}
+
+/**
+ * What the cost counts, said out loud.
+ *
+ * **Inherited from EPIC-031, and the reason is a number that changes on its own.** A cache hit
+ * calls nobody, so it costs nothing and reserves nothing — which is correct, and which means a
+ * re-run is free. Somebody who runs 200 inputs, sees a number, edits one blok and re-runs will see
+ * a much smaller number for what looks like the same work. Both are true. Neither is
+ * self-explanatory, and a figure that silently means two different things on two consecutive
+ * screens is the same class of problem as a pass that silently means two.
+ */
+export function costSentence(run: Pick<SuiteRunRow, "calls" | "cachedCalls" | "costCents">): string {
+  const money = formatCents(run.costCents);
+
+  if (run.calls === 0 && run.cachedCalls > 0) {
+    return `This run spent nothing. Every input was answered from the cache of an earlier identical run, so no model was called.`;
+  }
+  if (run.calls === 0) {
+    return `This run spent nothing, because no model was called.`;
+  }
+
+  const base = `This run spent ${money} — what its ${run.calls} ${run.calls === 1 ? "call" : "calls"} cost, not the cost of everything on this page.`;
+  return run.cachedCalls === 0
+    ? base
+    : `${base} ${run.cachedCalls} more ${run.cachedCalls === 1 ? "input was" : "inputs were"} answered from the cache, which called nobody and cost nothing.`;
+}
+
+/** Integer cents, as money. `costCents` is the same unit `run_budgets` uses, so there is no conversion. */
+export function formatCents(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+/** What a run is doing, in the words the history and the page head both use. */
+export function stateWords(run: Pick<SuiteRunRow, "state" | "completedInputs" | "totalInputs" | "refusalReason">): string {
+  switch (run.state) {
+    case "queued":
+      return "Waiting to start";
+    case "running":
+      return `Running — ${run.completedInputs} of ${run.totalInputs} inputs`;
+    case "refused":
+      return `Refused — ${refusalWords(run.refusalReason)}`;
+    default:
+      return run.refusalReason === null
+        ? `Finished — ${run.completedInputs} of ${run.totalInputs} inputs`
+        : `Stopped after ${run.completedInputs} of ${run.totalInputs} inputs — ${refusalWords(run.refusalReason)}`;
+  }
+}
+
+/**
+ * Why a run did not happen, in words.
+ *
+ * `apps/worker`'s `RefusalReason` is typed so that this can say **which**, and three of the four are
+ * things a person can act on. The fourth is ours, and it says so rather than implying the user did
+ * something wrong.
+ */
+export function refusalWords(reason: string | null): string {
+  switch (reason) {
+    case "provider_not_configured":
+      return "no model provider is configured here, so there was nothing honest to run against";
+    case "budget_exhausted":
+      return "this account's run budget for the month is used up";
+    case "model_not_priced":
+      return "we have no price for that model, and a run we cannot cost is a run we will not make";
+    case "queue_unavailable":
+      return "the queue that carries a run to the worker would not take it, so nothing was started";
+    default:
+      return "no reason was recorded, which is itself a defect";
+  }
+}
+
+/**
+ * One `Evidence`, as a sentence.
+ *
+ * Every variant is a fact with a shape: a slice with offsets, a measurement with its unit, a thing
+ * looked for and not found, or a set of keys. None of them is advice, and none of them is a
+ * paraphrase of what the person wrote.
+ */
+export function evidenceSentence(evidence: Evidence | undefined): string | undefined {
+  if (evidence === undefined) return undefined;
+  switch (evidence.kind) {
+    case "excerpt":
+      return `Found “${evidence.text}” at character ${evidence.start}.`;
+    case "measurement":
+      return `Measured ${evidence.measured} ${evidence.counting} against a limit of ${evidence.limit}. Characters are counted as code points.`;
+    case "absent":
+      return `Looked for “${evidence.sought}” and it was not there.`;
+    case "shape":
+      return evidence.found.length === 0
+        ? `Expected ${listOf(evidence.expected)}. The output was not an object.`
+        : `Expected ${listOf(evidence.expected)}. Found ${listOf(evidence.found)}.`;
+  }
+}
+
+function listOf(values: readonly string[]): string {
+  return values.length === 0 ? "nothing" : values.join(", ");
+}
+
+/**
+ * The output split around the failing region, so the region can be marked up.
+ *
+ * **Offsets are code points**, because that is what `packages/core` counts and says it counts —
+ * `"👩‍💻"` is 5 UTF-16 code units and 3 code points, so slicing the string directly would cut a
+ * surrogate pair in half and highlight the wrong run of text. Spreading into an array gives code
+ * points, which is the unit the number is in.
+ */
+export function highlightParts(
+  output: string,
+  evidence: Evidence | undefined
+): { before: string; match: string; after: string } {
+  if (evidence === undefined || evidence.kind !== "excerpt") return { before: output, match: "", after: "" };
+  const points = [...output];
+  return {
+    before: points.slice(0, evidence.start).join(""),
+    match: points.slice(evidence.start, evidence.end).join(""),
+    after: points.slice(evidence.end).join(""),
+  };
+}
+
+/** A CSV that could not be read, in words, with the place it went wrong. */
+export function csvProblemWords(problem: CsvProblem): string {
+  switch (problem.kind) {
+    case "empty":
+      return "That file has a header and no rows, or nothing at all.";
+    case "unterminated_quote":
+      return `A quoted value opens on line ${problem.line} and never closes.`;
+    case "ragged_row":
+      return `Line ${problem.line} has ${problem.found} ${problem.found === 1 ? "value" : "values"} where the header names ${problem.expected}.`;
+    case "blank_column_name":
+      return `Column ${problem.column} has no name, so nothing can say what it binds to.`;
+    case "duplicate_column_name":
+      return `The column “${problem.name}” appears twice, so a row's value for it would be ambiguous.`;
+  }
+}
+
+/**
+ * A header that does not bind, in words — and the rows are **not** stored.
+ *
+ * Decision 1: at upload, not at run time. The message names the column or the variable, because
+ * "that file does not match" is a refusal nobody can act on.
+ */
+export function columnProblemWords(problems: readonly ColumnProblem[]): string {
+  if (problems.length === 1 && problems[0]!.kind === "no_variables_declared") {
+    return "This prompt declares no variables, so a column has nothing to bind to. Declare one on the Variables tab first.";
+  }
+
+  const unknown = problems.filter((problem) => problem.kind === "unknown_column").map((problem) => problem.name);
+  const missing = problems.filter((problem) => problem.kind === "missing_required").map((problem) => problem.name);
+
+  const parts: string[] = [];
+  if (unknown.length > 0) {
+    parts.push(
+      `${unknown.length === 1 ? "The column" : "The columns"} ${quoteList(unknown)} ${unknown.length === 1 ? "matches" : "match"} no variable this prompt declares.`
+    );
+  }
+  if (missing.length > 0) {
+    parts.push(
+      `${quoteList(missing)} ${missing.length === 1 ? "is a variable" : "are variables"} this prompt requires, and the file has no column for ${missing.length === 1 ? "it" : "them"}.`
+    );
+  }
+  return `${parts.join(" ")} Nothing was saved.`;
+}
+
+function quoteList(names: readonly string[]): string {
+  return names.map((name) => `“${name}”`).join(", ");
+}

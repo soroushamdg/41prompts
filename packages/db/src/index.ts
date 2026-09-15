@@ -8,4 +8,5 @@ export * from "./m1-count";
 export * from "./rank";
 export * from "./canvas";
 export * from "./variables";
+export * from "./suites";
 export * from "./testing";

@@ -41,3 +41,32 @@ export const RUN_COUNT_RETENTION_DAYS = 180;
  * remembers.
  */
 export const RUN_PAYLOAD_RETENTION_DAYS = 365;
+
+// ── EPIC-032: the contract between `apps/web` and `apps/worker` ───────────────────────────────
+//
+// Three values both processes must agree on, in the one package they both already depend on.
+// Neither app may import the other, so the alternative was a literal written out twice — and a
+// copy goes stale **silently**, which is the whole argument `apps/web/e2e/env.mjs` records one
+// level down. A queue name that drifts is a trigger that enqueues into nothing: the run sits
+// `queued` for ever and the page shows a spinner that never ends.
+
+/** The pg-boss queue a triggered run is sent on. The web sends; the worker works. */
+export const RUN_SUITE_QUEUE = "run-suite";
+
+/**
+ * The one model a run uses (EPIC-032: one provider, pinned; the matrix is EPIC-042).
+ *
+ * **A pinned id, never a floating alias** — `CLAUDE.md` rule 7 for grading, and the same reasoning
+ * for anything whose cost is charged to somebody. `apps/worker`'s price table must carry a row for
+ * it, and a test there asserts exactly that, because a model absent from the table does not run.
+ */
+export const DEFAULT_RUN_MODEL = "claude-sonnet-5";
+
+/**
+ * What is sent with every run, stored on the row as `params` (rule 6: as sent, not as configured).
+ *
+ * `temperature: 0` because a run that cannot be reproduced cannot be a test. The output cap is
+ * modest on purpose: it bounds one answer, while the reservation still covers the model's worst
+ * case, so a cap here can never make the budget under-count.
+ */
+export const RUN_PARAMS: Readonly<Record<string, unknown>> = { temperature: 0, maxOutputTokens: 1024 };

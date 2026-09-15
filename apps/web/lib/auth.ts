@@ -32,6 +32,60 @@ function requireEnv(name: string): string {
  * deployment share its session across subdomains" is exactly the kind of thing that should not be
  * verifiable only by signing in on staging.
  */
+/**
+ * Better Auth's rate limiting, and the one flag that turns it off.
+ *
+ * ## Why a flag exists at all
+ *
+ * Two limits bite a Playwright suite that neither of them is aimed at. Better Auth's own limiter is
+ * **100 requests per minute per IP** across every `/api/auth/*` path, and every page navigation in
+ * a signed-in app asks it for a session; the magic-link plugin adds **15 sign-in links per five
+ * minutes per IP**. A serial suite of two hundred tests on one machine is one IP making far more
+ * than either allows, so it trips both — and the symptom is not a message about rate limiting, it
+ * is a magic-link verify that returns 429, never redirects, and reads as a broken sign-in. It cost
+ * this epic two rounds of diagnosis before the cause was probed directly (request 101 is the first
+ * 429 on `/api/auth/get-session`; request 16 is the first on the magic-link path).
+ *
+ * The alternative was to make the suite slower, which buys flakiness back in a different currency,
+ * or to stop asserting the things that need a signed-in browser, which is most of them.
+ *
+ * ## The three guards, which are the `FAKE_PROVIDER` shape on purpose
+ *
+ * `apps/worker/src/runs/provider.ts` had this exact problem — a test-only path in production code
+ * — and the answer there is the answer here:
+ *
+ * 1. **Off unless the flag is set.** `E2E_RATE_LIMIT_OFF` appears nowhere in `infra/`, so no
+ *    deployed environment can acquire it by configuration drift.
+ * 2. **Refused outright when `DEPLOY_ENV` is production**, whatever the flag says.
+ * 3. **Announced**, on stdout at construction, so a process that is not limiting requests is never
+ *    quiet about it.
+ *
+ * ## What still proves the limits work
+ *
+ * `auth.rate-limit.test.ts` does not set the flag, and asserts both limits against a real database
+ * — the per-email one through the endpoint and the per-IP one through `auth.handler`. Turning the
+ * limiter off for the browser suite does not touch either assertion, which is the difference
+ * between an escape hatch and a hole.
+ */
+export interface RateLimitEnv {
+  readonly E2E_RATE_LIMIT_OFF?: string | undefined;
+  readonly DEPLOY_ENV?: string | undefined;
+  /**
+   * The two names above are the whole of what this function reads; they are written out so that is
+   * legible. The index signature is what lets `process.env` be passed — without it TypeScript
+   * rejects the call as a weak type with no properties in common, which is a true statement about
+   * an environment that happens to have neither name set and a useless one here.
+   */
+  readonly [name: string]: string | undefined;
+}
+
+export function rateLimitEnabled(env: RateLimitEnv = process.env): boolean {
+  if (env.E2E_RATE_LIMIT_OFF === "1" && env.DEPLOY_ENV !== "production") {
+    return false;
+  }
+  return true;
+}
+
 export function sessionCookieConfig(): { enabled: true; domain: string } | undefined {
   const domain = process.env.SESSION_COOKIE_DOMAIN;
   if (domain === undefined || domain.length === 0) return undefined;
@@ -39,6 +93,16 @@ export function sessionCookieConfig(): { enabled: true; domain: string } | undef
 }
 
 function buildAuth() {
+  // Guard 3. A process that is not limiting requests says so, every time it starts. Written to
+  // stdout directly rather than through the shared logger because this runs during module
+  // construction, before any request context exists for the logger to attach to.
+  if (!rateLimitEnabled()) {
+    console.warn(
+      "[auth] rate limiting is OFF — E2E_RATE_LIMIT_OFF=1 and DEPLOY_ENV is not production. " +
+        "This is the browser test harness. It must never be set on a deployed environment."
+    );
+  }
+
   const db = getDb();
 
   return betterAuth({
@@ -80,7 +144,7 @@ function buildAuth() {
       updateAge: SESSION_UPDATE_AGE_SECONDS,
     },
     rateLimit: {
-      enabled: true,
+      enabled: rateLimitEnabled(),
     },
     socialProviders: {
       google: {

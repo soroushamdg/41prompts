@@ -4,6 +4,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@41prompts/ui", "@41prompts/db", "@41prompts/logger"],
+  // `pg-boss` opens its own Postgres pool and reads its SQL from files on disk. Bundled, the
+  // file reads resolve against the build output and the pool is duplicated per chunk; left
+  // external it is `require`d at runtime like any other Node dependency. The run trigger is the
+  // only thing in the app that touches it (EPIC-032, `lib/runs/queue.ts`).
+  serverExternalPackages: ["pg-boss"],
   turbopack: {
     root: path.join(import.meta.dirname, "..", ".."),
     // `@41prompts/core` is consumed as its **built** output here, and only here.

@@ -36,6 +36,12 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
         </p>
         <h1>{found.prompt.name}</h1>
         <p className="app-state">Draft</p>
+        {/* The mockup's page head carries a run action. It is a link rather than a button because
+            it goes somewhere — the runs page, where an input set is chosen — and a button that
+            navigates is a link wearing a costume. */}
+        <a className="btn btn-pri btn-sm app-pagehead-action" href={`/app/pr/${promptId}/runs`}>
+          Run
+        </a>
       </header>
 
       <Workbench

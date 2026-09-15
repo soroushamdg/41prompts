@@ -1,9 +1,12 @@
 import { createLogger, withRequestId } from "@41prompts/logger";
+import { RUN_SUITE_QUEUE } from "@41prompts/db";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
 import { purgeDecompiles, purgeRunCounts } from "./jobs/purge-decompiles";
 import { countOverdueRunPayloads, purgeRunPayloads } from "./jobs/purge-run-payloads";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
+import { providerFor } from "./runs/provider";
+import { runSuite } from "./runs/suite";
 import { initSentry, Sentry } from "./sentry";
 import { misconfiguredBudgetEnv } from "./summarise/abuse-check";
 
@@ -96,6 +99,45 @@ export async function main(): Promise<void> {
       }
     });
   });
+
+  // EPIC-032: the third queue, in the same shape as the two above. The web sends onto it when
+  // somebody triggers a run; the name lives in `@41prompts/db`'s constants because neither app may
+  // import the other and a literal written out twice goes stale silently — a drifted queue name is
+  // a run that sits `queued` for ever behind a spinner nobody can explain.
+  await boss.createQueue(RUN_SUITE_QUEUE);
+  await boss.work(RUN_SUITE_QUEUE, async ([job]) => {
+    const suiteRunId = (job?.data as { suiteRunId?: string } | undefined)?.suiteRunId;
+    if (suiteRunId === undefined) {
+      logger.error({ job: job?.id }, `${RUN_SUITE_QUEUE}: job with no suiteRunId`);
+      return;
+    }
+    await withRequestId(async (jobId) => {
+      try {
+        await runSuite(db, suiteRunId);
+        logger.info({ jobId, suiteRunId }, `${RUN_SUITE_QUEUE}: ran ${suiteRunId}`);
+      } catch (error) {
+        logger.error({ jobId, suiteRunId, err: error }, `${RUN_SUITE_QUEUE} failed`);
+        Sentry.captureException(error);
+        throw error;
+      }
+    });
+  });
+
+  // **Which provider this process has, said out loud at startup.** A worker answering with the
+  // deterministic fake must never be quiet about it, and a worker with no provider at all is the
+  // state staging is in while EPIC-031a is deferred — the runs it refuses are correct, and this
+  // line is what makes that legible in a log rather than a mystery. Never the key, only the name.
+  const selected = providerFor();
+  logger.info(
+    { provider: selected?.name ?? "none" },
+    selected === undefined
+      ? "no provider configured — runs will be refused with provider_not_configured"
+      : `provider: ${selected.name}`
+  );
+
+  // The readiness line. Everything above is registered, so a process waiting to drive this worker
+  // can wait on a real condition rather than on a duration (`PROCESS.md`, "Wait on a condition").
+  logger.info("worker queues ready");
 
   // Deliberately not draining pg-boss on shutdown: it survives an ungraceful worker exit by
   // design (an in-flight job is simply picked up again by the next worker to start), so there

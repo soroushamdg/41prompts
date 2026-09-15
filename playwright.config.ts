@@ -108,6 +108,20 @@ export default defineConfig({
     timeout: process.env.E2E_DEV === "1" ? 120_000 : 600_000,
     env: {
       /**
+       * **The browser suite does not rate-limit itself into failing.**
+       *
+       * Better Auth allows 100 `/api/auth/*` requests a minute per IP and 15 magic links per five
+       * minutes; a serial suite of two hundred tests on one machine is one IP that exceeds both.
+       * When it trips, the magic-link verify returns 429 and simply does not redirect, which reads
+       * as a broken sign-in rather than as a rate limit — it cost EPIC-032 two rounds of diagnosis.
+       *
+       * `apps/web/lib/auth.ts`'s `rateLimitEnabled` carries the three guards on this flag and the
+       * reason it is safe: it is refused in production, it appears nowhere in `infra/`, and the
+       * process announces it at startup. `auth.rate-limit.test.ts` never sets it, so both limits
+       * are still asserted against a real database.
+       */
+      E2E_RATE_LIMIT_OFF: "1",
+      /**
        * **Pinned to the port the suite actually drives.**
        *
        * Better Auth checks a request's origin against `baseURL` and refuses the mismatch, so with
