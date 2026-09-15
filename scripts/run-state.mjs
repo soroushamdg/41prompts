@@ -1,10 +1,10 @@
 // The resume point for an unattended epic run: docs/epics/.run-state.json.
 //
-// The failure this exists to prevent is specific and real. The loop merges to main and then
-// deploys, drives, reports and ticks. A run that dies after the merge and before the drive
-// leaves finished work sitting on main — and a runner that starts the epic over reimplements
-// it, on a branch, against a main that already has it. That is not a lost session; it is a
-// conflicting duplicate of shipped code.
+// The failure this exists to prevent is specific and real. The loop drives, merges to main,
+// reports and ticks. A run that dies after the merge and before the report leaves finished work
+// sitting on main — and a runner that starts the epic over reimplements it, on a branch, against
+// a main that already has it. That is not a lost session; it is a conflicting duplicate of
+// shipped code.
 //
 // So each step writes down that it finished, and the next invocation resumes at the step
 // after the last one recorded. The file is deleted when the epic completes, which is what
@@ -24,15 +24,29 @@ export const STEPS = [
   "plan",        // docs/epics/plan-EPIC-xxx.md written and read back
   "implement",   // the code is written
   "gates",       // test, typecheck, lint, compliance all green locally
-  "local-drive", // the feature driven in a browser against the BUILT app, before pushing
-  "push",        // branch pushed, PR opened
-  "ci",          // CI green on the PR
-  "merge",       // merged to main — records the PR number and the merge commit
-  "deploy",      // staging has redeployed and is serving the merge commit
-  "drive",       // the feature driven in a browser on the deployed URL
+  "local-drive", // the feature driven in a browser against the BUILT app — the drive an epic needs
+  "merge",       // merged into local main — records the merge commit. Nothing is pushed.
   "report",      // docs/epics/reports/ and docs/epics/sessions/ written
   "backlog"      // the epic's own status cell ticked — the one backlog edit that is allowed
 ];
+
+// Steps that existed before 2026-09-15 and no longer do. Four of the five named GitHub or
+// Coolify doing something, and nothing is pushed to either any more (CLAUDE.md, "Nothing is
+// pushed"). They are still *recognised* so that a state file written before the change resumes
+// at the right place instead of restarting an epic from the top; `set` refuses to write one.
+export const RETIRED_STEPS = {
+  push: "merge",     // there is no branch to push and no PR to open
+  ci: "merge",       // the gate is `node scripts/gates.mjs ci`, locally, before the merge
+  deploy: "report",  // nothing deploys
+  drive: "report"    // the drive is step `local-drive`, against the built app
+};
+
+// Where a retired step resumes. A run that died at `push` had already merged nothing, so it
+// resumes at `merge`; one that died at `deploy` or `drive` had merged, so it resumes at
+// `report`. Returns null for a step that was never a step at all.
+export function resumeAfterRetired(step) {
+  return RETIRED_STEPS[step] ?? null;
+}
 
 function read() {
   if (!existsSync(STATE)) return null;
@@ -64,7 +78,11 @@ function arg(name, fallback = undefined) {
 function nextStep(state) {
   if (!state?.lastStep) return STEPS[0];
   const i = STEPS.indexOf(state.lastStep);
-  if (i === -1) return STEPS[0];
+  if (i === -1) {
+    // A state file from before 2026-09-15 may name a retired step. Resume where that step's
+    // work now lives rather than silently restarting the epic at `epic-file`.
+    return resumeAfterRetired(state.lastStep) ?? STEPS[0];
+  }
   return STEPS[i + 1] ?? null;
 }
 
@@ -139,6 +157,14 @@ switch (command) {
       process.exit(2);
     }
     const step = arg("step");
+    if (step && Object.hasOwn(RETIRED_STEPS, step)) {
+      process.stderr.write(
+        `run-state set: "${step}" was retired on 2026-09-15 \u2014 nothing is pushed, so there is no ` +
+          `push, CI, deploy or deployed drive. Record "${RETIRED_STEPS[step]}" instead ` +
+          `(CLAUDE.md, "Nothing is pushed").\n`
+      );
+      process.exit(2);
+    }
     if (step && !STEPS.includes(step)) {
       process.stderr.write(`run-state set: unknown step "${step}". Known: ${STEPS.join(", ")}\n`);
       process.exit(2);

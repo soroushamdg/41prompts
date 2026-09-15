@@ -2,6 +2,18 @@
 
 Three roles. Soroush decides. Claude (advisor) writes epics, reviews, and keeps the backlog. Claude Code builds.
 
+**Amended 2026-09-15: the advisor seat may be empty, and then Claude Code sits in it.** The original
+loop moved a prompt from the desktop chat to a Claude Code session and the output back again, by
+hand. Soroush's ruling: that round trip costs more time than it buys, and it stops entirely whenever
+he is away from the laptop. So when no advisor is relaying, **Claude Code writes the epic file
+itself** — same format, same `docs/backlog.md` row, same `docs/roadmap.md` Goal/Tasks/Tests/Review —
+and then builds it. Every decision it makes in the advisor's chair goes in
+`docs/decisions/AUTONOMOUS.md`, one line each, which is the batch Soroush reviews later.
+
+What does **not** change: Soroush still decides. A ruling he has made is not re-litigated, the
+backlog's `deferred` rows stay deferred, and anything that needs his judgement is asked rather than
+guessed — the difference is that it is asked at the end of a working session instead of blocking one.
+
 ## The loop
 
 1. Advisor writes `docs/epics/EPIC-xxx-name.md` and copies it to `docs/epics/CURRENT.md`.
@@ -304,6 +316,13 @@ reverted on its own:
 
 ## Claude merges. The 2026-09-13 no-merge rule is reversed (2026-09-14)
 
+> **Superseded in part, 2026-09-15: there are no PRs.** Nothing is pushed, so nothing is a pull
+> request and no gate runs on GitHub. Read this section as being about **the merge into local
+> `main`**, which still happens, still needs a green gate first, and still has the three stops below
+> — the gate is now `node scripts/gates.mjs ci` on the commit rather than CI on a PR. See "Nothing is
+> pushed" in `CLAUDE.md` and "The local pipeline" below. Everything about *why* the 2026-09-13 rule
+> was reversed is unchanged and is kept because it is the record of a decision, not a procedure.
+
 **Claude merges its own PRs once every gate is green.** Plan, implement, self-review, drive it in a
 browser, push, watch the gates, merge, report. Soroush does not press the button.
 
@@ -488,6 +507,16 @@ assertions about it.
 **2. After the deploy lands: smoke-drive the deployed URL.** Load the real page, confirm it renders
 **styled and complete**, and confirm the feature works. **An epic is not done until this passes.**
 
+> **Amended 2026-09-15.** Step 2 is not reachable while nothing is pushed — there is no deploy to
+> land. **Step 1 absorbs it and becomes the Definition-of-Done item**: the drive happens against the
+> locally **built** app, `next build` then `next start`, by hand, screenshotted into
+> `docs/epics/reports/screenshots/EPIC-xxx/`. The reasoning in the paragraph below is why step 1 can
+> carry this and `pnpm dev` cannot: the EPIC-021a/021b failure was a build-time and asset-serving
+> failure, and **a built app fails that way too**. What is genuinely given up is the layer only a
+> deploy can test — the image build, the Coolify environment, Traefik, the real database — and an
+> epic report must say so rather than implying the deployed page was seen. When Soroush next pushes,
+> a deployed smoke-drive is still the thing that closes that gap.
+
 **Why both, and why step 2 is not redundant.** EPIC-021a and EPIC-021b passed every e2e gate in CI —
 151 Playwright assertions green — while the deployed `/app` rendered as unstyled text with no project
 list. Playwright runs against a **dev server**, where CSS is served from memory by the dev middleware
@@ -507,6 +536,13 @@ for anyone to type into a chat window. A Playwright storage-state fixture was th
 rejected: a committed session cookie is a bearer credential, and one that outlives its usefulness.
 
 ### Driving a deployed environment: the one supported mechanism (2026-09-14)
+
+> **Still the only sanctioned mechanism, and now rarely reached (2026-09-15).** Nothing is pushed, so
+> staging serves whatever commit Soroush last pushed and is usually behind local `main`. Two
+> consequences. **First: a staging page is not evidence about work built since that commit** — check
+> `/healthz`'s `commit` against the commit you are claiming for, and if they differ, say the drive
+> was not possible rather than driving the old page. **Second: the standing permissions below are
+> unchanged**, both of them, for the drives that do happen after a push.
 
 **This is the only sanctioned way for the agent to sign in on a deployed environment. It is written
 down here so it is not renegotiated at the start of every epic.** It was renegotiated twice in two
@@ -856,3 +892,52 @@ baseline instead of wall-clock milliseconds.
 The same `under 100 ms` pattern is still live and still enforcing in `cluster.perf.test.ts` and
 `segment.perf.test.ts`. They will flake the same way eventually; they were left alone while they pass
 rather than pre-emptively demoted.
+
+
+## The local pipeline: nothing is pushed, and what each replaced step now is (2026-09-15)
+
+`CLAUDE.md`'s "Nothing is pushed" carries the decision and the reason. This is the procedure.
+
+**The order, end to end:**
+
+```
+plan  →  implement  →  pnpm test / typecheck / lint  →  commit on epic/xxx
+      →  node scripts/gates.mjs ci   (clean checkout of that commit)
+      →  pnpm build && next start    (the BUILT app, on localhost)
+      →  drive it by hand, screenshot it
+      →  report + session log        →  git merge --no-ff into local main
+```
+
+**Four things about this that are easy to get wrong.**
+
+**1. `gates.mjs ci` runs on a commit, not on a tree.** It refuses a dirty working tree with exit 2
+and the files named. So the commit comes first and the gate second — which is the opposite of the
+order a person reaches for, and the reason the old step 4 said "commit your work first".
+
+**2. If the gate is red after the commit, fix it and commit again, then re-run it.** Do not amend
+past a red gate and do not merge on the strength of the earlier green: the gate's answer is about a
+specific commit and no other. This matters more than it did, because there is no second opinion
+arriving from GitHub twenty minutes later.
+
+**3. The gate's closing block is part of the result.** `gates.mjs ci` prints "what a green here still
+does not cover" every time. It used to name the things CI would catch afterwards. **Nothing catches
+them afterwards now.** Read it and say in the report what it left uncovered.
+
+**4. `git merge --no-ff`, never a fast-forward.** The merge commit is the only remaining record that
+a body of work was one epic — there is no PR number to point at. Its message carries what a PR
+description carried: what changed, why, which dependencies are new and why.
+
+**What this gives up, stated plainly so no report implies otherwise.** No second machine ever builds
+the code. No clean-checkout run on Linux — `gates.mjs ci` gives a clean checkout, on macOS, on the
+one machine that already has the node_modules cache warm for the whole repo. No image build, so a
+`Dockerfile` regression is invisible until Soroush pushes. No deploy, so Coolify's environment,
+Traefik, the migrations against a real database, and the apex under a container swap are all
+untested. **These are not "probably fine"** — `PROCESS.md`'s "Local green is not CI green" catalogues
+five consecutive CI failures on locally-green PRs, and three of those five mechanisms were about the
+Linux/clean-checkout difference. They are deferred to the next push, knowingly, and the first push
+after a gap should be expected to go red.
+
+**One consequence for how epics close.** An epic whose only unticked criterion is a deployed-staging
+drive is `done` on the built-app drive, and its report says in a numbered section that the deployed
+drive did not happen and why — the EPIC-030 §11 shape. It is not a `BLOCKER`, and it is not ticked
+on the intention either.

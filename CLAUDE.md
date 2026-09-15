@@ -105,31 +105,71 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
 ## Definition of Done for every epic
 
 - All acceptance criteria in the epic file checked with evidence (test name, screenshot path, or command output).
-- `pnpm test`, `pnpm typecheck`, `pnpm lint` pass in CI.
-- **`node scripts/gates.mjs ci` green on the commit before it is pushed.** Clean checkout, frozen
+- `pnpm test`, `pnpm typecheck`, `pnpm lint` pass locally.
+- **`node scripts/gates.mjs ci` green on the commit before it is merged.** Clean checkout, frozen
   lockfile, cold cache, every gate both workflows run in the order they run them. The three tasks
   above run against a working tree that has state CI does not, and five consecutive CI failures on
   locally-green PRs had five different mechanisms; `docs/PROCESS.md`, "Local green is not CI green",
   names each one. Read the run's closing "what a green here still does not cover" block — it is part
-  of the result, not a footer.
+  of the result, not a footer. **Since 2026-09-15 this is the only CI there is** — nothing is pushed,
+  so GitHub Actions never sees the commit and this run is not a rehearsal for a gate that follows it.
 - New behaviour has tests in the package that owns it.
-- No new dependency without a one-line reason in the PR description.
+- No new dependency without a one-line reason in the commit message and the epic report.
 - Forbidden-word grep over UI strings passes.
 - **Every changed file's diff was actually visible during self-review.** Git shows no diff for a file
   it considers binary — one stray NUL byte is enough — so a review that could not see a file's diff
   is not a review of that file, whatever it reported. `pnpm binary-files` fails the build when a
   tracked source file under `packages/` or `apps/` is binary; `.gitattributes` forces a textual diff
   so the mistake surfaces rather than hides.
-- This file is still accurate; update it in the same PR if a convention changed.
-- **The deployed page was loaded in a browser and looked right**, with a screenshot in the report.
-  Not "the tests pass" — the page, on its real URL, rendered styled and complete, with the feature
-  driven by hand. `docs/PROCESS.md` says why the e2e suite cannot stand in for this.
+- This file is still accurate; update it in the same commit if a convention changed.
+- **The built page was loaded in a browser and looked right**, with a screenshot in the report.
+  Not "the tests pass" — the page, served by `next start` from a real `next build`, rendered styled
+  and complete, with the feature driven by hand. `docs/PROCESS.md` says why the e2e suite cannot
+  stand in for this, and why `pnpm dev` cannot either. **Deployed staging is no longer part of this
+  criterion** (2026-09-15, "Nothing is pushed" below); the built app is.
 - `docs/epics/reports/EPIC-xxx-report.md` written: built, skipped, open questions, exact verify commands.
 - `docs/epics/sessions/EPIC-xxx-session.md` written per PROCESS.md.
+
+## Nothing is pushed. Soroush pushes (2026-09-15)
+
+**Claude Code never runs `git push`, never opens a pull request, and never calls the GitHub API to
+merge one.** Soroush's decision, 2026-09-15. Two reasons, and the first is a hard constraint:
+
+1. **The Actions allowance.** `docs/backlog.md`'s EPIC-009 section records 2,175 billed minutes in
+   the repository's first 8.4 days against a 2,000-minute month, which stopped every deploy and
+   every CI run mid-epic. EPIC-009 saved 22% and left the project roughly 3x over at the observed
+   merge rate. A branch that is never pushed bills nothing.
+2. **A red build on GitHub is a slow way to learn something a local gate already knows.** The
+   failures were arriving after the push, not before it.
+
+**What replaces each step:**
+
+| was | is now |
+|---|---|
+| push the branch | nothing — the branch stays local |
+| open a PR, describe the change | the commit message carries what the PR description carried |
+| CI green on the PR | `node scripts/gates.mjs ci` green on the commit, locally |
+| merge the PR with `gh` | `git merge --no-ff` into local `main` |
+| staging redeploys, `/healthz` shows the commit | nothing deploys |
+| drive the deployed URL | drive the **built** app: `next build`, `next start`, by hand, screenshotted |
+
+**`main` still moves only through a branch and a green gate.** The guard hook in `.githooks` that
+refuses a direct commit on `main` stays exactly as it is. What changed is where the gate runs and
+who presses merge — not that there is one.
+
+**Soroush pushes, when he decides to.** Until he does, `origin/main` is behind local `main` and
+staging is serving an older commit. That is expected, and it means **a staging URL is not evidence
+about anything built after the last push.** Do not quote it as though it were.
+
+**Human-only work is skipped, not blocked on** (same ruling). Rows whose status names a step only
+Soroush can take — an account, a payment method, a lawyer, recruited participants, a key set in
+Coolify — are skipped and the run moves to the next row. `docs/backlog.md` already carries four of
+them as `deferred`. Building the product comes first; a deferred row is revisited when he is ready.
 
 ## How to work
 
 - Plan first into `docs/epics/plan-EPIC-xxx.md`; stop and show the plan before implementing.
 - Small commits at logical checkpoints. Never auto-commit a broken state.
+- Never `git push`; never open or merge a pull request. See "Nothing is pushed" above.
 - When unsure about product behaviour, check `docs/design/` (the mockups are the spec) and `docs/design/README.md`.
 - If an acceptance criterion is impossible or contradicts a rule here, write `docs/epics/BLOCKER-EPIC-xxx.md` and stop. Do not reinterpret silently.
