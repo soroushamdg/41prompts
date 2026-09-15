@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
-import type { Db } from "./client";
+import type { Db, DbOrTx } from "./client";
 import { inputSets, runs, suiteChecks, suiteResults, suiteRuns } from "./schema";
 
 /**
@@ -45,6 +45,7 @@ export interface SuiteRunRow {
   judgeCalls: number;
   judgeCachedCalls: number;
   judgeCostCents: number;
+  passedNotifiedAt: Date | null;
   createdAt: Date;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -111,7 +112,7 @@ export async function inputSetForPrompt(
 
 /** One INSERT. The rows go in exactly as parsed — no trim, no normalisation, like every write here. */
 export async function addInputSet(
-  db: Db,
+  db: DbOrTx,
   promptId: string,
   set: { name: string; columns: readonly string[]; rows: readonly (readonly string[])[] },
 ): Promise<InputSetRow> {
@@ -330,4 +331,32 @@ export async function outputForRun(db: Db, runId: string, owner: string): Promis
     .limit(1);
   const payload = row?.payload as { text?: string } | undefined;
   return typeof payload?.text === "string" ? payload.text : undefined;
+}
+
+/**
+ * Claim the right to send this run's `run_passed` event. True exactly once, ever.
+ *
+ * ## Why a conditional UPDATE rather than a read and then a write
+ *
+ * The obvious version — read `passedNotifiedAt`, and if it is null send the event and write the
+ * timestamp — has a race between the read and the write that two open tabs will find immediately,
+ * and two web containers will find constantly. `update … where passed_notified_at is null
+ * returning id` resolves it in the database: both statements run, one returns a row, and the loser
+ * returns nothing and sends nothing.
+ *
+ * ## Why the event is sent from the web at all
+ *
+ * The worker finishes the run, which is the natural place. It cannot send it: `captureAccountEvent`
+ * is built on Next's request context — it reads the consent cookie, `DNT` and `Sec-GPC` from the
+ * incoming request — and the worker has no request. Sending from the first render of a finished,
+ * passing run is also the more honest instant for what this measures: the moment the person could
+ * *see* that they had passed, which is what the five minutes is about.
+ */
+export async function claimPassedNotification(db: Db, suiteRunId: string, owner: string, at: Date): Promise<boolean> {
+  const claimed = await db
+    .update(suiteRuns)
+    .set({ passedNotifiedAt: at })
+    .where(and(eq(suiteRuns.id, suiteRunId), eq(suiteRuns.owner, owner), isNull(suiteRuns.passedNotifiedAt)))
+    .returning({ id: suiteRuns.id });
+  return claimed.length > 0;
 }

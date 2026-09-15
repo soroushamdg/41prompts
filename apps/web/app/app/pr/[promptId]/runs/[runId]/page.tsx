@@ -1,6 +1,10 @@
 import { KpiStrip } from "@41prompts/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { claimPassedNotification, users } from "@41prompts/db";
+import { eq } from "drizzle-orm";
+import { captureAccountEvent } from "@/lib/analytics/visitor";
+import { secondsFromSignup } from "@/lib/activation/progress";
 import { getDb } from "@/lib/db";
 import { outputFor, runDetailFor } from "@/lib/runs/queries";
 import {
@@ -58,6 +62,21 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
 
   const graded = summary.passed + summary.failed;
   const inFlight = run.state === "queued" || run.state === "running";
+
+  /**
+   * `run_passed` (EPIC-034), at the moment the person could first see that they had passed.
+   *
+   * **`noFailures`, not `state === "done"`.** EPIC-030 deleted `passed` from `RunSummary` precisely
+   * so that no caller could read one boolean as the answer; a run that finished having graded
+   * nothing is not a pass, and an activation metric that counted one would be measuring the wrong
+   * thing forever.
+   *
+   * `claimPassedNotification` is a conditional UPDATE, so reloading this page — or opening it in a
+   * second tab, or two containers rendering it at once — sends exactly one event.
+   */
+  if (!inFlight && summary.noFailures && summary.total > 0 && run.passedNotifiedAt === null) {
+    await notePassed(run.id, session.user.id, run.finishedAt ?? new Date());
+  }
 
   return (
     <main className="app-page">
@@ -131,4 +150,34 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
       />
     </main>
   );
+}
+
+/**
+ * Send `run_passed` once, carrying how long it took from signup.
+ *
+ * Failures here are swallowed on purpose: a page that would not render because an analytics write
+ * went wrong is a worse product than one whose funnel has a hole. `captureAccountEvent` already
+ * refuses without consent, and honours `DNT` and `Sec-GPC`.
+ */
+async function notePassed(suiteRunId: string, owner: string, at: Date): Promise<void> {
+  try {
+    const db = getDb();
+    if (!(await claimPassedNotification(db, suiteRunId, owner, at))) return;
+
+    const [user] = await db
+      .select({ createdAt: users.createdAt })
+      .from(users)
+      .where(eq(users.id, owner))
+      .limit(1);
+    if (user === undefined) return;
+
+    await captureAccountEvent(owner, "run_passed", {
+      // The roadmap defines "activated" as a first passing run within five minutes of signup, so
+      // this is the number that definition needs. Computed from `users.createdAt` rather than from
+      // anything a client could be wrong about.
+      secondsFromSignup: secondsFromSignup(user.createdAt, at),
+    });
+  } catch {
+    // See above.
+  }
 }

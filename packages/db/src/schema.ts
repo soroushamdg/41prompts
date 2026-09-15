@@ -569,6 +569,19 @@ export const suiteRuns = pgTable(
     judgeCalls: integer("judge_calls").notNull().default(0),
     judgeCachedCalls: integer("judge_cached_calls").notNull().default(0),
     judgeCostCents: integer("judge_cost_cents").notNull().default(0),
+    /**
+     * When the `run_passed` analytics event was sent for this run, or null (EPIC-034).
+     *
+     * **The one thing about the activation journey that is stored rather than derived**, and the
+     * exception proves decision 4 rather than bending it: every *step* of the journey is a question
+     * about rows that already exist, but "we have already told PostHog about this" is a fact with no
+     * other home. Without it the event fires on every render of a passing run, and a metric that
+     * counts page views as activations is worse than no metric.
+     *
+     * Claimed by a conditional UPDATE (`claimPassedNotification`), so two renders racing — two tabs,
+     * two web containers — produce exactly one event between them.
+     */
+    passedNotifiedAt: timestamp("passed_notified_at"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),

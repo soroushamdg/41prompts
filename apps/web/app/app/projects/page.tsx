@@ -3,6 +3,7 @@ import { listProjects } from "@/lib/canvas/queries";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { CreateProject } from "./create-project";
+import { StartFromExample } from "./start-example";
 
 // Behind auth and on the app host (decision 10). Nothing under /app is indexable; `robots.ts`
 // already disallows it and the proxy keeps these paths off the apex.
@@ -21,7 +22,12 @@ export default async function ProjectsPage() {
       <CreateProject />
 
       {projects.length === 0 ? (
-        <p className="app-empty">No projects yet. The first one is where a prompt lives.</p>
+        <>
+          <p className="app-empty">No projects yet. The first one is where a prompt lives.</p>
+          {/* Beside the empty state, never inside it (EPIC-034 decision 1). The empty state keeps
+              saying the true, un-fabricated thing; the offer is a separate, opt-in act. */}
+          <StartFromExample />
+        </>
       ) : (
         <ul className="app-list">
           {projects.map((project) => (

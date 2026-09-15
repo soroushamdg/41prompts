@@ -18,6 +18,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
+import { slugify } from "./slug";
 
 /**
  * Server actions for the canvas (decision 9 — actions, not a REST API).
@@ -248,14 +249,4 @@ export async function neighbourRanksAction(
   if (owned === undefined) return undefined;
   const rows = await bloksForPrompt(owned.db, promptId);
   return { before: rows[index - 1]?.rank ?? null, after: rows[index]?.rank ?? null };
-}
-
-function slugify(name: string): string {
-  return (
-    name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "project"
-  );
 }

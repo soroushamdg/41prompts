@@ -2,8 +2,10 @@ import { isOptional } from "@41prompts/core";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
+import { activationStateFor } from "@/lib/activation/queries";
 import { runsPageFor } from "@/lib/runs/queries";
 import { requireSession } from "@/lib/session";
+import { ActivationProgress } from "./activation-progress";
 import { InputSets } from "./input-sets";
 import { RunHistory } from "./run-history";
 
@@ -28,6 +30,9 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
     optional: isOptional(declaration),
   }));
 
+  // Only on the example: onboarding, not a permanent feature (see `ActivationProgress`).
+  const activation = await activationStateFor(getDb(), promptId, session.user.id, found.prompt.name);
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -37,6 +42,8 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
         <h1>Runs</h1>
         <p className="app-state">Draft</p>
       </header>
+
+      {activation !== undefined && <ActivationProgress steps={activation} />}
 
       <InputSets promptId={promptId} sets={found.inputSets} declarations={declarations} />
       <RunHistory promptId={promptId} runs={found.history} />

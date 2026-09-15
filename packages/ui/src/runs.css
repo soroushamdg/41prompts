@@ -329,3 +329,91 @@
   padding-left: 10px;
   font-style: italic;
 }
+
+/* ── Activation onboarding (EPIC-034) ─────────────────────────────────────────────────────────
+   The example offer and the four-step indicator. Both are onboarding surfaces: quiet, and gone
+   once the person has a prompt of their own. No pass/fail colour anywhere here — none of this is
+   a verdict about anybody's prompt (rule 10). */
+
+.app-example {
+  margin: 24px 0;
+  padding: 20px;
+  border: 1px solid var(--color-ink-3);
+  border-radius: var(--radius-card);
+  max-width: 62ch;
+}
+
+.app-example h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.app-example p {
+  margin: 0 0 14px;
+  color: var(--color-ink-2);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.app-progress {
+  margin: 0 0 24px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-ink-3);
+  border-radius: var(--radius-card);
+}
+
+.app-progress h2 {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.app-progress-count {
+  color: var(--color-ink-3);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.app-progress ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.app-progress li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--color-ink-2);
+}
+
+.app-progress li[data-done="true"] {
+  color: var(--color-ink);
+}
+
+.app-progress-mark {
+  text-align: center;
+}
+
+/* The word beside the mark, never the mark alone: no state in this product is carried by a glyph
+   or a colour on its own. */
+.app-progress-state {
+  color: var(--color-ink-3);
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .app-progress li {
+    grid-template-columns: 18px 1fr;
+  }
+
+  .app-progress-state {
+    grid-column: 2;
+  }
+}

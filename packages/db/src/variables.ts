@@ -1,5 +1,5 @@
 import { and, asc, eq } from "drizzle-orm";
-import type { Db } from "./client";
+import type { Db, DbOrTx } from "./client";
 import { bloks, promptVariables } from "./schema";
 
 /**
@@ -36,7 +36,7 @@ export async function variablesForPrompt(db: Db, promptId: string): Promise<Vari
  * because "you already have one of those" is an answer the surface shows, not an error it handles.
  */
 export async function declareVariable(
-  db: Db,
+  db: DbOrTx,
   promptId: string,
   variable: { name: string; defaultValue: string | null; description: string | null }
 ): Promise<"declared" | "exists"> {
