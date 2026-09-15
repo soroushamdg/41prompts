@@ -286,7 +286,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 |---|---|---|---|---|
 | EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
 | EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | done |
-| EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | deferred — Soroush must set `ANTHROPIC_API_KEY` in Coolify and watch the first call go out; 2026-09-14 |
+| EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | **planned, awaiting a push** — the key was set on staging 2026-09-15 with a $5 cap, so the deferral is lifted. `docs/epics/EPIC-031a-first-real-call.md` is the plan and `scripts/verify-first-call.mjs` the check. It cannot run until Soroush pushes: `origin/main` has no `provider.ts`. |
 | EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | done |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | done |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on an opt-in example; the path and the instrument, **not** the measurement | S | 032 | done — the measurement is blocked on EPIC-031a; see report §1 |
