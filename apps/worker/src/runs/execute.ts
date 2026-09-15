@@ -40,8 +40,23 @@ export interface ProviderResponse {
  *
  * Typed rather than a message, for the same reason EPIC-030's `NotGradedReason` is: EPIC-032 has to
  * say *which* of these it was, and three of the four are things a person can act on.
+ *
+ * `provider_not_configured` and `queue_unavailable` are EPIC-032's additions, and they are the two
+ * that are nobody's mistake but ours: with no key there is no honest run, and with no queue behind
+ * the row there is no run at all. A crash is not an answer to either — it reaches the person as a
+ * page that never finishes rather than as a sentence they can act on.
+ *
+ * **They are two reasons rather than one because they send a person to different places.** The
+ * first is a key that is not set; the second is a queue that did not accept the job, with the key
+ * quite possibly set all along. Collapsing them would tell somebody to go and configure a provider
+ * they had already configured, which is a wrong answer delivered confidently — the exact failure
+ * this type exists to prevent.
  */
-export type RefusalReason = "budget_exhausted" | "model_not_priced";
+export type RefusalReason =
+  | "budget_exhausted"
+  | "model_not_priced"
+  | "provider_not_configured"
+  | "queue_unavailable";
 
 export type RunOutcome =
   | { readonly status: "ran"; readonly runId: string; readonly text: string; readonly costCents: number }
@@ -51,8 +66,20 @@ export type RunOutcome =
 export interface RunRequest {
   readonly owner: string;
   readonly promptId: string;
-  /** The compiled prompt — what the model actually receives. */
+  /**
+   * The compiled prompt — **what the model actually receives, and all of it**.
+   *
+   * With EPIC-032 the input row is *substituted into* this string before the request is built, so
+   * this is the whole message. See `input` for what happened to the other half.
+   */
   readonly compiled: string;
+  /**
+   * The canonical serialisation of the input row, **hashed and never appended**.
+   *
+   * It is what `inputHash` records and what makes two different rows two different cache entries.
+   * It used to be concatenated onto `compiled` as well, which — once the row is bound into the
+   * prompt — sends every value a second time (EPIC-032 note 1). A test names that exact assembly.
+   */
   readonly input: string;
   readonly model: string;
   readonly params: Readonly<Record<string, unknown>>;
@@ -146,7 +173,8 @@ export async function executeRun(
     const startedAt = Date.now();
     const response = await provider.complete({
       model: request.model,
-      prompt: `${request.compiled}\n\n${request.input}`,
+      // The compiled prompt, exactly. The row is already in it (EPIC-032 note 1).
+      prompt: request.compiled,
       params: request.params
     });
     const latencyMs = Date.now() - startedAt;

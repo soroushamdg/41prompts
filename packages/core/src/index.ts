@@ -104,6 +104,16 @@ export type {
   VariableSchema
 } from "./variables/types.js";
 
+// Input sets (EPIC-032). A CSV whose header names the prompt's variables, and one of its rows bound
+// into the compiled prompt. The columns **are** the bindings — a row is substituted, never
+// appended — and a header that disagrees with the declarations is refused at upload rather than at
+// run time. Every problem is a fact with a position; the sentences are written in `apps/web`.
+export { parseCsv } from "./inputs/csv.js";
+export { bindVariables, serialiseRow } from "./inputs/bind.js";
+export { inputSetProblems } from "./inputs/input-set.js";
+export type { BindOutcome, BoundPrompt, UnboundPrompt } from "./inputs/bind.js";
+export type { ColumnProblem, CsvParse, CsvProblem } from "./inputs/types.js";
+
 // The build artifact (EPIC-022 ships v1; EPIC-050 freezes it). **Not a public contract yet** — the
 // file says so in as many words, and `CLAUDE.md` protects it only once Stage 5a begins.
 export { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./artifact/schema.js";

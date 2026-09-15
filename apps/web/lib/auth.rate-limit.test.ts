@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { HAS_TEST_DATABASE, announceDatabaseSkip } from "@41prompts/db";
-import { getAuth } from "./auth";
+import { getAuth, rateLimitEnabled } from "./auth";
 
 async function requestMagicLink(email: string): Promise<void> {
   await getAuth().api.signInMagicLink({
@@ -47,5 +47,32 @@ describe.skipIf(!HAS_TEST_DATABASE)("magic-link rate limiting", () => {
 
     const response = await postMagicLinkOverHttp(`rate-ip-final-${Date.now()}@example.com`);
     expect(response.status).toBe(429);
+  });
+});
+
+/**
+ * The escape hatch's three guards, asserted rather than promised.
+ *
+ * This is the `providerFor` shape (`apps/worker/src/runs/provider.ts`) applied to a second
+ * test-only path, and it gets the same treatment: a test-only path in production code is exactly
+ * the thing that goes wrong quietly, so each guard is a line somebody has to delete on purpose.
+ *
+ * Note what the tests above do **not** do: set the flag. They assert both real limits against a
+ * real database, so the hatch cannot hide the thing it sits next to.
+ */
+describe("rateLimitEnabled", () => {
+  it("is on when nothing says otherwise", () => {
+    expect(rateLimitEnabled({})).toBe(true);
+    expect(rateLimitEnabled({ DEPLOY_ENV: "staging" })).toBe(true);
+  });
+
+  it("is off only for the exact flag", () => {
+    expect(rateLimitEnabled({ E2E_RATE_LIMIT_OFF: "1" })).toBe(false);
+    expect(rateLimitEnabled({ E2E_RATE_LIMIT_OFF: "0" })).toBe(true);
+    expect(rateLimitEnabled({ E2E_RATE_LIMIT_OFF: "true" })).toBe(true);
+  });
+
+  it("refuses to turn off in production, whatever the flag says", () => {
+    expect(rateLimitEnabled({ E2E_RATE_LIMIT_OFF: "1", DEPLOY_ENV: "production" })).toBe(true);
   });
 });

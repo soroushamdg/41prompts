@@ -4,8 +4,12 @@ import {
   newBlokId,
   newDecompileId,
   newDecompileRunId,
+  newInputSetId,
   newProjectId,
   newPromptId,
+  newSuiteCheckId,
+  newSuiteResultId,
+  newSuiteRunId,
   newVariableId,
   newRunBudgetId,
   newRunId,
@@ -446,4 +450,190 @@ export const runs = pgTable(
     // one account's model output into another's results.
     uniqueIndex("runs_owner_cache_key_idx").on(table.owner, table.cacheKey)
   ]
+);
+
+// ── EPIC-032: input sets, triggered runs, and the results that are kept ───────────────────────
+
+/**
+ * One uploaded CSV, per prompt, owner-scoped by joining through `prompts → projects.owner`.
+ *
+ * ## The columns are the variable bindings
+ *
+ * EPIC-032 decision 1. `columns` is the header **in file order**, and each entry of `rows` is that
+ * many values in the same order. A header that names a column no variable matches, or omits a
+ * required variable, is refused **at upload** — so a set that exists here is one that binds.
+ *
+ * ## Rows live here, as `jsonb`, rather than in a table of their own
+ *
+ * Manual rows are out of scope, so a row is never edited after upload and the read is always "the
+ * whole set". The upload cap keeps it small. A per-row table would buy nothing and cost a join on
+ * the path every run takes.
+ *
+ * ## `deletedAt`, not a delete
+ *
+ * A removed set is still what some run in the history ran against, and a row that is gone cannot
+ * answer "what was input 7". The same reasoning `bloks.deletedAt` records, arriving from the side
+ * of a result rather than of somebody's writing.
+ */
+export const inputSets = pgTable(
+  "input_sets",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newInputSetId()),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    /** What the person called it — the file's own name, as uploaded. */
+    name: text("name").notNull(),
+    /** The header, in file order. `string[]`. */
+    columns: jsonb("columns").notNull(),
+    /** One entry per record, each `columns.length` values in the same order. `string[][]`. */
+    rows: jsonb("rows").notNull(),
+    /** Stored so a listing does not have to read the rows blob to say how many there are. */
+    rowCount: integer("row_count").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [index("input_sets_prompt_idx").on(table.prompt)],
+);
+
+/**
+ * One triggered run: one input set, one model, one moment.
+ *
+ * It **groups** the `runs` rows EPIC-031 already writes — one per input — rather than replacing
+ * them: rule 6's record of a provider call stays exactly where it was, and this is the thing a
+ * person opens.
+ *
+ * ## The counters are updated as the run goes, not at the end
+ *
+ * `completedInputs`, `calls`, `cachedCalls` and `costCents` are written after each input, because
+ * the page polls them. A run that only reports itself when finished is a spinner.
+ *
+ * ## `state` and `refusalReason` are two facts, not one
+ *
+ * A run that was refused before anything ran is `refused`. A run that ran and then hit the budget
+ * cap is `done` **with** a reason recorded — EPIC-031 decision 6 keeps what already ran, so calling
+ * it refused would throw away a true thing about the work that happened. The surface says both.
+ */
+export const suiteRuns = pgTable(
+  "suite_runs",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newSuiteRunId()),
+    owner: text("owner")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    inputSet: text("input_set")
+      .notNull()
+      .references(() => inputSets.id, { onDelete: "cascade" }),
+    /** Resolved and pinned, like `runs.model`. */
+    model: text("model").notNull(),
+    params: jsonb("params").notNull(),
+    /** The compiled prompt's content hash at trigger time, so "what ran" stays answerable. */
+    promptHash: text("prompt_hash").notNull(),
+    /**
+     * The compiled prompt itself, frozen at trigger time.
+     *
+     * **A deliberate exception to `runs`'s "hashes, not copies".** There the hash is enough because
+     * the prompt still lives in `bloks` and nothing is sent from the row. Here the row *is* what
+     * gets sent: every input is bound into this text, one input at a time, over however long the
+     * run takes. Recompiling per input would mean an edit made mid-run silently changes what the
+     * later inputs receive — so input 1 and input 40 would be answering different prompts and the
+     * results would be compared as though they were not.
+     */
+    promptText: text("prompt_text").notNull(),
+    /** `queued` · `running` · `done` · `refused`. */
+    state: text("state").notNull().default("queued"),
+    /** One of `apps/worker`'s `RefusalReason` values. Null when nothing was refused. */
+    refusalReason: text("refusal_reason"),
+    totalInputs: integer("total_inputs").notNull(),
+    completedInputs: integer("completed_inputs").notNull().default(0),
+    /** Provider calls actually made. A cache hit is not one. */
+    calls: integer("calls").notNull().default(0),
+    /** Inputs answered from the cache, which called nobody and cost nothing. */
+    cachedCalls: integer("cached_calls").notNull().default(0),
+    /** Spend **on this run**, in the same integer cents `run_budgets` uses. */
+    costCents: integer("cost_cents").notNull().default(0),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    startedAt: timestamp("started_at"),
+    finishedAt: timestamp("finished_at"),
+  },
+  (table) => [
+    // Run history is "this prompt's runs, newest first", on every load of the runs page.
+    index("suite_runs_prompt_created_idx").on(table.prompt, table.createdAt),
+  ],
+);
+
+/**
+ * One check, frozen as it stood when the run was triggered.
+ *
+ * **Stored rather than re-derived**, and that is the whole reason this table exists. Re-compiling
+ * later would grade against bloks whose text has since changed and attribute a failure to a blok
+ * that no longer says that. Versions are EPIC-040's; not re-deriving is this epic's.
+ *
+ * `blokText` is the blok's **verbatim** text (`CLAUDE.md` rule 3), never a paraphrase, because it
+ * is what the failure detail shows next to the output it is about.
+ */
+export const suiteChecks = pgTable(
+  "suite_checks",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newSuiteCheckId()),
+    suiteRun: text("suite_run")
+      .notNull()
+      .references(() => suiteRuns.id, { onDelete: "cascade" }),
+    /** `compile()`'s content-derived check id, kept so a result can be linked to across a recompile. */
+    checkId: text("check_id").notNull(),
+    /** **Exactly one, always** — by construction in `compile()`, asserted in core's `grade.test.ts`. */
+    blokId: text("blok_id").notNull(),
+    blokKind: text("blok_kind").notNull(),
+    blokText: text("blok_text").notNull(),
+    /** One of core's eight `CheckKind`s, or null when none could honestly be named. */
+    kind: text("kind"),
+    /** Position in the compiled order, so the results list reads in the order of the prompt. */
+    position: integer("position").notNull(),
+  },
+  (table) => [index("suite_checks_run_idx").on(table.suiteRun, table.position)],
+);
+
+/**
+ * One check, graded against one input.
+ *
+ * `run` points at the `runs` row that produced the output — the output itself is **not copied
+ * here**, so rule 6's twelve-month purge stays the only clock on it. When the payload has been
+ * purged the failure detail says so rather than showing an empty box.
+ */
+export const suiteResults = pgTable(
+  "suite_results",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newSuiteResultId()),
+    suiteRun: text("suite_run")
+      .notNull()
+      .references(() => suiteRuns.id, { onDelete: "cascade" }),
+    suiteCheck: text("suite_check")
+      .notNull()
+      .references(() => suiteChecks.id, { onDelete: "cascade" }),
+    /** Which row of the input set, 0-based, so the surface can say "input 7" and mean the file. */
+    inputIndex: integer("input_index").notNull(),
+    /** Null when no provider call produced this — there is no such result today, but a purge is coming. */
+    run: text("run").references(() => runs.id, { onDelete: "set null" }),
+    /** `pass` · `fail` · `not_graded`. Never a fourth. */
+    outcome: text("outcome").notNull(),
+    /** Present exactly when the outcome is `not_graded`. One of core's four `NotGradedReason`s. */
+    reason: text("reason"),
+    /** Core's `Evidence`: an excerpt with offsets, a measurement, an absence, or a shape. */
+    evidence: jsonb("evidence"),
+  },
+  (table) => [
+    index("suite_results_run_idx").on(table.suiteRun),
+    index("suite_results_check_idx").on(table.suiteCheck),
+  ],
 );

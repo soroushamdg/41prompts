@@ -172,18 +172,24 @@ if [ "$RESUMING" -eq 0 ]; then
 fi
 
 # ---------------------------------------------------------------------------------------
-# Preflight: staging must be serving, not merely answering
+# Preflight: staging is reported, not enforced (2026-09-15)
+# ---------------------------------------------------------------------------------------
+# This used to refuse to start an epic when staging was not serving, because the loop's last
+# step drove the deployed URL and an epic whose drive could not pass should not reach step 3.
+# Nothing is pushed any more (CLAUDE.md, "Nothing is pushed"), so nothing deploys and staging
+# serves whatever commit Soroush last pushed. A red check now says only that the last pushed
+# commit is unwell — worth putting in the log for him, and not a reason to refuse to build
+# something that will not reach that box until he pushes it.
 # ---------------------------------------------------------------------------------------
 
-log "checking staging before starting $EPIC"
+log "checking staging before starting $EPIC (reported, not enforced)"
 STAGING_OUT="$(node scripts/check-staging.mjs 2>&1)"
 STAGING_RC=$?
 printf '%s\n' "$STAGING_OUT" | sed 's/^/  /' | tee -a "$LOG" >/dev/null
 printf '%s\n' "$STAGING_OUT" | sed 's/^/  /'
 if [ $STAGING_RC -ne 0 ]; then
-  log "staging is not serving — refusing to start $EPIC, because its browser drive could not pass"
-  outcome "staging-down" "check-staging.mjs failed; see the log for which check" "$EPIC"
-  exit 3
+  log "staging is not serving — starting $EPIC anyway; the drive is against the built app locally."
+  log "  staging serves Soroush's last push, not this work. Say so in the report."
 fi
 
 # ---------------------------------------------------------------------------------------

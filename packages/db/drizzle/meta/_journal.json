@@ -50,6 +50,13 @@
       "when": 1789412258095,
       "tag": "0006_curved_firestar",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789430384257,
+      "tag": "0007_mature_gargoyle",
+      "breakpoints": true
     }
   ]
 }

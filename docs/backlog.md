@@ -287,7 +287,7 @@ unless a later epic needs one**; it arrives with EPIC-040's versioning and EPIC-
 | EPIC-030 | core: check model from expected bloks; deterministic graders; result schema | M | 020 | done |
 | EPIC-031 | worker: pg-boss runner, Anthropic adapter, raw payload retention with 12-month purge, hash cache, cost + latency, budget caps | M | 004, 030 | done |
 | EPIC-031a | The first real Anthropic call, against staging: a planned event rather than a discovery | S | 031 | deferred — Soroush must set `ANTHROPIC_API_KEY` in Coolify and watch the first call go out; 2026-09-14 |
-| EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | todo |
+| EPIC-032 | web: input sets (CSV), run trigger, results by check, failure detail, attribution to blok, create-constraint-from-failure with preview | M | 031, 021b | done |
 | EPIC-033 | LLM-judge grader with pinned judge version; judge prompt stays proprietary | S | 031 | todo |
 | EPIC-034 | Activation onboarding: signup → first passing run in under five minutes on a seeded prompt; measured | S | 032 | todo |
 | ▣ GATE 3 | Stage 3 exit + loud launch decision: criteria in roadmap | — | 034 | — |

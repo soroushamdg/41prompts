@@ -14,8 +14,8 @@ loop below.
 
 ## The loop, in order
 
-One epic. One branch. One PR. These steps run in this order, and each one is recorded as it
-finishes:
+One epic. One branch. One merge into local `main`. These steps run in this order, and each one is
+recorded as it finishes:
 
 | # | step | done when |
 |---|---|---|
@@ -23,14 +23,10 @@ finishes:
 | 2 | `plan` | `docs/epics/plan-EPIC-xxx.md` written. Plan first, always; `CLAUDE.md` says stop and show the plan, and unattended "show" means write it down before you write code. |
 | 3 | `implement` | the code is written, on the branch the runner named. |
 | 4 | `gates` | `node scripts/gate-run.mjs` green, with every package reporting. A `PARTIAL` is not a pass. **Run that, not a list of gate commands** — see below. **Commit your work first:** `gates.mjs` now advertises a `ci` mode, so `gate-run.mjs` resolves to it and runs it alone — and that mode tests a clean checkout of a **commit** and refuses a dirty tree (exit 2, with the files named). |
-| 5 | `local-drive` | the feature driven in a real browser against the **built** app, signed in as a fresh throwaway user. Not `next dev`. |
-| 6 | `push` | step 4's gate was green **on the commit being pushed** — if anything has been committed since, run it again; it is minutes and a red PR is not. Act on its closing "what a green here still does not cover" block rather than scrolling past it: it names the CI failures a local run cannot see (`PROCESS.md`, "Local green is not CI green"). Then branch pushed, PR opened, description says what changed and — per `PROCESS.md` — which kind of PR it is with respect to CI. |
-| 7 | `ci` | CI green on the PR, or provably had nothing to say about it. |
-| 8 | `merge` | merged to `main`. Record the PR number and the merge commit. |
-| 9 | `deploy` | staging has redeployed and `/healthz` reports the merge commit. |
-| 10 | `drive` | the feature driven in a browser on the **deployed** URL, screenshotted, passing. Iterate until it passes. |
-| 11 | `report` | `docs/epics/reports/EPIC-xxx-report.md` and `docs/epics/sessions/EPIC-xxx-session.md` written. |
-| 12 | `backlog` | the epic's own status cell in `docs/backlog.md` ticked. |
+| 5 | `local-drive` | the feature driven in a real browser against the **built** app (`pnpm build`, then `next start`), signed in as a fresh throwaway user. Not `next dev`. Screenshots into `docs/epics/reports/screenshots/EPIC-xxx/`. **Since 2026-09-15 this is the browser-drive Definition-of-Done item** — there is no deployed drive, because there is no deploy. |
+| 6 | `merge` | `git merge --no-ff` into local `main`, on a green gate. Record the merge commit. **No push, no PR, no `gh`** — `CLAUDE.md`, "Nothing is pushed" (2026-09-15). The merge commit's message carries what a PR description carried, new dependencies and their reasons included. |
+| 7 | `report` | `docs/epics/reports/EPIC-xxx-report.md` and `docs/epics/sessions/EPIC-xxx-session.md` written. |
+| 8 | `backlog` | the epic's own status cell in `docs/backlog.md` ticked. |
 
 Then `node scripts/run-state.mjs clear` and exit. Clearing the state file is how the runner
 learns the epic finished; an epic that ends without clearing it will be resumed.
@@ -39,17 +35,22 @@ learns the epic finished; an epic that ends without clearing it will be resumed.
 
 ```
 node scripts/run-state.mjs set --step gates
-node scripts/run-state.mjs set --step merge --pr 88 --merge-commit 9f3a1c2
-node scripts/run-state.mjs clear        # only when step 12 is done
+node scripts/run-state.mjs set --step merge --merge-commit 9f3a1c2
+node scripts/run-state.mjs clear        # only when step 8 is done
 ```
 
-**This is not bookkeeping.** A run that dies after step 8 and before step 10 has left
+**This is not bookkeeping.** A run that dies after step 6 and before step 8 has left
 finished work on `main`. A runner that started that epic over would branch from a `main` that
 already contains it and reimplement it into a conflict. The state file is what makes the next
-invocation resume at step 9 instead.
+invocation resume at step 7 instead.
 
 Your prompt names the step to resume at. **Everything before it is already done and on
-disk. Verify it, do not redo it.** If step 8 says merged, check `main` — the code is there.
+disk. Verify it, do not redo it.** If step 6 says merged, check `main` — the code is there.
+
+**The old steps 6–10 were `push`, `ci`, `merge`, `deploy`, `drive`** and they are gone as of
+2026-09-15 — four of the five described GitHub and Coolify doing something, and nothing is pushed
+to either. `run-state.mjs` keeps them as recognised names so a state file written before that date
+still resumes rather than restarting from the top; it will not let a new run set one.
 
 ---
 
@@ -101,17 +102,19 @@ malicious, only to be unsupervised.
 **Everything in `CLAUDE.md`'s "Never touch without an explicit instruction" list still
 applies**, including `docs/backlog.md` and `docs/roadmap.md`. Two carve-outs, both narrow:
 
-- the **status cell of the epic you are working**, in `docs/backlog.md`, at step 12;
+- the **status cell of the epic you are working**, in `docs/backlog.md`, at step 8;
 - appending to `docs/decisions/AUTONOMOUS.md`.
 
 Nothing else in either file. Not another row, not a paragraph under the table, not the
 roadmap at all.
 
-**Merging to `main` and deploying staging are allowed.** Both are already the process —
-`PROCESS.md`, "Claude merges", 2026-09-14 — and its three stops still apply: a red gate, a PR
-that needs a ruling, or a change you have not driven in a browser. Unattended, the second stop
-is different: you do not stop, you decide and log it. The first and third are unchanged and
-absolute.
+**Merging to local `main` is allowed. Pushing and deploying are not** — amended 2026-09-15,
+`CLAUDE.md`, "Nothing is pushed". The merge is already the process (`PROCESS.md`, "Claude
+merges", 2026-09-14) and its three stops still apply: a red gate, a change that needs a ruling,
+or a change you have not driven in a browser. Unattended, the second stop is different: you do
+not stop, you decide and log it. The first and third are unchanged and absolute. **`git push`,
+`gh pr`, and any Coolify deploy are now in the same category as touching production: not
+yours.**
 
 **Nothing else reaches the box.** The read-only `SELECT` for a magic-link token and the
 `claude-drive-%@example.com` delete are the only two database statements you may run, both on
@@ -170,10 +173,19 @@ while the deployed `/app` rendered as unstyled text, and every one of those epic
 from the test output. `PROCESS.md`'s "Plan, implement, drive it in a browser, then push" is
 the rule; this section is only what changes when nobody is watching.
 
-Both drives happen: **step 5 against the built app locally**, and **step 10 against the
-deployed URL**. Step 10 is the one an epic is not done without. Sign in by the one sanctioned
-mechanism — `PROCESS.md`, "Driving a deployed environment" — the magic-link token read back
-with a single read-only `SELECT` on staging, token to a scratchpad file and never into a
+**Step 5, against the built app locally, is the drive an epic is not done without** — amended
+2026-09-15, when the deployed step went away with the push. `pnpm build` then `next start`,
+never `next dev`: a dev server serves CSS from memory and generates every chunk on request, so
+it cannot fail the way the thing that broke twenty epics failed. A built app can. Sign in with
+the magic-link token read back from the local database, the mechanism `apps/web/e2e/db.ts`
+already uses.
+
+**Say what the local drive does not cover**, in the report, rather than letting it read as a
+deployed one: the image build, the Coolify environment, Traefik, migrations against the real
+database. Those wait for Soroush's next push. Where staging *is* serving the commit under test
+— check `/healthz` — the deployed drive is still worth doing and is still governed by the one
+sanctioned mechanism (`PROCESS.md`, "Driving a deployed environment"): the magic-link token read
+back with a single read-only `SELECT` on staging, token to a scratchpad file and never into a
 transcript, container name looked up rather than hardcoded.
 
 **A worker-only or core-only epic with no route and no user-visible string says so in the
@@ -233,8 +245,12 @@ proves a process is up and nothing else. So the check also fetches the apex, fin
 stylesheet the page links, fetches **that** and confirms it is real CSS, and loads `/sign-in`
 and confirms there is a submittable form on it.
 
-If staging is not serving, no epic starts. An epic whose step 10 cannot pass should not reach
-step 3.
+If staging is not serving, no epic starts.
+
+**Amended 2026-09-15: this check no longer gates anything you do.** It was there because the
+old step 10 drove the deployed URL, and an epic whose deploy could not be verified should not
+have reached step 3. Nothing deploys now, so a red staging check says only that the commit
+Soroush last pushed is unwell — worth reporting to him, and not a reason to refuse to build.
 
 ### Gates are a full stop
 
@@ -301,9 +317,11 @@ blocker at full price.
 the commits production does not have and what a `v*` tag would carry, and waits. It never
 tags. Soroush cuts the release; restarting the loop is how he says he has.
 
-**Why three and not ten.** Every epic merges to `main` and deploys staging while production
-stays where it is, so the gap is monotonic — it only ever grows, and nothing in the loop
-closes it. Ten epics of drift is not ten times the risk of one, it is worse than that:
+**Why three and not ten.** Every epic merges to `main` while staging and production stay where
+they are, so the gap is monotonic — it only ever grows, and nothing in the loop closes it.
+**Since 2026-09-15 it grows faster**: nothing is pushed, so staging no longer moves either and
+the drift is now against *both* deployed environments rather than production alone. Ten epics of
+drift is not ten times the risk of one, it is worse than that:
 
 - **The deploy that eventually happens is the largest this project has ever done**, on the
   system that failed twice on 2026-09-13, and the last two production incidents were both
@@ -316,6 +334,9 @@ closes it. Ten epics of drift is not ten times the risk of one, it is worse than
 - **The gap is already 40 commits and 271 files** as of 2026-09-14, before this loop has run a
   single epic. Three is not a cautious number chosen in the abstract; it is smaller than where
   the project already is.
+- **Nothing is rehearsed on staging any more.** Under the old loop every epic reached a
+  deployed environment before production saw it. `RELEASE-DUE.md` is now the *first* moment any
+  of it meets a real build, a real image, and a real database.
 
 Ten would be the number if the release were cheap and reversible. It is neither: it builds
 both images, deploys the box, and the rollback path is `infra/rollback` and a runbook. Three
@@ -343,7 +364,7 @@ gitignored (`*.log`), so it stays on the machine that ran it — and that is del
 machine's record of a night's work, not a repository artifact, and an epic commit should never
 sweep it up.
 
-Your own record is the two files at step 11, and those **are** repository artifacts:
+Your own record is the two files at step 7, and those **are** repository artifacts:
 
 - `docs/epics/reports/EPIC-xxx-report.md` — built, skipped, open questions, exact verify
   commands, every acceptance criterion with its evidence.
