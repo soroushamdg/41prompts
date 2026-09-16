@@ -242,19 +242,51 @@ test.describe("results by check", () => {
     await expect(page.getByText("0", { exact: true }).first()).toBeVisible();
   });
 
+  /**
+   * ## This test used to race the queue, and lost once (EPIC-043, 2026-09-16)
+   *
+   * It said "in flight at the first render — the queue has not picked it up yet" and asserted
+   * `progress` was visible. **Nothing made that true.** `inFlight` is `queued || running`, so
+   * `progress` disappears the moment a run reaches a terminal state — and with the deterministic
+   * fake there is no network call, so the worker can drain both inputs inside the window between
+   * the click and the server render. When it does, `progress` is not "not yet", it is already gone,
+   * and the 5s retry can only wait for something that will never appear.
+   *
+   * It failed exactly that way in `gates.mjs ci` on this commit, and then passed three runs in
+   * isolation, the whole file alone, and a full 223-test local suite. That is the signature of a
+   * race, not of a broken assertion — and `docs/PROCESS.md` is explicit that "it passed on the
+   * retry" is not a finding. So the race is removed rather than re-rolled.
+   *
+   * **In flight is now a state this test creates.** With no worker, the run stays `queued` for as
+   * long as we like, so the first assertion is about what the page renders for an unfinished run
+   * rather than about who won. Starting the worker afterwards is what the second half then watches,
+   * which makes this a stronger test of the actual criterion — the page advances **by itself**,
+   * with no reload, while somebody is looking at it.
+   *
+   * Killing the worker is safe and is the mechanism `worker-process.ts` already documents: pg-boss
+   * survives an ungraceful exit and the next worker picks the jobs up, so nothing is orphaned — the
+   * queue backlog EPIC-041 had to add a global-setup sweep for came from jobs nobody ever started a
+   * worker for, which is the opposite case.
+   */
   test("progress advances without a reload while a run is in flight", async ({ page }) => {
     const promptId = await promptWithChecks(page);
     await uploadCsv(page, promptId, "inputs.csv", CSV);
+
+    // Nothing can finish this run while it is triggered.
+    await worker.stop();
 
     await page.goto(`/app/pr/${promptId}/runs`);
     await page.getByRole("button", { name: "Run inputs.csv" }).click();
     await expect(page).toHaveURL(/\/runs\/srun_[0-9a-f]{16}$/);
 
-    // In flight at the first render — the queue has not picked it up yet.
+    // Visible because the run is genuinely unfinished, not because we got here first.
     await expect(page.getByTestId("progress")).toBeVisible();
+    await expect(page.getByTestId("progress")).toContainText("0 of 2");
 
     // **No reload between here and the next assertion.** `router.refresh()` re-renders the page
-    // that is already open; a reload would satisfy this line while proving nothing about it.
+    // that is already open; a reload would satisfy this line while proving nothing about it. The
+    // page has been open and polling the whole time the worker was starting.
+    worker = await startWorker({ FAKE_PROVIDER: "1" });
     await expect(page.locator(".app-state")).toContainText("Finished", { timeout: 60_000 });
     await expect(page.getByTestId("progress")).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Results by check" })).toBeVisible();

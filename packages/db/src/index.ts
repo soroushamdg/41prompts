@@ -10,4 +10,6 @@ export * from "./canvas";
 export * from "./variables";
 export * from "./suites";
 export * from "./versions";
+export * from "./sealed-box";
+export * from "./provider-keys";
 export * from "./testing";

@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubSentryEvent } from "@/lib/observability/sentry-scrub";
 
 // Same DSN as instrumentation.ts's server/edge init — see the comment there for why one value
 // covers all three runtimes for this app. Inert (no-op) when unset.
@@ -13,7 +14,13 @@ import * as Sentry from "@sentry/nextjs";
 // already tags correctly.
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-  tracesSampleRate: 0
+  tracesSampleRate: 0,
+  // EPIC-043. The browser is where a person **types** their provider key, so a console breadcrumb
+  // or an error carrying the value of an input is a real path out. Shapes only here: a browser
+  // holds none of this deployment's secrets and must not, so there is no literal to match on.
+  beforeSend: scrubSentryEvent,
+  beforeSendTransaction: scrubSentryEvent,
+  beforeBreadcrumb: scrubSentryEvent
 });
 
 // The App Router's documented hook for tagging client-side navigation spans; exporting it is

@@ -8,6 +8,7 @@ import {
   newProjectId,
   newPromptId,
   newPromptVersionId,
+  newProviderKeyId,
   newSuiteCheckId,
   newSuiteResultId,
   newSuiteRunId,
@@ -781,4 +782,52 @@ export const promptVersions = pgTable(
     // read-then-write that is correct only most of the time.
     uniqueIndex("prompt_versions_prompt_n_idx").on(table.prompt, table.n),
   ],
+);
+
+/**
+ * **The one table in this schema that holds somebody else's credential** (EPIC-043).
+ *
+ * `docs/security/byo-key-threat-model.md` is the reasoning; this comment is the part a person
+ * reading the schema has to know.
+ *
+ * Three properties, each of which is a column or the absence of one:
+ *
+ * 1. **There is no column a plaintext key could sit in.** `sealed` holds a `41pk1.…` envelope from
+ *    `sealed-box.ts` and nothing else; `lastFour` is the four characters the provider's own console
+ *    prints, which is what a person recognises their key by. A dump of this table is ciphertext.
+ * 2. **The master key is not here.** It is an environment value, so a stolen database — the most
+ *    likely of the five threats, and the one the nightly dump to R2 widens — is not a stolen key.
+ * 3. **`keyId` says which master key sealed the row**, so a rotation can find its own work with one
+ *    query instead of trying every row against every key. Rotation is a threat class in its own
+ *    right precisely because an undesigned rotation never happens.
+ *
+ * `(owner, provider)` is unique: one key each, replaced rather than accumulated. Nothing here is a
+ * history — a superseded credential is a liability, not a record.
+ */
+export const providerKeys = pgTable(
+  "provider_keys",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newProviderKeyId()),
+    owner: text("owner")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** `anthropic` | `openai` | `google`. Text, with the closed set in TypeScript — CLAUDE.md's
+     * vocabulary forbids the word for a database type of that shape, and a text column plus a
+     * validated union adds a provider without a migration. */
+    provider: text("provider").notNull(),
+    /** The sealed envelope. Bound to `(owner, provider)`, so it cannot be moved to another row. */
+    sealed: text("sealed").notNull(),
+    /** Which master key sealed it. Not secret; it is already inside the envelope. */
+    keyId: text("key_id").notNull(),
+    /** The last four characters, for recognition. Never enough to use, and providers print it too. */
+    lastFour: text("last_four").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    /** Set when the value is replaced, so "when did this key last change" is answerable. */
+    rotatedAt: timestamp("rotated_at"),
+    /** Set by EPIC-042 when a run opens it. Null here, because nothing in EPIC-043 runs anything. */
+    lastUsedAt: timestamp("last_used_at"),
+  },
+  (table) => [uniqueIndex("provider_keys_owner_provider_idx").on(table.owner, table.provider)],
 );

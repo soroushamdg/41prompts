@@ -4,6 +4,12 @@ import {
   RUN_COUNT_RETENTION_DAYS,
   RUN_PAYLOAD_RETENTION_DAYS,
 } from "@41prompts/db";
+import {
+  KEY_GUIDANCE_ACTIONS,
+  KEY_GUIDANCE_HOLDING,
+  KEY_GUIDANCE_SUMMARY,
+  KEY_GUIDANCE_TITLE,
+} from "../providers/key-guidance";
 
 /**
  * The legal pages, as content rather than as markup.
@@ -44,6 +50,19 @@ export const UNREVIEWED_NOTICE =
   "This page was written by the people who build 41Prompts and has not been reviewed by a lawyer.";
 
 export const LAST_UPDATED = "14 September 2026";
+
+/**
+ * The security page's own date, because its content moved and the other three pages' did not.
+ *
+ * EPIC-043 added the provider-key section on 16 September 2026. Bumping `LAST_UPDATED` would have
+ * dated **terms, privacy and sub-processors** to that day as well, and each of those says "last
+ * updated" about a document a person may have relied on — claiming an edit that did not happen is
+ * the same kind of inaccuracy as hiding one that did.
+ *
+ * Found by looking at the rendered page in the drive, not by a test. The page said 14 September
+ * under a section written on the 16th.
+ */
+export const SECURITY_LAST_UPDATED = "16 September 2026";
 
 /** Where a person writes to. One address, because two would be two things to keep working. */
 export const CONTACT_EMAIL = "privacy@41prompts.ai";
@@ -367,7 +386,7 @@ const SECURITY: LegalDoc = {
   summary: "How the service is built and run, and how to report something you have found.",
   unreviewed: false,
   parts: [
-    { kind: "p", text: `Last updated ${LAST_UPDATED}.` },
+    { kind: "p", text: `Last updated ${SECURITY_LAST_UPDATED}.` },
     { kind: "h2", text: "Reporting something" },
     {
       kind: "p",
@@ -385,11 +404,32 @@ const SECURITY: LegalDoc = {
         "Dependencies, licences and boundaries are checked in CI on every change.",
       ],
     },
+    /**
+     * EPIC-043. Written here, on a page that already exists and is already rendered, rather than on
+     * a new screen — inventing a screen would be inventing product, and the guidance has to exist
+     * *before* EPIC-042 gives anyone a box to paste a key into rather than alongside it.
+     *
+     * The three actions and the four holdings come from `lib/providers/key-guidance.ts`, which
+     * EPIC-042 renders beside the input. One source, so the two cannot disagree.
+     */
+    { kind: "h2", text: KEY_GUIDANCE_TITLE },
+    { kind: "p", text: KEY_GUIDANCE_SUMMARY },
+    {
+      kind: "ul",
+      items: KEY_GUIDANCE_ACTIONS.map((each) => `${each.action} ${each.because}`),
+    },
+    { kind: "p", text: "How we hold it:" },
+    { kind: "ul", items: KEY_GUIDANCE_HOLDING },
+    {
+      kind: "p",
+      text:
+        "Nothing stores a provider key today, because nothing yet asks you for one. This says what will be true on the day something does.",
+    },
     { kind: "h2", text: "What we would tell you about" },
     {
       kind: "p",
       text:
-        "If personal information were lost or exposed in a way that presents a risk of serious injury, Law 25 requires us to tell both the Commission d'accès à l'information and the people affected. We would.",
+        "If personal information were lost or exposed in a way that presents a risk of serious injury, Law 25 requires us to tell both the Commission d'accès à l'information and the people affected. We would. If a provider key you gave us were exposed, we would tell you directly and immediately, whether or not that duty applied, because the thing you need to do about it — revoking the key at your provider — is something only you can do.",
     },
   ],
 };
