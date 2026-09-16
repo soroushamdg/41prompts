@@ -288,3 +288,31 @@ export async function checkCountForRun(db: Db, suiteRunId: string): Promise<numb
     .where(eq(suiteChecks.suiteRun, suiteRunId));
   return row?.n ?? 0;
 }
+
+/** How long a note may be. Long enough for a sentence about why, short enough not to be a document. */
+export const VERSION_NOTE_MAX = 280;
+
+/**
+ * Write a person's own words about a version (EPIC-041).
+ *
+ * **Allowed on a pinned version, deliberately.** `pinnedAt` freezes what the version *is* — its
+ * bloks, its compiled text, its hash — because something points at it and history may not be
+ * rewritten. A note is not that: it is somebody's sentence *about* the version, written after the
+ * fact, and "why did I change this" is a question people answer later or never. Refusing to annotate
+ * a version the moment it matters would make the field useless exactly when it is wanted.
+ *
+ * Trimmed of surrounding whitespace and stored verbatim otherwise; empty clears it back to null,
+ * which is the same thing as never having written one.
+ */
+export async function setVersionNote(
+  db: Db,
+  promptId: string,
+  versionId: string,
+  note: string,
+): Promise<void> {
+  const trimmed = note.trim().slice(0, VERSION_NOTE_MAX);
+  await db
+    .update(promptVersions)
+    .set({ note: trimmed === "" ? null : trimmed })
+    .where(and(eq(promptVersions.id, versionId), eq(promptVersions.prompt, promptId)));
+}

@@ -16,6 +16,7 @@ import {
   summaryOf,
   verification,
 } from "@/lib/runs/view";
+import { runVersionWords } from "@/lib/versions/view";
 import { requireSession } from "@/lib/session";
 import { Progress } from "./progress";
 import { Results } from "./results";
@@ -45,7 +46,7 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
   const detail = await runDetailFor(getDb(), runId, session.user.id);
   if (detail === undefined || detail.run.prompt !== promptId) notFound();
 
-  const { run, checks, results, inputSet } = detail;
+  const { run, checks, results, inputSet, versionsByN, partner } = detail;
   const rows = checkRows(checks, results);
   const summary = summaryOf(results);
   const said = verification(summary, results);
@@ -94,6 +95,22 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
           {stateWords(run)}
         </p>
         <p className="runs-when">Triggered {run.createdAt.toISOString().slice(0, 16).replace("T", " ")} UTC</p>
+        {/* **Which version this ran, and its A/B partner if it has one** (EPIC-041).
+
+            A run made before EPIC-040 has no version at all, and `suite_runs.version` stays nullable
+            because backfilling one would invent a historical fact. So this says so in words rather
+            than rendering a blank or, worse, a version it guessed at. */}
+        <p className="runs-when" data-testid="run-version">
+          {runVersionWords(run, versionsByN)}
+          {partner !== undefined && (
+            <>
+              {" · compared with "}
+              <a href={`/app/pr/${promptId}/runs/${partner.id}`}>
+                {runVersionWords(partner, versionsByN).replace("Ran ", "")}
+              </a>
+            </>
+          )}
+        </p>
       </header>
 
       {/* Asks the server for this page again while the run is in flight. No reload, no navigation. */}

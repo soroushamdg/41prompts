@@ -8,6 +8,8 @@ import {
   suiteRunForOwner,
   suiteRunsForPrompt,
   variablesForPrompt,
+  versionsForPrompt,
+  comparisonRuns,
   type Db,
 } from "@41prompts/db";
 import { canvasForOwner, compiledForBloks } from "@/lib/canvas/queries";
@@ -54,13 +56,26 @@ export async function runDetailFor(db: Db, suiteRunId: string, owner: string) {
   const run = await suiteRunForOwner(db, suiteRunId, owner);
   if (run === undefined) return undefined;
 
-  const [checks, results, inputSet] = await Promise.all([
+  const [checks, results, inputSet, versions, pair] = await Promise.all([
     suiteChecksFor(db, suiteRunId),
     suiteResultsFor(db, suiteRunId),
     inputSetForPrompt(db, run.prompt, run.inputSet),
+    // For "Ran Draft vN": the page needs the ordinal, and the run row carries only the id.
+    versionsForPrompt(db, run.prompt),
+    // EPIC-041. The other half of an A/B, so each run can name the one it is being compared with.
+    run.comparison === null ? Promise.resolve([]) : comparisonRuns(db, run.comparison, owner),
   ]);
 
-  return { run, checks, results, inputSet };
+  return {
+    run,
+    checks,
+    results,
+    inputSet,
+    versionsByN: new Map(versions.map((version) => [version.id, version.n])),
+    // The partner, never this run itself. A comparison is two rows and one of them is the one asked
+    // about, so "the other" is the whole of what this is for.
+    partner: pair.find((other) => other.id !== suiteRunId),
+  };
 }
 
 /**

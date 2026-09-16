@@ -595,6 +595,21 @@ export const suiteRuns = pgTable(
      * `cascade`: deleting a version must not delete the evidence of what it scored.
      */
     version: text("version").references(() => promptVersions.id, { onDelete: "set null" }),
+    /**
+     * The A/B this run is one half of (EPIC-041), or null for an ordinary run.
+     *
+     * **A shared id rather than a table**, and a `cmp_` id rather than a self-reference. Two runs of
+     * one comparison carry the same value; that is the whole relationship, and it has no attributes
+     * of its own beyond the two rows that already hold the version, the input set and the results.
+     * A join table for a two-element set written once would be a second place for the same fact to
+     * live, which is the argument `prompt_versions` makes for having no `passRate` column.
+     *
+     * Not a self-reference (`otherRun`) because that fact would then be written twice, once on each
+     * row, and the two copies can disagree — which is exactly the failure a shared key cannot have.
+     *
+     * Nullable, and most runs are: an ordinary run is not being compared with anything.
+     */
+    comparison: text("comparison"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),

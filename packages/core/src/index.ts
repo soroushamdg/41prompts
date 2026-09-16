@@ -123,7 +123,7 @@ export type { Artifact, ArtifactVariable } from "./artifact/schema.js";
 // person changed between two of them. Bloks are matched by **id**, which is what lets a move be
 // reported as a move rather than as a removal plus an addition — `version/diff.ts` has the argument.
 export { diff } from "./version/diff.js";
-export { snapshot } from "./version/snapshot.js";
+export { readSnapshot, readSnapshotBloks, snapshot } from "./version/snapshot.js";
 export type { HandEdit } from "./version/snapshot.js";
 export type {
   BlokAppearance,

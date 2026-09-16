@@ -83,3 +83,36 @@ export async function versionOfRun(suiteRunId: string): Promise<string | null> {
     .limit(1);
   return row?.version ?? null;
 }
+
+/**
+ * A prompt's runs with the two EPIC-041 columns, read straight from the table.
+ *
+ * Whether an A/B produced **two** runs sharing **one** `comparison`, each pinned to its **own**
+ * version, is a database fact: the page shows two rows either way, and a surface assertion could not
+ * tell one comparison from two coincidental runs.
+ */
+export async function runsFor(
+  promptId: string,
+): Promise<{ id: string; version: string | null; comparison: string | null; promptText: string }[]> {
+  return db
+    .select({
+      id: suiteRuns.id,
+      version: suiteRuns.version,
+      comparison: suiteRuns.comparison,
+      promptText: suiteRuns.promptText,
+    })
+    .from(suiteRuns)
+    .where(eq(suiteRuns.prompt, promptId))
+    .orderBy(suiteRuns.createdAt);
+}
+
+/** Every blok of a prompt including the soft-deleted ones — what "restore never deletes" is about. */
+export async function everyBlokFor(
+  promptId: string,
+): Promise<{ id: string; text: string; kind: string; deletedAt: Date | null }[]> {
+  return db
+    .select({ id: bloks.id, text: bloks.text, kind: bloks.kind, deletedAt: bloks.deletedAt })
+    .from(bloks)
+    .where(eq(bloks.prompt, promptId))
+    .orderBy(bloks.createdAt);
+}

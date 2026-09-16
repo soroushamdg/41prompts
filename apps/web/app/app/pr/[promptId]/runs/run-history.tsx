@@ -1,6 +1,7 @@
 import type { SuiteRunRow } from "@41prompts/db";
 import { NoRunsIllustration, StatusIcon } from "@41prompts/ui";
 import { formatCents, stateWords } from "@/lib/runs/view";
+import { runVersionWords } from "@/lib/versions/view";
 
 /**
  * Run history: newest first, with what each run is or was.
@@ -13,12 +14,16 @@ export function RunHistory({
   promptId,
   runs,
   verdicts,
+  versionsByN,
 }: {
   promptId: string;
   runs: SuiteRunRow[];
   /** Per run: whether every check that ran passed, and whether anything was graded at all. */
   verdicts: Record<string, { total: number; failed: number }>;
+  /** Version id → its ordinal, so a row can say `Ran Draft v3` (EPIC-041). */
+  versionsByN: Record<string, number>;
 }) {
+  const ordinals = new Map(Object.entries(versionsByN));
   return (
     <section className="runs-panel" aria-label="Run history">
       <h2>Run history</h2>
@@ -49,6 +54,12 @@ export function RunHistory({
                 </span>
                 <span className="runs-history-meta">
                   {run.model} · {formatCents(run.costCents)}
+                </span>
+                {/* Which version ran, and whether this run is half of an A/B (EPIC-041). A run made
+                    before versions existed says so rather than showing a blank where one would be. */}
+                <span className="runs-history-version">
+                  {runVersionWords(run, ordinals)}
+                  {run.comparison !== null && " · one half of an A/B"}
                 </span>
               </a>
             </li>

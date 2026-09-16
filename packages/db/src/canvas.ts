@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db, DbOrTx } from "./client";
 import { bloks, projects, prompts } from "./schema";
 import { needsRebalance, rankBetween, rankSequence } from "./rank";
@@ -206,4 +206,145 @@ export async function restoreBlok(db: Db, promptId: string, blokId: string): Pro
     .update(bloks)
     .set({ deletedAt: null })
     .where(and(eq(bloks.id, blokId), eq(bloks.prompt, promptId)));
+}
+
+/**
+ * One blok as a stored snapshot records it (`packages/core`'s `SnapshotBlok`).
+ *
+ * **Declared here rather than imported.** `packages/db` does not depend on `@41prompts/core` and
+ * EPIC-040 decided that deliberately: the seam where the two meet is `apps/web`, and pulling the
+ * compiler into the database package to describe six fields would couple every versions test to it.
+ * The caller has already parsed the JSONB with core's `readSnapshotBloks`, which is the one place
+ * that decides what a snapshot looks like; this is the shape it hands over.
+ */
+export interface SnapshotBlokRow {
+  readonly id: string;
+  readonly kind: string;
+  readonly text: string;
+  readonly position: number;
+  readonly editedText: string | null;
+  readonly editedFromHash: string | null;
+}
+
+/**
+ * A snapshot named a blok that is another prompt's row. The restore is refused, whole.
+ *
+ * Named rather than a bare `Error` so a caller can tell this apart from a lost connection and say
+ * something true to the person, instead of turning every failure into one sentence.
+ */
+export class BlokBelongsElsewhereError extends Error {
+  constructor(readonly blokIds: readonly string[]) {
+    super(`these bloks belong to another prompt: ${blokIds.join(", ")}`);
+    this.name = "BlokBelongsElsewhereError";
+  }
+}
+
+/**
+ * Put a snapshot's blok set back on the canvas (EPIC-041's restore).
+ *
+ * ## It never deletes a row, and that is the roadmap's Review line
+ *
+ * *"Restore never deletes."* A blok the restored version did not have is **soft-deleted** — the same
+ * door `deleteBlok` uses, so Undo is still clearing a column — and a blok the restored version had
+ * is brought back **by its own id**, whether it is live or was soft-deleted since.
+ *
+ * Coming back by id rather than as a fresh row is not tidiness: a blok's id is what `diff()` matches
+ * on, and re-inserting the same text under a new id would make every future diff report a removal
+ * and an addition where a person restored something. The whole reason `diff` can tell a move from a
+ * rewrite is that identity survives, and a restore that minted new ids would be the one operation
+ * that breaks it.
+ *
+ * ## Deleted rows are read too
+ *
+ * `bloksForPrompt` filters them out because a canvas does not show them. This does not, because a
+ * restore is precisely the operation that may need one back.
+ *
+ * ## Ranks are rewritten wholesale
+ *
+ * The snapshot's order is total and contiguous, so there is nothing to interleave between: every
+ * restored blok gets a fresh key from `rankSequence`, the same call a rebalance makes. Threading new
+ * keys between existing ones would be work in service of preserving keys that no longer describe
+ * anything.
+ *
+ * ## It refuses rather than half-applying, and `BlokBelongsElsewhereError` is why
+ *
+ * `bloks.id` is a **global** primary key, not one scoped per prompt. So a snapshot naming an id that
+ * belongs to a different prompt cannot be applied: inserting it violates `bloks_pkey`, and the two
+ * alternatives are worse than refusing. Minting a fresh id would silently break identity, which is
+ * the one property `diff()` depends on. Skipping the blok would produce a prompt the person never
+ * had, quietly, which is the failure a restore exists to prevent.
+ *
+ * It cannot happen with minted ids, which are random. It can with the decompiler's content-derived
+ * `blok_` ones (`ids.ts`), where two prompts carrying identical text would carry identical ids — no
+ * import path mints those into `bloks` today, and this is the guard for the day one does.
+ *
+ * One transaction. A half-applied restore is somebody's canvas in a state they never had.
+ */
+export async function applySnapshot(
+  db: Db,
+  promptId: string,
+  snapshotBloks: readonly SnapshotBlokRow[],
+): Promise<{ restored: number; removed: number }> {
+  const ordered = [...snapshotBloks].sort((left, right) => left.position - right.position);
+  const ranks = rankSequence(ordered.length);
+  const wanted = new Set(ordered.map((blok) => blok.id));
+
+  return db.transaction(async (tx) => {
+    // Deleted rows included — see above. This is the one read in the package that wants them.
+    const existing = await tx
+      .select({ id: bloks.id })
+      .from(bloks)
+      .where(eq(bloks.prompt, promptId));
+    const present = new Set(existing.map((row) => row.id));
+
+    // Checked before anything is written, so the failure is one named error rather than a
+    // `bloks_pkey` violation surfacing from whichever insert happened to be first.
+    const strangers =
+      wanted.size === 0
+        ? []
+        : (
+            await tx
+              .select({ id: bloks.id, prompt: bloks.prompt })
+              .from(bloks)
+              .where(inArray(bloks.id, [...wanted]))
+          ).filter((row) => row.prompt !== promptId);
+    if (strangers.length > 0) {
+      throw new BlokBelongsElsewhereError(strangers.map((row) => row.id));
+    }
+
+    for (const [index, blok] of ordered.entries()) {
+      const values = {
+        kind: blok.kind,
+        text: blok.text,
+        rank: ranks[index]!,
+        editedText: blok.editedText,
+        editedFromHash: blok.editedFromHash,
+        deletedAt: null,
+        updatedAt: new Date(),
+      };
+
+      if (present.has(blok.id)) {
+        await tx
+          .update(bloks)
+          .set(values)
+          .where(and(eq(bloks.id, blok.id), eq(bloks.prompt, promptId)));
+      } else {
+        // The row is gone entirely. Keep the id: identity is what makes a later diff readable, and
+        // the guard above has already proved this id is not another prompt's.
+        await tx.insert(bloks).values({ id: blok.id, prompt: promptId, ...values });
+      }
+    }
+
+    const removed = existing.filter((row) => !wanted.has(row.id));
+    for (const row of removed) {
+      // Soft, always. `deletedAt` is already set on some of these and setting it again is harmless;
+      // what matters is that nothing here is a `DELETE`.
+      await tx
+        .update(bloks)
+        .set({ deletedAt: new Date() })
+        .where(and(eq(bloks.id, row.id), eq(bloks.prompt, promptId), isNull(bloks.deletedAt)));
+    }
+
+    return { restored: ordered.length, removed: removed.length };
+  });
 }
