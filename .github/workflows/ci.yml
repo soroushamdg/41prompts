@@ -78,6 +78,12 @@ jobs:
       GOOGLE_CLIENT_SECRET: ci-google-client-secret
       GITHUB_CLIENT_ID: ci-github-client-id
       GITHUB_CLIENT_SECRET: ci-github-client-secret
+      # The public half of the published, worthless provider-key master key (EPIC-042). The web
+      # seals and never opens, so this is all it needs — and giving it only this is what makes the
+      # suite a test of threat-model row 043a's split rather than a test beside it. The worker's
+      # secret half is set per spec, by `apps/web/e2e/worker-process.ts`. `masterKeysFrom` refuses
+      # both halves outright when DEPLOY_ENV is production.
+      KEY_ENCRYPTION_PUBLIC_KEY: 41vjBsKfqrgm9bHOtiIRzRhghpgINayaq3tKn74Zh0w
     steps:
       - uses: actions/checkout@v4
 

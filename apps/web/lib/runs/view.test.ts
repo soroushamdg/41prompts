@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   checkRows,
   columnProblemWords,
+  heatmapRows,
+  matrixRows,
   costSentence,
   csvProblemWords,
   evidenceSentence,
@@ -377,5 +379,123 @@ describe("evidenceSentence, for a judgement", () => {
     const said = evidenceSentence({ kind: "judgement", rationale: "", judge: "m" })!;
     expect(said).toContain("no reason");
     expect(said).not.toContain('\u201c\u201d');
+  });
+});
+
+// ── EPIC-042 ─────────────────────────────────────────────────────────────────────────────────
+
+describe("heatmapRows", () => {
+  it("has one cell per input, whether or not a result reached it", () => {
+    const rows = heatmapRows([check()], [result({ inputIndex: 0 })], 4);
+    expect(rows[0]!.cells).toHaveLength(4);
+    expect(rows[0]!.cells.map((cell) => cell.status)).toEqual(["pass", undefined, undefined, undefined]);
+  });
+
+  /**
+   * A run stopped at the budget cap has fewer results than inputs. A heatmap that narrowed itself
+   * to the results would hide exactly the thing a person needs to see.
+   */
+  it("shows the tail a stopped run never reached, rather than narrowing", () => {
+    const rows = heatmapRows([check()], [result({ inputIndex: 0 }), result({ id: "b", inputIndex: 1 })], 40);
+    expect(rows[0]!.cells).toHaveLength(40);
+    expect(rows[0]!.cells[39]!.status).toBeUndefined();
+    expect(rows[0]!.cells[39]!.name).toBe("input 40, not checked");
+  });
+
+  /** Rule 10: pass/fail is never shown by colour alone, and at 15px the word has to be in the name. */
+  it("names every cell with its input number and its verdict, one-based", () => {
+    const rows = heatmapRows(
+      [check()],
+      [result({ inputIndex: 0, outcome: "fail" }), result({ id: "b", inputIndex: 16 })],
+      17,
+    );
+    expect(rows[0]!.cells[0]!.name).toBe("input 1, fail");
+    expect(rows[0]!.cells[16]!.name).toBe("input 17, pass");
+  });
+
+  it("treats not_graded as no verdict rather than as a failure", () => {
+    const rows = heatmapRows([check()], [result({ outcome: "not_graded", reason: "needs_judgement" })], 1);
+    expect(rows[0]!.cells[0]!.status).toBeUndefined();
+    expect(rows[0]!.cells[0]!.name).toBe("input 1, not checked");
+  });
+
+  it("carries the check's phrase, so the row can name itself for a screen reader", () => {
+    const rows = heatmapRows([check({ kind: "word_limit" })], [], 1);
+    expect(rows[0]!.phrase).toBe("word limit");
+  });
+
+  it("keeps each check's results to its own row", () => {
+    const rows = heatmapRows(
+      [check(), check({ id: "schk_2", checkId: "chk_2", kind: "word_limit" })],
+      [result({ inputIndex: 0, outcome: "fail" }), result({ id: "b", suiteCheck: "schk_2", inputIndex: 0 })],
+      1,
+    );
+    expect(rows[0]!.cells[0]!.status).toBe("fail");
+    expect(rows[1]!.cells[0]!.status).toBe("pass");
+  });
+});
+
+describe("matrixRows", () => {
+  /**
+   * The defect this function is designed around: `suite_checks` is frozen per run, so three runs of
+   * one version carry three rows for the same check with three different primary keys. Matching on
+   * the primary key would give a matrix with one filled cell per row.
+   */
+  it("matches a check across runs by its content-derived id, not by its row id", () => {
+    const rows = matrixRows([
+      {
+        runId: "srun_a",
+        model: "claude-sonnet-5",
+        checks: [check({ id: "schk_a", checkId: "chk_1" })],
+        results: [result({ suiteCheck: "schk_a", outcome: "pass" })],
+      },
+      {
+        runId: "srun_b",
+        model: "gpt-4.1-mini-2025-04-14",
+        checks: [check({ id: "schk_b", checkId: "chk_1" })],
+        results: [result({ id: "r2", suiteCheck: "schk_b", outcome: "fail" })],
+      },
+    ]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.cells.map((cell) => cell.status)).toEqual(["pass", "fail"]);
+    expect(rows[0]!.cells.map((cell) => cell.words)).toEqual(["1 of 1 passed", "0 of 1 passed"]);
+  });
+
+  it("keeps a row for a check only one run has, rather than dropping the difference", () => {
+    const rows = matrixRows([
+      { runId: "srun_a", model: "m", checks: [check({ id: "schk_a", checkId: "chk_1" })], results: [] },
+      {
+        runId: "srun_b",
+        model: "m",
+        checks: [check({ id: "schk_b", checkId: "chk_1" }), check({ id: "schk_c", checkId: "chk_2" })],
+        results: [],
+      },
+    ]);
+
+    expect(rows.map((row) => row.checkId)).toEqual(["chk_1", "chk_2"]);
+    expect(rows[1]!.cells[0]!.words).toBe("not in this version");
+    expect(rows[1]!.cells[0]!.status).toBeUndefined();
+  });
+
+  it("gives a cell nothing could grade no colour and says so in words", () => {
+    const rows = matrixRows([
+      {
+        runId: "srun_a",
+        model: "m",
+        checks: [check()],
+        results: [result({ outcome: "not_graded", reason: "needs_judgement" })],
+      },
+    ]);
+    expect(rows[0]!.cells[0]!.status).toBeUndefined();
+    expect(rows[0]!.cells[0]!.words).toBe("nothing graded");
+  });
+
+  it("keeps the columns in the order it was given, so they match the header", () => {
+    const rows = matrixRows([
+      { runId: "srun_a", model: "m", checks: [check()], results: [result()] },
+      { runId: "srun_b", model: "m", checks: [check({ id: "schk_b" })], results: [] },
+    ]);
+    expect(rows[0]!.cells.map((cell) => cell.runId)).toEqual(["srun_a", "srun_b"]);
   });
 });

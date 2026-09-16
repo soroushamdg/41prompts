@@ -1,4 +1,13 @@
-import { bloks, createDb, promptVersions, sessions, suiteRuns, users, verifications } from "@41prompts/db";
+import {
+  bloks,
+  createDb,
+  promptVersions,
+  providerKeys,
+  sessions,
+  suiteRuns,
+  users,
+  verifications,
+} from "@41prompts/db";
 import { desc, eq, sql } from "drizzle-orm";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -115,4 +124,27 @@ export async function everyBlokFor(
     .from(bloks)
     .where(eq(bloks.prompt, promptId))
     .orderBy(bloks.createdAt);
+}
+
+/**
+ * The stored provider keys for one person, **as the database holds them** (EPIC-042).
+ *
+ * Read here rather than through the page for the assertion the page cannot make: that the column
+ * holds a sealed envelope and never the key. A settings page showing four characters proves only
+ * that the page shows four characters.
+ */
+export async function providerKeysFor(
+  email: string,
+): Promise<{ provider: string; sealed: string; lastFour: string; enabled: boolean }[]> {
+  return db
+    .select({
+      provider: providerKeys.provider,
+      sealed: providerKeys.sealed,
+      lastFour: providerKeys.lastFour,
+      enabled: providerKeys.enabled,
+    })
+    .from(providerKeys)
+    .innerJoin(users, eq(providerKeys.owner, users.id))
+    .where(eq(users.email, email))
+    .orderBy(providerKeys.provider);
 }

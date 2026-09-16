@@ -1,10 +1,10 @@
 import {
   isProviderName,
   openEnabledProviderKey,
-  PROVIDER_LABELS,
+  PROVIDER_TITLES,
   recordProviderKeyTest,
   refusalWords,
-  verifyProviderKey,
+  verifyProviderKeyOrFake,
   type Db,
   type FetchLike,
 } from "@41prompts/db";
@@ -39,6 +39,8 @@ export async function testStoredProviderKey(
   owner: string,
   provider: string,
   fetchImpl?: FetchLike,
+  /** Guard 3: the caller announces the fake. Passed in so this module does no logging of its own. */
+  onFake?: (provider: string) => void,
 ): Promise<boolean> {
   if (!isProviderName(provider)) {
     // A job naming a provider that does not exist cannot be about a row, so there is nothing to
@@ -55,7 +57,12 @@ export async function testStoredProviderKey(
     return false;
   }
 
-  const verdict = await verifyProviderKey(provider, plaintext, fetchImpl);
+  // **Through the seam, never `verifyProviderKey` directly.** The first version of this file called
+  // the verifier directly, and the e2e suite consequently made a real HTTPS call to a provider with
+  // an invented key. `verifyProviderKeyOrFake` is the one place the fake lives and the one place its
+  // three guards are enforced.
+  const { verdict, usedFake } = await verifyProviderKeyOrFake(provider, plaintext, { fetchImpl });
+  if (usedFake) onFake?.(provider);
   if (verdict.ok) {
     await recordProviderKeyTest(db, owner, provider, { ok: true });
     return true;
@@ -63,7 +70,7 @@ export async function testStoredProviderKey(
 
   await recordProviderKeyTest(db, owner, provider, {
     ok: false,
-    detail: scrubString(`${refusalWords(provider, verdict.reason, PROVIDER_LABELS[provider])} ${verdict.detail}`),
+    detail: scrubString(`${refusalWords(provider, verdict.reason, PROVIDER_TITLES[provider])} ${verdict.detail}`),
   });
   return false;
 }

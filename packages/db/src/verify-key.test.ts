@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { refusalWords, verifyProviderKey, type FetchLike } from "./verify-key";
+import {
+  FAKE_REJECTED_PREFIX,
+  refusalWords,
+  verificationIsFaked,
+  verifyProviderKey,
+  verifyProviderKeyOrFake,
+  type FetchLike,
+} from "./verify-key";
 
 /**
  * Every test here runs offline. **No test in this repository calls a provider**, and the injected
@@ -121,5 +128,56 @@ describe("refusalWords", () => {
       expect(refusalWords("openai", reason, "OpenAI")).toContain("OpenAI");
       expect(refusalWords("openai", reason, "OpenAI")).toContain("Nothing was saved");
     }
+  });
+});
+
+/**
+ * The seam, and the three guards.
+ *
+ * **This exists because the first version of EPIC-042 put the fake in `apps/web` only**, and the
+ * e2e suite then made a real HTTPS call to `api.anthropic.com` from the worker's "test this stored
+ * key" job. A seam in one of two callers is not a seam, so it moved here, and these are the tests
+ * that keep it here.
+ */
+describe("verifyProviderKeyOrFake", () => {
+  const FAKE_ON = { FAKE_PROVIDER: "1", DEPLOY_ENV: "development" };
+
+  it("calls nobody when the fake is on, and says that it did not", async () => {
+    const { seen, impl } = recording(200);
+    const outcome = await verifyProviderKeyOrFake("anthropic", KEY, { env: FAKE_ON, fetchImpl: impl });
+    expect(outcome.verdict.ok).toBe(true);
+    expect(outcome.usedFake).toBe(true);
+    expect(seen).toHaveLength(0);
+  });
+
+  it("rejects a key carrying the marker, so a test can have a refusal on demand", async () => {
+    const outcome = await verifyProviderKeyOrFake("openai", `${FAKE_REJECTED_PREFIX}whatever`, { env: FAKE_ON });
+    expect(outcome.verdict).toMatchObject({ ok: false, reason: "rejected" });
+  });
+
+  it("is off unless the flag is exactly 1", async () => {
+    for (const flag of [undefined, "0", "true", ""]) {
+      expect(verificationIsFaked({ ...(flag === undefined ? {} : { FAKE_PROVIDER: flag }) })).toBe(false);
+    }
+    expect(verificationIsFaked(FAKE_ON)).toBe(true);
+  });
+
+  it("is refused in production, whatever the flag says", async () => {
+    expect(verificationIsFaked({ FAKE_PROVIDER: "1", DEPLOY_ENV: "production" })).toBe(false);
+
+    const { seen, impl } = recording(200);
+    const outcome = await verifyProviderKeyOrFake("openai", KEY, {
+      env: { FAKE_PROVIDER: "1", DEPLOY_ENV: "production" },
+      fetchImpl: impl,
+    });
+    // It really did ask the provider, which is the whole assertion.
+    expect(outcome.usedFake).toBe(false);
+    expect(seen).toHaveLength(1);
+  });
+
+  it("announces itself, so a caller can log it", async () => {
+    expect((await verifyProviderKeyOrFake("google", KEY, { env: FAKE_ON })).usedFake).toBe(true);
+    const { impl } = recording(200);
+    expect((await verifyProviderKeyOrFake("google", KEY, { env: {}, fetchImpl: impl })).usedFake).toBe(false);
   });
 });

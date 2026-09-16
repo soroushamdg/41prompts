@@ -86,16 +86,16 @@ export const VERIFY_TIMEOUT_MS = 10_000;
  * to the right console. "That key was rejected" with no name is a sentence they cannot act on when
  * they have three keys open in three tabs.
  */
-export function refusalWords(provider: ProviderName, reason: KeyRefusal, label: string): string {
+export function refusalWords(provider: ProviderName, reason: KeyRefusal, title: string): string {
   switch (reason) {
     case "rejected":
-      return `${label} did not recognise that key. Nothing was saved. Check you copied the whole of it, and that it has not been revoked.`;
+      return `${title} did not recognise that key. Nothing was saved. Check you copied the whole of it, and that it has not been revoked.`;
     case "forbidden":
-      return `${label} recognised that key but refused it. Nothing was saved. It is usually a key restricted to other endpoints, or one belonging to a project without API access.`;
+      return `${title} recognised that key but refused it. Nothing was saved. It is usually a key restricted to other endpoints, or one belonging to a project without API access.`;
     case "unreachable":
-      return `We could not reach ${label} just now, so we did not find out whether that key works. Nothing was saved. Try again in a moment.`;
+      return `We could not reach ${title} just now, so we did not find out whether that key works. Nothing was saved. Try again in a moment.`;
     case "provider_error":
-      return `${label} answered with something we could not read, so we did not find out whether that key works. Nothing was saved.`;
+      return `${title} answered with something we could not read, so we did not find out whether that key works. Nothing was saved.`;
   }
 }
 
@@ -184,4 +184,69 @@ function summarise(status: number, body: string): string {
 function shortMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   return message.replace(/\s+/g, " ").trim().slice(0, 200);
+}
+
+// ── The fake, and the three guards on it ──────────────────────────────────────────────────────
+//
+// **It is here, once, rather than in each process that verifies.** The first version of this epic
+// put a fake in `apps/web` alone, on the reasoning that the web is where a person pastes a key. The
+// e2e suite then made a **real HTTPS call to api.anthropic.com** with an invented key, from the
+// worker's "test this stored key" job, and got a genuine 401 back — a test suite reaching a
+// provider, which is exactly what the injectable `fetch` above exists to prevent. A seam in one of
+// two callers is not a seam.
+//
+// The three guards are the ones `apps/worker`'s `providerFor` already has, because a test-only path
+// in production code is the shape that goes wrong:
+//
+// 1. It is **off unless the flag is set**, and `FAKE_PROVIDER` appears nowhere in `infra/`.
+// 2. It is **refused outright in production**, whatever the flag says.
+// 3. It is **announced** — `usedFake` comes back with the verdict, and every caller logs it. A
+//    process answering with a fake must never be quiet about it.
+
+/**
+ * What a key must start with, in fake mode, to be rejected.
+ *
+ * A marker rather than a length or a character class: every real key shape is a moving target, and
+ * a fake that guessed at one would start refusing real keys the day a provider changed its prefix.
+ * Nothing real begins with this.
+ */
+export const FAKE_REJECTED_PREFIX = "not-a-key-";
+
+export interface VerifyEnv {
+  readonly FAKE_PROVIDER?: string | undefined;
+  readonly DEPLOY_ENV?: string | undefined;
+  readonly [name: string]: string | undefined;
+}
+
+export function verificationIsFaked(env: VerifyEnv = process.env): boolean {
+  return env.FAKE_PROVIDER === "1" && env.DEPLOY_ENV !== "production";
+}
+
+export interface VerifyOutcome {
+  readonly verdict: KeyVerdict;
+  /** Guard 3. The caller logs this; a fake that is not announced is a fake nobody can account for. */
+  readonly usedFake: boolean;
+}
+
+/**
+ * Ask the provider, or ask the fake — and say which.
+ *
+ * **Every caller in the product uses this, and none calls `verifyProviderKey` directly.** That is
+ * the point: the seam is one function, so a third caller cannot be added without it.
+ */
+export async function verifyProviderKeyOrFake(
+  provider: ProviderName,
+  plaintext: string,
+  options: { env?: VerifyEnv; fetchImpl?: FetchLike } = {},
+): Promise<VerifyOutcome> {
+  const env = options.env ?? process.env;
+  if (verificationIsFaked(env)) {
+    const key = plaintext.trim();
+    const rejected = key.startsWith(FAKE_REJECTED_PREFIX) || key.length < 8;
+    return {
+      usedFake: true,
+      verdict: rejected ? { ok: false, reason: "rejected", detail: "the fake verifier rejected it" } : { ok: true },
+    };
+  }
+  return { usedFake: false, verdict: await verifyProviderKey(provider, plaintext, options.fetchImpl) };
 }

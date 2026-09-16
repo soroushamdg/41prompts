@@ -379,3 +379,176 @@ export function columnProblemWords(problems: readonly ColumnProblem[]): string {
 function quoteList(names: readonly string[]): string {
   return names.map((name) => `“${name}”`).join(", ");
 }
+
+// ── EPIC-042: the two pivots ─────────────────────────────────────────────────────────────────
+//
+// Both are pure functions over rows that already exist. Neither derives a fact the database does
+// not have; they only choose how it is arranged. That is deliberate — the matrix and the heatmap
+// are two *views* of one run's results, and a view that computed its own verdicts would be a second
+// grader nobody asked for.
+
+/** One cell of the heatmap: what one check said about one input. */
+export interface HeatCell {
+  readonly inputIndex: number;
+  /**
+   * `pass`, `fail`, or `undefined` for a result that could not be graded **or does not exist**.
+   *
+   * The two are one value on purpose. A run that stopped at the budget cap has no rows at all for
+   * the inputs it never reached, and a check nothing could grade has a row saying so; from the
+   * heatmap's side both mean "there is no verdict here", and painting either of them green or red
+   * would be claiming one.
+   */
+  readonly status: "pass" | "fail" | undefined;
+  /**
+   * The cell's accessible name. **`CLAUDE.md` rule 10: pass/fail is never shown by colour alone**,
+   * and this is the form that rule takes for a 15px square — the word is in the name, and the cell
+   * also carries a shape difference in CSS.
+   *
+   * `name` rather than the ADR-003 word, and it happens to be the right word anyway: this is what
+   * WAI-ARIA calls an *accessible name*.
+   */
+  readonly name: string;
+}
+
+export interface HeatRow {
+  readonly suiteCheckId: string;
+  /** Names the row for a screen reader, so the cell's own name can stay "input 17, fail". */
+  readonly phrase: string;
+  readonly blokText: string;
+  readonly cells: readonly HeatCell[];
+}
+
+/**
+ * Results by **input** rather than by check — the mockup's "By input" pivot.
+ *
+ * `inputCount` comes from the input set, not from the results, because a run that stopped early has
+ * fewer results than inputs and a heatmap that silently narrowed would hide exactly that. The
+ * ungraded tail is rendered as absent, which is what it is.
+ */
+export function heatmapRows(
+  checks: readonly SuiteCheckRow[],
+  results: readonly SuiteResultRow[],
+  inputCount: number,
+): HeatRow[] {
+  const byCheck = new Map<string, Map<number, SuiteResultRow>>();
+  for (const result of results) {
+    let row = byCheck.get(result.suiteCheck);
+    if (row === undefined) {
+      row = new Map();
+      byCheck.set(result.suiteCheck, row);
+    }
+    row.set(result.inputIndex, result);
+  }
+
+  return checks.map((check) => {
+    const mine = byCheck.get(check.id);
+    const phrase = phraseFor(check.kind);
+    return {
+      suiteCheckId: check.id,
+      phrase,
+      blokText: check.blokText,
+      cells: Array.from({ length: inputCount }, (_, inputIndex) => {
+        const result = mine?.get(inputIndex);
+        const status = result === undefined || result.outcome === "not_graded" ? undefined : (result.outcome as "pass" | "fail");
+        return {
+          inputIndex,
+          status,
+          // One-based, because "input 17" means the seventeenth row of a person's file.
+          name: `input ${inputIndex + 1}, ${status ?? "not checked"}`,
+        };
+      }),
+    };
+  });
+}
+
+/** One column of the provider matrix: one run, of one model, at one provider. */
+export interface MatrixColumn {
+  readonly runId: string;
+  /** "GPT-4.1 mini", from the catalogue. Never the raw id, which nobody reads as a provider. */
+  readonly modelName: string;
+  readonly providerTitle: string;
+  /** True for the run whose page this is, so it can be marked rather than linked. */
+  readonly isCurrent: boolean;
+}
+
+export interface MatrixCell {
+  readonly runId: string;
+  readonly passed: number;
+  readonly graded: number;
+  readonly status: "pass" | "fail" | undefined;
+  /** "38 of 40 passed", or the honest sentence when nothing could be graded. */
+  readonly words: string;
+}
+
+export interface MatrixRow {
+  readonly checkId: string;
+  readonly phrase: string;
+  readonly blokKind: string;
+  readonly blokText: string;
+  readonly cells: readonly MatrixCell[];
+}
+
+export interface MatrixInput {
+  readonly runId: string;
+  readonly model: string;
+  readonly checks: readonly SuiteCheckRow[];
+  readonly results: readonly SuiteResultRow[];
+}
+
+/**
+ * The provider matrix: a row per check, a column per run.
+ *
+ * ## Rows are matched on `check_id`, not on `suite_check.id`
+ *
+ * `suite_checks` is frozen per run, so three runs of one version have three rows for the same
+ * check with three different primary keys. `checkId` is `compile()`'s **content-derived** id, so it
+ * is the same across every run of the same blok text — which is exactly the identity a row of this
+ * table needs. Matching on the primary key would produce a matrix with one filled cell per row.
+ *
+ * ## A check that only some columns have is still a row
+ *
+ * Runs in one comparison are normally of one version and have identical checks. They need not be:
+ * an A/B of two versions is also a comparison, and a check added in v7 exists in one column only.
+ * Such a row renders with an empty cell rather than being dropped, because dropping it would hide
+ * the difference the comparison was made to show.
+ */
+export function matrixRows(runs: readonly MatrixInput[]): MatrixRow[] {
+  const order: string[] = [];
+  const seen = new Map<string, SuiteCheckRow>();
+  for (const run of runs) {
+    for (const check of run.checks) {
+      if (seen.has(check.checkId)) continue;
+      seen.set(check.checkId, check);
+      order.push(check.checkId);
+    }
+  }
+
+  return order.map((checkId) => {
+    const first = seen.get(checkId)!;
+    return {
+      checkId,
+      phrase: phraseFor(first.kind),
+      blokKind: first.blokKind,
+      blokText: first.blokText,
+      cells: runs.map((run) => {
+        const check = run.checks.find((candidate) => candidate.checkId === checkId);
+        const mine = check === undefined ? [] : run.results.filter((result) => result.suiteCheck === check.id);
+        const passed = mine.filter((result) => result.outcome === "pass").length;
+        const failed = mine.filter((result) => result.outcome === "fail").length;
+        const graded = passed + failed;
+        return {
+          runId: run.runId,
+          passed,
+          graded,
+          status: graded === 0 ? undefined : failed > 0 ? "fail" : "pass",
+          words:
+            check === undefined
+              ? "not in this version"
+              : graded === 0
+                ? "nothing graded"
+                : `${passed} of ${graded} passed`,
+        };
+      }),
+    };
+  });
+}

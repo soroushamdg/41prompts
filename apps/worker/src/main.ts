@@ -143,7 +143,9 @@ export async function main(): Promise<void> {
       try {
         // **The verdict is logged, the key is not**, and `testStoredProviderKey` is the only thing
         // in this file that has ever held one. It returns a boolean and a scrubbed sentence.
-        const ok = await testStoredProviderKey(db, data.owner!, data.provider!);
+        const ok = await testStoredProviderKey(db, data.owner!, data.provider!, undefined, (provider) =>
+          logger.warn({ provider }, "provider key verified by the deterministic fake (FAKE_PROVIDER=1) — no provider was called")
+        );
         logger.info({ jobId, provider: data.provider, ok }, `${TEST_PROVIDER_KEY_QUEUE}: ${data.provider} ${ok ? "works" : "did not answer"}`);
       } catch (error) {
         logger.error({ jobId, provider: data.provider, err: error }, `${TEST_PROVIDER_KEY_QUEUE} failed`);

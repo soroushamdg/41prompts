@@ -70,8 +70,13 @@ export function isProviderName(value: string): value is ProviderName {
   return (PROVIDERS as readonly string[]).includes(value);
 }
 
-/** What a person reads. Never an id, and never a marketing name a provider does not use itself. */
-export const PROVIDER_LABELS: Readonly<Record<ProviderName, string>> = {
+/**
+ * What a person reads. Never an id, and never a marketing name a provider does not use itself.
+ *
+ * **`TITLES` and not `LABELS`.** ADR-003 forbids "label" in code identifiers, and
+ * `scripts/forbidden-words.mjs` enforces it over `apps/web` — where every one of these is rendered.
+ */
+export const PROVIDER_TITLES: Readonly<Record<ProviderName, string>> = {
   anthropic: "Anthropic",
   openai: "OpenAI",
   google: "Google",

@@ -1,0 +1,308 @@
+/* ── Settings → Providers, the provider matrix, and the "By input" heatmap (EPIC-042) ───────────
+   Green and red appear here and mean pass and fail. **Amber does not appear at all** — it means
+   drift, and nothing on these surfaces is drift (`CLAUDE.md` rule 10).
+
+   The heatmap is the sharpest case of that rule in the whole product: a 15px square has no room for
+   a word, so a cell that carried only a colour would be a verdict shown by colour alone. Three
+   things carry it instead — the accessible name (`input 17, fail`), a **shape** difference (a pass
+   is solid, a failure is hatched, an ungraded cell is hollow), and the opened detail in words with
+   a glyph. The hatch is what survives being printed, being screenshotted in greyscale, and being
+   read by somebody who cannot tell this green from this red.
+
+   Data surfaces are hairline with no shadow and no radius; interactive elements get the 2px ink
+   border and hard offset shadow from `recipes.css`. Touch targets are 44px (rule 12), with the one
+   documented exception below. */
+
+/* Settings ------------------------------------------------------------------------------------ */
+
+.settings-guidance {
+  list-style: none;
+  margin: 0 0 var(--spacing-s4);
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-s3);
+}
+.settings-guidance > li {
+  display: grid;
+  gap: var(--spacing-s1);
+  font-size: 13px;
+  line-height: 1.6;
+  border-left: var(--border-ink) solid var(--color-line);
+  padding-left: var(--spacing-s3);
+}
+.settings-guidance > li > span {
+  color: var(--color-ink-2);
+}
+.settings-guidance-plain > li {
+  border-left-color: var(--color-line-2);
+}
+
+.settings-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-s4);
+}
+.settings-row {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+  padding: var(--spacing-s4);
+  display: grid;
+  gap: var(--spacing-s3);
+}
+.settings-row-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-s3);
+}
+.settings-row-name {
+  display: grid;
+  gap: var(--spacing-s1);
+  flex: 1 1 200px;
+}
+.settings-row-models {
+  font-size: 12px;
+  color: var(--color-ink-3);
+  font-family: var(--font-mono);
+}
+.settings-row-state {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s3);
+}
+.settings-row-four {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+.settings-row-switchword {
+  font-size: 12px;
+  color: var(--color-ink-2);
+  min-width: 82px;
+}
+.settings-paste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  align-items: center;
+}
+.settings-paste > :first-child {
+  flex: 1 1 260px;
+}
+.settings-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-s3);
+}
+.settings-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  font-size: 13px;
+  color: var(--color-ink-2);
+  flex: 1 1 240px;
+  line-height: 1.5;
+}
+.settings-verdict[data-status="pass"] {
+  color: var(--color-pass);
+}
+.settings-verdict[data-status="fail"] {
+  color: var(--color-fail);
+}
+
+/* The provider matrix -------------------------------------------------------------------------- */
+
+.matrix-scroll {
+  overflow-x: auto;
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+}
+.matrix {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.matrix th,
+.matrix td {
+  text-align: left;
+  padding: var(--spacing-s3);
+  border-bottom: var(--border-hairline) solid var(--color-line-2);
+  vertical-align: top;
+}
+.matrix thead th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-3);
+  white-space: nowrap;
+}
+.matrix thead a,
+.matrix thead [aria-current] {
+  display: grid;
+  gap: 2px;
+}
+.matrix-model,
+.matrix-here {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-ink-3);
+}
+.matrix-here {
+  font-family: inherit;
+  font-style: italic;
+}
+.matrix tbody th {
+  font-weight: 400;
+  max-width: 320px;
+}
+.matrix-blok {
+  display: block;
+  margin-top: var(--spacing-s1);
+  font-size: 12px;
+  color: var(--color-ink-3);
+  overflow-wrap: anywhere;
+}
+.matrix td {
+  white-space: nowrap;
+}
+.matrix td > span {
+  margin-left: var(--spacing-s1);
+}
+.matrix td[data-status="pass"] {
+  color: var(--color-pass);
+}
+.matrix td[data-status="fail"] {
+  color: var(--color-fail);
+}
+.matrix td[data-status="not-checked"] {
+  color: var(--color-ink-3);
+}
+
+/* The heatmap ---------------------------------------------------------------------------------- */
+
+.heat-wrap {
+  display: grid;
+  gap: var(--spacing-s3);
+}
+.heat {
+  display: grid;
+  gap: var(--spacing-s2);
+  padding: var(--spacing-s4);
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+  overflow-x: auto;
+}
+.heat-row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: var(--spacing-s3);
+  align-items: center;
+}
+.heat-rowlabel {
+  font-size: 11px;
+  color: var(--color-ink-2);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.heat-cells {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+}
+
+/* **The one documented exception to rule 12's 44px.** A heatmap cell is deliberately small: the
+   whole point of the pivot is seeing a hundred inputs at once, and a 44px cell would be four
+   screens wide at the product's own `MAX_INPUTS`. What rule 12 is protecting — that every
+   interactive element works by keyboard and by touch — is met another way: the grid is a roving
+   tabindex reachable by Tab and navigable by arrow keys, and the same information is available at
+   full size in the "By check" pivot, whose controls are 44px. */
+.heat-cell {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  flex: 0 0 15px;
+  padding: 0;
+  cursor: pointer;
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+}
+.heat-cell[data-status="pass"] {
+  background: var(--color-pass);
+  border-color: var(--color-pass);
+}
+/* The shape difference, not a second colour. Hatching survives greyscale, a printout, and a reader
+   who cannot tell this green from this red. */
+.heat-cell[data-status="fail"] {
+  border-color: var(--color-fail);
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-fail) 0,
+    var(--color-fail) 3px,
+    var(--color-fail-soft) 3px,
+    var(--color-fail-soft) 6px
+  );
+}
+.heat-cell[data-status="not-checked"] {
+  background: transparent;
+  border-style: dashed;
+}
+.heat-cell:hover {
+  outline: var(--border-ink) solid var(--color-ink);
+  outline-offset: 1px;
+}
+.heat-cell:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+  position: relative;
+  z-index: 2;
+}
+.heat-cell[aria-pressed="true"] {
+  outline: var(--border-ink) solid var(--color-ink);
+  outline-offset: 1px;
+}
+
+.heat-detail {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-sunken);
+  padding: var(--spacing-s4);
+}
+.heat-detail h3 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-3);
+  margin: 0 0 var(--spacing-s2);
+}
+.heat-detail-verdict {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  font-size: 14px;
+  margin: 0 0 var(--spacing-s2);
+}
+.heat-detail-verdict[data-status="pass"] {
+  color: var(--color-pass);
+}
+.heat-detail-verdict[data-status="fail"] {
+  color: var(--color-fail);
+}
+
+.runs-pivots {
+  margin-top: var(--spacing-s6);
+}
+
+@media (max-width: 720px) {
+  .heat-row {
+    grid-template-columns: 96px 1fr;
+  }
+  .settings-row-switchword {
+    min-width: 0;
+  }
+}

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
 import { activationStateFor } from "@/lib/activation/queries";
+import { keyedProvidersFor } from "@/lib/providers/queries";
 import { runsPageFor } from "@/lib/runs/queries";
 import { requireSession } from "@/lib/session";
 import { ActivationProgress } from "./activation-progress";
@@ -42,6 +43,9 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
   // Only on the example: onboarding, not a permanent feature (see `ActivationProgress`).
   const activation = activationStateFor(found.prompt.name, found.history, counts);
 
+  // EPIC-042. Metadata only — no master key is read, and this page cannot open one.
+  const keyed = await keyedProvidersFor(getDb(), session.user.id);
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -59,7 +63,12 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
 
       {activation !== undefined && <ActivationProgress steps={activation} />}
 
-      <InputSets promptId={promptId} sets={found.inputSets} declarations={declarations} />
+      <InputSets
+        promptId={promptId}
+        sets={found.inputSets}
+        declarations={declarations}
+        keyedProviders={keyed.length}
+      />
       <RunHistory promptId={promptId} runs={found.history} verdicts={verdicts} versionsByN={versionsByN} />
     </main>
   );

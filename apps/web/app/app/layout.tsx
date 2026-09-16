@@ -36,6 +36,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </a>
         <div className="app-chrome-spacer" />
         <span className="app-chrome-who">{session.user.email}</span>
+        {/* EPIC-042. Provider keys are account-level, so their home is the chrome rather than any
+            one prompt. It is `/app/settings/providers` and not `/app/settings`, because Providers is
+            the only one of the mockup's five Settings tabs that exists yet and a landing page
+            listing one thing would imply four more. */}
+        <a className="app-chrome-link" href="/app/settings/providers">
+          Settings
+        </a>
         <a className="app-chrome-link" href="/app/account">
           Account
         </a>
