@@ -397,3 +397,136 @@ you that commit to compare against).
    a resize — no bootstrap re-run needed.
 4. Confirm `docker ps` shows all services healthy and `curl https://app.41prompts.ai/healthz` responds before
    considering the resize done.
+
+## Generating or rotating the provider-key master key (EPIC-043)
+
+`KEY_ENCRYPTION_SECRET` is what decrypts every provider key a user has stored. It is an environment
+value in Coolify and it is in no repository, no image and no database — `docs/security/byo-key-threat-model.md`
+finding 1 is why.
+
+**Generate one.** From a checkout, so the encoding is the one the code reads rather than one somebody
+guessed:
+
+```
+node -e 'import("./packages/db/src/sealed-box.ts").then(m => console.log(JSON.stringify(m.generateMasterKey(), null, 2)))'
+```
+
+or, with `tsx` available (`npx tsx -e '…'`), the same call. It prints three values:
+
+| field | where it goes |
+|---|---|
+| `secret` | `KEY_ENCRYPTION_SECRET` in Coolify, on `web` and `worker` |
+| `publicKey` | `KEY_ENCRYPTION_PUBLIC_KEY`, only on a deployment that has split the two halves |
+| `keyId` | nothing — write it down. It is how you recognise which rows are on which key. |
+
+**Do not print it into a terminal that is being recorded, and do not paste it into a chat window.**
+`CLAUDE.md` server-access rule 7 already forbids an unfiltered env dump; this is the same value.
+
+### Rotating it, with nothing unreadable in between
+
+`KEY_ENCRYPTION_SECRET` takes a **comma-separated list**. The first entry seals; any entry opens. So:
+
+1. Generate a new key. Set `KEY_ENCRYPTION_SECRET=<new>,<old>` in Coolify. Redeploy `web` and `worker`.
+   Everything still opens; everything written from now on is sealed under the new key.
+2. Re-seal the rows still on the old key. Find them with
+   `select id, owner, provider, key_id from provider_keys where key_id <> '<new key id>';` — and note
+   that re-sealing needs each row's plaintext, so it is an `openStoredProviderKey` followed by a
+   `putProviderKey`. There is no job for this yet (threat model §8, row `043b`); with a handful of
+   rows, do it by hand.
+3. **Wait 30 days before destroying the old key.** The nightly dump in R2 is kept 30 days, and a dump
+   taken before step 1 is sealed under the old key. Destroying it earlier makes those backups
+   unrestorable — which is the same thing as losing the data.
+4. Then set `KEY_ENCRYPTION_SECRET=<new>` alone and redeploy.
+
+**If the old key is already gone**, the affected rows cannot be recovered. `openStoredProviderKey`
+says so in words — *"no master key with id … is configured"* — rather than reporting a decryption
+failure, so this case is distinguishable from corruption. The remedy is to delete those rows and ask
+those people to add their key again. Say that, rather than leaving a page that fails silently.
+
+## A provider key may have been exposed (EPIC-043)
+
+**This is the incident where the damage lands on somebody who is not us and only they can stop it.**
+`docs/security/byo-key-threat-model.md` is the model; this is what to do at 3am.
+
+### The order, and why it is this order
+
+**1. Revoke at the provider — or tell the owner to. First, before anything else.**
+
+It is the only step that stops the money. Everything below can proceed while it is happening. If the
+exposure is of one person's key, tell that person and give them the provider's revocation URL; if it
+is of the store as a whole, tell everyone who has a key stored, because each of them has to revoke
+their own.
+
+Do **not** wait to finish an assessment first. A key revoked unnecessarily costs somebody five
+minutes; a key left live while an assessment is written costs them whatever it is used for.
+
+**2. Contain.**
+
+- If the master key may have leaked: rotate it (section above), and treat **every** stored key as
+  exposed. There is no way to tell which rows an attacker read — threat model finding 4, no audit
+  row exists yet.
+- If a single key leaked through a log or an error report: find it, and delete it from wherever it
+  landed. In Sentry that means deleting the issue, not resolving it. In PostHog it means the event.
+  In Coolify's container logs it means the log.
+- Take the affected surface out of service if it is still leaking. A page that is still writing keys
+  into stdout is worse than a page that is down.
+
+**3. Work out the blast radius, and write it down as you go.**
+
+- Which keys — one row, or the table? `select owner, provider, key_id, created_at, rotated_at from
+  provider_keys;` with the read-only role (see "Drizzle Studio against staging or production").
+- Which window — from when to when was the exposure live?
+- Where did it reach — our logs only, or a third party (Sentry, PostHog, R2, Cloudflare)? A key that
+  reached a third party has to be treated as public.
+- **How was it found?** Write this down before it is forgotten; it is what tells you whether the
+  detection worked or whether you were lucky.
+
+**4. Notify.**
+
+- **The people whose keys they are, immediately and directly.** This is not a legal obligation and it
+  is the most important notification in this list, because they are the only ones who can revoke.
+  `/legal/security` promises exactly this in as many words; do not make that page a lie.
+- **Law 25 (Québec), if personal information is involved.** A provider key on its own is a
+  credential, not personal information — but it is stored against a `users` row, and an exposure that
+  reached the row reached an email address. Where a *confidentiality incident* presents a **risk of
+  serious injury**, s.3.5 of the Act requires notification to the **Commission d'accès à
+  l'information** and to each person concerned, **promptly** ("avec diligence"). The factors for
+  assessing serious injury are the sensitivity of the information, the anticipated consequences, and
+  the likelihood it will be used for a harmful purpose — a spendable credential scores badly on all
+  three, so assume notification is required unless there is a positive reason it is not.
+- **Law 25's register, which is the part that gets forgotten.** s.3.8 requires a **register of
+  confidentiality incidents** covering **every** incident, including ones that did not require
+  notification, kept for **5 years** after the day we became aware. Keep it at
+  `docs/incidents/confidentiality-register.md` — one row per incident: date we became aware, date or
+  period of the incident, a description of the personal information concerned, a brief description of
+  the circumstances and of the cause if known, what was done to reduce the risk of injury, and whether
+  the CAI and the people concerned were notified. **Write the row even when the answer to the last
+  one is "no, because the risk was not serious".** An empty register after an incident is itself a
+  finding.
+- **PIPEDA (federal), for the same event.** A *breach of security safeguards* that creates a **real
+  risk of significant harm** must be reported to the **Office of the Privacy Commissioner of Canada**
+  and to affected individuals **as soon as feasible**. PIPEDA also requires a **record of every**
+  breach of security safeguards — not only reportable ones — kept **24 months**. The same register row
+  satisfies both; note in it which regimes were engaged.
+- **Nobody else, yet.** No customer DPA exists (EPIC-071, `deferred`). If one ever does, its
+  notification clock goes in this list.
+
+**5. Then fix the cause, and only then.**
+
+Add the shape to `packages/logger/src/scrub.ts` if a pattern missed it. Add the test that would have
+caught it. Write `docs/incidents/<date>-<slug>.md` the way `2026-09-13-production-outage.md` is
+written — what happened, what the evidence actually said, and what was believed that was not true.
+
+### What to check first, because it is usually one of these
+
+```
+# Did a key shape reach the container logs at all?
+ssh 41p-box 'docker logs --since 72h <web-container> 2>&1 | grep -cE "sk-ant-|sk-proj-|AIza"'
+```
+
+A non-zero count is the incident. A zero is not proof of absence — it is proof that this shape, in
+this window, in this container, did not appear — so check the worker too, and remember that Sentry and
+PostHog are separate places with their own retention.
+
+**The redaction is a safety net, not a permission.** If this section is being read because a key
+reached a log, the first question is which call site logged it, not which pattern missed it.

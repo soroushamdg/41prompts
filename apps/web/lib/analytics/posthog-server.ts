@@ -1,4 +1,5 @@
 import { PostHog } from "posthog-node";
+import { literalSecretMatcher, scrubSecrets, secretsFromEnv } from "@41prompts/logger/src/scrub";
 import { type EventName, isEventName } from "./events";
 
 // Lazy, same reason as lib/db.ts/lib/auth.ts: this module is imported (transitively, via
@@ -98,6 +99,19 @@ export function identifyUser(distinctId: string): void {
   client.identify({ distinctId });
 }
 
+/**
+ * The redaction every property goes through before it reaches PostHog (EPIC-043).
+ *
+ * The event **name** is already validated against a closed set below. Properties are not, and cannot
+ * be — a property is an arbitrary object a call site assembled — so the guard on them has to be
+ * about the values rather than about the keys. `packages/logger/src/scrub.ts` has the argument for
+ * why a name list is the wrong shape of defence for a credential.
+ *
+ * Deep import, not the package barrel: this module is server-only today but `events.ts` is shared
+ * with client components, and `scrub.ts` has no imports of its own while the barrel pulls pino in.
+ */
+const literals = literalSecretMatcher(secretsFromEnv(process.env));
+
 // Validated against the closed set at runtime, not just by the `EventName` type — a caller that
 // bypasses TypeScript (a cast, a future dynamic dispatch) still can't send an ad hoc event name.
 export function captureEvent(distinctId: string, name: EventName, properties?: Record<string, unknown>): void {
@@ -108,5 +122,10 @@ export function captureEvent(distinctId: string, name: EventName, properties?: R
   if (!client) {
     return;
   }
-  client.capture({ distinctId, event: name, properties });
+  client.capture({ distinctId, event: name, properties: scrubProperties(properties) });
+}
+
+/** Exported so the guard on it is a test rather than a reading of this file. */
+export function scrubProperties(properties?: Record<string, unknown>): Record<string, unknown> | undefined {
+  return properties === undefined ? undefined : scrubSecrets(properties, literals);
 }

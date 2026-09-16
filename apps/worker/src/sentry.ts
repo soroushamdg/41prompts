@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/node";
+import { literalSecretMatcher, scrubSecrets, secretsFromEnv } from "@41prompts/logger";
 
 let initialized = false;
 
@@ -15,10 +16,20 @@ export function initSentry(): void {
   if (!dsn) {
     return;
   }
+  // EPIC-043: the worker is the process that will hold an opened provider key in memory while it
+  // calls a model, so it is the one whose exceptions are most likely to carry one. `beforeSend`
+  // walks every event for a key shape and for this deployment's own configured secrets before it
+  // leaves. Built once, here, because `process.env` is settled by the time `initSentry` runs.
+  const literals = literalSecretMatcher(secretsFromEnv(process.env));
+  const scrub = <T>(event: T): T => scrubSecrets(event, literals);
+
   Sentry.init({
     dsn,
     environment: process.env.DEPLOY_ENV ?? "development",
     release: process.env.COMMIT_SHA,
+    beforeSend: scrub,
+    beforeSendTransaction: scrub,
+    beforeBreadcrumb: scrub,
   });
   initialized = true;
 }

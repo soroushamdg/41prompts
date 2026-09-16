@@ -136,3 +136,14 @@ export function newPromptVersionId(): string {
 export function newComparisonId(): string {
   return newId("cmp", 8);
 }
+
+/**
+ * One person's key at one provider (EPIC-043).
+ *
+ * Eight hex, like a run's. It is never in a URL and never handed out — the row is found by
+ * `(owner, provider)` — but a collision here would hand one person's credential to another, which
+ * is the worst outcome any id in this file can produce.
+ */
+export function newProviderKeyId(): string {
+  return newId("pk", 8);
+}

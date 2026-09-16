@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { EventName } from "./events";
-import { captureEvent, hasAnalyticsConsent } from "./posthog-server";
+import { captureEvent, hasAnalyticsConsent, scrubProperties } from "./posthog-server";
 
 describe("captureEvent", () => {
   it("throws at runtime for a name outside the closed set, even past a TypeScript cast", () => {
@@ -79,5 +79,29 @@ describe("hasAnalyticsConsent", () => {
   it("defaults to allowed when DEPLOY_ENV is unset (local dev)", () => {
     delete process.env.DEPLOY_ENV;
     expect(hasAnalyticsConsent({})).toBe(true);
+  });
+});
+
+/**
+ * EPIC-043. The event **name** has been checked against a closed set since EPIC-004; the properties
+ * never were, because a property is an arbitrary object a call site assembled. PostHog is a
+ * processor outside Canada, so a property carrying a provider key is that key leaving the country.
+ */
+describe("properties are redacted before they reach PostHog", () => {
+  const ANTHROPIC = "sk-ant-api03-Zq7WcR2mLv9Xb4Nt6Kd1Pf8Hj3Ug5Ay0Se";
+
+  it("redacts a key-shaped value, however deep it is", () => {
+    const scrubbed = scrubProperties({ context: { provider: { key: ANTHROPIC } }, plan: "free" });
+    expect(JSON.stringify(scrubbed)).not.toContain(ANTHROPIC);
+    expect(scrubbed?.plan).toBe("free");
+  });
+
+  it("leaves undefined alone rather than inventing an empty object", () => {
+    expect(scrubProperties(undefined)).toBeUndefined();
+  });
+
+  it("leaves every ordinary property exactly as it was", () => {
+    const properties = { promptId: "pr_9f3a1c2b", checks: 17, passed: true };
+    expect(scrubProperties(properties)).toEqual(properties);
   });
 });

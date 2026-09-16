@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/nextjs";
+import { scrubSentryEvent } from "@/lib/observability/sentry-scrub";
 
 // Inert when NEXT_PUBLIC_SENTRY_DSN is unset (local dev, CI, and any environment before Soroush
 // creates the Sentry project and sets the key in Coolify — infra/ACCESS.md rule 7). The DSN is
@@ -11,7 +12,13 @@ export function register(): void {
       dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
       environment: process.env.DEPLOY_ENV ?? "development",
       release: process.env.COMMIT_SHA,
-      tracesSampleRate: 0
+      tracesSampleRate: 0,
+      // EPIC-043: nothing leaves this process without being walked for a provider key first. An
+      // SDK error that echoed its own request is the path a person's credential would otherwise
+      // take to a processor outside Canada. See lib/observability/sentry-scrub.ts.
+      beforeSend: scrubSentryEvent,
+      beforeSendTransaction: scrubSentryEvent,
+      beforeBreadcrumb: scrubSentryEvent
     });
   }
 }

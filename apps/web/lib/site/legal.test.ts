@@ -7,7 +7,20 @@ import {
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { LEGAL_DOCS, LEGAL_DOC_SLUGS, UNREVIEWED_NOTICE, type LegalPart } from "./legal";
+import {
+  LAST_UPDATED,
+  LEGAL_DOCS,
+  LEGAL_DOC_SLUGS,
+  SECURITY_LAST_UPDATED,
+  UNREVIEWED_NOTICE,
+  type LegalPart,
+} from "./legal";
+import {
+  KEY_GUIDANCE_ACTIONS,
+  KEY_GUIDANCE_HOLDING,
+  KEY_GUIDANCE_SUMMARY,
+  KEY_GUIDANCE_TITLE,
+} from "../providers/key-guidance";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
 
@@ -200,5 +213,55 @@ describe("every legal page", () => {
     expect(doc.parts.length).toBeGreaterThan(3);
     // The stub these replaced said exactly this. It must never come back.
     expect(textOf(doc)).not.toContain("not written yet");
+  });
+});
+
+/**
+ * EPIC-043's guidance reaches a rendered page, and reaches it from one source.
+ *
+ * `/legal/security` is where a person can read it today; EPIC-042 renders the same three actions
+ * beside the input. The test is that the page's text **is** the module's text — not that it says
+ * something similar — so the two cannot drift once there are two renderings of them.
+ */
+describe("the provider-key guidance", () => {
+  const securityText = textOf(LEGAL_DOCS.security!);
+
+  it("puts every action from the one source on the page", () => {
+    for (const each of KEY_GUIDANCE_ACTIONS) {
+      expect(securityText).toContain(each.action);
+      expect(securityText).toContain(each.because);
+    }
+  });
+
+  it("says how the key is held, in the same words the module uses", () => {
+    expect(securityText).toContain(KEY_GUIDANCE_TITLE);
+    expect(securityText).toContain(KEY_GUIDANCE_SUMMARY);
+    for (const holding of KEY_GUIDANCE_HOLDING) {
+      expect(securityText).toContain(holding);
+    }
+  });
+
+  it("names the three controls that only the provider has", () => {
+    // The whole point of the section: scope, cap, revoke — each at the provider, not here.
+    expect(securityText).toMatch(/spending limit/i);
+    expect(securityText).toMatch(/revoke it at your provider/i);
+    expect(securityText).toMatch(/not the one your production service already uses/i);
+  });
+
+  it("does not claim a key is stored today, because none is", () => {
+    expect(securityText).toContain("Nothing stores a provider key today");
+  });
+
+  /**
+   * The drive found this one by looking at the page: it said "Last updated 14 September 2026" under
+   * a section written on the 16th. A page carrying a date that its own content has moved past is a
+   * small lie in the one place a reader checks whether to re-read it.
+   */
+  it("carries its own last-updated date, moved past the other three pages'", () => {
+    expect(securityText).toContain(`Last updated ${SECURITY_LAST_UPDATED}`);
+    expect(securityText).not.toContain(`Last updated ${LAST_UPDATED}`);
+    // The pages that did not change keep the date they had.
+    expect(textOf(LEGAL_DOCS.privacy!)).toContain(`Last updated ${LAST_UPDATED}`);
+    expect(textOf(LEGAL_DOCS.terms!)).toContain(`Last updated ${LAST_UPDATED}`);
   });
 });
