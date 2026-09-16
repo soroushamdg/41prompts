@@ -367,7 +367,7 @@ which is the precise thing EPIC-031a exists to prevent.
 | ID | Epic | Size | Depends | Status |
 |---|---|---|---|---|
 | EPIC-040 | core + db: version = blok-set snapshot, semantic diff, compiled byte delta, pass rate per version | M | 030, 032 | **done, 2026-09-16.** A version is minted automatically — unchanged content writes nothing, the open draft is rewritten in place, a run pins it — so one episode of editing is one version and every run points at something immutable. Pass rate derived, never stored. 100x50 measured at 2.01 MiB. No route: report §8. |
-| EPIC-041 | web: history, restore, A/B two versions on one suite | S | 040 | todo |
+| EPIC-041 | web: history, restore, A/B two versions on one suite | S | 040 | **done, 2026-09-16.** The Versions page: `Draft vN` history with derived pass rates, the semantic diff for any pair (in the URL, so it is a link), restore, and A/B as two runs sharing a `comparison`. Restore pins the open draft first, so the history only ever grows. The drive found an EPIC-040 defect — an `expected` blok emits no text, so a changed check set wrote no version: `snapshot_hash` is now the dedupe key. Report §3. |
 | EPIC-043 | BYO-key threat model + breach runbook (before any user key is stored) | S | 004 | todo |
 | EPIC-042 | Providers: OpenAI + Google adapters, BYO keys encrypted at rest, provider matrix, accessible heatmap pivot | M | 031, 043 | todo |
 
