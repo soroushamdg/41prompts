@@ -21,15 +21,24 @@ import {
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { priceFor, reservationCentsFor } from "./prices";
-import { echoLastLineProvider, type SelectedProvider } from "./provider";
+import { echoLastLineProvider, type SelectProvider } from "./provider";
 import { runSuite } from "./suite";
 
 const OWNER = "usr_suite_test";
 const PROJECT = "proj_sut0";
 const PROMPT = "pr_suite001";
 
-/** The fake, wrapped as the selector would hand it over. */
-const FAKE: SelectedProvider = { provider: echoLastLineProvider(), name: "fake for a test" };
+/**
+ * The selector the tests hand `runSuite` (EPIC-042).
+ *
+ * A **function** rather than a value, because that is what the production path is: `runSuite` asks
+ * for a provider per model, so the run's model and the judge's get separate answers. Here both get
+ * the same fake, which is what they got before.
+ */
+const FAKE: SelectProvider = async () => ({ provider: echoLastLineProvider(), name: "fake for a test" });
+
+/** No provider at all, for any model. */
+const NONE: SelectProvider = async () => undefined;
 
 /**
  * A prompt whose last line is the answer, so the fake's echo is the value the CSV supplied.
@@ -140,7 +149,7 @@ describe.skipIf(!HAS_TEST_DATABASE)("runSuite", () => {
 
   it("refuses in words when there is no provider, and calls nobody", async () => {
     const id = await trigger([["All good."]]);
-    await runSuite(db, id, undefined);
+    await runSuite(db, id, NONE);
 
     const run = await suiteRunById(db, id);
     expect(run?.state).toBe("refused");

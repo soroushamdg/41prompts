@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import type { DbOrTx } from "./client";
+import { isProviderName, type ProviderName } from "./constants";
 import { providerKeys } from "./schema";
 import {
   SealedBoxError,
@@ -26,13 +27,11 @@ import {
  * is small enough to read. Today it is two, and both are here.
  */
 
-/** The providers a key may be held for. Text in the database; a closed set here. */
-export const PROVIDERS = ["anthropic", "openai", "google"] as const;
-export type ProviderName = (typeof PROVIDERS)[number];
-
-export function isProviderName(value: string): value is ProviderName {
-  return (PROVIDERS as readonly string[]).includes(value);
-}
+// The closed set of provider names lives in `constants.ts` (EPIC-042) and is imported here. It
+// moved because both apps need it and this file imports drizzle: `apps/web` should not pull a query
+// builder in to render a settings row. Nothing about the column changed — it is still text in the
+// database with the union enforced in TypeScript, so a fourth provider is a constant, not a
+// migration.
 
 /** Everything about a stored key except the key. This is what a page renders. */
 export interface ProviderKeyMetadata {
@@ -43,6 +42,14 @@ export interface ProviderKeyMetadata {
   readonly createdAt: Date;
   readonly rotatedAt: Date | null;
   readonly lastUsedAt: Date | null;
+  /** EPIC-042. A key switched off is still stored; it is simply not reached for. */
+  readonly enabled: boolean;
+  /** When a test of the **stored** key was asked for, and when one last answered. */
+  readonly testRequestedAt: Date | null;
+  readonly lastTestedAt: Date | null;
+  readonly lastTestOk: boolean | null;
+  /** The provider's own words about the failure, scrubbed. Never the key, never a whole body. */
+  readonly lastTestDetail: string | null;
 }
 
 /**
@@ -106,6 +113,15 @@ export async function putProviderKey(db: DbOrTx, input: PutProviderKeyInput): Pr
         lastFour: plaintext.slice(-4),
         rotatedAt: new Date(),
         lastUsedAt: null,
+        // **The verdict does not survive the value it was about** (EPIC-042). A row that said
+        // "checked, works" about the key somebody has just replaced is a statement about a
+        // credential that is no longer there, and it is the kind of stale reassurance a person
+        // acts on. Re-enabled too: replacing a key is the act of somebody who means to use it.
+        enabled: true,
+        testRequestedAt: null,
+        lastTestedAt: null,
+        lastTestOk: null,
+        lastTestDetail: null,
       },
     })
     .returning();
@@ -143,6 +159,115 @@ export async function openStoredProviderKey(
   return openProviderKey(keys, row.sealed, { owner, provider });
 }
 
+/**
+ * Open one person's key **only if they have not switched it off**, and stamp that it was used.
+ *
+ * ## Three answers, and the caller must not collapse them
+ *
+ * `undefined` here means "do not use a stored key for this provider", and it covers two different
+ * facts — there is no row, and there is a row that is switched off. Both lead the caller to the
+ * same next step (fall back to the deployment's own key, or refuse), which is why they are one
+ * return value. What they may **not** become is a throw: a person switching their key off is
+ * exercising a control, not causing an error.
+ *
+ * A master key that cannot open the row is still a throw, because that is an incident.
+ *
+ * ## `last_used_at` is stamped here and nowhere else
+ *
+ * It is the one honest place: the moment the plaintext is produced is the moment it is used. A
+ * stamp written at the call site would be a second thing to remember, and the column would
+ * eventually mean "when we last thought about this key".
+ *
+ * **It is not an audit log.** Threat model finding 4 asks for a row per open, naming who and when,
+ * and that is `043c`. This column says only that an open happened at some point, which is enough
+ * for a settings page and not enough for an investigation — the report says so rather than letting
+ * a timestamp read as an audit trail.
+ */
+export async function openEnabledProviderKey(
+  db: DbOrTx,
+  owner: string,
+  provider: ProviderName,
+  env?: KeyEnv,
+): Promise<string | undefined> {
+  const [row] = await db
+    .select()
+    .from(providerKeys)
+    .where(and(eq(providerKeys.owner, owner), eq(providerKeys.provider, provider)));
+  if (!row || !row.enabled) return undefined;
+
+  const keys = requireMasterKeys(env, "read a provider key");
+  const plaintext = openProviderKey(keys, row.sealed, { owner, provider });
+  await db.update(providerKeys).set({ lastUsedAt: new Date() }).where(eq(providerKeys.id, row.id));
+  return plaintext;
+}
+
+/**
+ * Switch a stored key on or off without removing it.
+ *
+ * Returns the row as a page sees it, or `undefined` when there is none — the same shape every other
+ * read here has, so a caller never has to tell a missing row from a failed write.
+ */
+export async function setProviderKeyEnabled(
+  db: DbOrTx,
+  owner: string,
+  provider: ProviderName,
+  enabled: boolean,
+): Promise<ProviderKeyMetadata | undefined> {
+  const [row] = await db
+    .update(providerKeys)
+    .set({ enabled })
+    .where(and(eq(providerKeys.owner, owner), eq(providerKeys.provider, provider)))
+    .returning();
+  return row === undefined ? undefined : toMetadata(row);
+}
+
+/**
+ * Record that somebody asked for the stored key to be tested.
+ *
+ * The verdict itself arrives later, from the worker. This is what lets the page say **"checking"**
+ * rather than showing the previous verdict while a new one is in flight — a page that shows a stale
+ * "works" during a re-check is answering a question nobody asked.
+ */
+export async function requestProviderKeyTest(
+  db: DbOrTx,
+  owner: string,
+  provider: ProviderName,
+): Promise<ProviderKeyMetadata | undefined> {
+  const [row] = await db
+    .update(providerKeys)
+    .set({ testRequestedAt: new Date() })
+    .where(and(eq(providerKeys.owner, owner), eq(providerKeys.provider, provider)))
+    .returning();
+  return row === undefined ? undefined : toMetadata(row);
+}
+
+/**
+ * Write the verdict of a test back onto the row.
+ *
+ * `detail` is capped and is expected to be already scrubbed by its producer. Capped because a
+ * provider that answers a failure with an HTML error page would otherwise put a kilobyte of markup
+ * in a column a settings page renders.
+ */
+export const MAX_TEST_DETAIL = 300;
+
+export async function recordProviderKeyTest(
+  db: DbOrTx,
+  owner: string,
+  provider: ProviderName,
+  verdict: { ok: boolean; detail?: string | undefined },
+): Promise<void> {
+  await db
+    .update(providerKeys)
+    .set({
+      lastTestedAt: new Date(),
+      lastTestOk: verdict.ok,
+      lastTestDetail: verdict.detail === undefined ? null : verdict.detail.slice(0, MAX_TEST_DETAIL),
+      // The request is answered, so the page stops saying "checking".
+      testRequestedAt: null,
+    })
+    .where(and(eq(providerKeys.owner, owner), eq(providerKeys.provider, provider)));
+}
+
 /** Forget a person's key at one provider. Returns whether there was one. */
 export async function deleteProviderKey(db: DbOrTx, owner: string, provider: ProviderName): Promise<boolean> {
   const removed = await db
@@ -161,6 +286,11 @@ interface ProviderKeyRow {
   createdAt: Date;
   rotatedAt: Date | null;
   lastUsedAt: Date | null;
+  enabled: boolean;
+  testRequestedAt: Date | null;
+  lastTestedAt: Date | null;
+  lastTestOk: boolean | null;
+  lastTestDetail: string | null;
 }
 
 /**
@@ -186,6 +316,11 @@ function toMetadata(row: ProviderKeyRow | undefined): ProviderKeyMetadata {
     createdAt: row.createdAt,
     rotatedAt: row.rotatedAt,
     lastUsedAt: row.lastUsedAt,
+    enabled: row.enabled,
+    testRequestedAt: row.testRequestedAt,
+    lastTestedAt: row.lastTestedAt,
+    lastTestOk: row.lastTestOk,
+    lastTestDetail: row.lastTestDetail,
   };
 }
 

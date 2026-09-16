@@ -1,12 +1,13 @@
 import { createLogger, withRequestId } from "@41prompts/logger";
-import { RUN_SUITE_QUEUE } from "@41prompts/db";
+import { RUN_SUITE_QUEUE, TEST_PROVIDER_KEY_QUEUE } from "@41prompts/db";
 import { PgBoss } from "pg-boss";
 import { db } from "./db";
 import { purgeDecompiles, purgeRunCounts } from "./jobs/purge-decompiles";
 import { countOverdueRunPayloads, purgeRunPayloads } from "./jobs/purge-run-payloads";
 import { purgeDeletedUsers } from "./jobs/purge-deleted-users";
-import { providerFor } from "./runs/provider";
+import { providerFor, deploymentProviders } from "./runs/provider";
 import { runSuite } from "./runs/suite";
+import { testStoredProviderKey } from "./runs/test-key";
 import { initSentry, Sentry } from "./sentry";
 import { misconfiguredBudgetEnv } from "./summarise/abuse-check";
 
@@ -123,6 +124,35 @@ export async function main(): Promise<void> {
     });
   });
 
+  /**
+   * EPIC-042's queue: test a provider key that is **already stored**.
+   *
+   * It is here and not in `apps/web` for one reason, and it is the whole of threat-model row
+   * `043a`: testing a stored key means opening a sealed envelope, and only this process may hold
+   * `KEY_ENCRYPTION_SECRET`. A key a person has just pasted needs no queue — the web has the
+   * plaintext in hand and verifies it before sealing it.
+   */
+  await boss.createQueue(TEST_PROVIDER_KEY_QUEUE);
+  await boss.work(TEST_PROVIDER_KEY_QUEUE, async ([job]) => {
+    const data = job?.data as { owner?: string; provider?: string } | undefined;
+    if (data?.owner === undefined || data.provider === undefined) {
+      logger.error({ job: job?.id }, `${TEST_PROVIDER_KEY_QUEUE}: job with no owner or provider`);
+      return;
+    }
+    await withRequestId(async (jobId) => {
+      try {
+        // **The verdict is logged, the key is not**, and `testStoredProviderKey` is the only thing
+        // in this file that has ever held one. It returns a boolean and a scrubbed sentence.
+        const ok = await testStoredProviderKey(db, data.owner!, data.provider!);
+        logger.info({ jobId, provider: data.provider, ok }, `${TEST_PROVIDER_KEY_QUEUE}: ${data.provider} ${ok ? "works" : "did not answer"}`);
+      } catch (error) {
+        logger.error({ jobId, provider: data.provider, err: error }, `${TEST_PROVIDER_KEY_QUEUE} failed`);
+        Sentry.captureException(error);
+        throw error;
+      }
+    });
+  });
+
   // **Which provider this process has, said out loud at startup.** A worker answering with the
   // deterministic fake must never be quiet about it, and a worker with no provider at all is the
   // state staging is in while EPIC-031a is deferred — the runs it refuses are correct, and this
@@ -133,6 +163,18 @@ export async function main(): Promise<void> {
     selected === undefined
       ? "no provider configured — runs will be refused with provider_not_configured"
       : `provider: ${selected.name}`
+  );
+
+  // **And which of the three this deployment can fall back to** (EPIC-042). The line above is about
+  // the process's default; this one is about what a person with no key of their own can reach. They
+  // are different questions now that a run picks its provider from the model, and a deployment with
+  // an Anthropic key and no Google key will refuse a Gemini run while reporting a provider above.
+  const ours = deploymentProviders();
+  logger.info(
+    { providers: ours },
+    ours.length === 0
+      ? "no deployment provider keys — only a person's own key can run anything"
+      : `deployment keys for: ${ours.join(", ")}`
   );
 
   // The readiness line. Everything above is registered, so a process waiting to drive this worker

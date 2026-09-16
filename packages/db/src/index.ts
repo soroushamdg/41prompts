@@ -12,4 +12,5 @@ export * from "./suites";
 export * from "./versions";
 export * from "./sealed-box";
 export * from "./provider-keys";
+export * from "./verify-key";
 export * from "./testing";

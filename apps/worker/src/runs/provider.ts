@@ -1,5 +1,8 @@
+import { openEnabledProviderKey, providerOfModel, type Db, type ProviderName } from "@41prompts/db";
 import { anthropicProvider } from "./anthropic";
+import { googleProvider } from "./google";
 import { ANSWERED, JUDGE_MODEL, REFUSED } from "./judge";
+import { openaiProvider } from "./openai";
 import type { Provider } from "./execute";
 
 /**
@@ -33,6 +36,29 @@ export interface SelectedProvider {
 }
 
 /**
+ * How `runSuite` asks for a provider, so a test can answer without a database (EPIC-042).
+ *
+ * It takes the **owner and the model**, not a provider name, because "whose key" and "which model"
+ * are the two facts that decide the answer and the provider name is derived from the second. A
+ * resolver taking a provider name would let a caller ask for an Anthropic adapter for a Gemini
+ * model, which is a sentence that should not be expressible.
+ */
+export type SelectProvider = (input: { owner: string; model: string }) => Promise<SelectedProvider | undefined>;
+
+/** The three environment variables a deployment's own keys live in, by provider. */
+const ENV_KEY_NAME: Readonly<Record<ProviderName, string>> = {
+  anthropic: "ANTHROPIC_API_KEY",
+  openai: "OPENAI_API_KEY",
+  google: "GOOGLE_API_KEY",
+};
+
+const ADAPTERS: Readonly<Record<ProviderName, (apiKey: string) => Provider>> = {
+  anthropic: anthropicProvider,
+  openai: openaiProvider,
+  google: googleProvider,
+};
+
+/**
  * The environment this function reads, named rather than taken as the whole of `process.env`.
  *
  * `NodeJS.ProcessEnv` was the obvious type and is the wrong one here twice over: it is an ambient
@@ -44,11 +70,16 @@ export interface ProviderEnv {
   readonly FAKE_JUDGE?: string | undefined;
   readonly DEPLOY_ENV?: string | undefined;
   readonly ANTHROPIC_API_KEY?: string | undefined;
+  readonly OPENAI_API_KEY?: string | undefined;
+  readonly GOOGLE_API_KEY?: string | undefined;
   /**
-   * The three names above are the whole of what this function reads, written out so that is
-   * legible. The index signature is what lets `process.env` be passed: without it TypeScript
+   * The names above are the whole of what this module reads from the environment, written out so
+   * that is legible. The index signature is what lets `process.env` be passed: without it TypeScript
    * rejects the call as a weak type with no properties in common, which is a true statement about
-   * an environment that has none of the three set and a useless one here.
+   * an environment that has none of them set and a useless one here.
+   *
+   * `KEY_ENCRYPTION_SECRET` is read too, by `openEnabledProviderKey`, and is deliberately **not**
+   * named here — nothing in this file should be in a position to hold it.
    */
   readonly [name: string]: string | undefined;
 }
@@ -152,4 +183,81 @@ export function withFakeJudge(provider: Provider, enabled: boolean): Provider {
       };
     },
   };
+}
+
+/**
+ * The provider for **one owner's run of one model** — the key they brought, or ours, or nothing.
+ *
+ * ## The order, and why each step is where it is
+ *
+ * 1. **The fake**, when `FAKE_PROVIDER=1` and this is not production. Unchanged from `providerFor`
+ *    and first for the same reason: a process answering with a fake must do so consistently, and a
+ *    fake that a stored key could override would make the e2e suite depend on the contents of a
+ *    database table.
+ * 2. **A model nobody prices does not resolve to a provider.** `providerOfModel` returning
+ *    `undefined` means the catalogue does not have it; `executeRun` would refuse it anyway with
+ *    `model_not_priced`, and returning a provider for it here would be building an adapter for a
+ *    call that is about to be refused.
+ * 3. **The owner's own key, if they have one and have not switched it off.** This is the whole
+ *    point of the epic. Opening it stamps `last_used_at`.
+ * 4. **The deployment's key**, from the environment. This is what every run used before today.
+ * 5. **`undefined`**, which becomes `provider_not_configured` — a sentence, not a crash.
+ *
+ * ## A failure to open is not a silent fall-through to our key
+ *
+ * If a person has a key and the master key cannot open it, `openEnabledProviderKey` throws and this
+ * lets it. **Quietly running their prompt on the platform's key instead would spend our money
+ * against their intent** and would hide a real incident — a master key that has gone missing — behind
+ * a run that worked. The job fails, which is what an incident should look like.
+ */
+export async function providerForRun(
+  db: Db,
+  input: { owner: string; model: string },
+  env: ProviderEnv = process.env,
+): Promise<SelectedProvider | undefined> {
+  const fake = fakeProviderFrom(env);
+  if (fake !== undefined) return fake;
+
+  const provider = providerOfModel(input.model);
+  if (provider === undefined) return undefined;
+
+  const brought = await openEnabledProviderKey(db, input.owner, provider, env);
+  if (brought !== undefined) {
+    return { provider: withFakeJudge(ADAPTERS[provider](brought), wantsFakeJudge(env)), name: `${provider} (your key)` };
+  }
+
+  const ours = env[ENV_KEY_NAME[provider]];
+  if (typeof ours === "string" && ours.length > 0) {
+    return { provider: withFakeJudge(ADAPTERS[provider](ours), wantsFakeJudge(env)), name: provider };
+  }
+
+  return undefined;
+}
+
+/**
+ * Which providers this owner could run against right now, in catalogue order.
+ *
+ * Used by nothing in the worker — `apps/web` has its own read, because it must not open anything to
+ * answer the question and does not need to. It is here so the two definitions of "available" cannot
+ * drift: available means **a stored, enabled key, or one of ours**.
+ */
+export function deploymentProviders(env: ProviderEnv = process.env): readonly ProviderName[] {
+  return (Object.keys(ENV_KEY_NAME) as ProviderName[]).filter((provider) => {
+    const value = env[ENV_KEY_NAME[provider]];
+    return typeof value === "string" && value.length > 0;
+  });
+}
+
+function wantsFakeJudge(env: ProviderEnv): boolean {
+  return env.FAKE_JUDGE === "1" && env.DEPLOY_ENV !== "production";
+}
+
+/** The fake, and the three guards on it, in one place so both selectors share them exactly. */
+function fakeProviderFrom(env: ProviderEnv): SelectedProvider | undefined {
+  if (env.FAKE_PROVIDER !== "1" || env.DEPLOY_ENV === "production") return undefined;
+  const fakeJudge = wantsFakeJudge(env);
+  const name = fakeJudge
+    ? "deterministic fake + fake judge (FAKE_PROVIDER=1, FAKE_JUDGE=1) — no model is called"
+    : "deterministic fake (FAKE_PROVIDER=1) — no model is called";
+  return { provider: withFakeJudge(echoLastLineProvider(), fakeJudge), name };
 }
