@@ -92,13 +92,23 @@ ${lines.length ? lines.map((l) => `- ${l}`).join("\n") : "_Nothing — productio
 
 ## To cut it
 
+**\`main\` itself has to be pushed first.** Since 2026-09-15 nothing is pushed by the agent
+(\`CLAUDE.md\`, "Nothing is pushed"), so \`origin/main\` is **behind** this checkout rather than
+ahead of it. \`git pull\` is not the first step and would do nothing; the tag has to point at a
+commit the remote actually has.
+
 \`\`\`
-git checkout main && git pull
+git push origin main                             # the commits above only exist locally
 git tag ${nextTag} && git push origin ${nextTag}
 \`\`\`
 
-That triggers \`build-images.yml\` (both images to GHCR) and Coolify's production deploy, and
-\`deploy.yml\` creates the GitHub Release. Read \`infra/RUNBOOK.md\` first if this is a large
+Pushing \`main\` runs \`ci.yml\` and \`compliance.yml\` once, and redeploys **staging**. Expect
+the first push after a long gap to go red: \`docs/PROCESS.md\`'s "Local green is not CI green"
+names the Linux and clean-checkout differences a local gate cannot see. Fix those before
+tagging — a tag is what moves **production**.
+
+The tag then triggers \`build-images.yml\` (both images to GHCR) and Coolify's production deploy,
+and \`deploy.yml\` creates the GitHub Release. Read \`infra/RUNBOOK.md\` first if this is a large
 one — the 2026-09-13 incident is why the loop stops every three epics instead of letting the
 gap grow.
 
