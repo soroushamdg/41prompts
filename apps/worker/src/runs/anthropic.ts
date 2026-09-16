@@ -41,12 +41,47 @@ export function anthropicProvider(apiKey: string): Provider {
       const inputTokens = result.usage?.inputTokens ?? estimateTokensFrom(prompt);
       const outputTokens = result.usage?.outputTokens ?? estimateTokensFrom(result.text);
 
+      /**
+       * **`response.body` came back undefined on the first real call** (EPIC-031a, 2026-09-16), so
+       * this took its fallback branch and rule 6's "raw provider payload" was the SDK's normalised
+       * view rather than Anthropic's JSON. The proof was in the stored row: token counts arrived as
+       * `inputTokens`/`outputTokens`, which is the SDK's camelCase shape, where Anthropic's own body
+       * uses `input_tokens`. Nothing about that is visible against a fake, which is the entire
+       * argument for having made the call.
+       *
+       * Two things change here, and neither pretends the body was obtained:
+       *
+       * 1. **`modelId` is captured.** It is what the provider says it actually used, and it is the
+       *    fact `CLAUDE.md` rule 7 is about — `claude-sonnet-5` is an alias, and until this is
+       *    stored nobody can say what a given verdict was produced by.
+       * 2. **The fallback labels itself.** A payload that is not the provider's body says so, so
+       *    that a reader six months from now does not mistake a normalised view for the wire
+       *    format, and so rule 6's gap is legible rather than silent.
+       *
+       * `result.response` is deprecated in `ai@7` in favour of `finalStep.response`; both are read,
+       * preferring whichever carries data, because the deprecated one is what populated here.
+       */
+      const response = result.response ?? result.finalStep?.response;
+      const body = response?.body;
+
       return {
         text: result.text,
         inputTokens,
         outputTokens,
-        // Rule 6: the raw provider payload, unedited. `response.body` is the provider's own JSON.
-        raw: result.response?.body ?? { text: result.text, usage: result.usage }
+        raw:
+          body !== undefined && body !== null
+            ? body
+            : {
+                provider: "anthropic",
+                // Deliberately not shaped like a provider body: this is our view, and it says so.
+                normalised: true,
+                note: "the SDK surfaced no raw response body; this is its normalised view plus response metadata",
+                text: result.text,
+                usage: result.usage,
+                model: response?.modelId,
+                responseId: response?.id,
+                timestamp: response?.timestamp
+              }
       };
     }
   };

@@ -29,6 +29,7 @@
  *   node scripts/verify-first-call.mjs --limit 10
  */
 
+import { execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 
 /**
@@ -40,7 +41,6 @@ import { createRequire } from "node:module";
  * root-level plain-Node script reaches a pnpm-hoisted dependency it does not itself declare.
  */
 const require = createRequire(import.meta.url);
-const { Client } = require(require.resolve("pg", { paths: ["packages/db", "apps/worker"] }));
 
 const LIMIT = Number(argOf("--limit") ?? 6);
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -70,18 +70,88 @@ function note(title, value) {
   console.log(`  ....  ${title}: ${value}`);
 }
 
-if (!DATABASE_URL) {
-  console.error("DATABASE_URL is required. scripts/drive-epic-032.mjs's header has a local one.");
-  process.exit(2);
+/**
+ * Two transports, because the row this checks can live in two places.
+ *
+ * **Local** (`DATABASE_URL`) talks to Postgres through `pg`.
+ *
+ * **`--staging`** goes over the box: `ssh 41p-box docker exec … psql`, with the SQL piped over
+ * **stdin** rather than interpolated into a command. `docs/PROCESS.md` documents that shape and the
+ * reason is not style: a statement passed through `psql -c` inside `sh -c '…'` inside `ssh '…'`
+ * loses its quotes, and `like 'claude-drive-%'` arrives as `like claude-drive-%`. That exact bug
+ * cost this epic a run.
+ *
+ * `--staging` uses `docker exec`, which `CLAUDE.md` server-access rule 3 puts behind one command,
+ * one yes — the standing exceptions cover the magic-link read and the drive cleanup, and this is
+ * neither. Every statement is still a `SELECT`, refused otherwise.
+ */
+const STAGING = process.argv.includes("--staging");
+
+/** One command on the box. Output returned, never echoed. */
+function onBox(command) {
+  return execFileSync("ssh", ["-o", "ConnectTimeout=20", "41p-box", command], {
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024,
+  }).trim();
 }
 
-const client = new Client({ connectionString: DATABASE_URL });
-await client.connect();
+/**
+ * Staging's postgres, by deriving the app uuid rather than hardcoding it.
+ *
+ * `docs/PROCESS.md`: "Look the container name up, never hardcode it." The random suffix changes on
+ * every redeploy; the stable part is the Coolify application uuid, read off whichever worker
+ * reports `DEPLOY_ENV=staging`.
+ */
+function stagingPostgres() {
+  const workers = onBox('docker ps --format "{{.Names}}" | grep -i worker').split("\n").filter(Boolean);
+  const staging = workers.find(
+    (name) =>
+      onBox(
+        `docker inspect ${name} --format '{{range .Config.Env}}{{println .}}{{end}}' | grep '^DEPLOY_ENV=' | head -1 | cut -d= -f2`
+      ) === "staging"
+  );
+  if (!staging) throw new Error(`no worker reports DEPLOY_ENV=staging; saw ${workers.join(", ")}`);
+  const appUuid = staging.split("-")[1];
+  const pg = onBox('docker ps --format "{{.Names}}" | grep -i postgres')
+    .split("\n")
+    .filter(Boolean)
+    .find((name) => name.includes(appUuid));
+  if (!pg) throw new Error("no postgres container carries staging's app uuid");
+  return pg;
+}
+
+const STAGING_PG = STAGING ? stagingPostgres() : null;
+
+let client = null;
+if (!STAGING) {
+  if (!DATABASE_URL) {
+    console.error("DATABASE_URL is required, or pass --staging. scripts/drive-epic-032.mjs's header has a local one.");
+    process.exit(2);
+  }
+  const { Client } = require(require.resolve("pg", { paths: ["packages/db", "apps/worker"] }));
+  client = new Client({ connectionString: DATABASE_URL });
+  await client.connect();
+}
 
 /** **Read-only by construction**: every statement this script runs goes through here, and it
  *  refuses anything that is not a `select`. It reads a production-shaped database. */
 async function rows(sql) {
   if (!/^\s*select\b/i.test(sql)) throw new Error("verify-first-call only runs SELECTs");
+  if (STAGING) {
+    // One JSON document out, so no value has to survive a column delimiter.
+    const wrapped = `select coalesce(json_agg(t), '[]')::text from (${sql.replace(/;\s*$/, "")}) t;`;
+    const out = execFileSync(
+      "ssh",
+      [
+        "-o",
+        "ConnectTimeout=20",
+        "41p-box",
+        `docker exec -i ${STAGING_PG} sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -tA'`,
+      ],
+      { encoding: "utf8", input: wrapped, maxBuffer: 64 * 1024 * 1024 }
+    ).trim();
+    return JSON.parse(out || "[]");
+  }
   const result = await client.query(sql);
   return result.rows;
 }
@@ -93,7 +163,7 @@ const runs = await rows(`
 
 if (runs.length === 0) {
   console.log("No runs at all. Trigger one through the Runs page first.");
-  await client.end();
+  if (client) await client.end();
   process.exit(2);
 }
 
@@ -121,7 +191,7 @@ console.log("");
 if (real.length === 0) {
   console.log(`All ${fake} of them were answered by a fake. **No real call has been made yet.**`);
   console.log("That is the state EPIC-031a exists to change; this script has nothing to verify.");
-  await client.end();
+  if (client) await client.end();
   process.exit(1);
 }
 
@@ -139,6 +209,19 @@ check(days === RETENTION_DAYS, "purge_after is stamped 365 days out", `${days} d
 // ── the key is nowhere ─────────────────────────────────────────────────────────────────────────
 const serialised = JSON.stringify(run.payload);
 check(!KEY_SHAPED.test(serialised), "no key-shaped string in the stored payload");
+
+// ── is this the provider's own body, or our normalised view of it? ─────────────────────────────
+//
+// Rule 6 asks for the raw provider payload. On 2026-09-16 the SDK surfaced no body and the adapter
+// fell back, so this reports which was stored rather than letting a `PASS` on "a payload exists"
+// imply the stronger thing.
+const normalised = run.payload?.raw?.normalised === true;
+note(
+  "rule 6",
+  normalised
+    ? "stored the SDK's NORMALISED view — the provider surfaced no raw body"
+    : "stored the provider's own response body"
+);
 
 // ── the resolved model, which is the fact rule 7 is about ──────────────────────────────────────
 const resolved = run.payload?.raw?.model;
@@ -214,5 +297,5 @@ if (judged.length > 0) {
 
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : `${failures} of ${checks} CHECKS FAILED`}`);
 console.log(`${real.length} real call(s), ${fake} fake, in the ${runs.length} most recent runs.\n`);
-await client.end();
+if (client) await client.end();
 process.exit(failures === 0 ? 0 : 1);
