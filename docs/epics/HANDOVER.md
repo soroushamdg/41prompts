@@ -5,7 +5,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-16**, for whoever picks this up — person or unattended run.
+Where things stand as of **2026-09-16, after EPIC-043**, for whoever picks this up — person or
+unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
 **Check it against git before trusting it.** The version of this page dated 2026-09-14 said
@@ -15,23 +16,38 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Next epic: EPIC-043** — the BYO-key threat model and breach runbook. It comes **before** EPIC-042,
-which is the row that actually stores a user's provider key, and the backlog orders it that way on
-purpose: the review line is "Soroush reads it", so it is paper he has to read rather than code.
+**Next epic: EPIC-042** — providers (OpenAI and Google adapters), BYO keys stored through EPIC-043's
+sealed box, the provider matrix, and the accessible heatmap pivot. It is the **last row in Stage 4**.
 
-**Neither of the two remaining Stage 4 rows has an epic file.** Write it the way EPIC-040 and
-EPIC-041 were written — `docs/PROCESS.md`'s amendment of 2026-09-15, Claude Code in the advisor's
-chair — unless the epic turns out to need a person, which EPIC-043 partly does.
+**It has no epic file.** Write it the way EPIC-040, EPIC-041 and EPIC-043 were written —
+`docs/PROCESS.md`'s amendment of 2026-09-15, Claude Code in the advisor's chair.
 
-**What EPIC-041 left open**, its report §11 rather than only here:
+**Read `docs/epics/reports/EPIC-043-report.md` §11 before scoping it.** Two `high` findings from the
+threat model are open and both are cheapest to decide while the number of stored keys is zero — which
+it is, exactly once:
 
-1. **Both sides of a compared pair are ink-inverted in the history list.** Truthful, and with two
-   versions the whole list is inverted. If only the right-hand side should be marked, it is one line.
-2. **A version that fails to record is still a silent gap** (inherited from EPIC-040 §11.1).
-   `recordVersionNow` never throws and nothing can currently detect the gap.
-3. **Nothing prunes.** The page shows the 50 most recent and says so; ~2 MiB per 50 versions.
-4. **Restore and A/B silently pin the open draft**, which changes what the next save does. Correct,
-   and the page does not say it will happen.
+1. **`043a`** — `web` and `worker` both hold the whole master key. The split is one environment
+   variable and **no code change**; it is not done because EPIC-042 decides where the "test this key"
+   call runs.
+2. **`043e`** — nothing stops a person pasting an organisation-wide, uncapped production key. The
+   only mitigation shipped is words on a page.
+
+**EPIC-042 should not store the first real key until both are decided** — not necessarily built.
+
+**What EPIC-043 left open**, its report §11 rather than only here:
+
+1. Five backlog rows are written and not added (`043a`–`043e`, threat model §8). This file's table is
+   Soroush's.
+2. The breach procedure has not been read by a lawyer. EPIC-071 holds that hour and is `deferred`.
+3. `infra/RUNBOOK.md` names `docs/incidents/confidentiality-register.md` as the Law 25 register's
+   home and it does not exist — deliberately, because an empty register's only row would be a
+   fiction.
+4. Nothing records that a provider key was **opened**. Row `043c`.
+5. Nobody has watched a redacted event arrive in Sentry: with no DSN locally, nothing is sent. The
+   scrubber is proved against real pino output and by unit tests over the hooks.
+
+**What EPIC-041 left open** is unchanged and is in its own report §11 — the ink-inverted diff pair,
+the silent version gap, no pruning, and restore/A-B pinning the open draft without saying so.
 
 ## Stages
 
@@ -40,7 +56,7 @@ chair — unless the epic turns out to need a person, which EPIC-043 partly does
 | Stage 0–2 | **done.** Every epic has a report and a session log. |
 | Stage 3 | **done.** 030 ✅ · 031 ✅ · 031a ✅ · 032 ✅ · 033 ✅ · 034 ✅ |
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
-| **Stage 4** | **in progress.** 040 ✅ · 041 ✅ · 043 next, then 042 |
+| **Stage 4** | **in progress.** 040 ✅ · 041 ✅ · 043 ✅ (awaiting Soroush's read) · **042 is the last row** |
 | Stage 5+ | untouched. GATE 5 sits after EPIC-055. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
@@ -61,9 +77,11 @@ the fallback labels itself `normalised: true`.
 
 | what | owner |
 |---|---|
-| **EPIC-031a's three unticked criteria** — the resolved model id, a cached repeat at zero, one real judge call. **All three are now drivable**: staging has the code since the 2026-09-16 push. About thirty minutes. | next session, or Soroush |
+| **EPIC-031a's three unticked criteria** — the resolved model id, a cached repeat at zero, one real judge call. Drivable **only against staging**, which is now 16 commits behind local `main`. About thirty minutes once he pushes. | next session, or Soroush |
+| **EPIC-043's Review line** — "Soroush reads it. Every high finding has an epic." The threat model is written and the five rows are drafted; reading it and pasting them is his. | Soroush |
+| **The two open `high` findings**, `043a` and `043e`. See "Start here". | Soroush |
 | **Does a normalised view satisfy rule 6?** The privacy page describes that retention to users. Obtaining the real body means a `fetch` wrapper. **Cheaper to answer before EPIC-042** puts two more providers behind the same adapter. | Soroush |
-| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is ten commits past that. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
+| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is sixteen commits past that. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
 | **`privacy@41prompts.ai` must exist.** Both legal pages name it. A Cloudflare routing rule, not code. | Soroush |
 | **EPIC-006b/c/d** — Stage 0 debt, all unscheduled: the ~25s deploy gap, the public Coolify hostname, staging and production sharing one R2 prefix. | unscheduled |
 | **EPIC-006, EPIC-090, EPIC-071** — `deferred`, each waiting on something only Soroush can do. | Soroush |
@@ -74,12 +92,16 @@ Measured 2026-09-16, against `/healthz` rather than remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `f5e3384` | EPIC-041 merged, 2026-09-16 |
-| `origin/main` / staging | `da42eee` | **10 behind** |
+| local `main` | EPIC-043's merge | EPIC-043 merged, 2026-09-16 |
+| `origin/main` / staging | `da42eee` | **16 behind** |
 | production | `af089c7` | 86+ behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040 or EPIC-041**, and no staging URL is evidence
-about either. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, EPIC-041 or EPIC-043**, and no staging URL is
+evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+
+**A release is due.** `docs/AUTONOMOUS.md` stops the loop after every third completed epic, and 040,
+041 and 043 are three. `RELEASE-DUE.md` was generated at `f3fa8a2` and is stale;
+`node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
 
@@ -94,7 +116,7 @@ about either. Check `/healthz`'s `commit` before quoting one.
 - **The browser drive is a Definition-of-Done item**, against the **built** app — `turbo run build`,
   then `next start`. Never `pnpm dev`.
 
-## Seven things recent epics cost, worth not relearning
+## Nine things recent epics cost, worth not relearning
 
 1. **A helper that normalises state hides the defect from every test that uses it.** `PROCESS.md`
    has the rule and the three instances.
@@ -113,6 +135,15 @@ about either. Check `/healthz`'s `commit` before quoting one.
 7. **When a symptom looks environmental, probe the thing.** Print the value, load the page, read the
    row. Three mysteries in three epics were each settled in under a minute that way after being
    reasoned about for much longer.
+8. **Every assertion about an absence needs a positive control.** EPIC-043 wrote three that could
+   never fail: `COPY ... TO STDOUT` returns `rows: []` through node-postgres, a `#hex` token never
+   equals a computed `rgb()`, and `"".startsWith("")` is true of everything. Each read as a green
+   tick over a claim nobody had tested. Before asserting a thing is missing, prove the search can
+   find it.
+9. **No named inner function inside a `page.evaluate`** in a `.mts` drive. `tsx` compiles with
+   esbuild's `keepNames`, which rewrites it to `__name(fn, "...")`; Playwright serialises the
+   function into the page, where `__name` does not exist, and it throws a `ReferenceError` that says
+   nothing about the cause.
 
 ## Gates and the local loop
 
