@@ -15,24 +15,23 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Next epic: EPIC-041** — the Versions page: history, restore, A/B on one input set.
+**Next epic: EPIC-043** — the BYO-key threat model and breach runbook. It comes **before** EPIC-042,
+which is the row that actually stores a user's provider key, and the backlog orders it that way on
+purpose: the review line is "Soroush reads it", so it is paper he has to read rather than code.
 
-**It has no epic file yet.** `docs/AUTONOMOUS.md` says an unwritten row stops the loop;
-`docs/PROCESS.md`'s amendment of 2026-09-15 — the newer of the two — says Claude Code writes the
-file itself when no advisor is relaying, and EPIC-040 was written that way on 2026-09-16. The row is
-fully scoped in `docs/roadmap.md` (Goal, Tasks, Tests, Review) and needs nobody but the implementer,
-so write the file and build it. The reasoning is in `docs/decisions/AUTONOMOUS.md`.
+**Neither of the two remaining Stage 4 rows has an epic file.** Write it the way EPIC-040 and
+EPIC-041 were written — `docs/PROCESS.md`'s amendment of 2026-09-15, Claude Code in the advisor's
+chair — unless the epic turns out to need a person, which EPIC-043 partly does.
 
-**What EPIC-041 inherits from EPIC-040**, all three in its report §11 rather than only here:
+**What EPIC-041 left open**, its report §11 rather than only here:
 
-1. **A version that fails to record is a silent gap.** `recordVersionNow` never throws and never
-   blocks a save. If an incomplete history should be visible to a person, the Versions page is where
-   that lives — it is a product decision and Soroush has not made it.
-2. **`suite_runs.version` is nullable and stays nullable.** Every run predating EPIC-040 has none,
-   and backfilling would invent a historical fact. The page will meet those runs and must say
-   something honest about them.
-3. **Nothing prunes.** 50 versions is ~2 MiB per prompt and `versionsForPrompt` defaults to 50.
-   Deleting somebody's history is a product decision, not an implementation detail.
+1. **Both sides of a compared pair are ink-inverted in the history list.** Truthful, and with two
+   versions the whole list is inverted. If only the right-hand side should be marked, it is one line.
+2. **A version that fails to record is still a silent gap** (inherited from EPIC-040 §11.1).
+   `recordVersionNow` never throws and nothing can currently detect the gap.
+3. **Nothing prunes.** The page shows the 50 most recent and says so; ~2 MiB per 50 versions.
+4. **Restore and A/B silently pin the open draft**, which changes what the next save does. Correct,
+   and the page does not say it will happen.
 
 ## Stages
 
@@ -41,7 +40,7 @@ so write the file and build it. The reasoning is in `docs/decisions/AUTONOMOUS.m
 | Stage 0–2 | **done.** Every epic has a report and a session log. |
 | Stage 3 | **done.** 030 ✅ · 031 ✅ · 031a ✅ · 032 ✅ · 033 ✅ · 034 ✅ |
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
-| **Stage 4** | **in progress.** 040 ✅ · 041 next · 043, 042 todo |
+| **Stage 4** | **in progress.** 040 ✅ · 041 ✅ · 043 next, then 042 |
 | Stage 5+ | untouched. GATE 5 sits after EPIC-055. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
@@ -64,7 +63,7 @@ the fallback labels itself `normalised: true`.
 |---|---|
 | **EPIC-031a's three unticked criteria** — the resolved model id, a cached repeat at zero, one real judge call. **All three are now drivable**: staging has the code since the 2026-09-16 push. About thirty minutes. | next session, or Soroush |
 | **Does a normalised view satisfy rule 6?** The privacy page describes that retention to users. Obtaining the real body means a `fetch` wrapper. **Cheaper to answer before EPIC-042** puts two more providers behind the same adapter. | Soroush |
-| **A release is due.** Production is at `af089c7`, 79+ commits behind; newest tag `v0.5.0`. `docs/epics/RELEASE-DUE.md` has the list, generated at `f3fa8a2` and now stale. | Soroush |
+| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is ten commits past that. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
 | **`privacy@41prompts.ai` must exist.** Both legal pages name it. A Cloudflare routing rule, not code. | Soroush |
 | **EPIC-006b/c/d** — Stage 0 debt, all unscheduled: the ~25s deploy gap, the public Coolify hostname, staging and production sharing one R2 prefix. | unscheduled |
 | **EPIC-006, EPIC-090, EPIC-071** — `deferred`, each waiting on something only Soroush can do. | Soroush |
@@ -75,9 +74,12 @@ Measured 2026-09-16, against `/healthz` rather than remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `1a63b9a` | EPIC-040 merged |
-| `origin/main` / staging | `da42eee` | 3 behind |
-| production | `af089c7` | 79+ behind; only a `v*` tag moves it |
+| local `main` | `f5e3384` | EPIC-041 merged, 2026-09-16 |
+| `origin/main` / staging | `da42eee` | **10 behind** |
+| production | `af089c7` | 86+ behind; only a `v*` tag moves it |
+
+**So staging is not serving anything from EPIC-040 or EPIC-041**, and no staging URL is evidence
+about either. Check `/healthz`'s `commit` before quoting one.
 
 ## Process, as it currently stands
 
@@ -92,7 +94,7 @@ Measured 2026-09-16, against `/healthz` rather than remembered:
 - **The browser drive is a Definition-of-Done item**, against the **built** app — `turbo run build`,
   then `next start`. Never `pnpm dev`.
 
-## Five things recent epics cost, worth not relearning
+## Seven things recent epics cost, worth not relearning
 
 1. **A helper that normalises state hides the defect from every test that uses it.** `PROCESS.md`
    has the rule and the three instances.
@@ -103,7 +105,12 @@ Measured 2026-09-16, against `/healthz` rather than remembered:
    single copy of them by design; do not write a fourth.
 4. **Read the existing spec before guessing a selector.** EPIC-040 lost several minutes inventing
    `.compiled-span` + "Edit" when `compiled-pane.spec.ts` had the real flow all along.
-5. **When a symptom looks environmental, probe the thing.** Print the value, load the page, read the
+5. **An `expected` blok emits no text**, so its words appear in no compiled prompt and no
+   `prompt_text`. Two EPIC-041 drive assertions looked for them there; chasing why found a real
+   defect underneath (report §3). Assert against the **snapshot** when the fact is about a blok set.
+6. **The canvas reorders optimistically**, so the card moving is not the move being saved. Wait on
+   the version the move records, never on the DOM order, before navigating away.
+7. **When a symptom looks environmental, probe the thing.** Print the value, load the page, read the
    row. Three mysteries in three epics were each settled in under a minute that way after being
    reasoned about for much longer.
 
