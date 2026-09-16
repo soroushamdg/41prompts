@@ -123,6 +123,45 @@ describe.skipIf(!HAS_TEST_DATABASE)("versions", () => {
   });
 
   /**
+   * ── The case rule 1 used to get wrong ────────────────────────────────────────────────────────
+   *
+   * Found by EPIC-041's browser drive, 2026-09-16, and it is the reason `snapshotHash` exists.
+   */
+  describe("a change only to the check set is still a change", () => {
+    it("records an added expected blok, whose compiled text is byte-identical", async () => {
+      // `compile/emits-text.ts`: an expected blok emits **no text**. So these two blok sets compile
+      // to the same string, and rule 1 compared compiled hashes — it called this "unchanged" and
+      // wrote nothing, leaving the version's snapshot without a blok the prompt had. EPIC-041
+      // restores from that snapshot and derives an A/B run's checks from it, so the omission is
+      // data loss in one feature and silent under-verification in the other.
+      const withText = [
+        { id: "vb1", kind: "context", text: "You route inbound support email." },
+      ];
+      const withCheck = [...withText, { id: "vb9", kind: "expected", text: "Respond with valid JSON." }];
+
+      const first = await record(db, promptId, withText);
+      expect(first.kind).toBe("minted");
+
+      // `frozen()` above joins every blok's kind and text, so the two compiled strings here are
+      // deliberately made **equal** to reproduce what the real compiler does.
+      const same = { snapshot: frozen(withCheck).snapshot, compiledText: frozen(withText).compiledText };
+      const second = await recordVersion(db, promptId, same);
+
+      expect(second.kind).not.toBe("unchanged");
+      const newest = await newestVersion(db, promptId);
+      expect(JSON.stringify(newest?.snapshot)).toContain("Respond with valid JSON.");
+    });
+
+    it("still writes nothing when the blok set really is identical", async () => {
+      // The other half: the fix must not turn every save back into a row. Same bloks, same snapshot,
+      // same digest — nothing written, which is rule 1 doing its job.
+      await record(db, promptId, BLOKS);
+      expect(await record(db, promptId, BLOKS)).toMatchObject({ kind: "unchanged" });
+      expect(await versionsForPrompt(db, promptId)).toHaveLength(1);
+    });
+  });
+
+  /**
    * ── Rule 2 ───────────────────────────────────────────────────────────────────────────────────
    *
    * Editing is one episode, not one row per keystroke pause.
@@ -312,6 +351,7 @@ describe.skipIf(!HAS_TEST_DATABASE)("versions", () => {
           "pinnedAt",
           "prompt",
           "snapshot",
+          "snapshotHash",
           "updatedAt",
         ].sort(),
       );

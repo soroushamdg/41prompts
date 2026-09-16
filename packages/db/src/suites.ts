@@ -46,6 +46,10 @@ export interface SuiteRunRow {
   judgeCachedCalls: number;
   judgeCostCents: number;
   passedNotifiedAt: Date | null;
+  /** The version this run was pinned to (EPIC-040), or null for a run that predates versions. */
+  version: string | null;
+  /** The A/B this run is half of (EPIC-041), or null. Its partner carries the same value. */
+  comparison: string | null;
   createdAt: Date;
   startedAt: Date | null;
   finishedAt: Date | null;
@@ -157,6 +161,8 @@ export async function createSuiteRun(
     totalInputs: number;
     /** The version this run was triggered against (EPIC-040). Absent for a prompt with no versions. */
     version?: string;
+    /** The A/B both runs of a comparison share (EPIC-041). Absent for an ordinary run. */
+    comparison?: string;
   },
   checks: readonly { checkId: string; blokId: string; blokKind: string; blokText: string; kind?: string }[],
 ): Promise<string> {
@@ -199,6 +205,25 @@ export async function suiteRunForOwner(db: Db, suiteRunId: string, owner: string
     .where(and(eq(suiteRuns.id, suiteRunId), eq(suiteRuns.owner, owner)))
     .limit(1);
   return row === undefined ? undefined : asSuiteRunRow(row);
+}
+
+/**
+ * Both runs of one A/B, oldest first, scoped by owner (EPIC-041).
+ *
+ * Two rows is what a comparison is: there is no `comparisons` table, because the relationship has no
+ * attributes beyond the rows that already carry the version, the input set and the results.
+ *
+ * **Owner-scoped like every other read here**, even though the caller reached this id through a run
+ * that already resolved: a `comparison` is written on a row, and a read that trusts a resolution done
+ * two calls ago is the shape of a leak nobody notices until it is one.
+ */
+export async function comparisonRuns(db: Db, comparison: string, owner: string): Promise<SuiteRunRow[]> {
+  const rows = await db
+    .select()
+    .from(suiteRuns)
+    .where(and(eq(suiteRuns.comparison, comparison), eq(suiteRuns.owner, owner)))
+    .orderBy(asc(suiteRuns.createdAt));
+  return rows.map(asSuiteRunRow);
 }
 
 /** One run by id alone — for the worker, which has no session and owns the job it was handed. */

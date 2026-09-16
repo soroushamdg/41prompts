@@ -1,5 +1,5 @@
 import { isOptional } from "@41prompts/core";
-import { resultCountsFor } from "@41prompts/db";
+import { resultCountsFor, versionsForPrompt } from "@41prompts/db";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDb } from "@/lib/db";
@@ -35,6 +35,10 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
   const counts = await resultCountsFor(getDb(), found.history.map((run) => run.id));
   const verdicts = Object.fromEntries(counts);
 
+  // The ordinals the history rows need to say `Ran Draft v3` — the run row carries the version id.
+  const versions = await versionsForPrompt(getDb(), promptId);
+  const versionsByN = Object.fromEntries(versions.map((version) => [version.id, version.n]));
+
   // Only on the example: onboarding, not a permanent feature (see `ActivationProgress`).
   const activation = activationStateFor(found.prompt.name, found.history, counts);
 
@@ -46,12 +50,17 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
         </p>
         <h1>Runs</h1>
         <p className="app-state">Draft</p>
+        <span className="app-pagehead-actions">
+          <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/versions`}>
+            Versions
+          </a>
+        </span>
       </header>
 
       {activation !== undefined && <ActivationProgress steps={activation} />}
 
       <InputSets promptId={promptId} sets={found.inputSets} declarations={declarations} />
-      <RunHistory promptId={promptId} runs={found.history} verdicts={verdicts} />
+      <RunHistory promptId={promptId} runs={found.history} verdicts={verdicts} versionsByN={versionsByN} />
     </main>
   );
 }

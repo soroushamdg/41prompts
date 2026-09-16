@@ -595,6 +595,21 @@ export const suiteRuns = pgTable(
      * `cascade`: deleting a version must not delete the evidence of what it scored.
      */
     version: text("version").references(() => promptVersions.id, { onDelete: "set null" }),
+    /**
+     * The A/B this run is one half of (EPIC-041), or null for an ordinary run.
+     *
+     * **A shared id rather than a table**, and a `cmp_` id rather than a self-reference. Two runs of
+     * one comparison carry the same value; that is the whole relationship, and it has no attributes
+     * of its own beyond the two rows that already hold the version, the input set and the results.
+     * A join table for a two-element set written once would be a second place for the same fact to
+     * live, which is the argument `prompt_versions` makes for having no `passRate` column.
+     *
+     * Not a self-reference (`otherRun`) because that fact would then be written twice, once on each
+     * row, and the two copies can disagree — which is exactly the failure a shared key cannot have.
+     *
+     * Nullable, and most runs are: an ordinary run is not being compared with anything.
+     */
+    comparison: text("comparison"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),
@@ -735,8 +750,24 @@ export const promptVersions = pgTable(
      * then, and history is the one thing a compiler change may not rewrite.
      */
     compiledText: text("compiled_text").notNull(),
-    /** `contentHash(compiledText)`. The dedupe key rule 1 above compares against. */
+    /**
+     * `contentHash(compiledText)` — the same digest `suite_runs.promptHash` records, so a version
+     * and the run pinned to it can be checked against each other.
+     *
+     * **It is not the dedupe key.** It was, until EPIC-041's drive found that an `expected` blok
+     * emits no text, so a changed check set produced an identical compiled hash and rule 1 wrote
+     * nothing at all. `snapshotHash` below is the dedupe key; `versions.ts`'s `snapshotHashOf` has
+     * the three things that went wrong.
+     */
     compiledHash: text("compiled_hash").notNull(),
+    /**
+     * The digest of the whole blok set: **the key rule 1 compares** (EPIC-041).
+     *
+     * Nullable only because rows written before it existed have none, and null never equals
+     * anything — so the first save after this landed rewrites or mints instead of deduping against
+     * a key nobody recorded. Wrong in the safe direction: an extra version, never a missing one.
+     */
+    snapshotHash: text("snapshot_hash"),
     /** A person's own words about this version. EPIC-041 writes it; nothing in EPIC-040 does. */
     note: text("note"),
     /** Null while this is the open draft; set the moment something points at it. Then immutable. */

@@ -53,6 +53,15 @@ const capturing = process.env.E2E_CAPTURE === "1";
 
 export default defineConfig({
   testDir: "./apps/web/e2e",
+  /**
+   * Remove `run-suite` jobs whose run no longer exists, before anything starts.
+   *
+   * Specs that trigger a run without a worker leave jobs on the queue, and the first spec that
+   * *does* start one drains them inside its own timeout — which is how an unrelated `activation`
+   * failure gets caused by the previous run. `apps/web/e2e/global-setup.ts` has the mechanism and
+   * the three observations behind it.
+   */
+  globalSetup: "./apps/web/e2e/global-setup.ts",
   testIgnore: capturing ? [] : ["**/capture/**"],
   /**
    * Playwright's own default, plus one that says what the run **skipped**.

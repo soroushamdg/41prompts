@@ -1,0 +1,1 @@
+ALTER TABLE "suite_runs" ADD COLUMN "comparison" text;

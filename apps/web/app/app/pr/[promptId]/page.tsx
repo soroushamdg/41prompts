@@ -38,10 +38,18 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
         <p className="app-state">Draft</p>
         {/* The mockup's page head carries a run action. It is a link rather than a button because
             it goes somewhere — the runs page, where an input set is chosen — and a button that
-            navigates is a link wearing a costume. */}
-        <a className="btn btn-pri btn-sm app-pagehead-action" href={`/app/pr/${promptId}/runs`}>
-          Run
-        </a>
+            navigates is a link wearing a costume.
+
+            Versions sits beside it for a blunter reason: a page nothing links to is a page nobody
+            finds, which is the whole content of the `/app` dead end (`PROCESS.md`). */}
+        <span className="app-pagehead-actions">
+          <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/versions`}>
+            Versions
+          </a>
+          <a className="btn btn-pri btn-sm app-pagehead-action" href={`/app/pr/${promptId}/runs`}>
+            Run
+          </a>
+        </span>
       </header>
 
       <Workbench

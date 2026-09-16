@@ -126,3 +126,13 @@ export function newSuiteResultId(): string {
 export function newPromptVersionId(): string {
   return newId("pv", 8);
 }
+
+/**
+ * One A/B: the id two `suite_runs` rows share so each can name the other (EPIC-041).
+ *
+ * Eight hex, like a run's. It is not a row anywhere — there is no `comparisons` table — but it is
+ * the key two rows are found by, and a collision would join one person's A/B to another's.
+ */
+export function newComparisonId(): string {
+  return newId("cmp", 8);
+}
