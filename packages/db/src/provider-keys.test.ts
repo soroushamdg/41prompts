@@ -3,13 +3,18 @@ import { eq, sql } from "drizzle-orm";
 import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "./testing";
 import { createDb, type Db } from "./client";
 import { providerKeys, users } from "./schema";
+import { isProviderName } from "./constants";
 import {
   deleteProviderKey,
-  isProviderName,
   masterKeyIdOfStoredRow,
+  openEnabledProviderKey,
   openStoredProviderKey,
   providerKeyMetadata,
   putProviderKey,
+  recordProviderKeyTest,
+  requestProviderKeyTest,
+  setProviderKeyEnabled,
+  MAX_TEST_DETAIL,
 } from "./provider-keys";
 import { generateMasterKey, masterKeyFromSecret } from "./sealed-box";
 
@@ -200,6 +205,87 @@ describe.skipIf(!HAS_TEST_DATABASE)("the provider key store", () => {
     const rotated = await putProviderKey(db, { owner: OWNER, provider: "anthropic", plaintext: KEY, env: both });
     expect(rotated.keyId).toBe(master.keyId);
     expect(masterKeyFromSecret(master.secret).keyId).toBe(master.keyId);
+  });
+
+  // ── EPIC-042: switching a key off, and recording what a test of it said ──────────────────────
+
+  describe("the switch", () => {
+    it("is on when a key is first stored, because storing one is meaning to use it", async () => {
+      const stored = await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      expect(stored.enabled).toBe(true);
+    });
+
+    it("stops `openEnabledProviderKey` without removing anything", async () => {
+      await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      await setProviderKeyEnabled(db, OWNER, "openai", false);
+
+      expect(await openEnabledProviderKey(db, OWNER, "openai", ENV)).toBeUndefined();
+      // The row is still there and the envelope still opens. "Off" is a product state, not a delete.
+      expect(await openStoredProviderKey(db, OWNER, "openai", ENV)).toBe(OPENAI_KEY);
+
+      await setProviderKeyEnabled(db, OWNER, "openai", true);
+      expect(await openEnabledProviderKey(db, OWNER, "openai", ENV)).toBe(OPENAI_KEY);
+    });
+
+    it("says nothing rather than throwing when there is no row to switch", async () => {
+      expect(await setProviderKeyEnabled(db, OWNER, "google", false)).toBeUndefined();
+    });
+  });
+
+  describe("the stamp and the verdict", () => {
+    it("stamps last_used_at on an open, and only on an open", async () => {
+      await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      expect((await providerKeyMetadata(db, OWNER))[0]!.lastUsedAt).toBeNull();
+
+      // `openStoredProviderKey` is the plain read and deliberately does not stamp.
+      await openStoredProviderKey(db, OWNER, "openai", ENV);
+      expect((await providerKeyMetadata(db, OWNER))[0]!.lastUsedAt).toBeNull();
+
+      await openEnabledProviderKey(db, OWNER, "openai", ENV);
+      expect((await providerKeyMetadata(db, OWNER))[0]!.lastUsedAt).not.toBeNull();
+    });
+
+    it("says it is checking, then says what happened", async () => {
+      await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      await requestProviderKeyTest(db, OWNER, "openai");
+      expect((await providerKeyMetadata(db, OWNER))[0]!.testRequestedAt).not.toBeNull();
+
+      await recordProviderKeyTest(db, OWNER, "openai", { ok: false, detail: "OpenAI did not recognise that key." });
+      const [row] = await providerKeyMetadata(db, OWNER);
+      expect(row!.lastTestOk).toBe(false);
+      expect(row!.lastTestDetail).toContain("OpenAI");
+      // The request is answered, so the page stops saying "checking".
+      expect(row!.testRequestedAt).toBeNull();
+    });
+
+    it("bounds the detail, because a provider may answer with an HTML error page", async () => {
+      await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      await recordProviderKeyTest(db, OWNER, "openai", { ok: false, detail: "x".repeat(5_000) });
+      expect((await providerKeyMetadata(db, OWNER))[0]!.lastTestDetail!.length).toBe(MAX_TEST_DETAIL);
+    });
+
+    /**
+     * A verdict is about a value. Replacing the value must not leave a sentence claiming the new
+     * one was checked — that is the kind of stale reassurance somebody acts on.
+     */
+    it("forgets the verdict and the stamp when the key is replaced", async () => {
+      await putProviderKey(db, { owner: OWNER, provider: "openai", plaintext: OPENAI_KEY, env: ENV });
+      await openEnabledProviderKey(db, OWNER, "openai", ENV);
+      await recordProviderKeyTest(db, OWNER, "openai", { ok: true });
+      await setProviderKeyEnabled(db, OWNER, "openai", false);
+
+      const replaced = await putProviderKey(db, {
+        owner: OWNER,
+        provider: "openai",
+        plaintext: "sk-proj-ADifferentKeyEntirely00000000",
+        env: ENV,
+      });
+      expect(replaced.lastTestOk).toBeNull();
+      expect(replaced.lastTestedAt).toBeNull();
+      expect(replaced.lastUsedAt).toBeNull();
+      expect(replaced.enabled).toBe(true);
+      expect(replaced.rotatedAt).not.toBeNull();
+    });
   });
 });
 

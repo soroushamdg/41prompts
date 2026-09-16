@@ -143,6 +143,21 @@ export default defineConfig({
        * reintroduce it.
        */
       BETTER_AUTH_URL: `http://localhost:${port}`,
+      /**
+       * **The web asks no provider whether a key is real** (EPIC-042).
+       *
+       * Saving a provider key verifies it against the provider before sealing it, which is a real
+       * outbound HTTPS call. A test suite must not make one: it would need a genuine credential,
+       * it would be slow, and it would fail when somebody else's service is having a bad morning.
+       * `apps/web/lib/providers/verify.ts` carries the same three guards the worker's fake has —
+       * off unless the flag is set, refused in production, and announced in the log on every use.
+       *
+       * **On `webServer.env` and not in `placeholders()`, deliberately.** `placeholders()` is also
+       * applied to this process and to `gates.mjs test`, and `FAKE_PROVIDER` reaching a worker
+       * started by a spec would decide, from the outside, whether that worker calls a model.
+       * `runs-refusal.spec.ts` sets it empty for exactly that reason; this keeps it from having to.
+       */
+      FAKE_PROVIDER: "1",
     },
   },
 });

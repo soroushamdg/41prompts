@@ -5,8 +5,11 @@ import {
   addBlok,
   addInputSet,
   createSuiteRun,
+  DEFAULT_MODEL_FOR,
   DEFAULT_RUN_MODEL,
   inputSetForPrompt,
+  newComparisonId,
+  PROVIDER_TITLES,
   promptForOwner,
   removeInputSet,
   RUN_PARAMS,
@@ -20,6 +23,7 @@ import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { asDeclarations } from "@/lib/variables/queries";
 import { pinVersionForRun } from "@/lib/versions/record";
+import { keyedProvidersFor } from "@/lib/providers/queries";
 import { compiledNow } from "./queries";
 import { enqueueRun } from "./queue";
 import { MAX_INPUTS, MAX_UPLOAD_BYTES } from "./limits";
@@ -200,6 +204,109 @@ export async function startRunAction(
 
   revalidatePath(`/app/pr/${promptId}/runs`);
   return { ok: true, id: suiteRunId };
+}
+
+/**
+ * Run the same prompt, on the same inputs, at **every provider this person has a key for**.
+ *
+ * ## One run per provider, sharing a `comparison`
+ *
+ * EPIC-041 added `suite_runs.comparison` for an A/B of two versions: a shared id with no attributes
+ * of its own, because two runs made together *are* the whole relationship. A set of runs made
+ * together at different providers is the same shape, so it is the same column — and the matrix is a
+ * read over it rather than a table nobody else would use.
+ *
+ * ## "Every provider" means every provider **they** have a key for
+ *
+ * Not every provider a run could reach. `providerForRun` also falls back to the deployment's own
+ * keys, and widening this to those would run somebody's prompt three times on our money because
+ * they pressed a button labelled with their own keys. `keyedProvidersFor` is the narrower question.
+ *
+ * ## The version is pinned once, and every run points at it
+ *
+ * The comparison is only meaningful if the thing being compared is one thing. Pinning per run would
+ * let an edit between the first and third INSERT give two of them different prompts, and the matrix
+ * would then be comparing providers *and* versions while claiming to compare providers.
+ */
+export async function startRunOnEveryProviderAction(
+  promptId: string,
+  inputSetId: string,
+): Promise<ActionResult & { ids?: string[] }> {
+  const found = await owned(promptId);
+  if (found === undefined) return REFUSED;
+
+  const { db, owner } = found;
+
+  const providers = await keyedProvidersFor(db, owner);
+  if (providers.length === 0) {
+    return {
+      ok: false,
+      message:
+        "You have not stored a key for any provider yet, so there is nothing to compare. Settings → Providers is where a key goes.",
+    };
+  }
+  if (providers.length === 1) {
+    return {
+      ok: false,
+      message: `You have a key at ${PROVIDER_TITLES[providers[0]!]} and nowhere else, so this would be one run. Use Run instead, or add a second key in Settings → Providers.`,
+    };
+  }
+
+  const set = await inputSetForPrompt(db, promptId, inputSetId);
+  if (set === undefined) return { ok: false, message: "That set of inputs is not available." };
+  if (set.rowCount === 0) return { ok: false, message: "That set has no inputs in it." };
+
+  const now = await compiledNow(db, promptId, owner);
+  if (now === undefined) return REFUSED;
+
+  const checks = now.compiled.checks.map((check) => ({
+    checkId: check.id,
+    blokId: check.blokId,
+    blokKind: now.kindById.get(check.blokId) ?? "expected",
+    blokText: now.textById.get(check.blokId) ?? check.text,
+    ...(check.kind === undefined ? {} : { kind: check.kind }),
+  }));
+
+  // Once, for the whole comparison. See the note above.
+  const version = await pinVersionForRun(db, promptId, owner);
+  const comparison = newComparisonId();
+  const ids: string[] = [];
+
+  for (const provider of providers) {
+    const suiteRunId = await createSuiteRun(
+      db,
+      {
+        owner,
+        prompt: promptId,
+        inputSet: inputSetId,
+        model: DEFAULT_MODEL_FOR[provider],
+        params: RUN_PARAMS as Record<string, unknown>,
+        promptHash: contentHash(now.compiled.text),
+        promptText: now.compiled.text,
+        totalInputs: set.rowCount,
+        ...(version === undefined ? {} : { version: version.id }),
+        comparison,
+      },
+      checks,
+    );
+    ids.push(suiteRunId);
+
+    try {
+      await enqueueRun(suiteRunId);
+    } catch {
+      // The other columns are still created and still enqueued: a matrix that says which provider
+      // failed to start is more use than no matrix.
+      await setSuiteRunState(db, suiteRunId, {
+        state: "refused",
+        refusalReason: "queue_unavailable",
+        finishedAt: new Date(),
+      });
+    }
+  }
+
+  await captureAccountEvent(owner, "run_started");
+  revalidatePath(`/app/pr/${promptId}/runs`);
+  return { ok: true, ids };
 }
 
 /**

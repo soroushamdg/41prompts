@@ -826,8 +826,43 @@ export const providerKeys = pgTable(
     createdAt: timestamp("created_at").notNull().defaultNow(),
     /** Set when the value is replaced, so "when did this key last change" is answerable. */
     rotatedAt: timestamp("rotated_at"),
-    /** Set by EPIC-042 when a run opens it. Null here, because nothing in EPIC-043 runs anything. */
+    /**
+     * Set by `openEnabledProviderKey` when a run opens it (EPIC-042).
+     *
+     * **Not an audit log.** Threat model finding 4 wants a row per open, naming who and when; that
+     * is row `043c`. One timestamp says an open happened at some point, which is enough for a
+     * settings page and not enough for an investigation.
+     */
     lastUsedAt: timestamp("last_used_at"),
+    /**
+     * Whether runs may reach for this key (EPIC-042).
+     *
+     * **A switch rather than a delete**, because the two are different intentions and only one of
+     * them is reversible. Somebody comparing "does my prompt still work on my own key or on the
+     * platform's" wants the key back afterwards; somebody who has had a key leak wants it gone. A
+     * product with only the second forces the first person to re-paste a credential, which is the
+     * one action this whole subsystem is trying to make rare.
+     */
+    enabled: boolean("enabled").notNull().default(true),
+    /**
+     * When a test of the stored key was asked for, cleared when one answers.
+     *
+     * It exists so the page can say **"checking"** instead of showing the previous verdict while a
+     * new one is in flight. A stale "works" during a re-check answers a question nobody asked.
+     */
+    testRequestedAt: timestamp("test_requested_at"),
+    lastTestedAt: timestamp("last_tested_at"),
+    /** Null means never tested — which is not the same as tested and failed. */
+    lastTestOk: boolean("last_test_ok"),
+    /**
+     * Why a test failed, in the provider's own terms, scrubbed and capped.
+     *
+     * **Scrubbed before it is written, not before it is shown.** Google's models endpoint accepts
+     * the key as a query parameter, so a detail naively built from a failing URL would carry the
+     * key into this column — `verifyProviderKey` uses the `x-goog-api-key` header for exactly that
+     * reason, and runs everything through `scrubString` anyway.
+     */
+    lastTestDetail: text("last_test_detail"),
   },
   (table) => [uniqueIndex("provider_keys_owner_provider_idx").on(table.owner, table.provider)],
 );

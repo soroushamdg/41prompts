@@ -4,7 +4,12 @@ import type { InputSetRow } from "@41prompts/db";
 import { Button } from "@41prompts/ui";
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
-import { removeInputSetAction, startRunAction, uploadInputSetAction } from "@/lib/runs/actions";
+import {
+  removeInputSetAction,
+  startRunAction,
+  startRunOnEveryProviderAction,
+  uploadInputSetAction,
+} from "@/lib/runs/actions";
 import { describeUploadLimits } from "@/lib/runs/limits";
 
 /**
@@ -27,10 +32,19 @@ export function InputSets({
   promptId,
   sets,
   declarations,
+  keyedProviders,
 }: {
   promptId: string;
   sets: InputSetRow[];
   declarations: { name: string; optional: boolean }[];
+  /**
+   * How many providers this person has an enabled key at (EPIC-042).
+   *
+   * The second trigger is offered only when the answer is two or more, because at one it would
+   * create a single run under a label promising a comparison. The action refuses the same case in
+   * words, so a person who gets here another way is still told why rather than being surprised.
+   */
+  keyedProviders: number;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -131,6 +145,25 @@ export function InputSets({
               >
                 Run {set.name}
               </Button>
+              {keyedProviders > 1 && (
+                <Button
+                  size="sm"
+                  disabled={pending}
+                  onClick={() =>
+                    run(async () => {
+                      const result = await startRunOnEveryProviderAction(promptId, set.id);
+                      // The first of the set, because the matrix is on every one of their pages and
+                      // landing on one of them is landing on the comparison.
+                      if (result.ok && result.ids?.[0] !== undefined) {
+                        router.push(`/app/pr/${promptId}/runs/${result.ids[0]}`);
+                      }
+                      return result;
+                    })
+                  }
+                >
+                  Run {set.name} on every provider
+                </Button>
+              )}
               <Button size="sm" disabled={pending} onClick={() => run(() => removeInputSetAction(promptId, set.id))}>
                 Remove {set.name}
               </Button>

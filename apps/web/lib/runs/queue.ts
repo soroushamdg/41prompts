@@ -1,4 +1,4 @@
-import { RUN_SUITE_QUEUE } from "@41prompts/db";
+import { RUN_SUITE_QUEUE, TEST_PROVIDER_KEY_QUEUE } from "@41prompts/db";
 import { PgBoss } from "pg-boss";
 
 /**
@@ -41,6 +41,7 @@ async function client(): Promise<PgBoss> {
       });
       await boss.start();
       await boss.createQueue(RUN_SUITE_QUEUE);
+      await boss.createQueue(TEST_PROVIDER_KEY_QUEUE);
       return boss;
     })().catch((error: unknown) => {
       // Do not cache a failed start, or every later send inherits one bad moment for ever.
@@ -54,4 +55,17 @@ async function client(): Promise<PgBoss> {
 export async function enqueueRun(suiteRunId: string): Promise<void> {
   const boss = await client();
   await boss.send(RUN_SUITE_QUEUE, { suiteRunId });
+}
+
+/**
+ * Ask the worker to test a provider key that is already stored (EPIC-042).
+ *
+ * **The job carries an owner and a provider, never a key.** The row it names is sealed; the worker
+ * opens it, because it is the process that may. A payload carrying a plaintext key would put a
+ * credential in `pg-boss`'s own table, which is a copy in a place nothing in the threat model
+ * accounts for.
+ */
+export async function enqueueKeyTest(owner: string, provider: string): Promise<void> {
+  const boss = await client();
+  await boss.send(TEST_PROVIDER_KEY_QUEUE, { owner, provider });
 }

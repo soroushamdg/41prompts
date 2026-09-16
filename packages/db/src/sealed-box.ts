@@ -157,7 +157,40 @@ export function masterKeyFromPublic(encodedPublic: string): MasterKey {
 export interface KeyEnv {
   readonly KEY_ENCRYPTION_SECRET?: string | undefined;
   readonly KEY_ENCRYPTION_PUBLIC_KEY?: string | undefined;
+  /** Read only to refuse the published placeholder below. Never to choose a key. */
+  readonly DEPLOY_ENV?: string | undefined;
   readonly [name: string]: string | undefined;
+}
+
+/**
+ * The **published, worthless** master key a local suite and a local drive use (EPIC-042).
+ *
+ * ## Why it is committed at all
+ *
+ * The e2e suite has to prove that `apps/web` can seal with only the public half while
+ * `apps/worker` opens with the secret — that is threat-model row `043a`, and a split cannot be
+ * demonstrated with two processes that generated their own keys. So both halves are here, one
+ * value, and `apps/web/e2e/env.mjs` hands the public half to the web and the secret to the worker.
+ *
+ * It sits beside `BETTER_AUTH_SECRET: "ci-secret-not-for-prod-…"` in that file, and carries the same
+ * promise: it protects nothing, because the only thing it has ever sealed is a key a test invented.
+ *
+ * ## And why that is not enough on its own
+ *
+ * A published key is safe exactly until somebody pastes it into a deployment. `masterKeysFrom`
+ * therefore **refuses it outright in production**, so the failure is a process that will not start
+ * rather than a database of provider keys anyone on the internet can open. Loud, immediate, and
+ * impossible to miss — the alternative is silent and permanent.
+ */
+export const PLACEHOLDER_MASTER_SECRET = "0NKZT1nc-uRye9d-XTkKNCOi4wZM1GRl8MT-63Dme3I";
+export const PLACEHOLDER_MASTER_PUBLIC = "41vjBsKfqrgm9bHOtiIRzRhghpgINayaq3tKn74Zh0w";
+
+function refusePlaceholderInProduction(value: string, env: KeyEnv, name: string): void {
+  if (env.DEPLOY_ENV !== "production") return;
+  if (value !== PLACEHOLDER_MASTER_SECRET && value !== PLACEHOLDER_MASTER_PUBLIC) return;
+  throw new SealedBoxError(
+    `${name} is the published placeholder from packages/db/src/sealed-box.ts, which is in a public repository and protects nothing. Generate a real one — infra/RUNBOOK.md, "Generating or rotating the provider-key master key".`,
+  );
 }
 
 export function masterKeysFrom(env: KeyEnv = process.env): readonly MasterKey[] {
@@ -166,10 +199,13 @@ export function masterKeysFrom(env: KeyEnv = process.env): readonly MasterKey[] 
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
   if (secrets.length > 0) {
+    for (const secret of secrets) refusePlaceholderInProduction(secret, env, "KEY_ENCRYPTION_SECRET");
     return secrets.map(masterKeyFromSecret);
   }
   const publicHalf = (env.KEY_ENCRYPTION_PUBLIC_KEY ?? "").trim();
-  return publicHalf.length > 0 ? [masterKeyFromPublic(publicHalf)] : [];
+  if (publicHalf.length === 0) return [];
+  refusePlaceholderInProduction(publicHalf, env, "KEY_ENCRYPTION_PUBLIC_KEY");
+  return [masterKeyFromPublic(publicHalf)];
 }
 
 /**

@@ -30,6 +30,23 @@
  * it may reach in; `apps/web` may not reach out. That asymmetry is what put the file at this path.
  */
 
+/**
+ * The published, worthless provider-key master key (EPIC-042).
+ *
+ * **Both halves of one key, deliberately, and they are handed out separately.** `apps/web` gets the
+ * public half and can seal; `apps/worker` gets the secret and can open. That is threat-model row
+ * `043a`'s split, and the e2e suite runs under it rather than under a shape nothing deploys — so
+ * the suite proves the web never needs the secret instead of taking it on trust.
+ *
+ * It is defined in `packages/db/src/sealed-box.ts` as `PLACEHOLDER_MASTER_SECRET` and
+ * `PLACEHOLDER_MASTER_PUBLIC`, and `masterKeysFrom` **refuses it outright when `DEPLOY_ENV` is
+ * production** — because a published key is safe exactly until somebody pastes it into a
+ * deployment. `apps/web/e2e-env.test.ts` pins these two copies together, the same way it pins this
+ * file to `ci.yml`.
+ */
+export const MASTER_KEY_SECRET = "0NKZT1nc-uRye9d-XTkKNCOi4wZM1GRl8MT-63Dme3I";
+export const MASTER_KEY_PUBLIC = "41vjBsKfqrgm9bHOtiIRzRhghpgINayaq3tKn74Zh0w";
+
 /** The placeholder configuration, for a suite driving `port`. */
 export function placeholders(port = 3000) {
   return {
@@ -43,6 +60,9 @@ export function placeholders(port = 3000) {
     GOOGLE_CLIENT_SECRET: "ci-google-client-secret",
     GITHUB_CLIENT_ID: "ci-github-client-id",
     GITHUB_CLIENT_SECRET: "ci-github-client-secret",
+    // The web seals and never opens (EPIC-042). The public half is all it needs, and giving it only
+    // that is what makes the suite a test of the split rather than a test beside it.
+    KEY_ENCRYPTION_PUBLIC_KEY: MASTER_KEY_PUBLIC,
   };
 }
 

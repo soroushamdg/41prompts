@@ -3,8 +3,12 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
+import { PLACEHOLDER_MASTER_PUBLIC, PLACEHOLDER_MASTER_SECRET, masterKeysFrom } from "@41prompts/db";
+
 import {
   applyWhenUnset,
+  MASTER_KEY_PUBLIC,
+  MASTER_KEY_SECRET,
   missingRequired,
   placeholders,
   refusalLines,
@@ -39,7 +43,8 @@ describe("the placeholders the e2e suite fills in", () => {
         "GOOGLE_CLIENT_ID",
         "GOOGLE_CLIENT_SECRET",
         "GITHUB_CLIENT_ID",
-        "GITHUB_CLIENT_SECRET"
+        "GITHUB_CLIENT_SECRET",
+        "KEY_ENCRYPTION_PUBLIC_KEY"
       ])
     );
   });
@@ -105,5 +110,43 @@ describe("what cannot be invented is refused by name", () => {
     expect(printed).toContain("DATABASE_URL is not set");
     expect(printed).toContain("verifications table");
     expect(printed).toContain("node scripts/gates.mjs ci");
+  });
+});
+
+/**
+ * The provider-key master key the suite uses, and the three copies of it (EPIC-042).
+ *
+ * `packages/db` defines it, `env.mjs` hands it out, and `ci.yml` writes it by hand because a
+ * workflow cannot import either. Three copies of one value is how a drift starts, so they are
+ * pinned here — the same argument, and the same guard, as the placeholders above.
+ */
+describe("the published provider-key master key", () => {
+  it("is the same value in env.mjs as in packages/db", () => {
+    expect(MASTER_KEY_SECRET).toBe(PLACEHOLDER_MASTER_SECRET);
+    expect(MASTER_KEY_PUBLIC).toBe(PLACEHOLDER_MASTER_PUBLIC);
+  });
+
+  it("gives the web only the half it needs, which is the whole point of the split", () => {
+    const filled = placeholders();
+    expect(filled.KEY_ENCRYPTION_PUBLIC_KEY).toBe(MASTER_KEY_PUBLIC);
+    expect(Object.values(filled)).not.toContain(MASTER_KEY_SECRET);
+  });
+
+  it("is two halves of one key, so the web can seal what the worker opens", () => {
+    const sealing = masterKeysFrom({ KEY_ENCRYPTION_PUBLIC_KEY: MASTER_KEY_PUBLIC });
+    const opening = masterKeysFrom({ KEY_ENCRYPTION_SECRET: MASTER_KEY_SECRET });
+    expect(sealing[0]!.keyId).toBe(opening[0]!.keyId);
+    // And the sealing side genuinely has no secret, which is what a split deployment means.
+    expect(sealing[0]!.secretKey).toBeUndefined();
+  });
+
+  /** A published key is safe exactly until somebody pastes it into a deployment. */
+  it("is refused outright in production, both halves", () => {
+    expect(() => masterKeysFrom({ KEY_ENCRYPTION_SECRET: MASTER_KEY_SECRET, DEPLOY_ENV: "production" })).toThrow(
+      /published placeholder/
+    );
+    expect(() =>
+      masterKeysFrom({ KEY_ENCRYPTION_PUBLIC_KEY: MASTER_KEY_PUBLIC, DEPLOY_ENV: "production" })
+    ).toThrow(/published placeholder/);
   });
 });

@@ -62,9 +62,19 @@ export async function runDetailFor(db: Db, suiteRunId: string, owner: string) {
     inputSetForPrompt(db, run.prompt, run.inputSet),
     // For "Ran Draft vN": the page needs the ordinal, and the run row carries only the id.
     versionsForPrompt(db, run.prompt),
-    // EPIC-041. The other half of an A/B, so each run can name the one it is being compared with.
+    // EPIC-041. The other runs of a comparison, so each can name what it is being compared with.
     run.comparison === null ? Promise.resolve([]) : comparisonRuns(db, run.comparison, owner),
   ]);
+
+  /**
+   * **The other runs, plural** (EPIC-042).
+   *
+   * EPIC-041 built `comparison` for an A/B of two versions, so this was `pair.find(...)` — one
+   * partner. A run at every provider is the same column holding three or more rows, and a `find`
+   * would have silently named one of them and dropped the rest. The A/B case is now the
+   * one-element case of this rather than a shape of its own.
+   */
+  const partners = pair.filter((other) => other.id !== suiteRunId);
 
   return {
     run,
@@ -72,10 +82,27 @@ export async function runDetailFor(db: Db, suiteRunId: string, owner: string) {
     results,
     inputSet,
     versionsByN: new Map(versions.map((version) => [version.id, version.n])),
-    // The partner, never this run itself. A comparison is two rows and one of them is the one asked
-    // about, so "the other" is the whole of what this is for.
-    partner: pair.find((other) => other.id !== suiteRunId),
+    partners,
   };
+}
+
+/**
+ * Every run of one comparison, with its checks and results, in the order they were created.
+ *
+ * Read only when there is a comparison with more than one run in it, because it is N queries and a
+ * run with no comparison is the ordinary case. Ordered by creation so the columns are stable
+ * between reloads — a matrix whose columns move is one nobody can compare across two screenshots.
+ */
+export async function comparisonDetailFor(db: Db, comparison: string, owner: string) {
+  const runs = await comparisonRuns(db, comparison, owner);
+  const sorted = [...runs].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  return Promise.all(
+    sorted.map(async (run) => ({
+      run,
+      checks: await suiteChecksFor(db, run.id),
+      results: await suiteResultsFor(db, run.id),
+    })),
+  );
 }
 
 /**

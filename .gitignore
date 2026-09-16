@@ -38,3 +38,9 @@ apps/web/next-env.d.ts
 docs/epics/.run-state.json
 docs/epics/.run-state.json.corrupt
 docs/epics/.run-outcome.json
+
+# The operator's own session prompt, kept in the repository root for convenience.
+# Not a repository artifact: it is one person's instructions to one agent, it carries no SPDX
+# header (so `reuse lint` would fail on it), and an epic commit running `git add -A` will otherwise
+# sweep it up — which is exactly what happened once, on 2026-09-16.
+PROMPT_CONTINUE

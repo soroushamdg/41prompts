@@ -1,23 +1,30 @@
 import { KpiStrip } from "@41prompts/ui";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { claimPassedNotification, users } from "@41prompts/db";
+import { catalogueModel, claimPassedNotification, PROVIDER_TITLES, users } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import { captureAccountEvent } from "@/lib/analytics/visitor";
 import { secondsFromSignup } from "@/lib/activation/progress";
 import { getDb } from "@/lib/db";
-import { outputFor, runDetailFor } from "@/lib/runs/queries";
+import { comparisonDetailFor, outputFor, runDetailFor } from "@/lib/runs/queries";
 import {
   checkRows,
   costSentence,
   formatCents,
+  heatmapRows,
   judgeCostSentence,
+  matrixRows,
+  runIsInFlight,
   stateWords,
   summaryOf,
   verification,
+  type MatrixColumn,
 } from "@/lib/runs/view";
 import { runVersionWords } from "@/lib/versions/view";
 import { requireSession } from "@/lib/session";
+import { Heatmap } from "./heatmap";
+import { ProviderMatrix } from "./matrix";
+import { Pivots } from "./pivots";
 import { Progress } from "./progress";
 import { Results } from "./results";
 
@@ -46,7 +53,7 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
   const detail = await runDetailFor(getDb(), runId, session.user.id);
   if (detail === undefined || detail.run.prompt !== promptId) notFound();
 
-  const { run, checks, results, inputSet, versionsByN, partner } = detail;
+  const { run, checks, results, inputSet, versionsByN, partners } = detail;
   const rows = checkRows(checks, results);
   const summary = summaryOf(results);
   const said = verification(summary, results);
@@ -63,6 +70,44 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
 
   const graded = summary.passed + summary.failed;
   const inFlight = run.state === "queued" || run.state === "running";
+
+  /**
+   * ── EPIC-042 ────────────────────────────────────────────────────────────────────────────────
+   *
+   * The matrix, when this run is one of several made together. Two rows is an A/B of two versions
+   * (EPIC-041) and reads perfectly well as a two-column matrix, so there is no threshold beyond
+   * "there is more than one run in this comparison".
+   *
+   * The extra reads happen only in that case: an ordinary run pays for none of them.
+   */
+  const comparison =
+    run.comparison === null || partners.length === 0
+      ? undefined
+      : await comparisonDetailFor(getDb(), run.comparison, session.user.id);
+
+  const matrixColumns: MatrixColumn[] = (comparison ?? []).map((entry) => {
+    const model = catalogueModel(entry.run.model);
+    return {
+      runId: entry.run.id,
+      modelName: model?.name ?? entry.run.model,
+      providerTitle: model === undefined ? "Model" : PROVIDER_TITLES[model.provider],
+      isCurrent: entry.run.id === run.id,
+    };
+  });
+
+  /**
+   * **The other columns are still arriving, and the page has to wait for them too.**
+   *
+   * Runs in a comparison are queued together and the worker takes them one at a time, so the first
+   * one to finish renders a matrix whose other columns are empty. Polling only on *this* run's state
+   * would leave that matrix frozen until somebody reloaded — and an empty column that never fills is
+   * indistinguishable from a provider that failed everything.
+   */
+  const partnersInFlight = (comparison ?? []).filter(
+    (entry) => entry.run.id !== run.id && runIsInFlight(entry.run.state),
+  ).length;
+
+  const heat = heatmapRows(checks, results, inputSet?.rowCount ?? run.totalInputs);
 
   /**
    * `run_passed` (EPIC-034), at the moment the person could first see that they had passed.
@@ -100,21 +145,37 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
             A run made before EPIC-040 has no version at all, and `suite_runs.version` stays nullable
             because backfilling one would invent a historical fact. So this says so in words rather
             than rendering a blank or, worse, a version it guessed at. */}
+        {/* **Every partner, not the first one** (EPIC-042). A comparison used to be two runs of
+            two versions; it is now also N runs at N providers, and naming one of three would drop
+            the rest silently. Each is named by what distinguishes it — the model, where the
+            comparison is across providers; the version, where it is across versions. */}
         <p className="runs-when" data-testid="run-version">
           {runVersionWords(run, versionsByN)}
-          {partner !== undefined && (
+          {partners.length > 0 && (
             <>
               {" · compared with "}
-              <a href={`/app/pr/${promptId}/runs/${partner.id}`}>
-                {runVersionWords(partner, versionsByN).replace("Ran ", "")}
-              </a>
+              {partners.map((other, index) => (
+                <span key={other.id}>
+                  {index > 0 && ", "}
+                  <a href={`/app/pr/${promptId}/runs/${other.id}`}>
+                    {other.model === run.model
+                      ? runVersionWords(other, versionsByN).replace("Ran ", "")
+                      : (catalogueModel(other.model)?.name ?? other.model)}
+                  </a>
+                </span>
+              ))}
             </>
           )}
         </p>
       </header>
 
       {/* Asks the server for this page again while the run is in flight. No reload, no navigation. */}
-      <Progress inFlight={inFlight} completed={run.completedInputs} total={run.totalInputs} />
+      <Progress
+        inFlight={inFlight}
+        completed={run.completedInputs}
+        total={run.totalInputs}
+        partnersInFlight={partnersInFlight}
+      />
 
       <KpiStrip
         items={[
@@ -132,7 +193,14 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
           },
           { key: "calls", title: "Calls", value: `${run.calls}`, sub: `${run.cachedCalls} from cache` },
           { key: "cost", title: "Cost", value: formatCents(run.costCents), sub: "spend on this run" },
-          { key: "model", title: "Model", value: run.model, sub: "pinned" },
+          {
+            key: "model",
+            title: "Model",
+            // The name a person reads, with the raw pinned id beneath it — rule 7 is about the id
+            // being answerable, not about it being the thing on screen.
+            value: catalogueModel(run.model)?.name ?? run.model,
+            sub: run.model,
+          },
         ]}
       />
 
@@ -158,12 +226,36 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
         )}
       </section>
 
-      <Results
-        promptId={promptId}
-        rows={rows}
-        columns={inputSet?.columns ?? []}
-        inputRows={inputSet?.rows ?? []}
-        outputs={Object.fromEntries([...outputs].map(([id, text]) => [id, text ?? null]))}
+      {comparison !== undefined && (
+        <ProviderMatrix
+          promptId={promptId}
+          columns={matrixColumns}
+          rows={matrixRows(
+            comparison.map((entry) => ({
+              runId: entry.run.id,
+              model: entry.run.model,
+              state: entry.run.state,
+              checks: entry.checks,
+              results: entry.results,
+            })),
+          )}
+        />
+      )}
+
+      {/* The two pivots (EPIC-042). "By check" is what this page has always shown and stays the
+          default: the question a person arrives with is "which of my rules is failing", and "by
+          input" is the one they reach for once they know. */}
+      <Pivots
+        byCheck={
+          <Results
+            promptId={promptId}
+            rows={rows}
+            columns={inputSet?.columns ?? []}
+            inputRows={inputSet?.rows ?? []}
+            outputs={Object.fromEntries([...outputs].map(([id, text]) => [id, text ?? null]))}
+          />
+        }
+        byInput={<Heatmap rows={heat} columns={inputSet?.columns ?? []} inputRows={inputSet?.rows ?? []} />}
       />
     </main>
   );
