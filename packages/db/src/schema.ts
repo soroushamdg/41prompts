@@ -7,6 +7,7 @@ import {
   newInputSetId,
   newProjectId,
   newPromptId,
+  newPromptVersionId,
   newSuiteCheckId,
   newSuiteResultId,
   newSuiteRunId,
@@ -582,6 +583,18 @@ export const suiteRuns = pgTable(
      * two web containers — produce exactly one event between them.
      */
     passedNotifiedAt: timestamp("passed_notified_at"),
+    /**
+     * The version this run was triggered against (EPIC-040), pinned at that moment.
+     *
+     * **Nullable, and it stays nullable.** Every run that existed before EPIC-040 has no version and
+     * must keep working; backfilling one would be inventing a historical fact. A null here means
+     * "this run predates versions", which is true, rather than "the version is missing".
+     *
+     * **The reference goes this way round** — run → version, not version → run — because one version
+     * can be run many times and the run is the thing that arrives later. `set null` rather than
+     * `cascade`: deleting a version must not delete the evidence of what it scored.
+     */
+    version: text("version").references(() => promptVersions.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),
@@ -658,5 +671,83 @@ export const suiteResults = pgTable(
   (table) => [
     index("suite_results_run_idx").on(table.suiteRun),
     index("suite_results_check_idx").on(table.suiteCheck),
+  ],
+);
+
+/**
+ * One frozen version of a prompt's blok set (EPIC-040).
+ *
+ * ## `n` is the N in ADR-003's "Draft vN"
+ *
+ * One vocabulary across the editor, Versions and Deploy, and it is an **ordinal a person counts in**
+ * rather than a timestamp or an id they would have to recognise. Unique per prompt, 1-based.
+ *
+ * ## When a row appears, and why it is not one per save
+ *
+ * `docs/roadmap.md` says "version on save", and `blok-editor.tsx` autosaves on a debounce — so
+ * taken literally, one typed paragraph is a dozen versions and EPIC-041 inherits a history nobody
+ * can read. Three rules instead, in `versions.ts`:
+ *
+ * 1. a save whose `compiledHash` matches the newest row writes **nothing**;
+ * 2. otherwise, while the newest row is unpinned it is **rewritten in place** — same `n`;
+ * 3. **a run pins it**, and the next save after that mints `n + 1`.
+ *
+ * The result is one version per episode of editing between runs, with no timer, no background job
+ * and no arbitrary quiet window to defend. Confirmed by Soroush, 2026-09-16.
+ *
+ * ## `pinnedAt` is the whole of the immutability rule
+ *
+ * Null means this is the open draft and further edits land on it. Non-null means something has
+ * pointed at it — today a run, later a publish — and it may never change again. There is no
+ * separate state column, because a second field could disagree with this one and then something
+ * would have to decide which is true.
+ *
+ * ## There is no `passRate` column
+ *
+ * It is a join over `suite_runs` and `suite_results` (`passRateForVersions`). A column would be a
+ * second copy of a number that already exists and can go stale against it. EPIC-034's precedent is
+ * explicit: the one thing it stored rather than derived, `passedNotifiedAt`, was stored because it
+ * was a fact with **no other home**. A pass rate has one.
+ */
+export const promptVersions = pgTable(
+  "prompt_versions",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newPromptVersionId()),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    /** 1-based, unique per prompt. The N a person reads as "Draft vN". */
+    n: integer("n").notNull(),
+    /**
+     * Core's `VersionSnapshot["bloks"]`: the blok set, verbatim, in compile order, with each blok's
+     * hand edit.
+     *
+     * **A frozen document, not a relation.** No foreign keys reach into it, deliberately: a blok
+     * deleted tomorrow must not alter what this row says happened yesterday, and a cascade would do
+     * exactly that.
+     */
+    snapshot: jsonb("snapshot").notNull(),
+    /**
+     * The compiled prompt, frozen — the same exception `suite_runs.promptText` makes and for the
+     * same reason. Recompiling later would render it under whatever `COMPILER_VERSION` is current
+     * then, and history is the one thing a compiler change may not rewrite.
+     */
+    compiledText: text("compiled_text").notNull(),
+    /** `contentHash(compiledText)`. The dedupe key rule 1 above compares against. */
+    compiledHash: text("compiled_hash").notNull(),
+    /** A person's own words about this version. EPIC-041 writes it; nothing in EPIC-040 does. */
+    note: text("note"),
+    /** Null while this is the open draft; set the moment something points at it. Then immutable. */
+    pinnedAt: timestamp("pinned_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // The guard on rule 3's insert. Two tabs racing to mint `n + 1` is a real sequence, and letting
+    // the database settle it is EPIC-034's `claimPassedNotification` precedent rather than a
+    // read-then-write that is correct only most of the time.
+    uniqueIndex("prompt_versions_prompt_n_idx").on(table.prompt, table.n),
   ],
 );

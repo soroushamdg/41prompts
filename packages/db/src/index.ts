@@ -9,4 +9,5 @@ export * from "./rank";
 export * from "./canvas";
 export * from "./variables";
 export * from "./suites";
+export * from "./versions";
 export * from "./testing";

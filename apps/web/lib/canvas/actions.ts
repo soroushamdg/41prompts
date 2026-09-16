@@ -18,6 +18,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
+import { recordVersionNow } from "@/lib/versions/record";
 import { slugify } from "./slug";
 
 /**
@@ -102,6 +103,23 @@ export async function addBlokAction(
   if (!(BLOK_KINDS as readonly string[]).includes(kind)) return { ok: false, message: "Unknown blok kind." };
 
   const row = await addBlok(owned.db, promptId, { kind, text }, between);
+  /**
+   * ── EPIC-040 ──────────────────────────────────────────────────────────────────────────────────
+   *
+   * **Every mutating action in this file ends with this line**, and it is written out eight times
+   * rather than hidden in a wrapper. A wrapper would be invisible at the call site, and the failure
+   * it invites is an action added later that quietly is not versioned — a gap in a history that
+   * nothing reports, because there is nothing to report.
+   *
+   * It decides nothing: the three rules that say whether a row is written, rewritten or skipped are
+   * `recordVersion`'s, in `packages/db`. Most calls here write nothing at all, because most saves
+   * are a debounce tick on text that has not changed.
+   *
+   * **It never throws and it is never awaited for its result.** The person's text is already saved
+   * by the time this runs; a version that fails to record is a missing history entry, while a save
+   * that reports failure is somebody retyping a paragraph. Only one of those is recoverable.
+   */
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true, id: row.id };
 }
@@ -139,6 +157,7 @@ export async function saveBlokTextAction(promptId: string, blokId: string, text:
   if (owned === undefined) return REFUSED;
 
   await setBlokText(owned.db, promptId, blokId, text);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -153,6 +172,7 @@ export async function moveBlokAction(
   if (owned === undefined) return REFUSED;
 
   await moveBlok(owned.db, promptId, blokId, between);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -163,6 +183,7 @@ export async function deleteBlokAction(promptId: string, blokId: string): Promis
   if (owned === undefined) return REFUSED;
 
   await deleteBlok(owned.db, promptId, blokId);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -173,6 +194,7 @@ export async function undoDeleteBlokAction(promptId: string, blokId: string): Pr
   if (owned === undefined) return REFUSED;
 
   await restoreBlok(owned.db, promptId, blokId);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -198,6 +220,7 @@ export async function editSpanAction(
   if (owned === undefined) return REFUSED;
 
   await setHandEdit(owned.db, promptId, blokId, { text, fromHash });
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -216,6 +239,7 @@ export async function updateFromBlokAction(promptId: string, blokId: string): Pr
   if (owned === undefined) return REFUSED;
 
   await setHandEdit(owned.db, promptId, blokId, null);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }
@@ -236,6 +260,7 @@ export async function undoUpdateFromBlokAction(
   if (owned === undefined) return REFUSED;
 
   await setHandEdit(owned.db, promptId, blokId, previous);
+  await recordVersionNow(owned.db, promptId, owned.owner);
   revalidatePath(`/app/pr/${promptId}`);
   return { ok: true };
 }

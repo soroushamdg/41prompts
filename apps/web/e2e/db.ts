@@ -1,4 +1,4 @@
-import { bloks, createDb, sessions, users, verifications } from "@41prompts/db";
+import { bloks, createDb, promptVersions, sessions, suiteRuns, users, verifications } from "@41prompts/db";
 import { desc, eq, sql } from "drizzle-orm";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -50,4 +50,36 @@ export async function blokTimestampsFor(promptId: string): Promise<{ id: string;
     .from(bloks)
     .where(eq(bloks.prompt, promptId))
     .orderBy(bloks.createdAt);
+}
+
+/**
+ * A prompt's versions, newest first, read straight from the table (EPIC-040).
+ *
+ * **A database fact, asserted as one.** Whether a save minted a version, rewrote one or wrote
+ * nothing is not visible anywhere on screen in this epic — EPIC-041 is the Versions page — so
+ * asserting it through the UI would be asserting something else. These rows are the criterion.
+ */
+export async function versionsFor(
+  promptId: string,
+): Promise<{ id: string; n: number; compiledText: string; pinnedAt: Date | null }[]> {
+  return db
+    .select({
+      id: promptVersions.id,
+      n: promptVersions.n,
+      compiledText: promptVersions.compiledText,
+      pinnedAt: promptVersions.pinnedAt,
+    })
+    .from(promptVersions)
+    .where(eq(promptVersions.prompt, promptId))
+    .orderBy(desc(promptVersions.n));
+}
+
+/** The version a run was pinned to, or null for a run that predates EPIC-040. */
+export async function versionOfRun(suiteRunId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ version: suiteRuns.version })
+    .from(suiteRuns)
+    .where(eq(suiteRuns.id, suiteRunId))
+    .limit(1);
+  return row?.version ?? null;
 }

@@ -115,3 +115,14 @@ export function newSuiteCheckId(): string {
 export function newSuiteResultId(): string {
   return newId("sres", 8);
 }
+
+/**
+ * One frozen version of a prompt's blok set (EPIC-040).
+ *
+ * Eight hex, like a run's and for the same reason: a version is what EPIC-041 compares, EPIC-050
+ * freezes into an artifact and EPIC-051 publishes, so a collision would publish one person's prompt
+ * under another person's pointer. Six is for things nobody addresses across an account boundary.
+ */
+export function newPromptVersionId(): string {
+  return newId("pv", 8);
+}

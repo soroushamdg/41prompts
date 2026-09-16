@@ -119,6 +119,21 @@ export type { ColumnProblem, CsvParse, CsvProblem } from "./inputs/types.js";
 export { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./artifact/schema.js";
 export type { Artifact, ArtifactVariable } from "./artifact/schema.js";
 
+// Versions and semantic diff (EPIC-040). A version is a frozen blok set; `diff()` answers what a
+// person changed between two of them. Bloks are matched by **id**, which is what lets a move be
+// reported as a move rather than as a removal plus an addition — `version/diff.ts` has the argument.
+export { diff } from "./version/diff.js";
+export { snapshot } from "./version/snapshot.js";
+export type { HandEdit } from "./version/snapshot.js";
+export type {
+  BlokAppearance,
+  BlokChange,
+  BlokMove,
+  SnapshotBlok,
+  VersionDiff,
+  VersionSnapshot,
+} from "./version/types.js";
+
 // The summariser seam (EPIC-011b). A summary is metadata *about* a blok's text and never a
 // replacement for it (`CLAUDE.md` rule 3): the compiler emits the verbatim source span, never this.
 export { heuristicSummariser, HEURISTIC_SUMMARISER_VERSION, SUMMARY_MAX_LENGTH } from "./summarise/heuristic.js";
