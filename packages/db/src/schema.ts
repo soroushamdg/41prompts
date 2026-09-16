@@ -750,8 +750,24 @@ export const promptVersions = pgTable(
      * then, and history is the one thing a compiler change may not rewrite.
      */
     compiledText: text("compiled_text").notNull(),
-    /** `contentHash(compiledText)`. The dedupe key rule 1 above compares against. */
+    /**
+     * `contentHash(compiledText)` — the same digest `suite_runs.promptHash` records, so a version
+     * and the run pinned to it can be checked against each other.
+     *
+     * **It is not the dedupe key.** It was, until EPIC-041's drive found that an `expected` blok
+     * emits no text, so a changed check set produced an identical compiled hash and rule 1 wrote
+     * nothing at all. `snapshotHash` below is the dedupe key; `versions.ts`'s `snapshotHashOf` has
+     * the three things that went wrong.
+     */
     compiledHash: text("compiled_hash").notNull(),
+    /**
+     * The digest of the whole blok set: **the key rule 1 compares** (EPIC-041).
+     *
+     * Nullable only because rows written before it existed have none, and null never equals
+     * anything — so the first save after this landed rewrites or mints instead of deduping against
+     * a key nobody recorded. Wrong in the safe direction: an extra version, never a missing one.
+     */
+    snapshotHash: text("snapshot_hash"),
     /** A person's own words about this version. EPIC-041 writes it; nothing in EPIC-040 does. */
     note: text("note"),
     /** Null while this is the open draft; set the moment something points at it. Then immutable. */

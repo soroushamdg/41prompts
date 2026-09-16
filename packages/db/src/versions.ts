@@ -42,12 +42,52 @@ export function compiledHashOf(compiledText: string): string {
   return createHash("sha256").update(compiledText).digest("hex");
 }
 
+/**
+ * The digest of the **whole blok set** — the dedupe key, and not the same question as
+ * `compiledHashOf`.
+ *
+ * ## Why the compiled hash cannot be the dedupe key (found by EPIC-041's drive, 2026-09-16)
+ *
+ * **An `expected` blok emits no text.** `compile/emits-text.ts` is explicit about it: an expected
+ * blok becomes a *check*, and a prompt whose bloks are all expected compiles to `""` plus a list of
+ * checks. So adding, editing or removing an expected blok leaves `compiledText` byte-identical —
+ * and rule 1, comparing compiled hashes, concluded "nothing changed" and **wrote nothing at all.**
+ *
+ * Three consequences, and the first two are the reason this is a defect rather than a curiosity:
+ *
+ * 1. **Restore would silently drop the blok.** EPIC-041 writes a version's snapshot back onto the
+ *    canvas; a snapshot that never recorded the expected blok restores a prompt without it. That is
+ *    data loss through the one feature whose review line is "restore never deletes".
+ * 2. **A/B would run with fewer checks than the prompt has.** EPIC-041 derives a comparison run's
+ *    checks from the version's snapshot, so a run of that version verifies less than the person
+ *    thinks and the surface says "nothing was verified" for a prompt full of rules.
+ * 3. **`suite_runs.version` would name a version that does not describe what ran.** The run's own
+ *    frozen `suite_checks` are right — they come from the live compile — but the version beside
+ *    them would not be a faithful snapshot of the blok set that produced them.
+ *
+ * ## Why this digest and not a deep compare of the stored JSONB
+ *
+ * `jsonb` does not preserve key order, so `JSON.stringify(stored) === JSON.stringify(incoming)` is
+ * not a reliable equality even for two identical snapshots. This never compares a round-tripped
+ * value: the digest is computed on the way **in**, from the object `snapshot()` just built, whose
+ * field order is fixed by that function, and afterwards only two hex strings are compared.
+ *
+ * **Null on a row written before this column existed**, and null never equals anything — so the
+ * first save after this lands rewrites or mints rather than deduping against a key nobody recorded.
+ * Wrong in the safe direction: an extra version, never a missing one.
+ */
+export function snapshotHashOf(snapshot: unknown): string {
+  return createHash("sha256").update(JSON.stringify(snapshot) ?? "null").digest("hex");
+}
+
 export interface VersionRow {
   id: string;
   n: number;
   snapshot: unknown;
   compiledText: string;
   compiledHash: string;
+  /** The dedupe key. Null on a row written before EPIC-041 added it — see `snapshotHashOf`. */
+  snapshotHash: string | null;
   note: string | null;
   pinnedAt: Date | null;
   createdAt: Date;
@@ -83,11 +123,16 @@ export async function recordVersion(
   version: { snapshot: unknown; compiledText: string },
 ): Promise<RecordOutcome> {
   const compiledHash = compiledHashOf(version.compiledText);
+  const snapshotHash = snapshotHashOf(version.snapshot);
   const newest = await newestVersion(db, promptId);
 
   // Rule 1. Free, exact, and it removes most of the volume on its own: a debounce tick that lands on
   // text identical to the last one is the common case, not the exception.
-  if (newest !== undefined && newest.compiledHash === compiledHash) {
+  //
+  // **Compared on the snapshot, not on the compiled text.** An expected blok emits no text, so a
+  // compiled-text comparison calls a changed check set "unchanged" and writes nothing —
+  // `snapshotHashOf` has the three things that then go wrong. Found by EPIC-041's drive.
+  if (newest !== undefined && newest.snapshotHash !== null && newest.snapshotHash === snapshotHash) {
     return { kind: "unchanged", id: newest.id, n: newest.n };
   }
 
@@ -99,6 +144,7 @@ export async function recordVersion(
         snapshot: version.snapshot,
         compiledText: version.compiledText,
         compiledHash,
+        snapshotHash,
         updatedAt: new Date(),
       })
       .where(and(eq(promptVersions.id, newest.id), isNull(promptVersions.pinnedAt)));
@@ -106,7 +152,7 @@ export async function recordVersion(
   }
 
   // Rule 3.
-  return mint(db, promptId, { ...version, compiledHash }, (newest?.n ?? 0) + 1);
+  return mint(db, promptId, { ...version, compiledHash, snapshotHash }, (newest?.n ?? 0) + 1);
 }
 
 /**
@@ -125,7 +171,7 @@ export async function recordVersion(
 async function mint(
   db: Db,
   promptId: string,
-  version: { snapshot: unknown; compiledText: string; compiledHash: string },
+  version: { snapshot: unknown; compiledText: string; compiledHash: string; snapshotHash: string },
   n: number,
   retry = true,
 ): Promise<RecordOutcome> {
@@ -138,6 +184,7 @@ async function mint(
         snapshot: version.snapshot,
         compiledText: version.compiledText,
         compiledHash: version.compiledHash,
+        snapshotHash: version.snapshotHash,
       })
       .returning({ id: promptVersions.id, n: promptVersions.n });
     if (row === undefined) throw new Error("insert returned no row");
@@ -145,7 +192,7 @@ async function mint(
   } catch (error) {
     if (!retry) throw error;
     const newest = await newestVersion(db, promptId);
-    if (newest !== undefined && newest.compiledHash === version.compiledHash) {
+    if (newest !== undefined && newest.snapshotHash !== null && newest.snapshotHash === version.snapshotHash) {
       return { kind: "unchanged", id: newest.id, n: newest.n };
     }
     if (newest !== undefined && newest.pinnedAt === null) {
@@ -155,6 +202,7 @@ async function mint(
           snapshot: version.snapshot,
           compiledText: version.compiledText,
           compiledHash: version.compiledHash,
+          snapshotHash: version.snapshotHash,
           updatedAt: new Date(),
         })
         .where(and(eq(promptVersions.id, newest.id), isNull(promptVersions.pinnedAt)));

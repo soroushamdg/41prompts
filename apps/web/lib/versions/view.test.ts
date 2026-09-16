@@ -83,6 +83,7 @@ describe("versionRows", () => {
     snapshot: [],
     compiledText: "",
     compiledHash: "",
+    snapshotHash: null,
     note,
     pinnedAt,
     createdAt: new Date("2026-09-16T10:00:00Z"),

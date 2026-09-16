@@ -93,7 +93,10 @@
   gap: var(--spacing-s2);
   border: 1.5px solid var(--color-line);
   background: var(--color-surface);
-  padding: var(--spacing-s3);
+  /* No padding at all: the inverted state below fills the card's own box, and a padded parent leaves
+     a pale strip around a black block — visibly so under the open draft, which has no button under
+     it. The row and the button each carry their own instead. */
+  padding: 0;
 }
 
 .versions-item {
@@ -104,6 +107,12 @@
   text-decoration: none;
   min-height: 44px;
   align-content: start;
+  padding: var(--spacing-s3);
+}
+/* The card's bottom inset rides on the button rather than on the card, so a card with no button —
+   the open draft, which cannot be restored to itself — has no empty strip under it. */
+.versions-list > li > button {
+  margin: 0 var(--spacing-s3) var(--spacing-s3);
 }
 .versions-item:hover .versions-item-name,
 .versions-item:focus-visible .versions-item-name {
@@ -140,12 +149,11 @@
 }
 
 /* The version being compared. **Ink inversion, not a colour** — the design system's own highlight,
-   and the only one that cannot be confused with a verdict. */
+   and the only one that cannot be confused with a verdict. Both sides of the pair get it, because
+   both are what the diff panel is showing and the heading beside it says so in words. */
 .versions-item[aria-current="true"] {
   background: var(--color-ink);
   color: var(--color-surface);
-  margin: calc(var(--spacing-s2) * -1);
-  padding: var(--spacing-s2);
 }
 .versions-item[aria-current="true"] .versions-item-when,
 .versions-item[aria-current="true"] .versions-item-note,
