@@ -155,6 +155,8 @@ export async function createSuiteRun(
     promptHash: string;
     promptText: string;
     totalInputs: number;
+    /** The version this run was triggered against (EPIC-040). Absent for a prompt with no versions. */
+    version?: string;
   },
   checks: readonly { checkId: string; blokId: string; blokKind: string; blokText: string; kind?: string }[],
 ): Promise<string> {

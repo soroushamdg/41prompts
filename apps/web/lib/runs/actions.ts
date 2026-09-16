@@ -19,6 +19,7 @@ import { captureAccountEvent } from "@/lib/analytics/visitor";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { asDeclarations } from "@/lib/variables/queries";
+import { pinVersionForRun } from "@/lib/versions/record";
 import { compiledNow } from "./queries";
 import { enqueueRun } from "./queue";
 import { MAX_INPUTS, MAX_UPLOAD_BYTES } from "./limits";
@@ -145,6 +146,22 @@ export async function startRunAction(
     ...(check.kind === undefined ? {} : { kind: check.kind }),
   }));
 
+  /**
+   * ── EPIC-040 ──────────────────────────────────────────────────────────────────────────────────
+   *
+   * **Pin the version before the run is created**, so the run's `version` is set at insert rather
+   * than by a follow-up update that could not happen. A pinned version can never change again,
+   * which is what makes "what exactly did this run score?" answerable next year.
+   *
+   * It records first, because a prompt last edited before this epic shipped has no versions at all
+   * and would otherwise give its runs a null `version` for ever. The first run after EPIC-040 is
+   * therefore the moment such a prompt acquires its history rather than a hole in it.
+   *
+   * **A failure here does not refuse the run.** `suite_runs.version` is nullable for exactly this
+   * reason: bookkeeping about a run must never be the thing that stops one.
+   */
+  const version = await pinVersionForRun(db, promptId, owner);
+
   const suiteRunId = await createSuiteRun(
     db,
     {
@@ -156,6 +173,7 @@ export async function startRunAction(
       promptHash: contentHash(now.compiled.text),
       promptText: now.compiled.text,
       totalInputs: set.rowCount,
+      ...(version === undefined ? {} : { version: version.id }),
     },
     checks
   );
