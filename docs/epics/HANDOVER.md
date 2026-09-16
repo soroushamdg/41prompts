@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-16, after EPIC-043**, for whoever picks this up — person or
+Where things stand as of **2026-09-16, after EPIC-042**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,35 +16,46 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Next epic: EPIC-042** — providers (OpenAI and Google adapters), BYO keys stored through EPIC-043's
-sealed box, the provider matrix, and the accessible heatmap pivot. It is the **last row in Stage 4**.
+**Stage 4 is complete.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ — every row has a report.
 
-**It has no epic file.** Write it the way EPIC-040, EPIC-041 and EPIC-043 were written —
-`docs/PROCESS.md`'s amendment of 2026-09-15, Claude Code in the advisor's chair.
+**The next thing is not an epic. A release is overdue.** `docs/AUTONOMOUS.md` stops the loop after
+every third completed epic; four have merged since the last one, `origin/main` is **21 commits**
+behind local `main`, and `docs/epics/RELEASE-DUE.md` was generated at `f3fa8a2` and is stale.
+`node scripts/release-due.mjs` regenerates it. **Cutting it starts with a push only Soroush can
+make.**
 
-**Read `docs/epics/reports/EPIC-043-report.md` §11 before scoping it.** Two `high` findings from the
-threat model are open and both are cheapest to decide while the number of stored keys is zero — which
-it is, exactly once:
+**After that, Stage 5a begins at EPIC-050** — `core`: build artifact v1 (frozen), the Live/Draft
+pointer, and the variable-contract compatibility check. It has no epic file; write one the way
+EPIC-040 to 043 were written. **ADR-005 is part of its scope** (the artifact format declared public
+and versioned), and `CLAUDE.md`'s never-touch list says
+`packages/core/src/artifact/schema.ts` is frozen **once Stage 5a begins** — so read that line before
+touching it, not after.
 
-1. **`043a`** — `web` and `worker` both hold the whole master key. The split is one environment
-   variable and **no code change**; it is not done because EPIC-042 decides where the "test this key"
-   call runs.
-2. **`043e`** — nothing stops a person pasting an organisation-wide, uncapped production key. The
-   only mitigation shipped is words on a page.
+**Read `docs/epics/reports/EPIC-042-report.md` §11 before scoping anything.** Three of its six open
+questions change what somebody builds:
 
-**EPIC-042 should not store the first real key until both are decided** — not necessarily built.
+1. **The judge silently spends Anthropic money on a run against OpenAI.** `JUDGE_MODEL` is a pinned
+   Anthropic model, so it is resolved separately from the run's model — on the owner's own Anthropic
+   key when they have one. Honest and rendered honestly; possibly not what Soroush wants.
+2. **Rule 6's normalised payload is still unanswered**, and now applies to three adapters instead of
+   one. EPIC-031a flagged it as his call and said it was cheapest to answer before EPIC-042. It was
+   not answered. The handling is in **one** place now (`ai-sdk.ts`), so the fix is still one change.
+3. **The platform-key fallback and the providers' reselling clauses.**
+   `docs/providers/usage-policies.md` has it in full. EPIC-070 (Stripe, BYO-key unlock) is the row
+   that has to answer it.
 
-**What EPIC-043 left open**, its report §11 rather than only here:
+**What EPIC-042 left open**, its report §6 rather than only here:
 
-1. Five backlog rows are written and not added (`043a`–`043e`, threat model §8). This file's table is
-   Soroush's.
-2. The breach procedure has not been read by a lawyer. EPIC-071 holds that hour and is `deferred`.
-3. `infra/RUNBOOK.md` names `docs/incidents/confidentiality-register.md` as the Law 25 register's
-   home and it does not exist — deliberately, because an empty register's only row would be a
-   fiction.
-4. Nothing records that a provider key was **opened**. Row `043c`.
-5. Nobody has watched a redacted event arrive in Sentry: with no DSN locally, nothing is sent. The
-   scrubber is proved against real pino output and by unit tests over the hooks.
+1. **No provider has ever been called by this epic.** The e2e and the drive both run
+   `FAKE_PROVIDER=1`, so nothing proves OpenAI or Google accept a key or answer a prompt. The first
+   real call to either will find things a fake cannot — that is the EPIC-031a shape.
+2. **`MAX_INPUTS` is 100 and the roadmap's heatmap line says 500.** Driven at 6; 100 has not been
+   looked at and 500 is unreachable through the product.
+3. **Five threat-model rows are still written and not added** (`docs/security/byo-key-threat-model.md`
+   §8). `043a` is now decided *and* built except for setting one environment variable on each
+   container; `043e` is decided with the finding that decides it.
+4. **Nobody has reviewed the sealed-box crypto.** Unchanged from EPIC-043 and repeated because this
+   is the epic that starts storing keys in earnest.
 
 **What EPIC-041 left open** is unchanged and is in its own report §11 — the ink-inverted diff pair,
 the silent version gap, no pruning, and restore/A-B pinning the open draft without saying so.
@@ -56,8 +67,8 @@ the silent version gap, no pruning, and restore/A-B pinning the open draft witho
 | Stage 0–2 | **done.** Every epic has a report and a session log. |
 | Stage 3 | **done.** 030 ✅ · 031 ✅ · 031a ✅ · 032 ✅ · 033 ✅ · 034 ✅ |
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
-| **Stage 4** | **in progress.** 040 ✅ · 041 ✅ · 043 ✅ (awaiting Soroush's read) · **042 is the last row** |
-| Stage 5+ | untouched. GATE 5 sits after EPIC-055. |
+| **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
+| Stage 5a | **next**, starting at EPIC-050. GATE 5 sits after EPIC-055. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -81,7 +92,8 @@ the fallback labels itself `normalised: true`.
 | **EPIC-043's Review line** — "Soroush reads it. Every high finding has an epic." The threat model is written and the five rows are drafted; reading it and pasting them is his. | Soroush |
 | **The two open `high` findings**, `043a` and `043e`. See "Start here". | Soroush |
 | **Does a normalised view satisfy rule 6?** The privacy page describes that retention to users. Obtaining the real body means a `fetch` wrapper. **Cheaper to answer before EPIC-042** puts two more providers behind the same adapter. | Soroush |
-| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is sixteen commits past that. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
+| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is **21 commits** past that, and four epics have merged since the last release rather than the three `docs/AUTONOMOUS.md` allows. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
+| **EPIC-042's six open questions**, report §11. The three above change what gets built next. | Soroush |
 | **`privacy@41prompts.ai` must exist.** Both legal pages name it. A Cloudflare routing rule, not code. | Soroush |
 | **EPIC-006b/c/d** — Stage 0 debt, all unscheduled: the ~25s deploy gap, the public Coolify hostname, staging and production sharing one R2 prefix. | unscheduled |
 | **EPIC-006, EPIC-090, EPIC-071** — `deferred`, each waiting on something only Soroush can do. | Soroush |
@@ -92,15 +104,15 @@ Measured 2026-09-16, against `/healthz` rather than remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | EPIC-043's merge | EPIC-043 merged, 2026-09-16 |
-| `origin/main` / staging | `da42eee` | **16 behind** |
+| local `main` | EPIC-042's merge | EPIC-042 merged, 2026-09-16 |
+| `origin/main` / staging | `da42eee` | **21 behind** |
 | production | `af089c7` | 86+ behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, EPIC-041 or EPIC-043**, and no staging URL is
+**So staging is not serving anything from EPIC-040, 041, 042 or 043**, and no staging URL is
 evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **A release is due.** `docs/AUTONOMOUS.md` stops the loop after every third completed epic, and 040,
-041 and 043 are three. `RELEASE-DUE.md` was generated at `f3fa8a2` and is stale;
+041, 042 and 043 are four. `RELEASE-DUE.md` was generated at `f3fa8a2` and is stale;
 `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
@@ -144,6 +156,19 @@ evidence about any of them. Check `/healthz`'s `commit` before quoting one.
    esbuild's `keepNames`, which rewrites it to `__name(fn, "...")`; Playwright serialises the
    function into the page, where `__name` does not exist, and it throws a `ReferenceError` that says
    nothing about the cause.
+
+10. **A test asserts about state it created itself.** Playwright shuts its worker down after a
+    timeout and starts a fresh one, which **re-runs `beforeAll`** — so a `Date.now()` identity is a
+    different user afterwards, and every test that depended on an earlier test's data fails for
+    reasons of its own. EPIC-042: one real defect, four failures, three of them fiction. Settled by
+    polling the table from outside the run, not by reading the code (lesson 7, again).
+11. **A test seam in one of two callers is not a seam.** EPIC-042's fake key-verifier lived in
+    `apps/web`; the worker's job called the real verifier directly, and the suite made a genuine
+    HTTPS call to `api.anthropic.com`. It is now one function in `packages/db` that nothing bypasses.
+12. **A fixture where everything passes cannot show a difference.** EPIC-042's drive rendered six
+    green heatmap cells, so the shape difference `CLAUDE.md` rule 10 turns on had never been looked
+    at by anybody. Put a failure in the fixture, then read the **computed** style rather than a
+    class name.
 
 ## Gates and the local loop
 
