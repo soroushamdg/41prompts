@@ -446,12 +446,14 @@ describe("matrixRows", () => {
       {
         runId: "srun_a",
         model: "claude-sonnet-5",
+        state: "done",
         checks: [check({ id: "schk_a", checkId: "chk_1" })],
         results: [result({ suiteCheck: "schk_a", outcome: "pass" })],
       },
       {
         runId: "srun_b",
         model: "gpt-4.1-mini-2025-04-14",
+        state: "done",
         checks: [check({ id: "schk_b", checkId: "chk_1" })],
         results: [result({ id: "r2", suiteCheck: "schk_b", outcome: "fail" })],
       },
@@ -464,10 +466,11 @@ describe("matrixRows", () => {
 
   it("keeps a row for a check only one run has, rather than dropping the difference", () => {
     const rows = matrixRows([
-      { runId: "srun_a", model: "m", checks: [check({ id: "schk_a", checkId: "chk_1" })], results: [] },
+      { runId: "srun_a", model: "m", state: "done", checks: [check({ id: "schk_a", checkId: "chk_1" })], results: [] },
       {
         runId: "srun_b",
         model: "m",
+        state: "done",
         checks: [check({ id: "schk_b", checkId: "chk_1" }), check({ id: "schk_c", checkId: "chk_2" })],
         results: [],
       },
@@ -483,6 +486,7 @@ describe("matrixRows", () => {
       {
         runId: "srun_a",
         model: "m",
+        state: "done",
         checks: [check()],
         results: [result({ outcome: "not_graded", reason: "needs_judgement" })],
       },
@@ -493,9 +497,44 @@ describe("matrixRows", () => {
 
   it("keeps the columns in the order it was given, so they match the header", () => {
     const rows = matrixRows([
-      { runId: "srun_a", model: "m", checks: [check()], results: [result()] },
-      { runId: "srun_b", model: "m", checks: [check({ id: "schk_b" })], results: [] },
+      { runId: "srun_a", model: "m", state: "done", checks: [check()], results: [result()] },
+      { runId: "srun_b", model: "m", state: "done", checks: [check({ id: "schk_b" })], results: [] },
     ]);
     expect(rows[0]!.cells.map((cell) => cell.runId)).toEqual(["srun_a", "srun_b"]);
+  });
+});
+
+/**
+ * **A run that has not answered is not a run that graded nothing**, and the drive is what found it.
+ *
+ * Three runs are queued together and the worker takes them one at a time, so the first to finish
+ * renders a matrix whose other columns are empty. "Nothing graded" is a statement about a prompt —
+ * *no check here could be decided* — and reading it about a run that has not got there yet is being
+ * told a verdict that does not exist.
+ */
+describe("matrixRows on a comparison that has not finished", () => {
+  const unfinished = (state: string) =>
+    matrixRows([
+      { runId: "srun_a", model: "m", state: "done", checks: [check()], results: [result()] },
+      { runId: "srun_b", model: "m", state, checks: [check({ id: "schk_b" })], results: [] },
+    ])[0]!.cells[1]!;
+
+  it("says a queued or running column is still running", () => {
+    expect(unfinished("queued").words).toBe("still running");
+    expect(unfinished("running").words).toBe("still running");
+  });
+
+  it("says a refused column did not run, which is not the same as failing", () => {
+    expect(unfinished("refused").words).toBe("did not run");
+  });
+
+  it("keeps 'nothing graded' for a run that finished and decided nothing", () => {
+    expect(unfinished("done").words).toBe("nothing graded");
+  });
+
+  it("gives none of them a colour, because none of them is a verdict", () => {
+    for (const state of ["queued", "running", "refused", "done"]) {
+      expect(unfinished(state).status).toBeUndefined();
+    }
   });
 });

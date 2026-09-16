@@ -82,6 +82,17 @@
   color: var(--color-ink-2);
   min-width: 82px;
 }
+/* A fact about one provider, read before a key is pasted rather than after. Hairline-led like the
+   guidance list above it, so it reads as information and not as a warning about something wrong. */
+.settings-row-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+  border-left: var(--border-ink) solid var(--color-line);
+  padding-left: var(--spacing-s3);
+}
+
 .settings-paste {
   display: flex;
   flex-wrap: wrap;

@@ -21,20 +21,41 @@ import { useEffect } from "react";
  */
 const POLL_MS = 1_200;
 
-export function Progress({ inFlight, completed, total }: { inFlight: boolean; completed: number; total: number }) {
+export function Progress({
+  inFlight,
+  completed,
+  total,
+  partnersInFlight = 0,
+}: {
+  inFlight: boolean;
+  completed: number;
+  total: number;
+  /**
+   * How many other runs of this comparison have not answered yet (EPIC-042).
+   *
+   * The page keeps polling while any of them is in flight, because the matrix on it has a column
+   * per run: a comparison's runs are queued together and the worker takes them one at a time, so
+   * the first to finish would otherwise render a matrix that never fills in. Found by the browser
+   * drive — the e2e could not see it, because it waits on a state the database already has.
+   */
+  partnersInFlight?: number;
+}) {
   const router = useRouter();
+  const waiting = inFlight || partnersInFlight > 0;
 
   useEffect(() => {
-    if (!inFlight) return;
+    if (!waiting) return;
     const timer = setInterval(() => router.refresh(), POLL_MS);
     return () => clearInterval(timer);
-  }, [inFlight, router]);
+  }, [waiting, router]);
 
-  if (!inFlight) return null;
+  if (!waiting) return null;
 
   return (
     <p className="runs-progress" role="status" aria-live="polite" data-testid="progress">
-      Running — {completed} of {total} inputs done.
+      {inFlight
+        ? `Running — ${completed} of ${total} inputs done.`
+        : `This run has finished. ${partnersInFlight} of the other providers ${partnersInFlight === 1 ? "is" : "are"} still running.`}
     </p>
   );
 }

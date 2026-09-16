@@ -476,7 +476,15 @@ export interface MatrixCell {
   readonly passed: number;
   readonly graded: number;
   readonly status: "pass" | "fail" | undefined;
-  /** "38 of 40 passed", or the honest sentence when nothing could be graded. */
+  /**
+   * "38 of 40 passed", or the honest sentence when there is no verdict yet.
+   *
+   * **A run that has not finished says so, and does not say "nothing graded".** The browser drive
+   * found this: three runs are queued together and the worker takes them one at a time, so the
+   * moment the first one finishes its page renders the others as empty columns. "Nothing graded" is
+   * a statement about a prompt — it means *no check here could be decided* — and reading it about a
+   * run that simply has not got there yet is being told a verdict that does not exist.
+   */
   readonly words: string;
 }
 
@@ -491,8 +499,15 @@ export interface MatrixRow {
 export interface MatrixInput {
   readonly runId: string;
   readonly model: string;
+  /** `queued` · `running` · `done` · `refused`, from the row. A cell reads differently for each. */
+  readonly state: string;
   readonly checks: readonly SuiteCheckRow[];
   readonly results: readonly SuiteResultRow[];
+}
+
+/** Whether a run has not answered yet — the two states in which a cell is a wait, not a verdict. */
+export function runIsInFlight(state: string): boolean {
+  return state === "queued" || state === "running";
 }
 
 /**
@@ -544,9 +559,13 @@ export function matrixRows(runs: readonly MatrixInput[]): MatrixRow[] {
           words:
             check === undefined
               ? "not in this version"
-              : graded === 0
-                ? "nothing graded"
-                : `${passed} of ${graded} passed`,
+              : graded > 0
+                ? `${passed} of ${graded} passed`
+                : runIsInFlight(run.state)
+                  ? "still running"
+                  : run.state === "refused"
+                    ? "did not run"
+                    : "nothing graded",
         };
       }),
     };

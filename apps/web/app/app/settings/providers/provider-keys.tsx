@@ -36,6 +36,8 @@ export interface ProviderView {
   /** What a person reads. `title`, not the ADR-003 word. */
   title: string;
   models: string[];
+  /** A fact about this provider that a person should read before pasting a key. */
+  note?: string | undefined;
   key: ProviderKeyMetadata | undefined;
 }
 
@@ -111,6 +113,12 @@ function ProviderRow({ entry, onDone }: { entry: ProviderView; onDone: () => voi
           </span>
         )}
       </div>
+
+      {entry.note !== undefined && (
+        <p className="settings-row-note" data-testid={`note-${entry.provider}`}>
+          {entry.note}
+        </p>
+      )}
 
       {stored === undefined ? (
         <form

@@ -6,6 +6,7 @@ import {
   KEY_GUIDANCE_HOLDING,
   KEY_GUIDANCE_SUMMARY,
   KEY_GUIDANCE_TITLE,
+  PROVIDER_NOTES,
 } from "@/lib/providers/key-guidance";
 import { providerRowsFor } from "@/lib/providers/queries";
 import { requireSession } from "@/lib/session";
@@ -46,6 +47,8 @@ export default async function ProvidersSettingsPage() {
     title: PROVIDER_TITLES[row.provider],
     // The model a matrix run would use at this provider, so the page says what a key buys.
     models: modelsForProvider(row.provider).map((model) => model.name),
+    // What is true of this provider and not of the others. Today only Google has one.
+    note: PROVIDER_NOTES[row.provider],
     key: row.key,
   }));
 

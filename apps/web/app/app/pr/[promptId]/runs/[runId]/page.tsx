@@ -14,6 +14,7 @@ import {
   heatmapRows,
   judgeCostSentence,
   matrixRows,
+  runIsInFlight,
   stateWords,
   summaryOf,
   verification,
@@ -94,6 +95,18 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
     };
   });
 
+  /**
+   * **The other columns are still arriving, and the page has to wait for them too.**
+   *
+   * Runs in a comparison are queued together and the worker takes them one at a time, so the first
+   * one to finish renders a matrix whose other columns are empty. Polling only on *this* run's state
+   * would leave that matrix frozen until somebody reloaded — and an empty column that never fills is
+   * indistinguishable from a provider that failed everything.
+   */
+  const partnersInFlight = (comparison ?? []).filter(
+    (entry) => entry.run.id !== run.id && runIsInFlight(entry.run.state),
+  ).length;
+
   const heat = heatmapRows(checks, results, inputSet?.rowCount ?? run.totalInputs);
 
   /**
@@ -157,7 +170,12 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
       </header>
 
       {/* Asks the server for this page again while the run is in flight. No reload, no navigation. */}
-      <Progress inFlight={inFlight} completed={run.completedInputs} total={run.totalInputs} />
+      <Progress
+        inFlight={inFlight}
+        completed={run.completedInputs}
+        total={run.totalInputs}
+        partnersInFlight={partnersInFlight}
+      />
 
       <KpiStrip
         items={[
@@ -216,6 +234,7 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
             comparison.map((entry) => ({
               runId: entry.run.id,
               model: entry.run.model,
+              state: entry.run.state,
               checks: entry.checks,
               results: entry.results,
             })),

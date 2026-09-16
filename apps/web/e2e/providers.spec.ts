@@ -98,6 +98,18 @@ test.describe("provider keys and the two pivots", () => {
     await expect(page.getByRole("heading", { name: "Providers", level: 1 })).toBeVisible();
     // EPIC-043's guidance module, on its second render site.
     await expect(page.getByText("Set a spending limit on that key at your provider.")).toBeVisible();
+
+    /**
+     * The one fact that is true of a single provider, said where it is acted on.
+     *
+     * A Gemini key works on both the unpaid and the paid quota and only the person's Google account
+     * knows which — and on the unpaid one Google uses the prompts and replies to improve its
+     * products, with human reviewers able to read them. `docs/providers/usage-policies.md` has the
+     * citation. Nothing we can see tells the quotas apart, which is why it is said for every Google
+     * key rather than only for the ones it applies to.
+     */
+    await expect(page.getByTestId("note-google")).toContainText("unpaid quota");
+    await expect(page.getByTestId("note-anthropic")).toHaveCount(0);
   });
 
   test("refuses a key the provider will not take, and stores nothing", async ({ page }) => {
