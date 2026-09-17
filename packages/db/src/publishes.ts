@@ -96,6 +96,23 @@ export async function liveFor(db: Db, promptId: string): Promise<PublishEventRow
 }
 
 /**
+ * Has this deployment ever published this build? (EPIC-052.)
+ *
+ * What `GET /v1/build/:buildHash` asks before it redirects. The question is deliberately about the
+ * **audit log** rather than about the store: the log is the record of what this system made public,
+ * and a key present in a bucket that no event names is either another environment's object or
+ * somebody else's guess. One indexed lookup, and no object is read to answer it.
+ */
+export async function buildWasPublished(db: Db, buildHash: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: publishEvents.id })
+    .from(publishEvents)
+    .where(eq(publishEvents.buildHash, buildHash))
+    .limit(1);
+  return row !== undefined;
+}
+
+/**
  * The artifact an undo would move back to, or undefined when there is nothing to go back to.
  *
  * **"The previous *artifact*", not "the previous row."** Two consecutive events can name the same
