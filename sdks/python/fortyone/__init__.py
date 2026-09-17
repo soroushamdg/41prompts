@@ -11,7 +11,7 @@ class ResolveResult(TypedDict):
 
 def resolve(
     prompt_id: str,
-    vars: Optional[dict] = None,
+    vars: Optional[dict[str, str]] = None,
     on_warning: Optional[Callable[[str], None]] = None,
 ) -> ResolveResult:
     """Stub for EPIC-000. Never raises: reports unavailability through the
