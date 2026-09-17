@@ -19,7 +19,8 @@
     "LOG_LEVEL",
     "NEXT_PUBLIC_POSTHOG_KEY",
     "NEXT_PUBLIC_POSTHOG_HOST",
-    "COMMIT_SHA"
+    "COMMIT_SHA",
+    "VITEST_MAX_FORKS"
   ],
   "tasks": {
     "build": {

@@ -281,7 +281,101 @@ implementation nobody compares. Every row above has a comparison behind it.
 
 ## 7. Gates
 
-*(filled in below)*
+`pnpm test`, `pnpm typecheck` and `pnpm lint` report every package, and the summary is the run —
+`docs/PROCESS.md`, "Paste the summary, not the adjective". The `gates.mjs ci` table is in §7.2.
+
+### 7.1 The timeouts were not the machine being busy. They were this run being the busy machine
+
+**Four `gates.mjs ci` runs. The first three each failed on something, and only two of those three
+were about the code.** The rest were timeouts, and `docs/PROCESS.md` is explicit that
+"environmental" is a hypothesis rather than a finding. An earlier draft of this section named the
+hypothesis — a loaded host, and a Node that runs under Rosetta 2 — and stopped there. Both are true
+and neither was the cause.
+
+**The cause, measured rather than reasoned about.** One `pnpm test`, sampling `ps` every four
+seconds:
+
+| | before | after |
+|---|---|---|
+| concurrent `vitest` processes, peak | **71** | **16** |
+| one-minute load average, peak | **262.85** | **60.12** |
+| cores on this machine | 8 | 8 |
+| `pnpm test` wall clock | 1m26s | **1m03s** |
+| `apps/web`'s own reported duration | 80.70s | **35.86s** |
+| packages failing | 1 | **0** |
+
+Nine packages, each running `vitest`, whose fork pool sizes itself to the machine — and
+`turbo run` schedules ten tasks at once. So every package sized a pool as though it were alone on
+the host, and the run put **thirty-three times the machine's cores** on the run queue. Nothing was
+wrong with any of those suites.
+
+That is what every unexplained timeout in this repository has been:
+
+- `Test timed out in 5000ms` in `@41prompts/ui`'s `Callout` render, `@41prompts/core`'s
+  `rule_without_check` property test, `apps/web`'s decompile view model — packages this epic never
+  touched, each passing in isolation on the same machine and the same commit.
+- `[vitest-worker]: Timeout calling "onTaskUpdate"` in a package reporting **581 of 581 tests
+  passed**. That RPC's budget is **sixty seconds**; the main process could not be scheduled for a
+  minute.
+- `@41prompts/sdk`'s never-throws fuzz: **320 ms alone, 5,880 ms inside a parallel run**, against a
+  5,000 ms budget.
+
+**The fix is one knob and it is in the gate, not in any suite.** `scripts/gates.mjs` now budgets the
+total: turbo gets `--concurrency`, vitest gets `VITEST_MAX_FORKS`, both sized from
+`availableParallelism()` — 4 x 2 here, 2 x 1 on a two-core runner. It is set in the gate rather
+than copied into nine `vitest.config.ts` files, because `docs/PROCESS.md` has four entries about a
+second copy that goes stale silently.
+
+**And it would have done nothing at all if it had been left there.** `turbo.json` declares
+`globalPassThroughEnv`, and declaring any pass-through list puts turbo in strict environment mode:
+a task sees only the names on it. `VITEST_MAX_FORKS` had to be added to that list or it would have
+been set, logged, and filtered out one process later — **exactly the shape of this epic's own
+section 4.1 defect**, a documented instruction that does nothing. So the gate prints the numbers it
+chose, and they were checked against `ps` rather than believed.
+
+**Nothing in any suite was touched to make this green**, with one exception in the next paragraph.
+`packages/ui` and `packages/core` were not edited.
+
+**The exception, and it is a real defect rather than a concession.**
+`packages/db/src/canvas.test.ts`'s rebalance test makes roughly **440 real round trips** to Postgres
+in a container — up to 220 moves, each a `moveBlok` plus a read back. Vitest's default budget is
+5,000 ms, so at 11 ms a round trip it is already at the line on an idle machine, and it failed at
+5,380 ms. That budget measures the database's latency, not the rebalance. It now has its own, at
+60 s, which still fails a rebalance that never fires. `forbidden-words.test.ts` (30 s, set earlier
+in this epic) and `cli-generated-code.test.ts` (120 s) are the precedent and carry the same
+argument.
+
+**What is still true about the machine, and is now a second-order effect.**
+`/usr/local/bin/node` is an **x86_64 binary on an arm64 Mac** — `file` says `x86_64`, `uname -m`
+says `arm64`, `oahd-helper` (Rosetta's translation daemon) was the largest single CPU consumer
+during a gate run at 88%, and every Next build printed the translation warning. `docs/PROCESS.md`
+already records this and calls a native arm64 Node "the cheapest single change available to this
+number". It is still unmeasured, it is still worth doing, and it is **not** what was failing these
+runs. Installing one is a change to your machine rather than to this repository, so it is left as
+an open question rather than taken.
+
+### 7.2 What the red runs found
+
+**Run 1 — `pnpm e2e` red, and it was right.** `connect.spec.ts` asserted the literal
+`await prompts.refresh();` was visible on the Connect page, and section 4.1's fix had replaced it.
+That is the gate doing exactly its job on a change that had been driven in a browser minutes
+earlier — the drive looked at the page and read the new line; the spec pinned the old one. Fixed in
+`4112dcf`, with a second assertion so a revert of the fix fails the spec rather than passing it.
+
+**Run 2 — `pnpm binary-files` red, on this report.** A NUL byte at offset 11696, inside section
+4.5's paragraph about the NUL byte in the golden generator. `pnpm binary-files` had passed locally
+minutes before, because the report had not been committed and the local invocation reads what is on
+disk in the tree it is run from — `gates.mjs ci` reads a clean checkout of the commit. Fourth time
+this class has been caught by that gate and the first time it was in the document describing it.
+
+**Run 3 — `pnpm test` red, and it is 7.1.** Fifteen of sixteen steps passed, including `pnpm e2e`
+(260 passed, 4 skipped, 7m12s) and `pnpm mirror-dry-run`. `pnpm test` failed on two timeouts and no
+assertion: the `canvas.test.ts` rebalance at 5,380 ms, and `apps/web`'s `onTaskUpdate` RPC with
+581 of 581 tests passing. Both are 7.1, and 7.1 is the reason there was a run 4.
+
+### 7.3 The table
+
+*(run 4's table goes here)*
 
 ---
 

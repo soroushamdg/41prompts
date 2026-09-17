@@ -194,8 +194,17 @@ describe.skipIf(!HAS_TEST_DATABASE)("the canvas, owner-scoped", () => {
      * **The rebalance, driven rather than waited for.** Repeatedly dropping a card into the same gap
      * is what a month of ordinary use looks like, and it is the only path in the canvas that writes
      * more than one row. A rebalance that first fires in production is a rebalance nobody has run.
+     *
+     * **It has its own budget because it makes roughly 440 real round trips** — up to 220 moves,
+     * each a `moveBlok` plus a read back — against Postgres in a container. Vitest's default is
+     * 5,000 ms, so at 11 ms a round trip this test is already at the line on an idle machine; it
+     * failed `gates.mjs ci` at 5,380 ms. That budget measures the database's latency and the host's
+     * load, neither of which is what the test is about. `apps/web/forbidden-words.test.ts` and
+     * `cli-generated-code.test.ts` set their own for the same reason, and `docs/PROCESS.md`'s
+     * "Three timing gates report rather than enforce" is the same argument. Sixty seconds still
+     * fails a rebalance that never fires, which is the thing being asserted.
      */
-    it("rebalances when keys grow too long, and the order survives it", async () => {
+    it("rebalances when keys grow too long, and the order survives it", { timeout: 60_000 }, async () => {
       const a = await addBlok(db, promptId, { kind: "context", text: "first" });
       const b = await addBlok(db, promptId, { kind: "context", text: "second" });
       const mover = await addBlok(db, promptId, { kind: "context", text: "mover" });
