@@ -34,7 +34,7 @@
  * product's own UI.
  */
 import { chromium, type Page } from "@playwright/test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -91,7 +91,7 @@ async function answerConsent(page: Page): Promise<void> {
 }
 
 /** Publish whatever is Draft, going past the gate if it has to, and return the Live version text. */
-async function publish(page: Page, promptId: string, reason: string): Promise<string> {
+async function publish(page: Page, promptId: string, reason: string, was = ""): Promise<string> {
   await page.goto(`${BASE}/app/pr/${promptId}/deploy`);
   const clean = page.getByRole("button", { name: /^Publish Draft v\d+ to Live$/ });
   if (await clean.isVisible().catch(() => false)) {
@@ -101,8 +101,18 @@ async function publish(page: Page, promptId: string, reason: string): Promise<st
     await page.getByLabel(/Say why this is going Live/).fill(reason);
     await page.getByRole("button", { name: /^Publish Draft v\d+ anyway$/ }).click();
   }
-  await page.locator(".deploy-env-live .deploy-env-version").waitFor({ state: "visible", timeout: 15_000 });
-  return (await page.locator(".deploy-env-live .deploy-env-version").textContent())?.trim() ?? "";
+  // **Wait for the version to CHANGE, not to appear.** After the first publish the Live card is
+  // already on screen, so `waitFor({ state: "visible" })` returns instantly and hands back the old
+  // text — which is how the second publish reported "Live v1" while `41p check` correctly said Live
+  // was v2. The label was wrong and the assertion still passed, which is lesson 23: a label is not
+  // an assertion, and a check that prints the wrong answer is worse than one that fails.
+  const version = page.locator(".deploy-env-live .deploy-env-version");
+  if (was === "") {
+    await version.waitFor({ state: "visible", timeout: 15_000 });
+  } else {
+    await version.filter({ hasNotText: was }).waitFor({ state: "visible", timeout: 15_000 });
+  }
+  return (await version.textContent())?.trim() ?? "";
 }
 
 console.log(`cleaned up ${await deleteDriveUsers()} leftover drive account(s) before starting`);
@@ -167,18 +177,26 @@ try {
   const repo = join(work, "myapp");
   mkdirSync(repo, { recursive: true });
 
-  /** Run `41p` the way a developer would, with the key in the environment and nowhere else. */
-  const cli = (args: readonly string[]): { code: number; stdout: string; stderr: string } => {
-    const env = { ...process.env, FORTYONE_API_KEY: KEY, FORTYONE_BASE_URL: BASE };
-    try {
-      const stdout = execFileSync("node", [bin, ...args], { cwd: repo, encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] });
-      transcript.push(`$ 41p ${args.join(" ")}\n${stdout}`);
-      return { code: 0, stdout, stderr: "" };
-    } catch (error) {
-      const failure = error as { status?: number; stdout?: string; stderr?: string };
-      transcript.push(`$ 41p ${args.join(" ")}   # exit ${failure.status}\n${failure.stdout ?? ""}${failure.stderr ?? ""}`);
-      return { code: failure.status ?? -1, stdout: failure.stdout ?? "", stderr: failure.stderr ?? "" };
-    }
+  /**
+   * Run `41p` the way a developer would, with the key in the environment and nowhere else.
+   *
+   * **`spawnSync`, not `execFileSync`.** The first version used `execFileSync` and returned
+   * `stderr: ""` on success, because `execFileSync` hands back stdout and throws away the rest
+   * unless the command fails. The drive then reported that `41p run` does not print its note to
+   * stderr — a failure in the harness, reported as a failure in the product, which is lesson 21
+   * exactly: when a drive goes red, read the assertion before reading the code. `spawnSync` gives
+   * both streams whatever the exit code, which is what a claim about *which stream* needs.
+   */
+  const cli = (args: readonly string[], withKey = true): { code: number; stdout: string; stderr: string } => {
+    const env = { ...process.env, FORTYONE_BASE_URL: BASE } as NodeJS.ProcessEnv;
+    if (withKey) env.FORTYONE_API_KEY = KEY;
+    else delete env.FORTYONE_API_KEY;
+
+    const done = spawnSync("node", [bin, ...args], { cwd: repo, encoding: "utf8", env });
+    const stdout = done.stdout ?? "";
+    const stderr = done.stderr ?? "";
+    transcript.push(`$ 41p ${args.join(" ")}   # exit ${done.status}\n${stdout}${stderr}`);
+    return { code: done.status ?? -1, stdout, stderr };
   };
 
   const linked = cli(["link"]);
@@ -260,7 +278,7 @@ try {
 
   await page.goto(`${BASE}/app/pr/${promptId}`);
   await addBlok(page, "constraint", "Never promise a refund date.");
-  const secondLive = await publish(page, promptId, "adding the refund-date rule for support");
+  const secondLive = await publish(page, promptId, "adding the refund-date rule for support", live);
   record("a second version is Live", /^Live v\d+$/.test(secondLive), `Deploy says ${secondLive}`);
 
   const stale = cli(["check"]);
@@ -270,17 +288,7 @@ try {
     `exit 1 — ${JSON.stringify((stale.stderr.split("\n").find((l) => l.includes("lockfile has")) ?? "").trim())}`,
   );
 
-  const missingKey = (() => {
-    const env = { ...process.env, FORTYONE_BASE_URL: BASE };
-    delete env.FORTYONE_API_KEY;
-    try {
-      execFileSync("node", [bin, "check"], { cwd: repo, encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] });
-      return { code: 0, stderr: "" };
-    } catch (error) {
-      const failure = error as { status?: number; stderr?: string };
-      return { code: failure.status ?? -1, stderr: failure.stderr ?? "" };
-    }
-  })();
+  const missingKey = cli(["check"], false);
   record(
     "and exits 2, not 1, when it cannot answer at all",
     missingKey.code === 2 && missingKey.stderr.includes("not a stale lockfile"),
@@ -329,22 +337,7 @@ try {
       "Keep the summary reasonably short.",
     ].join("\n\n"),
   );
-  const decompiled = (() => {
-    // No key and no base URL at all — the open decompiler needs neither, and running it without
-    // them is the assertion rather than a claim in the README.
-    const env = { ...process.env };
-    delete env.FORTYONE_API_KEY;
-    delete env.FORTYONE_BASE_URL;
-    try {
-      const stdout = execFileSync("node", [bin, "decompile", "northwind.txt"], { cwd: repo, encoding: "utf8", env, stdio: ["ignore", "pipe", "pipe"] });
-      transcript.push(`$ 41p decompile northwind.txt\n${stdout}`);
-      return { code: 0, stdout };
-    } catch (error) {
-      const failure = error as { status?: number; stdout?: string };
-      transcript.push(`$ 41p decompile northwind.txt   # exit ${failure.status}\n${failure.stdout ?? ""}`);
-      return { code: failure.status ?? -1, stdout: failure.stdout ?? "" };
-    }
-  })();
+  const decompiled = cli(["decompile", "northwind.txt"], false);
   record(
     "41p decompile works with no key and no configuration",
     decompiled.code === 1 && decompiled.stdout.includes("Findings:") && decompiled.stdout.includes("rule_without_check"),
