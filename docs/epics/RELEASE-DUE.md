@@ -4,22 +4,85 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-16T01:51:58.306Z.
+Generated 2026-09-17T17:10:30.458Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `f3fa8a264612f7ee54c60d6ff9fca4365f7e20e9` | this checkout |
+| `main` | `217c9452f56ec8417812886b65c1030515807795` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-74 commits · 404 files changed, 45522 insertions(+), 513 deletions(-)
+137 commits · 696 files changed, 93428 insertions(+), 591 deletions(-)
 
+- 217c945 Merge EPIC-055: the delivery UI, and publishing stops being an endpoint
+- 24f18c5 docs(epic-055): report, session log, the backlog row and the handover
+- b2142dd fix(055): the NUL-byte test contained a NUL byte, and only the CI gate could see it
+- 93402a2 feat(055): the drive, and the two defects it found that no test would have
+- ead101b test(055): the e2e suite for Deploy, Connect, keys and the banner — and one real defect it found
+- 9d9e996 fix(055): the NUL-byte gate was pointed at two trees out of five, and missed both live cases
+- 566b337 feat(055): Deploy, Connect, the keys tab, the publishing switch, the pill and the banner
+- 8c3c666 feat(055): revoke and rotate as two rows, and one gate evaluation with two callers
+- 7eddb03 docs(epic-055): the epic file, the plan, and ten rulings
+- e63f7e8 docs: the handover's commit table was stale the moment EPIC-052 merged
+- 0ef32b7 Merge EPIC-052a: document FORTYONE_BASE_URL, which the SDK reads and nothing named
+- ce1259f docs(052a): FORTYONE_BASE_URL was read and documented nowhere
+- 53fcec5 Merge EPIC-052: @41prompts/sdk, and the prompt finally leaves the building
+- 6e68cff docs(epic-052): report, session log, decisions, the backlog row and the handover
+- c3e3a96 feat(052): the drive, and the assertion it got wrong about itself
+- e42de30 fix(052): the lockfile did not carry @types/node, and only the CI gate could see it
+- 8092230 docs(epic-052): the epic file, the plan, and ADR-006
+- ec937d6 feat(052): GET /v1/build, the ETag that could never change, and the drive
+- 690b96f feat(052): @41prompts/sdk — resolve(), the three caches, and the frozen surface
+- d4232cc Merge EPIC-051: publish, the gate that blocks it, and the storage it writes to
+- c3a6539 docs(epic-051): report, session log, decisions, the backlog row and the handover
+- 228f67e feat(051): the drive, the e2e suite, and three things they found
+- 35d66b5 feat(051): publish, undo, the store, and the /v1 read API
+- 0d3c275 feat(051): the publish gate in core, the audit log, and the store's rows
+- 4c080d9 docs(epic-051): publish, the gate that blocks it, and the storage it writes to
+- f4d6dd4 Merge EPIC-050: the build artifact, frozen at v1, and the compatibility rule
+- 99a747e docs(epic-050): pin the report to the commit the final gate ran on
+- ded9630 fix(050): a tampering test that flipped a padding bit was testing nothing 6% of the time
+- cc31687 docs(epic-050): report, session log, decisions, the backlog row and the handover
+- 8d6aa9a feat(050): the build artifact, frozen at v1, and the compatibility rule
+- fd84c72 docs(epic-050): the build artifact, frozen, and the compatibility rule
+- eee8b3d Merge EPIC-042: three providers, the key a person brings, and the two pivots
+- 9ea1aee docs(epic-042): report, session log, decisions, the backlog row and the handover
+- 22a16bf fix(042): a run that has not answered is not a run that graded nothing
+- a38f681 feat(042): Settings → Providers, the provider matrix, and the "By input" heatmap
+- d598ba3 feat(042): three providers behind one interface, and the key a person brings
+- a808e02 docs(epic-042): three providers, the key a person brings, and the two pivots
+- b488cad Merge EPIC-043: the BYO-key threat model, a sealed key store, and value-shaped redaction
+- c501fc1 docs(epic-043): report, session log, decisions, the backlog row and the handover
+- cda5db7 docs(043): the drive's screenshot, re-taken against the merged commit's build
+- 3ce248e fix(043): the in-flight progress test raced the queue, so give it a state instead
+- ee29ed8 feat(043): the BYO-key threat model, a sealed key store, and value-shaped redaction
+- 2257a0c Merge the handover refresh after EPIC-041
+- 685e41f docs: the handover after EPIC-041 — 043 is next, staging is ten behind
+- f5e3384 Merge EPIC-041: the Versions page — history, diff, restore, A/B
+- 2cf975a docs(epic-041): report, session log, the drive, decisions, and the backlog row
+- 0fe43fe fix(041): a change to the check set is a change, and two drive corrections
+- e188874 feat(041): the Versions page — history, a semantic diff, restore, and A/B
+- bdc2b88 docs(epic-041): the Versions page — the epic file and the plan
+- e871ba2 Merge the refreshed handover page
+- 3ee16bc docs(handover): the page was two days stale and named a finished epic as next
+- 1a63b9a Merge EPIC-040: versions and semantic diff
+- 52ef402 docs(epic-040): report, session log, the drive, decisions, and the backlog row
+- 69f8af4 feat(040): a version is a frozen blok set, and a diff says what changed
+- da42eee Merge GATE 3's decision and EPIC-040's epic file and plan
+- 83ed1b4 docs(epic-040): GATE 3's decision, the epic file, and the plan
+- 4afbe70 Merge the GATE 3 readiness note, re-read after the first real call
+- 4e75554 docs(gate-3): the readiness note's load-bearing sentence is no longer true
+- b62433f Merge EPIC-031a: the first real Anthropic call
+- 6a64fb2 docs(epic-031a): report, session log, decisions, and the backlog row ticked
+- ca70def fix(anthropic): capture the resolved model, and stop calling our view a raw payload
+- 22d9021 Merge the release-due instruction fix
+- 5739f09 fix(release-due): the notice told Soroush to pull, and origin is behind
 - f3fa8a2 Merge the new-session prompt
 - e61daac docs: the session that stopped at GATE 3, and the decision it logged
 - f283524 Merge the GATE 3 readiness correction
