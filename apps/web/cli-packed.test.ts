@@ -71,8 +71,14 @@ afterAll(() => {
   rmSync(work, { recursive: true, force: true });
 });
 
-/** `process.env`, minus the two variables `@41prompts/cli` reads. */
-function environmentWithoutKeys(): NodeJS.ProcessEnv {
+/**
+ * `process.env`, minus the two variables `@41prompts/cli` reads.
+ *
+ * Typed as `typeof process.env` rather than `NodeJS.ProcessEnv`: the `NodeJS` namespace is a global
+ * this package's eslint config does not know about, and `no-undef` is right that it is not defined
+ * anywhere it can see. The structural type is the same and needs no ambient name.
+ */
+function environmentWithoutKeys(): typeof process.env {
   const copy = { ...process.env };
   delete copy.FORTYONE_API_KEY;
   delete copy.FORTYONE_BASE_URL;
