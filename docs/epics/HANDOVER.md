@@ -188,7 +188,14 @@ evidence about any of them. Check `/healthz`'s `commit` before quoting one.
     `Object.keys` of all four is `[]`. EPIC-050's canonical encoder serialised a populated `Map` as
     `{}` — inside the one module whose whole job is refusing values `JSON.stringify` would silently
     alter. Test the **prototype** when you mean "a plain object".
-15. **A `.json` file in a public package needs a `.json.license` companion**, not a `REUSE.toml`
+15. **A gate that goes red on a commit that changed only Markdown is still a real finding.**
+    EPIC-050's CI-parity run was green on the code commit and red on the docs commit, in
+    `packages/db`'s sealed-box tests, which that epic never touched. Every surface fact argued
+    "flaky" — and the helper was flipping a base64url **character** rather than a byte, so when that
+    character happened to be `A` it changed only a padding bit and the envelope was unchanged.
+    Measured at **191 undetected flips in 3,000 seals (6.4%)**. A security test that can silently do
+    nothing reads as coverage. Re-running would have hidden it for months.
+16. **A `.json` file in a public package needs a `.json.license` companion**, not a `REUSE.toml`
     edit — `REUSE.toml` is on `CLAUDE.md`'s never-touch list and the repository already has nine of
     these companions under `packages/core/src`. Found before `reuse lint` had to say it.
 

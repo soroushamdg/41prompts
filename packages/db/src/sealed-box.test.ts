@@ -74,17 +74,57 @@ describe("the envelope leaks nothing", () => {
 describe("tampering", () => {
   const master = key();
 
-  function flipLastCharacterOfPart(envelope: string, index: number): string {
+  /**
+   * Flip one bit of a real **byte**, by decoding the part first.
+   *
+   * ## It used to flip a base64url character, and that failed 6.4% of runs
+   *
+   * The original helper replaced the part's last character with `A` (or `B` if it was already `A`).
+   * **The last base64url character of this part is not a whole byte.** The ciphertext decodes to 62
+   * bytes and 62 mod 3 is 2, so the final character carries four significant bits and **two padding
+   * bits**, and the decoder discards the padding. `A` is `000000` and `B` is `000001`: they differ
+   * only in a padding bit, so when the last character was already `A` the "tampered" envelope
+   * decoded to **byte-identical ciphertext**, `openProviderKey` returned the key exactly as it
+   * should, and the test failed for doing nothing.
+   *
+   * Measured rather than reasoned about, on 3,000 seals: **191 undetected flips, 6.4%** — against a
+   * predicted 1 in 16, because the ciphertext's length forces the last character to be one of
+   * `048AEIMQUYcgkosw` and exactly one of those sixteen is `A`.
+   *
+   * Two things make this worth the comment rather than a quiet fix. It is a **security** test, and a
+   * security test that can silently do nothing is worse than one that is missing, because it reads
+   * as coverage. And it broke a CI-parity gate on an unrelated epic, where the cheap move would have
+   * been to re-run it and call it flaky — `docs/PROCESS.md`, "'Environmental' is a hypothesis, not
+   * a finding". Found by EPIC-050's gate, fixed there, recorded here.
+   */
+  function flipLastByteOfPart(envelope: string, index: number): string {
     const parts = envelope.split(".");
-    const part = parts[index] as string;
-    const last = part.slice(-1);
-    parts[index] = part.slice(0, -1) + (last === "A" ? "B" : "A");
+    const bytes = Buffer.from(parts[index] as string, "base64url");
+    bytes[bytes.length - 1] ^= 0x01;
+    parts[index] = bytes.toString("base64url");
     return parts.join(".");
   }
 
   it("refuses a flipped ciphertext byte", () => {
-    const tampered = flipLastCharacterOfPart(sealProviderKey(master, KEY, BINDING), 4);
+    const tampered = flipLastByteOfPart(sealProviderKey(master, KEY, BINDING), 4);
     expect(() => openProviderKey([master], tampered, BINDING)).toThrow(SealedBoxError);
+  });
+
+  /**
+   * The control the original lacked: prove the flip actually changes the bytes.
+   *
+   * Without this, a helper that quietly produced an identical envelope would make the test above
+   * assert nothing, which is exactly what was happening. Run over many seals rather than one,
+   * because the defect it guards against was probabilistic — a single sample would have passed
+   * 15 times out of 16.
+   */
+  it("the flip is real: it changes the decoded bytes on every seal, not just most", () => {
+    for (let attempt = 0; attempt < 200; attempt += 1) {
+      const envelope = sealProviderKey(master, KEY, BINDING);
+      const before = Buffer.from(envelope.split(".")[4] as string, "base64url");
+      const after = Buffer.from(flipLastByteOfPart(envelope, 4).split(".")[4] as string, "base64url");
+      expect(after.equals(before)).toBe(false);
+    }
   });
 
   it("refuses a swapped ephemeral public key", () => {

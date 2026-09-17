@@ -52,7 +52,7 @@ Every one is ticked and every one names how. Commands in §10.
 | C11 | no internal field leaks, and the search is proved able to find one | `leak.test.ts` — the denylist walk, a planted `ownerEmail` two levels down, a `ownerId`/`api_key`/`cost-cents` case, and the false-positive case |
 | C12 | ADR-005 exists and says what a reader does with an unknown version | `docs/decisions/ADR-005-build-artifact.md` §3 |
 | C13 | the file no longer claims to be unfrozen | `schema.test.ts` — "says in the file that it is frozen, where it used to say it was not", asserting both the new sentence and the absence of the old one |
-| C14 | gates green | §10: `pnpm test` 8/8, `typecheck` 8/8, `lint` 11/11, and `gates.mjs ci` 16/16 on `8d6aa9a` |
+| C14 | gates green | §10: `pnpm test` 8/8, `typecheck` 8/8, `lint` 11/11, and `gates.mjs ci` 16/16. **The middle run of three was red**, on a pre-existing defect in another package — §7a |
 
 ## 3. The five rulings, and what each cost
 
@@ -192,6 +192,57 @@ cannot be smuggled in as a nested object under a harmless key.
    that dropped them would publish text nobody ran — on the epic whose whole point is a publish gate.
    Corrected in place, dated, with the reason.
 3. **The two instrument defects in §4.**
+4. **A 6.4%-of-runs failure in EPIC-043's sealed-box tampering test**, found by this epic's CI-parity
+   gate and fixed here. §7a.
+
+## 7a. The red gate, and the defect underneath it
+
+**`node scripts/gate-run.mjs` went green on `8d6aa9a` and red on `cc31687`** — the docs commit, which
+touches no code this epic wrote. The failing test was
+`packages/db/src/sealed-box.test.ts > tampering > refuses a flipped ciphertext byte`, EPIC-043's, in
+a package EPIC-050 does not touch.
+
+That is the shape `docs/PROCESS.md` has a whole section about: **"'Environmental' is a hypothesis,
+not a finding."** Three auth tests were reported as environmental across three consecutive epics and
+turned out to be a one-line config bug. Re-running until green was available and is what that section
+exists to forbid. The mechanism was found instead, and measured.
+
+**The mechanism.** The test's helper replaced the **last base64url character** of the ciphertext part
+with `A`, or with `B` if it was already `A`. The last base64url character of that part is not a whole
+byte. The ciphertext decodes to **62 bytes**, and 62 mod 3 is 2, so the final character carries four
+significant bits and **two padding bits**, which the decoder discards. `A` is `000000` and `B` is
+`000001`: they differ **only in a padding bit**. So whenever the last character was already `A`, the
+"tampered" envelope decoded to byte-identical ciphertext, `openProviderKey` returned the key exactly
+as it should, and the test failed for having done nothing.
+
+**Measured, not reasoned about.** 3,000 seals through the real `sealProviderKey`:
+
+```
+ciphertext part decodes to 62 bytes; 62 mod 3 = 2
+191 of 3000 flips were NOT detected (6.4%)
+distinct last characters seen: 048AEIMQUYcgkosw
+```
+
+Sixteen possible last characters, because the length forces the low two bits to zero, and exactly one
+of them is `A` — a predicted 1 in 16, observed 6.4%.
+
+**Why it was fixed here rather than reported.** A red gate is stop 1 of the three stops in
+`PROCESS.md`'s "Claude merges", and it is absolute. Beyond that, this is the **measurement-defect**
+category `PROCESS.md` names as one of the three reasons a change may even ship on its own: it is a
+*security* test, and a security test that can silently do nothing is worse than one that is missing,
+because it reads as coverage on the epic whose whole subject is that a stolen database is not a
+stolen key.
+
+**The fix, and its control.** The helper now decodes the part, flips one bit of a real byte, and
+re-encodes. A second test asserts over 200 seals that the flip actually changes the decoded bytes —
+**the control the original lacked**, and run over many seals because the defect is probabilistic and
+a single sample would pass fifteen times in sixteen.
+
+**Proved against the old rule first**, which is this repository's standard for a regression test:
+with the original helper restored, the new control fails; with the fix in place, 26 of 26 pass.
+
+**Not claimed:** that this is the only such case. It is one test in one file, found because a gate
+happened to land on the 6.4%.
 
 ## 8. One defect found and deliberately **not** fixed
 
@@ -232,10 +283,11 @@ pnpm typecheck     8 checked, 8 passed
 pnpm lint          11 checked, 11 passed   (incl. dependency-cruiser, turbo boundaries, forbidden words)
 ```
 
-`node scripts/gate-run.mjs` chose `gates.mjs ci` and ran it on commit `8d6aa9a`:
+`node scripts/gate-run.mjs` chose `gates.mjs ci` and ran it three times: green on `8d6aa9a`, **red
+on `cc31687`** (§7a), and green again on the commit that fixes it. The final run:
 
 ```
-  checkout   git clone + checkout 8d6aa9ab       PASS  0m02s
+  checkout   git clone + checkout <final>          PASS  0m02s
   ci.yml     pnpm install --frozen-lockfile      PASS  0m07s
              pnpm lint                           PASS  0m22s
              pnpm typecheck                      PASS  0m52s

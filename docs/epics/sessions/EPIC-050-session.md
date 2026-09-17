@@ -114,6 +114,38 @@ run sends the version's `compiledText`, which `snapshot()` compiles *with* them 
 dropped them would publish text nobody ran. Corrected in place, dated, with the reason, rather than
 left as a stale claim about a frozen format.
 
+## The gate went red between two commits, and that was the most valuable hour
+
+`gate-run.mjs` was green on `8d6aa9a` (the code) and **red on `cc31687`** (the docs commit). The
+failing test was in `packages/db`, which this epic does not touch.
+
+`PROCESS.md`'s rule is that the gate's answer is about a specific commit and no other, which is why
+it was re-run on the docs commit at all rather than merged on the earlier green. Everything that
+followed came from obeying that literally.
+
+**What was tempting and is forbidden.** The failure is in another package, on another epic's test,
+on a commit that changed only Markdown and a screenshot. Every one of those facts argues "flaky,
+re-run it", and `PROCESS.md`'s "'Environmental' is a hypothesis, not a finding" exists because that
+argument was made three times in a row and was wrong all three times.
+
+**What it actually was.** `flipLastCharacterOfPart` flipped a base64url *character*, not a byte. The
+ciphertext decodes to 62 bytes, 62 mod 3 is 2, so the last character carries two padding bits that
+the decoder throws away — and `A` and `B` differ only in one of them. When the last character was
+already `A` the envelope was **unchanged**, so `openProviderKey` correctly returned the key and the
+test failed for having tampered with nothing.
+
+Measured on 3,000 seals: 191 undetected, 6.4%, against a predicted 1 in 16. The probe printed the
+sixteen characters the length allows — `048AEIMQUYcgkosw` — which is the part that turns an argument
+into a measurement.
+
+Fixed by decoding, flipping a real byte and re-encoding, with a control that asserts the flip
+changes the bytes over 200 seals. **Proved against the old rule first:** with the original helper
+restored, the new control fails; with the fix, 26 of 26 pass.
+
+**The lesson is not about base64.** It is that a security test can pass while doing nothing, and that
+the only thing standing between "it did nothing 6% of the time" and "it does nothing always" was a
+gate landing on the wrong sixteenth.
+
 ## Verification output, tail
 
 ```
