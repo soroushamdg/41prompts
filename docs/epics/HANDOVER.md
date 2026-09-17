@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-17, after EPIC-052**, for whoever picks this up — person or
+Where things stand as of **2026-09-17, after EPIC-055**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,34 +16,44 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Stage 5a is nearly built. EPIC-050, EPIC-051 and EPIC-052 are done.** The artifact format is frozen
+**Stage 5a is complete, and `▣ GATE 5` is the next row. It is a full stop.**
+
+EPIC-055 merged 2026-09-17: Deploy, Connect, the API keys tab, the Publishing switch, the editor's
+version pill and the Runs page's blocked banner. Publishing is no longer an endpoint you can only
+reach with `fetch`, and an API key is no longer a thing only a drive script can make.
+
+**Do not start EPIC-053, EPIC-054, EPIC-056 or EPIC-057.** They are Stage 5b, behind GATE 5, and
+`docs/AUTONOMOUS.md` is explicit: a gate is Soroush's decision, it is recorded in
+`docs/decisions/GATE-n.md`, and the epics behind it are not reachable by stepping around it.
+`docs/decisions/GATE-5.md` does not exist.
+
+**GATE 5 cannot be measured today, and that is a fact rather than a delay.** Its criteria are
+*"measured, 30 days after EPIC-055: number of distinct production apps resolving from the CDN; number
+of paying or pilot customers asking for Python, CLI codegen, or source access"*. The first number
+needs a CDN, which needs an R2 bucket, which is Soroush's step — EPIC-051 §4.1, EPIC-052 and
+EPIC-055's ruling 2 all report it unbuilt for that reason, and the roadmap names a client ping as the
+wrong answer. The second needs customers. And the thirty days cannot start while nothing is deployed:
+`origin/main` is **52 commits behind** local `main`. See EPIC-055's session log, "What is next".
+
+**The earlier state, for context. EPIC-050, EPIC-051 and EPIC-052 are done.** The artifact format is frozen
 at v1 (ADR-005), a prompt can be **published**, and as of 2026-09-17 **a program outside this
 repository can read one**: `@41prompts/sdk` resolves the Live prompt from memory, disk or what the
 deploy bundled, never waits for the network, never throws, and picks up a new version in about thirty
 seconds without a redeploy. ADR-006 freezes its public API.
 
-**The next epic is EPIC-055** — the Deploy page, the Connect page (TypeScript only), the Settings API
-keys and Publishing tabs, the editor's Publish button, the Runs page blocked banner. Both its
-dependencies (051, 052) are done. It has no epic file; write one the way 040 to 043, 050, 051 and 052
-were written.
+**What EPIC-055 settled**, so it is not rediscovered:
 
-**`▣ GATE 5` sits immediately after EPIC-055, and it is a full stop.** It is Soroush's decision and
-its criteria are in `docs/roadmap.md`. Do not start anything behind it.
-
-**Read `docs/epics/reports/EPIC-052-report.md` §4, §8 and §11 before scoping EPIC-055.** Four things
-there change what it builds:
-
-1. **The API key is still the one thing a drive cannot create by clicking.** Both `drive-epic-051.mts`
-   and `drive-epic-052.mts` mint one directly and say so. EPIC-055's task line owns that tab; the day
-   it ships, both drives should stop doing that.
-2. **`packages/sdk-ts/README.md` is now the canonical copy of the Connect page's TypeScript steps**,
-   including the exact telemetry header. They must agree, and the README is the one that goes to npm.
-3. **"Apps resolving" still cannot exist.** It needs CDN access logs, which need a CDN, which needs an
-   R2 bucket — Soroush's step. The roadmap names a client ping as the wrong answer, so EPIC-055's
-   "apps-resolving table from CDN logs" has no source to read. **This is part of GATE 5's demand
-   measure**, so it matters that it stays honest rather than becoming early.
-4. **A bundled artifact has no version number** (report §8), because `version` lives on the marker and
-   not on the artifact. It becomes EPIC-053's question, in the file `41p pull` writes.
+1. **The API key can now be created by clicking**, and `drive-epic-055.mts` does. `drive-epic-051.mts`
+   and `drive-epic-052.mts` **still mint directly** — they are committed evidence of their own epics
+   and re-pointing them means re-running two drives. EPIC-055 report §10.2 asks whether you want that.
+2. **`packages/sdk-ts/README.md` is the canonical copy of the Connect page's steps**, and
+   `apps/web/lib/connect/steps.test.ts` now fails when the page shows a snippet the README does not
+   have. The pinning exists; it is not something to remember.
+3. **"Apps resolving" is still not built.** Ruling 2: the page says why in words rather than showing
+   an empty table, because an empty table is a *claim*. Still part of GATE 5's demand measure.
+4. **A bundled artifact has no version number** (EPIC-052 §8). Still EPIC-053's question.
+5. **One ruling of EPIC-055's changes a line of `docs/design/README.md`** — core paints a moved cost
+   amber and the README says cost deltas are ink. Core was followed. Report §3.
 
 **ADR-005 §7 is no longer cheap to reverse**, and is now read by a published SDK as well as by the
 server. From here it is a v2 of the format.
@@ -67,7 +77,9 @@ only its own epic's status cell.
 | Stage 3 | **done.** 030 ✅ · 031 ✅ · 031a ✅ · 032 ✅ · 033 ✅ · 034 ✅ |
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
-| **Stage 5a** | **nearly built.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006). **055 is the last one**, and GATE 5 sits immediately after it. |
+| **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
+| **GATE 5** | **undecided, and not measurable today.** No `docs/decisions/GATE-5.md`. See "Start here". |
+| Stage 5b | **behind the gate.** 053 · 054 · 056 · 057 — do not start. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -108,20 +120,20 @@ Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `0ef32b7` | EPIC-052 and its one-line follow-up, merged 2026-09-17 |
-| `origin/main` / staging | `da42eee` | **44 behind** — still EPIC-040's epic file and GATE 3's decision |
+| local `main` | see `git log -1` | EPIC-055, merged 2026-09-17 |
+| `origin/main` / staging | `da42eee` | **52 behind** — still EPIC-040's epic file and GATE 3's decision |
 | production | `af089c7` | 95+ behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051 or 052**, and no staging
-URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052 or 055**, and no
+staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
 `"commit":"unknown"`. The proof that the server you are about to drive is the build you just made is
 `apps/web/.next/BUILD_ID`, which appears verbatim in the HTML the server returns. EPIC-052's drive
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
-**A release is due.** `docs/AUTONOMOUS.md` stops the loop after every third completed epic, and 040,
-041, 042, 043, 050, 051 and 052 are **seven**. `RELEASE-DUE.md` was generated at `f3fa8a2` and is
+**A release is due, and more so than last time.** `docs/AUTONOMOUS.md` stops the loop after every
+third completed epic, and 040, 041, 042, 043, 050, 051, 052 and 055 are **eight**. `RELEASE-DUE.md` was generated at `f3fa8a2` and is
 stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
@@ -137,7 +149,7 @@ stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushe
 - **The browser drive is a Definition-of-Done item**, against the **built** app — `turbo run build`,
   then `next start`. Never `pnpm dev`.
 
-## Twenty-one things recent epics cost, worth not relearning
+## Twenty-five things recent epics cost, worth not relearning
 
 1. **A helper that normalises state hides the defect from every test that uses it.** `PROCESS.md`
    has the rule and the three instances.
@@ -227,6 +239,31 @@ stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushe
     itself provokes a `missing_variables` two lines earlier on purpose. An assertion a correct system
     fails costs the same investigation as one a broken system passes. When a drive goes red, read the
     assertion before reading the code.
+
+22. **A gate only guards what it is pointed at — and check what it *scans*, not only where.**
+    EPIC-055 found a NUL byte in two committed documents because `scripts/binary-files.mjs`'s roots
+    were `packages/` and `apps/`. Widening them caught one of the two. The other was at byte 12,411
+    and the script sniffed git's 8000-byte window — so `git diff` rendered that file perfectly while
+    `grep -c '^#'` returned **0** for a report with nineteen headings. Both the *area* and the *depth*
+    of a gate are assumptions worth reading before trusting a green.
+
+23. **A label is not an assertion.** EPIC-055's drive reported `refundClassifier(v: { customer_name,
+    order_id })` in its detail string while asserting only the prompt id and the function name. The
+    real signature omitted `customer_name` — so the generated file could not fill its own prompt, and
+    the check that would have caught it was printing the right answer as decoration. When a check
+    passes, read what it actually compared.
+
+24. **Run the local gate again after writing the last file.** EPIC-055's own NUL-byte *test* contained
+    a NUL byte. `pnpm binary-files` had been run before that file existed and never after, so it
+    reported "926 checked" over a set that excluded it. Only `gates.mjs ci`, which clones a commit,
+    could see it — `PROCESS.md`'s "Local green is not CI green" failure 2, arriving in the session
+    that was fixing failure-mode 19.
+
+25. **Docker Desktop's VM disk is not the host disk.** A `gates.mjs ci` run failed at *setup* with
+    "the throwaway database would not start" while `df -h /` showed 18 GB free; `initdb` said "No
+    space left on device". 68 dangling volumes, 3.485 GB. `docker volume prune` (without `-a`, so no
+    stopped project's named volume is touched) after checking every in-use volume is attached to a
+    running container.
 
 ## Gates and the local loop
 
