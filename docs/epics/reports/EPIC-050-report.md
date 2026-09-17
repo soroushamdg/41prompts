@@ -287,7 +287,7 @@ pnpm lint          11 checked, 11 passed   (incl. dependency-cruiser, turbo boun
 on `cc31687`** (§7a), and green again on the commit that fixes it. The final run:
 
 ```
-  checkout   git clone + checkout <final>          PASS  0m02s
+  checkout   git clone + checkout ded9630e          PASS  0m02s
   ci.yml     pnpm install --frozen-lockfile      PASS  0m07s
              pnpm lint                           PASS  0m22s
              pnpm typecheck                      PASS  0m52s
@@ -363,7 +363,12 @@ Commits on the branch:
 
 - `fd84c72` — `docs(epic-050)`: the epic file and the plan
 - `8d6aa9a` — `feat(050)`: the implementation, the tests, the fixtures and ADR-005
-- the report, the session log, the decisions and the backlog row
+- `cc31687` — `docs(epic-050)`: the report, the session log, the decisions, the backlog row
+- `ded9630` — `fix(050)`: the sealed-box tampering test the gate caught (§7a)
+
+`node scripts/gates.mjs ci` is green on `ded9630`, which is the commit merged. The earlier green on
+`8d6aa9a` is **not** what this merge rests on: the gate's answer is about one commit and no other,
+and the commit between them was red.
 
 ## 13. A release is overdue, and it is not this epic's to cut
 
