@@ -31,7 +31,12 @@ module.exports = {
     {
       name: "sdk-has-no-npm-deps",
       severity: "error",
-      comment: "packages/sdk-ts ships zero npm dependencies; Node builtins stay allowed for the future disk cache.",
+      comment:
+        "packages/sdk-ts ships zero npm dependencies; Node builtins are allowed and are what the " +
+        "disk cache uses. It does import @41prompts/core — a sibling public package, which rule 11 " +
+        "permits — and esbuild inlines that at build time, so the tarball still has no dependencies " +
+        "key. That is the claim this rule cannot see; packages/sdk-ts/src/package.test.ts reads the " +
+        "built output and is where it is proved (EPIC-052 ruling 2).",
       from: { path: "^packages/sdk-ts/src", pathNot: "\\.test\\.ts$" },
       to: {
         dependencyTypes: ["npm", "npm-dev", "npm-optional", "npm-peer", "npm-bundled", "npm-no-pkg", "npm-unknown"]
