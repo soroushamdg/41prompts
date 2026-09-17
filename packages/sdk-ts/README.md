@@ -129,7 +129,7 @@ generated. Nothing about a prompt, a value or a response is ever sent.
 ```ts
 createClient({
   apiKey,      // 41p_live_… or 41p_test_… — defaults to process.env.FORTYONE_API_KEY
-  baseUrl,     // defaults to https://app.41prompts.ai
+  baseUrl,     // defaults to process.env.FORTYONE_BASE_URL, then https://app.41prompts.ai
   bundled,     // build documents shipped with your deploy
   cacheDir,    // defaults to <tmpdir>/41prompts-sdk; null turns the disk cache off
   refreshMs,   // how often to check what is Live; defaults to 30000
