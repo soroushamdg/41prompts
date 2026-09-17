@@ -1,0 +1,162 @@
+/* ── Connect: the TypeScript path (EPIC-055) ──────────────────────────────────────────────────
+   **No green, no red, no amber.** Instructions are not verdicts. The mockup ticks each bullet in
+   the "Keep it in sync" card with a green ✓; here they are ink, because a feature that exists is
+   not a check that passed and rule 10's three colours are not decoration.
+
+   The numbered steps are the mockup's, and the code blocks are `recipes.css`'s `codeblock` shape. */
+
+.connect-steps {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: var(--spacing-s5);
+  margin-bottom: var(--spacing-s5);
+  counter-reset: connect-step;
+}
+
+.connect-step {
+  display: flex;
+  gap: var(--spacing-s4);
+  padding-bottom: var(--spacing-s5);
+  align-items: start;
+}
+.connect-step:last-child {
+  padding-bottom: 0;
+}
+
+.connect-step-n {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+
+.connect-step-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.connect-step-body h3 {
+  font-size: 15px;
+  margin: 0 0 var(--spacing-s1);
+}
+.connect-step-says {
+  font-size: 13px;
+  color: var(--color-ink-2);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-s3);
+}
+
+.connect-code {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  background: var(--color-sunken);
+  border: 1px solid var(--color-line);
+  padding: var(--spacing-s3);
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--color-ink);
+}
+
+.connect-two {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-s4);
+  align-items: start;
+  margin-bottom: var(--spacing-s5);
+}
+
+.connect-card {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  min-width: 0;
+}
+.connect-cardhead {
+  padding: var(--spacing-s3) var(--spacing-s4);
+  border-bottom: 1px solid var(--color-line);
+}
+.connect-cardhead h2 {
+  font-size: 14px;
+  margin: 0;
+}
+.connect-cardhead p {
+  font-size: 12px;
+  color: var(--color-ink-3);
+  margin: var(--spacing-s1) 0 0;
+  line-height: 1.5;
+}
+.connect-cardbody {
+  padding: var(--spacing-s4);
+}
+.connect-card .connect-code {
+  border: 0;
+}
+
+.connect-prompts {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.connect-prompts th,
+.connect-prompts td {
+  text-align: left;
+  padding: var(--spacing-s2) var(--spacing-s3);
+  border-bottom: 1px solid var(--color-line-2);
+  vertical-align: top;
+}
+.connect-prompts th {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  font-weight: 600;
+}
+.connect-prompts tr:last-child td {
+  border-bottom: 0;
+}
+.connect-prompts code {
+  font-size: 12px;
+  color: var(--color-ink-2);
+}
+.connect-prompts-none {
+  color: var(--color-ink-3);
+}
+
+.connect-telemetry {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: var(--spacing-s4);
+  margin-bottom: var(--spacing-s5);
+}
+.connect-telemetry h2 {
+  font-size: 15px;
+  margin: 0 0 var(--spacing-s2);
+}
+.connect-telemetry p {
+  font-size: 13px;
+  color: var(--color-ink-2);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-s3);
+}
+.connect-telemetry p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 860px) {
+  .connect-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 720px) {
+  .connect-steps {
+    padding: var(--spacing-s4);
+  }
+  .connect-step {
+    gap: var(--spacing-s3);
+  }
+}

@@ -2,12 +2,14 @@ import { isOptional } from "@41prompts/core";
 import { resultCountsFor, versionsForPrompt } from "@41prompts/db";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { blockedWords } from "@/lib/deploy/blocked";
 import { getDb } from "@/lib/db";
 import { activationStateFor } from "@/lib/activation/queries";
 import { keyedProvidersFor } from "@/lib/providers/queries";
 import { runsPageFor } from "@/lib/runs/queries";
 import { requireSession } from "@/lib/session";
 import { ActivationProgress } from "./activation-progress";
+import { BlockedBanner } from "./blocked-banner";
 import { InputSets } from "./input-sets";
 import { RunHistory } from "./run-history";
 
@@ -46,6 +48,9 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
   // EPIC-042. Metadata only — no master key is read, and this page cannot open one.
   const keyed = await keyedProvidersFor(getDb(), session.user.id);
 
+  // EPIC-055 C15. `undefined` when nothing is stopping a publish, and then no banner renders.
+  const blocked = await blockedWords({ db: getDb(), promptId, owner: session.user.id });
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -62,6 +67,10 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
       </header>
 
       {activation !== undefined && <ActivationProgress steps={activation} />}
+
+      {/* EPIC-055 C15. Rendered only when the gate is actually stopping a publish — see
+          `BlockedBanner`, and `lib/deploy/blocked.ts` for how the answer is obtained. */}
+      {blocked !== undefined && <BlockedBanner promptId={promptId} says={blocked} />}
 
       <InputSets
         promptId={promptId}

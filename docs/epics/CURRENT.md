@@ -260,9 +260,13 @@ security fix, and something that must be revertible on its own, and this is none
 - [ ] **C16.** `pnpm forbidden-words` passes. No string added by this epic uses **block** (the noun),
       **assertion**, **label**, **pointer**, **artifact**, **promote**, **enum**, **sha**,
       **reconcile**, **override** or **drifted**. Verified: the gate, plus a reading of the diff.
-- [ ] **C17.** **Amber appears only for drift**; "unsaved", cost deltas and the diff row use neutral
-      ink (`docs/design/README.md`'s colour correction). Verified: `deploy.spec.ts` reads computed
-      styles, with a control proving the probe can distinguish the two.
+- [ ] **C17.** **Amber appears only for drift.** On this page that is exactly one row — the cost row,
+      when the cost has moved against a Live build, which is the `drift` verdict `packages/core`
+      already returns. "Unsaved" and the blok-diff row are neutral ink. **This corrects the criterion
+      as first written**, which said cost deltas are always ink and therefore contradicted shipped
+      code; ruling 11 has the argument and says plainly that one line of `docs/design/README.md` is
+      now wrong. Verified: `deploy.spec.ts` reads computed styles, with a control proving the probe
+      can tell amber from ink.
 - [ ] **C18.** **Every page works at 390px and by keyboard.** Publish, Publish anyway, Undo, Rotate
       and the settings navigation are all reachable and operable without a mouse; touch targets are
       44px. Verified: the drive's screenshots and `deploy.spec.ts`'s keyboard path.

@@ -22,6 +22,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
           <a href="/app/projects">Projects</a>
         </p>
         <h1>{found.project.name}</h1>
+        {/* EPIC-055. Connect is project-scoped — the generated file and the prompt table are about
+            this project's rows — so this is the only place it can be reached from. A page nothing
+            links to is a page nobody finds (`PROCESS.md`, the `/app` dead end). */}
+        <span className="app-pagehead-actions">
+          <a className="btn btn-sm app-pagehead-action" href={`/app/p/${projectId}/connect`}>
+            Connect
+          </a>
+        </span>
       </header>
 
       <CreatePrompt projectId={projectId} />
