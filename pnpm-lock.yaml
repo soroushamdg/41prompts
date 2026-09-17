@@ -162,6 +162,26 @@ importers:
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@30.0.1(@noble/hashes@2.4.0))(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)
 
   packages/cli:
+    dependencies:
+      '@41prompts/core':
+        specifier: workspace:*
+        version: link:../core
+      '@41prompts/sdk':
+        specifier: workspace:*
+        version: link:../sdk-ts
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.1
+        version: 22.20.1
+      vitest:
+        specifier: ^3.2.7
+        version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@30.0.1(@noble/hashes@2.4.0))(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)
+
+  packages/cli-unscoped:
+    dependencies:
+      '@41prompts/cli':
+        specifier: workspace:*
+        version: link:../cli
     devDependencies:
       vitest:
         specifier: ^3.2.7

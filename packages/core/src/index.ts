@@ -152,6 +152,25 @@ export { ARTIFACT_JSON_SCHEMA, LIVE_MARKER_JSON_SCHEMA } from "./artifact/json-s
 export { UnsupportedKeywordError, validate } from "./artifact/validate.js";
 export type { JsonSchema, SchemaViolation } from "./artifact/validate.js";
 
+// Generated bindings (EPIC-053). The Connect page shows `prompts.ts` so a person can copy it and
+// `41p pull` writes it into their repository; EPIC-055 committed to those being the same file, and
+// `CLAUDE.md` rule 11 stops the CLI importing the page's copy. So the generator is here and both are
+// callers — `codegen/types.ts` carries the argument, which is the one this repository has now made
+// three times about three different second copies.
+export {
+  CODEGEN_FILENAME,
+  LICENCE_LINE,
+  headerFor,
+  identifierFor,
+  identifiersFor,
+  parameterFor,
+  promptsFile,
+  pythonPromptsFile,
+  snakeCase,
+  typescriptPromptsFile,
+} from "./codegen/index.js";
+export type { CodegenLanguage, CodegenPrompt, CodegenVariable } from "./codegen/index.js";
+
 // The publish gate (EPIC-051). "May this version go Live" is the one decision in this product that
 // must be correct, so `CLAUDE.md` rule 1 puts it here with its tests rather than in a route handler.
 // It answers from facts and never acts: no clock, no database, no "Publish anyway" — the escape rule

@@ -119,6 +119,33 @@ const EXPECTED_LITERALS: ReadonlyArray<readonly [string, string]> = [
   // enough to report" at the same time.
   ["cluster/similarity.ts", "[^a-z0-9_\\s]"],
   ["cluster/similarity.ts", "\\s+"],
+  // EPIC-053. Turning a prompt name and a variable name into an identifier a program can call.
+  //
+  // **All eight are linear, and none is on a hot path.** Seven have either no quantifier at all or a
+  // single quantifier over a single character class, which is the same structural argument the
+  // EPIC-030 block above makes. The one worth a sentence of its own is
+  // `(\p{Lu}+)(\p{Lu}\p{Ll})` in `snakeCase`: `\p{Lu}+` is a single quantifier followed by two
+  // fixed single-character classes, so a failed match backtracks one position at a time and never
+  // nests — `findNestedQuantifiers` asserts that mechanically in the test below.
+  //
+  // **And the input is bounded by something other than this list.** These run over a prompt's
+  // *name* and a variable's *name*, not over prompt text: a handful of words, typed into a form,
+  // once per prompt when a file is generated. That is a different risk profile from the detectors,
+  // which read whatever a stranger pasted into the open decompiler.
+  //
+  // The Unicode property escapes are deliberate rather than `[a-z]`: a prompt called
+  // "Résumé parser" has to produce a legal identifier, and both languages accept non-ASCII letters
+  // in one. `\p{Ll}`, `\p{Lu}` and `\p{N}` are what "letter" and "digit" actually mean.
+  ["codegen/identifiers.ts", "[^\\p{L}\\p{N}]+"],
+  ["codegen/identifiers.ts", "[^\\p{L}\\p{N}]"],
+  ["codegen/identifiers.ts", "^\\p{N}"],
+  ["codegen/python.ts", "([\\p{Ll}\\p{N}])(\\p{Lu})"],
+  ["codegen/python.ts", "(\\p{Lu}+)(\\p{Lu}\\p{Ll})"],
+  ["codegen/python.ts", "[^\\p{L}\\p{N}_]"],
+  ["codegen/python.ts", "^\\p{N}"],
+  // The one ASCII-only pattern here, and it has to be: this decides whether a key needs quoting in
+  // a TypeScript object literal, and TypeScript's own unquoted-key grammar is what it is.
+  ["codegen/typescript.ts", "^[A-Za-z_$][A-Za-z0-9_$]*$"],
   // EPIC-012a. Both collapse whitespace: one to count words, one to quote a span on a single line
   // inside a finding's message. Single quantifiers over a single class.
   // The scoping conjunctions that turn a negation into a precondition rather than a contradiction.

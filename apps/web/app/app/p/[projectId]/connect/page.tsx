@@ -15,18 +15,24 @@ export const metadata: Metadata = { title: "Connect · 41Prompts", robots: { ind
 /**
  * The Connect page: how a program in somebody else's repository reads these prompts (EPIC-055).
  *
- * **TypeScript only.** `docs/roadmap.md`'s Goal line for this epic is "the delivery UI, TypeScript
- * path only"; Python is EPIC-054 and the CLI is EPIC-053. The mockup's three language tabs would be
- * two tabs producing code for packages nobody can install, which is worse than their absence.
+ * **TypeScript only.** `docs/roadmap.md`'s Goal line for EPIC-055 is "the delivery UI, TypeScript
+ * path only"; Python's *runtime* is EPIC-054. The mockup's three language tabs would be two tabs
+ * producing code for packages nobody can install, which is worse than their absence.
+ *
+ * **EPIC-053 shipped `41p pull`**, so the card below names it. What did not change is which file
+ * this page shows: the generator moved to `@41prompts/core` and the page and the command are now two
+ * callers of one function, which is what makes "copy it, or pull it" true rather than approximately
+ * true. `lib/connect/generate.ts` carries that argument.
  *
  * ## The steps are the README's and the file is this page's
  *
  * `lib/connect/steps.ts` holds the four snippets and `steps.test.ts` fails when one of them is not
  * in `packages/sdk-ts/README.md` — the README is what goes to npm, so it is the source (ruling 4).
  *
- * The generated `prompts.ts` is the opposite: **this page writes it**, from this project's own rows,
- * because every fact in it is already here and a preview of a file only a non-existent CLI could
- * produce would be a screenshot of a promise (ruling 3).
+ * The generated `prompts.ts` is the opposite: **this page writes it**, from this project's own rows.
+ * EPIC-055's ruling 3 did that because a preview of a file only a non-existent CLI could produce
+ * would be a screenshot of a promise; EPIC-053 made the CLI real without moving the file's ownership
+ * anywhere, because the generator is in core and both call it.
  */
 export const dynamic = "force-dynamic";
 
@@ -106,8 +112,17 @@ export default async function ConnectPage({ params }: { params: Promise<{ projec
         <section className="connect-card" aria-label="A file for your project">
           <div className="connect-cardhead">
             <h2>prompts.ts</h2>
-            {/* Ruling 3: this says what it is. It does not credit a tool that does not exist. */}
-            <p>Written from this project&rsquo;s prompts. Copy it in, or write your own — it is only a wrapper.</p>
+            {/*
+              EPIC-055 ruling 3 said this page would gain one clause when `41p pull` shipped, and
+              EPIC-053 is where it did. The page still writes the file — it is the same function,
+              in `@41prompts/core`, that the command writes — so this is an alternative route to the
+              same bytes rather than a preview of something else.
+            */}
+            <p>
+              Written from this project&rsquo;s prompts. Copy it in, or run <code>41p pull</code> to
+              write it and keep it current. Either way it is only a wrapper — write your own if you
+              prefer.
+            </p>
           </div>
           <pre className="connect-code">
             <code data-testid="generated-file">{generatedPromptsFile(prompts)}</code>

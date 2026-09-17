@@ -85,9 +85,17 @@ test.describe("Connect", () => {
     expect(file).toContain("export function refundClassifier(v: { customer_name: string })");
     expect(file).toContain('import { createClient } from "@41prompts/sdk";');
 
-    // Ruling 3: it does not credit a command that does not exist.
+    // EPIC-053 ruling 9 replaced EPIC-055's header with `docs/roadmap.md`'s ownership sentence,
+    // because a file a command now writes into your repository should say who owns it.
+    expect(file).toContain("This file is yours; 41Prompts claims no rights in it.");
+    expect(file).not.toContain("copy this into your project");
+
+    // The file still does not credit a tool. `41p pull` writes these bytes — the generator is one
+    // function in `@41prompts/core` and the page and the command are two callers — but the file is
+    // the project's, not the command's, and a header claiming otherwise would be the mockup's
+    // mistake reintroduced. The *page* names the command; the file does not.
     expect(file).not.toContain("41p pull");
-    expect(file).toContain("copy this into your project");
+    await expect(page.getByText("41p pull")).toBeVisible();
 
     // The prompt table carries the same facts the file does.
     const row = page.locator(".connect-prompts tbody tr").filter({ hasText: promptId });
