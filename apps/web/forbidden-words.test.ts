@@ -28,9 +28,9 @@ import { describe, expect, it } from "vitest";
 const SCRIPT = join(fileURLToPath(new URL("../../scripts/forbidden-words.mjs", import.meta.url)));
 
 /** Run the gate over one fixture file. Returns its output and whether it passed. */
-function scan(source: string): { ok: boolean; output: string } {
+function scan(source: string, extension = "ts"): { ok: boolean; output: string } {
   const dir = mkdtempSync(join(tmpdir(), "41p-forbidden-"));
-  writeFileSync(join(dir, "fixture.ts"), source);
+  writeFileSync(join(dir, `fixture.${extension}`), source);
   try {
     return { ok: true, output: execFileSync("node", [SCRIPT, dir], { encoding: "utf-8" }) };
   } catch (error) {
@@ -130,5 +130,74 @@ describe("the roots the gate scans", () => {
     // The other direction: what the commands really say must be clean, or the widening above would
     // be a gate that is red for ever and therefore ignored.
     expect(scan('export const said = "Pulled 2 prompts. Run 41p check in CI.";').ok).toBe(true);
+  });
+});
+
+/**
+ * The Python root (EPIC-054 ruling 7) — lesson 19's fourth application.
+ *
+ * `sdks/python/fortyone` joined `DEFAULT_ROOTS`, and a root added without teaching the gate `.py`
+ * would have scanned nothing and reported clean: **a widened root that guards nothing is worse than
+ * no root**, because the run then names a tree it has not checked. So every claim here is about the
+ * gate firing, not about it passing.
+ *
+ * It fired on three real strings the first time it ran, which is why the exemption below exists.
+ */
+describe("the vocabulary gate over Python", () => {
+  it("catches the word in a sentence a person would read", () => {
+    const result = scan('MESSAGE = "Your artifact is ready."\n', "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("catches it in a single-quoted string too", () => {
+    const result = scan("MESSAGE = 'the pointer moved'\n", "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("pointer");
+  });
+
+  it("does not catch it in a comment or a docstring, which are prose and not output", () => {
+    const result = scan(
+      ['"""The artifact format, and the pointer it names."""', "", "# The artifact is public.", "VALUE = 1", ""].join("\n"),
+      "py",
+    );
+    expect(result.output).toContain("clean");
+    expect(result.ok).toBe(true);
+  });
+
+  it("still sees a violation on a line that follows a comment containing a hash inside a string", () => {
+    // The scanner exists for this: blanking from the first `#` would have hidden the word after it,
+    // and a vocabulary gate may over-report but must never under-report.
+    const result = scan('SEPARATOR = "#"\nMESSAGE = "the artifact is ready"\n', "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("allows the shared cache record's key, which @41prompts/sdk writes and fortyone reads", () => {
+    const result = scan(
+      ['record = {"artifact": text}', 'value = record["artifact"]', 'other = record.get("artifact")', ""].join("\n"),
+      "py",
+    );
+    expect(result.output).toContain("clean");
+    expect(result.ok).toBe(true);
+  });
+
+  it("and that exemption does not cover the word anywhere else on the line", () => {
+    // The control on the exemption. A line that has the key *and* a sentence is still a violation.
+    const result = scan('record = {"artifact": "your artifact is ready"}\n', "py");
+    expect(result.ok).toBe(false);
+  });
+
+  it("skips a pytest file, the way it skips a .test.ts", () => {
+    const dir = mkdtempSync(join(tmpdir(), "41p-forbidden-"));
+    writeFileSync(join(dir, "test_thing.py"), 'MESSAGE = "your artifact is ready"\n');
+    const output = execFileSync("node", [SCRIPT, dir], { encoding: "utf-8" });
+    expect(output).toContain("clean");
+  });
+
+  it("names the Python root in its own default list", () => {
+    // Proves the root is spelled the way the tree spells it. A typo would scan nothing and pass.
+    const output = execFileSync("node", [SCRIPT], { encoding: "utf-8" });
+    expect(output).toContain("sdks/python/fortyone");
   });
 });

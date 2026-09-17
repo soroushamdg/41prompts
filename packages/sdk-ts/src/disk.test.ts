@@ -11,7 +11,7 @@
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "./client.js";
@@ -165,5 +165,72 @@ describe("the install id", () => {
     const impossible = join(scratch(), "not-a-directory");
     writeFileSync(impossible, "", "utf8");
     expect(installId(join(impossible, "under"))).toBeUndefined();
+  });
+});
+
+/**
+ * The cross-language check (EPIC-054 ruling 5, C9).
+ *
+ * `fortyone-prompts` writes the same record into the same directory, so a container running a Node
+ * service and a Python worker shares one warm cache. That is worth having on its own, and the
+ * reason it is a *test* is better: two writers and no shared assertion is two formats that drift,
+ * and the drift is silent — each SDK would simply stop finding the other's files and keep working a
+ * little colder for ever.
+ *
+ * Both fixtures come from `pnpm exec tsx scripts/write-cross-language-cache.mts`, each written by
+ * its own language's writer. This file reads Python's and re-derives its own, so neither the
+ * fixture nor the code can move without the other.
+ */
+describe("the cache is shared with fortyone-prompts", () => {
+  const cross = join(import.meta.dirname, "..", "..", "..", "sdks", "python", "tests", "cross-language");
+
+  it("reads a record Python wrote", () => {
+    const entry = readFromDisk(cross, "written-by-python", (warning: Warning) => {
+      throw new Error(`the Python record was rejected: ${warning.message}`);
+    });
+
+    expect(entry).toBeDefined();
+    expect(entry?.version).toBe(6);
+    expect(entry?.publishedAt).toBe("2026-09-16T14:03:07Z");
+    expect(entry?.etag).toBe('"from-python"');
+    // And the build inside it verified against its own content address on the way out, because
+    // `readFromDisk` re-derives it rather than trusting a file it did not watch being written.
+    expect(entry?.artifact.buildHash).toHaveLength(64);
+  });
+
+  it("and the record it writes itself is the one Python's suite reads", () => {
+    const directory = scratch();
+    const artifactText = readFileSync(
+      join(import.meta.dirname, "..", "..", "core", "src", "artifact", "fixtures", "artifact-v1.json"),
+      "utf-8",
+    ).trimEnd();
+    const artifact = JSON.parse(artifactText) as Parameters<typeof writeToDisk>[2]["artifact"];
+
+    writeToDisk(
+      directory,
+      "written-by-typescript",
+      { artifact, version: 6, publishedAt: "2026-09-16T14:03:07Z", etag: '"from-typescript"' },
+      artifactText,
+      () => undefined,
+    );
+
+    const produced = JSON.parse(readFileSync(join(directory, "written-by-typescript.json"), "utf-8")) as unknown;
+    const committed = JSON.parse(readFileSync(join(cross, "written-by-typescript.json"), "utf-8")) as unknown;
+    expect(produced).toEqual(committed);
+  });
+
+  it("refuses a record whose build has been altered, whoever wrote it", () => {
+    // The control. Without it, the two tests above would pass against a reader that accepted
+    // anything — and "the two SDKs agree" would be a claim about nothing.
+    const directory = scratch();
+    const altered = readFileSync(join(cross, "written-by-python.json"), "utf-8").replace(
+      "at most 80 words",
+      "at most 99 words",
+    );
+    writeFileSync(join(directory, "tampered.json"), altered, "utf8");
+
+    const warnings: Warning[] = [];
+    expect(readFromDisk(directory, "tampered", (warning) => warnings.push(warning))).toBeUndefined();
+    expect(warnings.map((warning) => warning.code)).toEqual(["hash_mismatch"]);
   });
 });
