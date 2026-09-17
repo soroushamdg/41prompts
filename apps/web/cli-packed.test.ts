@@ -71,6 +71,14 @@ afterAll(() => {
   rmSync(work, { recursive: true, force: true });
 });
 
+/** `process.env`, minus the two variables `@41prompts/cli` reads. */
+function environmentWithoutKeys(): NodeJS.ProcessEnv {
+  const copy = { ...process.env };
+  delete copy.FORTYONE_API_KEY;
+  delete copy.FORTYONE_BASE_URL;
+  return copy;
+}
+
 /** Run the packed binary. Returns its streams and exit code; never throws on a non-zero exit. */
 function run(args: readonly string[], cwd = work): { code: number; stdout: string; stderr: string } {
   try {
@@ -78,8 +86,14 @@ function run(args: readonly string[], cwd = work): { code: number; stdout: strin
       cwd,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
-      // No inherited FORTYONE_* — a developer's own key must not change what this test proves.
-      env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "" },
+      // The environment minus the two names the CLI reads. A developer's own key, or a `.env` that
+      // happens to be exported, must not change what this proves — `41p link` with a key in the
+      // environment does something completely different from `41p link` without one.
+      //
+      // Subtractive rather than a hand-built `{ PATH, HOME }`: that version needed `NODE_ENV` to
+      // satisfy `apps/web`'s augmented `ProcessEnv` and would have kept needing whatever Node wants
+      // next. Removing exactly what must not leak says what is meant.
+      env: environmentWithoutKeys(),
     });
     return { code: 0, stdout, stderr: "" };
   } catch (error) {
