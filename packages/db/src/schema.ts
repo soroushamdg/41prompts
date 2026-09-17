@@ -8,6 +8,7 @@ import {
   newProjectId,
   newPromptId,
   newPromptVersionId,
+  newPublishEventId,
   newProviderKeyId,
   newSuiteCheckId,
   newSuiteResultId,
@@ -96,6 +97,24 @@ export const projects = pgTable("projects", {
     .references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  /**
+   * Whether moving a prompt to Live is restricted to a project admin (EPIC-051).
+   *
+   * The mockup's Settings → Publishing switch, and the roadmap's "admin-only switch". **Defaults
+   * on**, because the safe default for "who may change what production is serving" is the narrow
+   * one, and a project that wants it wider says so.
+   *
+   * **With no team model there is exactly one member and they are the admin**, so today this cannot
+   * refuse anybody — team collaboration is on `docs/backlog.md`'s cut list for v1. It is a column
+   * rather than a constant so that the day a second member exists, the answer to "was publishing
+   * restricted when this happened" is a fact that was already being recorded rather than one
+   * somebody reconstructs.
+   *
+   * The mockup's *second* Publishing switch, "Require passing checks", is deliberately **not** here:
+   * an account-wide off-switch for `CLAUDE.md` rule 9 is a different thing from rule 9's own escape,
+   * which is "Publish anyway" with a typed reason and an audit row. EPIC-051 ruling 4.
+   */
+  adminOnlyPublish: boolean("admin_only_publish").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at"),
 });
@@ -110,6 +129,21 @@ export const apiKeys = pgTable("api_keys", {
   name: text("name").notNull(),
   hashedKey: text("hashed_key").notNull(),
   lastFour: text("last_four").notNull(),
+  /**
+   * `test` or `live` (EPIC-051). The plaintext says which: `41p_test_…`, `41p_live_…`.
+   *
+   * **Both resolve the same Live marker.** The difference this column records is what the
+   * resolution *counts as*: GATE 5's demand measure is "the number of distinct **production** apps
+   * resolving from the CDN", and a CI job that resolves a prompt on every push would otherwise be
+   * indistinguishable from a customer shipping one.
+   *
+   * The counting needs CDN access logs, which need a CDN, which does not exist yet. What this column
+   * owes today is that the fact is **already on the key** when those logs arrive — a distinction
+   * backfilled later is a distinction guessed at.
+   *
+   * Defaults to `live` so that keys minted before this column existed keep meaning what they meant.
+   */
+  environment: text("environment").notNull().default("live"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   lastUsedAt: timestamp("last_used_at"),
   revokedAt: timestamp("revoked_at"),
@@ -866,3 +900,109 @@ export const providerKeys = pgTable(
   },
   (table) => [uniqueIndex("provider_keys_owner_provider_idx").on(table.owner, table.provider)],
 );
+
+// ── EPIC-051: publish ────────────────────────────────────────────────────────────────────────
+
+/**
+ * **The publish history, and the only record of what is Live.**
+ *
+ * ## There is no `prompts.live_build_hash`, deliberately (EPIC-051 ruling 2)
+ *
+ * What is Live is *the newest row here for this prompt*. An undo appends a row rather than editing
+ * one, so the log is append-only and the current state is a query over it.
+ *
+ * A column kept in step with this table would be a second place for one fact — the argument
+ * `prompt_versions` already makes for having no `passRate` column, and `suite_runs.comparison` makes
+ * for being a shared key rather than a self-reference. Here the disagreement is worse than usual:
+ * two copies diverging means **the audit log says one artifact was published and the CDN serves
+ * another**, and the audit log is the thing a customer is asked to trust.
+ *
+ * ## It carries the gate it satisfied, or went past
+ *
+ * `gate` is the whole `GateReport` at the moment of the decision. Not a summary and not a boolean:
+ * "Publish anyway" is `CLAUDE.md` rule 9's sanctioned exception, and an exception whose record does
+ * not say **what** was excepted is an exception nobody can review. Re-deriving it later is not
+ * available — the checks, the costs and the Live artifact it was compared against have all moved on.
+ *
+ * ## `actor` may become null and the row stays
+ *
+ * `set null` rather than `cascade`. Deleting an account must not delete the evidence that Live moved,
+ * for the same reason `suite_runs.version` is `set null`: the act happened, and a history that
+ * erases itself when somebody leaves is not a history.
+ */
+export const publishEvents = pgTable(
+  "publish_events",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => newPublishEventId()),
+    prompt: text("prompt")
+      .notNull()
+      .references(() => prompts.id, { onDelete: "cascade" }),
+    /**
+     * The version published, or the one restored by an undo. `set null`, like `suite_runs.version`:
+     * deleting a version must not delete the record of it having been Live.
+     */
+    version: text("version").references(() => promptVersions.id, { onDelete: "set null" }),
+    /** The N a person reads as "Live vN", frozen here so the history survives the version row. */
+    versionN: integer("version_n").notNull(),
+    /** The `buildHash` of the artifact this event makes Live. Core's `Artifact.buildHash`. */
+    buildHash: text("build_hash").notNull(),
+    /** `published` · `published_anyway` · `undone`. Never a fourth. */
+    kind: text("kind").notNull(),
+    actor: text("actor").references(() => users.id, { onDelete: "set null" }),
+    /**
+     * Why. Required for `published_anyway` (rule 9, ≥10 characters) and for `undone` (ruling 3);
+     * null for an ordinary publish, where "all checks passed" is the reason and it is already in
+     * `gate`.
+     */
+    reason: text("reason"),
+    /** The `GateReport` this decision was made against. See the header. */
+    gate: jsonb("gate").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // "What is Live" is `order by created_at desc limit 1` on every read, and the publish history is
+    // the same query without the limit. One index serves both.
+    index("publish_events_prompt_created_idx").on(table.prompt, table.createdAt),
+  ],
+);
+
+/**
+ * The artifact store's bytes, when the store is this database (EPIC-051).
+ *
+ * ## Why a table and not only R2
+ *
+ * R2 is where artifacts go in a deployment that has a bucket. **No artifact bucket exists** —
+ * creating one and putting Cloudflare in front of it is Soroush's step — and a store that only works
+ * in production is a store nothing can test, drive or develop against. So there are two drivers
+ * behind one interface, and this is the other one: durable, shared between web replicas, and already
+ * backed up nightly by `infra/backup.sh`.
+ *
+ * ## Write-once, and a conflicting write is an error rather than an update
+ *
+ * `key` is a content address for artifacts (`<env>/artifacts/<buildHash>.json`), so the same key
+ * arriving twice with the same body is an ordinary repeat and does nothing. The same key arriving
+ * with a **different** body is either a hash collision or a bug, and both are corruption of an
+ * object that has already been served behind an immutable cache header. It throws.
+ *
+ * Markers are the exception: `<env>/markers/<promptId>.json` is one key per prompt and it is
+ * *supposed* to change, which is why it is served with `max-age=30` instead.
+ */
+export const publishedArtifacts = pgTable("published_artifacts", {
+  /** The storage key, environment-prefixed. See `apps/web/lib/deploy/store.ts`. */
+  key: text("key").primaryKey(),
+  /** `application/json` for both documents this epic writes. */
+  contentType: text("content_type").notNull(),
+  /** The exact header this object is served with, stored beside the bytes rather than re-decided. */
+  cacheControl: text("cache_control").notNull(),
+  /**
+   * The bytes, as text.
+   *
+   * `artifactBytes()` produces a UTF-8 JSON string and nothing else is stored here, so `text` is the
+   * honest column type — `bytea` would say this store accepts arbitrary binary, which it does not.
+   */
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

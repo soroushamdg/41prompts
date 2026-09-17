@@ -147,3 +147,15 @@ export function newComparisonId(): string {
 export function newProviderKeyId(): string {
   return newId("pk", 8);
 }
+
+/**
+ * One entry in a prompt's publish history: `pub_` + 16 hex.
+ *
+ * Eight bytes rather than the four most rows here use, because this table is the **record of what is
+ * Live** (EPIC-051 ruling 2) rather than a row that merely refers to one. It is never handed out and
+ * the extra eight characters cost nothing; what they buy is that a row id can be quoted in an
+ * incident write-up without anybody wondering whether ids were guessable.
+ */
+export function newPublishEventId(): string {
+  return newId("pub", 8);
+}

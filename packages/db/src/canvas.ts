@@ -58,6 +58,26 @@ export async function promptForOwner(
   return row;
 }
 
+/**
+ * One prompt by id, with the project it belongs to — **no owner, on purpose** (EPIC-051).
+ *
+ * `/v1` is authenticated by a project-scoped key rather than by a session, so "is this prompt yours"
+ * is answered by comparing `project` against the key's, not by joining to a user. Every other read
+ * in this file takes an owner because every other read is reached from a session.
+ *
+ * It returns a soft-deleted prompt's row as undefined, like `promptForOwner`: a deleted prompt is
+ * gone whoever is asking.
+ */
+export async function promptById(db: Db, promptId: string): Promise<{ id: string; name: string; project: string } | undefined> {
+  const [row] = await db
+    .select({ id: prompts.id, name: prompts.name, project: prompts.project })
+    .from(prompts)
+    .innerJoin(projects, eq(prompts.project, projects.id))
+    .where(and(eq(prompts.id, promptId), isNull(prompts.deletedAt), isNull(projects.deletedAt)))
+    .limit(1);
+  return row;
+}
+
 /** This prompt's live bloks in rank order. The caller has already proved ownership. */
 export async function bloksForPrompt(db: Db, promptId: string): Promise<BlokRow[]> {
   return db

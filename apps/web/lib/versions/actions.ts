@@ -1,6 +1,6 @@
 "use server";
 
-import { compile, readSnapshotBloks, type KeptSpan, type PromptBlok } from "@41prompts/core";
+import { readSnapshotBloks } from "@41prompts/core";
 import {
   applySnapshot,
   BlokBelongsElsewhereError,
@@ -21,6 +21,7 @@ import { captureAccountEvent } from "@/lib/analytics/visitor";
 import { getDb } from "@/lib/db";
 import { enqueueRun } from "@/lib/runs/queue";
 import { requireSession } from "@/lib/session";
+import { compileVersion } from "./compile";
 import { recordVersionNow } from "./record";
 import { versionForOwner } from "./queries";
 
@@ -233,27 +234,17 @@ export async function abAction(
 function checksOf(
   version: VersionRow,
 ): { checkId: string; blokId: string; blokKind: string; blokText: string; kind?: string }[] | undefined {
-  const snapshotBloks = readSnapshotBloks(version.snapshot);
-  if (snapshotBloks === undefined) return undefined;
+  // Extracted to `./compile` when EPIC-051 needed the same three steps — snapshot to `PromptBlok[]`,
+  // hand edits replayed, `compile()` — for the artifact it publishes. Two callers, one answer to
+  // "what does this version compile to"; a second copy of it would be a second answer.
+  const recompiled = compileVersion(version);
+  if (recompiled === undefined) return undefined;
 
-  const bloks: PromptBlok[] = snapshotBloks.map((blok) => ({
-    id: blok.id,
-    kind: blok.kind,
-    text: blok.text,
-    order: blok.position,
-  }));
-
-  const keep = new Map<string, KeptSpan>();
-  for (const blok of snapshotBloks) {
-    if (blok.editedText !== null && blok.editedFromHash !== null) {
-      keep.set(blok.id, { text: blok.editedText, hash: blok.editedFromHash });
-    }
-  }
-
+  const snapshotBloks = recompiled.bloks;
   const kindById = new Map(snapshotBloks.map((blok) => [blok.id, blok.kind]));
   const textById = new Map(snapshotBloks.map((blok) => [blok.id, blok.text]));
 
-  return compile(bloks, { keep }).checks.map((check) => ({
+  return recompiled.compiled.checks.map((check) => ({
     checkId: check.id,
     blokId: check.blokId,
     blokKind: kindById.get(check.blokId) ?? "expected",

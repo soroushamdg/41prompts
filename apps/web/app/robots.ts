@@ -20,6 +20,10 @@ export const dynamic = "force-dynamic";
  * Everything else — `/sign-in`, `/app` — is disallowed because none of it is a destination for a
  * search result.
  *
+ * **`/v1/` is disallowed (EPIC-051).** It is a machine API: every route on it answers 401 without a
+ * key, and `/v1/blob` serves immutable JSON documents. None of it is a destination for a search
+ * result, and a crawler that never fetches it is a crawler not spending our request budget on 401s.
+ *
  * **`/legal/` moved from disallow to allow in EPIC-017.** It was disallowed while those pages said
  * "this page is not written yet", because a placeholder indexed as "41Prompts privacy" is worse than
  * nothing on file. They are written now, and a privacy policy a person cannot find is not much of a
@@ -31,7 +35,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: ["/", "/decompile", "/guides/", "/legal/", "/llms.txt"],
-        disallow: ["/d/", "/app", "/api/", "/sign-in", "/sign-up", "/contact", "/dev/", "/waitlist/"]
+        disallow: ["/d/", "/app", "/api/", "/v1/", "/sign-in", "/sign-up", "/contact", "/dev/", "/waitlist/"]
       }
     ],
     sitemap: `${await siteOrigin()}/sitemap.xml`

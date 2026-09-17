@@ -16,8 +16,15 @@
  * Two lists would disagree the first time a route is added.
  */
 
-/** Paths that belong on `app.`. Prefix match, and order does not matter — they do not overlap. */
-export const APP_PATHS: readonly string[] = ["/app", "/sign-in", "/sign-up", "/api/auth"];
+/**
+ * Paths that belong on `app.`. Prefix match, and order does not matter — they do not overlap.
+ *
+ * `/api/prompts` is EPIC-051's publish and undo endpoints. They are authenticated by the **session
+ * cookie** and called from the Deploy page, so they belong wherever that page is; and the cookie is
+ * scoped to `app.`, so serving them on the apex would be serving an endpoint that can never
+ * authenticate anybody.
+ */
+export const APP_PATHS: readonly string[] = ["/app", "/sign-in", "/sign-up", "/api/auth", "/api/prompts"];
 
 /**
  * Paths that belong on the apex but are not otherwise obvious — everything not in `APP_PATHS` is
@@ -43,8 +50,14 @@ export const PUBLIC_PATHS: readonly string[] = [
  * `/healthz` because a health check that 301s is a health check that reports on the redirect rather
  * than on the app, and both hosts are the same container anyway. `/_next` and the dev routes because
  * redirecting an asset request breaks the page that asked for it.
+ *
+ * **`/v1` for the same reason, and it is the one that will matter most** (EPIC-051). It is called by
+ * a customer's program holding a project-scoped key, not by a browser, and a 301 to a program is
+ * either a wasted round trip on every resolve or — for a client that does not follow redirects, which
+ * `@41prompts/sdk` may well not, since it must never block a call — an outright failure. Whatever
+ * base URL somebody configures, the answer has to be the answer.
  */
-export const SHARED_PATHS: readonly string[] = ["/healthz", "/_next", "/dev", "/favicon.ico", "/icon.svg"];
+export const SHARED_PATHS: readonly string[] = ["/healthz", "/_next", "/dev", "/favicon.ico", "/icon.svg", "/v1"];
 
 function matches(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
