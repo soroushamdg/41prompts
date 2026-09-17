@@ -114,10 +114,43 @@ export { inputSetProblems } from "./inputs/input-set.js";
 export type { BindOutcome, BoundPrompt, UnboundPrompt } from "./inputs/bind.js";
 export type { ColumnProblem, CsvParse, CsvProblem } from "./inputs/types.js";
 
-// The build artifact (EPIC-022 ships v1; EPIC-050 freezes it). **Not a public contract yet** — the
-// file says so in as many words, and `CLAUDE.md` protects it only once Stage 5a begins.
-export { ARTIFACT_SCHEMA_VERSION, artifactOf } from "./artifact/schema.js";
-export type { Artifact, ArtifactVariable } from "./artifact/schema.js";
+// The build artifact, **frozen at v1 by EPIC-050** and a public contract from that moment:
+// `docs/decisions/ADR-005-build-artifact.md` is the declaration, and `CLAUDE.md` puts
+// `artifact/schema.ts` on the never-touch list now that Stage 5a has begun.
+//
+// Four pieces, and each is here rather than in `apps/*` or the SDK because a second implementation
+// of any of them is a second answer to a question with one right answer: what bytes an artifact is,
+// what its address is, whether a reader can trust the document it fetched, and whether publishing a
+// new build breaks the callers the old one already has in the field.
+export {
+  ARTIFACT_SCHEMA_VERSION,
+  MARKER_SCHEMA_VERSION,
+  artifactBytes,
+  artifactOf,
+  buildHashOf,
+  liveMarkerOf,
+} from "./artifact/schema.js";
+export type {
+  Artifact,
+  ArtifactBlok,
+  ArtifactCheck,
+  ArtifactInput,
+  ArtifactParams,
+  ArtifactSpan,
+  ArtifactVariable,
+  LiveMarker,
+  LiveMarkerInput,
+} from "./artifact/schema.js";
+export { isCompatible } from "./artifact/compatibility.js";
+export type { CompatibilityReport, ContractBreak, ContractBreakKind } from "./artifact/compatibility.js";
+export { canonicalJson, CanonicalJsonError } from "./artifact/canonical.js";
+export type { JsonValue } from "./artifact/canonical.js";
+export { sha256, sha256Text, utf8Bytes } from "./artifact/sha256.js";
+// The machine-readable half of ADR-005, for a reader written in another language. `validate` is a
+// deliberate subset and refuses a keyword it does not implement rather than ignoring it.
+export { ARTIFACT_JSON_SCHEMA, LIVE_MARKER_JSON_SCHEMA } from "./artifact/json-schema.js";
+export { UnsupportedKeywordError, validate } from "./artifact/validate.js";
+export type { JsonSchema, SchemaViolation } from "./artifact/validate.js";
 
 // Versions and semantic diff (EPIC-040). A version is a frozen blok set; `diff()` answers what a
 // person changed between two of them. Bloks are matched by **id**, which is what lets a move be

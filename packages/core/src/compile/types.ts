@@ -226,9 +226,16 @@ export interface CompileOptions {
    * looks plausible, and the sentence a person wrote is gone. Nothing throws.
    *
    * Omitting it keeps the old behaviour exactly — `compile(bloks)` is still a fresh compile, and
-   * still a pure function of the blok set alone. That matters for EPIC-050, whose artifact builder
-   * publishes what the bloks say and should not accidentally publish an exception somebody made in
-   * an editor.
+   * still a pure function of the blok set alone.
+   *
+   * **Corrected by EPIC-050, 2026-09-16.** This paragraph used to say that EPIC-050's artifact
+   * builder wants the fresh compile, because it "publishes what the bloks say and should not
+   * accidentally publish an exception somebody made in an editor". That reading did not survive
+   * EPIC-040: a run sends `suite_runs.promptText`, which is the version's `compiledText`, which
+   * `snapshot()` compiles **with** the hand edits. An artifact that dropped them would publish text
+   * nobody ever ran, which is the opposite of what a publish gate is for. So `artifactOf` takes a
+   * `Compiled` from its caller and the caller passes the one the version holds — and `ArtifactSpan`
+   * carries `state` precisely so a reader can see which spans a person wrote.
    *
    * An entry is **ignored, not resurrected**, when its blok is no longer in the set or has become
    * `expected` — a kept edit is an exception to a blok's compiled output, so with no blok there is
