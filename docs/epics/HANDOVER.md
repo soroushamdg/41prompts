@@ -104,13 +104,13 @@ the fallback labels itself `normalised: true`.
 
 ## Where the code is
 
-Measured 2026-09-16, against `/healthz` rather than remembered:
+Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | EPIC-052's merge | EPIC-052 merged, 2026-09-17 |
-| `origin/main` / staging | `da42eee` | **21 behind** |
-| production | `af089c7` | 86+ behind; only a `v*` tag moves it |
+| local `main` | `0ef32b7` | EPIC-052 and its one-line follow-up, merged 2026-09-17 |
+| `origin/main` / staging | `da42eee` | **44 behind** — still EPIC-040's epic file and GATE 3's decision |
+| production | `af089c7` | 95+ behind; only a `v*` tag moves it |
 
 **So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051 or 052**, and no staging
 URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
@@ -121,8 +121,8 @@ URL is evidence about any of them. Check `/healthz`'s `commit` before quoting on
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
 **A release is due.** `docs/AUTONOMOUS.md` stops the loop after every third completed epic, and 040,
-041, 042, 043 and 050 are five. `RELEASE-DUE.md` was generated at `f3fa8a2` and is stale;
-`node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
+041, 042, 043, 050, 051 and 052 are **seven**. `RELEASE-DUE.md` was generated at `f3fa8a2` and is
+stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
 
