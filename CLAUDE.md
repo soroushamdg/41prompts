@@ -67,11 +67,14 @@ showing a sample as though it were the set.
 - Files kebab-case. Types and components PascalCase. Functions and variables camelCase. DB columns snake_case.
 - Blok kinds: `context | constraint | example | expected | image_ref | image_input`.
 - Prompt ids `pr_` + 8 hex. Project ids `proj_` + 4 hex. Build hash: content hash of the compiled artifact.
-- Env: `FORTYONE_API_KEY`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`,
+- Env: `FORTYONE_API_KEY`, `FORTYONE_BASE_URL`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`,
   `KEY_ENCRYPTION_SECRET`, `KEY_ENCRYPTION_PUBLIC_KEY`. The last two are halves of one key: a process
   that only **seals** a provider key needs the public half alone, which is what lets `apps/web` be
   given it and `apps/worker` the secret (threat model row `043a`). Both are optional and a process
   holding the secret ignores the public half, so the split is additive — nothing breaks without it.
+  The first two are read by **a customer's process**, not by ours: `@41prompts/sdk` falls back to them
+  when `apiKey` and `baseUrl` are not passed to `createClient`. `FORTYONE_BASE_URL` exists for a
+  self-hosted deployment and for a test pointing at localhost; it defaults to `https://app.41prompts.ai`.
 - Public source files carry `SPDX-License-Identifier: Apache-2.0` headers. Copyright holder is `<legal entity>` until incorporation.
 
 ## Server access
