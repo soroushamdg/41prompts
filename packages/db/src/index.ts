@@ -14,3 +14,4 @@ export * from "./sealed-box";
 export * from "./provider-keys";
 export * from "./verify-key";
 export * from "./testing";
+export * from "./publishes";

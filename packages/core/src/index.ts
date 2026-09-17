@@ -152,6 +152,24 @@ export { ARTIFACT_JSON_SCHEMA, LIVE_MARKER_JSON_SCHEMA } from "./artifact/json-s
 export { UnsupportedKeywordError, validate } from "./artifact/validate.js";
 export type { JsonSchema, SchemaViolation } from "./artifact/validate.js";
 
+// The publish gate (EPIC-051). "May this version go Live" is the one decision in this product that
+// must be correct, so `CLAUDE.md` rule 1 puts it here with its tests rather than in a route handler.
+// It answers from facts and never acts: no clock, no database, no "Publish anyway" — the escape rule
+// 9 sanctions belongs to the caller, which records this report as the thing it went past.
+export { publishGate } from "./publish/gate.js";
+export type {
+  BlokDiffCounts,
+  ChecksState,
+  CostComparison,
+  GateDetail,
+  GateReason,
+  GateReport,
+  GateRow,
+  GateRowKind,
+  GateVerdict,
+  PublishGateInput,
+} from "./publish/types.js";
+
 // Versions and semantic diff (EPIC-040). A version is a frozen blok set; `diff()` answers what a
 // person changed between two of them. Bloks are matched by **id**, which is what lets a move be
 // reported as a move rather than as a removal plus an addition — `version/diff.ts` has the argument.
