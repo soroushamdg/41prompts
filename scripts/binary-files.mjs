@@ -15,10 +15,46 @@ import { execFileSync } from "node:child_process";
 import { extname } from "node:path";
 import { openSync, readSync, closeSync } from "node:fs";
 
-// The roots the advisor named. `sdks/` and `scripts/` are not covered; widening is one line here.
-const ROOTS = ["packages", "apps"];
+/**
+ * Every tree whose text files are read by a person.
+ *
+ * **`docs/`, `sdks/` and `scripts/` joined in EPIC-055, and the reason is that the gap was real.**
+ * The roots were `packages` and `apps`; on 2026-09-17 a scan of every tracked file found a literal
+ * NUL byte in `docs/epics/reports/EPIC-052-report.md` and another in the matching session log —
+ * both in the sentence describing the lesson about a NUL byte reaching a source file.
+ *
+ * Nothing caught them, because nothing was looking there. `.gitattributes` did its half (`*.md diff`
+ * keeps the textual diff visible, so the review hole stayed closed) and this script is the other
+ * half — the one that makes the byte get **removed** rather than merely rendered.
+ *
+ * The cost of not covering `docs/` is not cosmetic. `git` classes such a file as binary, and `grep`
+ * then silently finds nothing in it: a session grepping EPIC-052's report for a lesson gets an empty
+ * result that looks exactly like an absence. That is `docs/epics/HANDOVER.md`'s lesson 20 — a search
+ * that cannot fire reads exactly like a search that found nothing — arriving through the reports
+ * that record it.
+ *
+ * Lesson 19, verbatim: **a gate only guards what it is pointed at.** Before trusting this script
+ * about a new area, check that the area is in this array.
+ */
+const ROOTS = ["packages", "apps", "docs", "sdks", "scripts"];
 
-// Git's own heuristic: it only sniffs the first 8000 bytes.
+/**
+ * Git's own heuristic window: it decides a file is binary by looking for a NUL in the first 8000
+ * bytes and no further.
+ *
+ * **This script scans the whole file, and the window is now only used to say how bad it is.** The
+ * two harms have different thresholds and EPIC-055 found one of each:
+ *
+ * - `docs/epics/sessions/EPIC-052-session.md`, NUL at byte 5,755 — **inside** the window, so git
+ *   calls the file binary and shows no diff for it at all.
+ * - `docs/epics/reports/EPIC-052-report.md`, NUL at byte 12,411 — **outside** it, so `git diff`
+ *   works perfectly and the file looks fine. `grep` does not have a window: it reads the whole file,
+ *   finds the byte, and then silently reports nothing. `grep -c '^#'` on that report returns 0 and
+ *   exits 1, for a document full of Markdown headings.
+ *
+ * Scanning only the window would have passed the second file while its own subject — lesson 20, a
+ * search that cannot fire reads exactly like a search that found nothing — was happening to it.
+ */
 const SNIFF_BYTES = 8000;
 
 // Extensions where being binary is the point. Everything else is a defect.
@@ -69,7 +105,7 @@ function filesToCheck() {
   return [...new Set([...tracked, ...staged, ...untracked])].sort();
 }
 
-/** The offset of the first NUL byte within git's sniff window, or -1. */
+/** The offset of the first NUL byte anywhere in the file, or -1. */
 function firstNulByte(path) {
   let handle;
   try {
@@ -78,9 +114,17 @@ function firstNulByte(path) {
     return -1; // deleted or unreadable in the working tree; nothing to judge
   }
   try {
-    const buffer = Buffer.alloc(SNIFF_BYTES);
-    const read = readSync(handle, buffer, 0, SNIFF_BYTES, 0);
-    return buffer.subarray(0, read).indexOf(0);
+    // Read in chunks rather than slurping: `docs/` now contains this script's own inputs and a
+    // report can be large. The offset is absolute so the message can compare it with SNIFF_BYTES.
+    const buffer = Buffer.alloc(64 * 1024);
+    let position = 0;
+    for (;;) {
+      const read = readSync(handle, buffer, 0, buffer.length, position);
+      if (read === 0) return -1;
+      const found = buffer.subarray(0, read).indexOf(0);
+      if (found >= 0) return position + found;
+      position += read;
+    }
   } finally {
     closeSync(handle);
   }
@@ -97,17 +141,28 @@ for (const path of filesToCheck()) {
 }
 
 if (violations.length > 0) {
-  console.error(`A source file contains a NUL byte, which makes git treat it as binary:\n`);
+  console.error(`A text file contains a NUL byte:\n`);
   for (const { path, offset } of violations) {
-    console.error(`  ${path}: first NUL at byte ${offset}`);
+    const invisible = offset < SNIFF_BYTES;
+    console.error(
+      `  ${path}: first NUL at byte ${offset}` +
+        (invisible
+          ? " — inside git's 8000-byte window, so git shows NO DIFF for this file"
+          : " — outside git's window, so git diffs it, but grep silently finds nothing in it")
+    );
   }
   console.error(
-    "\nGit shows no diff for a file it considers binary, so this file would be invisible in review —" +
+    "\nGit shows no diff for a file it considers binary, so such a file is invisible in review —" +
       "\nwhich is exactly how packages/core/src/cluster/cluster.ts went unreviewed for two epics." +
+      "\nA NUL past that window is quieter and not harmless: grep reads the whole file, decides it is" +
+      "\nbinary, and reports nothing — indistinguishable from a search that found nothing." +
       "\n\nIf the byte is meant to be there, write it as an escape (\\u0000) rather than a raw byte." +
       "\nIf the file is genuinely binary, add its extension to ALLOWED_BINARY in this script and say why."
   );
   process.exit(1);
 }
 
-console.log(`No source file under ${ROOTS.join(", ")} is binary (${checked} checked, including staged and untracked).`);
+console.log(
+  `No text file under ${ROOTS.join(", ")} contains a NUL byte ` +
+    `(${checked} checked in full, including staged and untracked).`
+);

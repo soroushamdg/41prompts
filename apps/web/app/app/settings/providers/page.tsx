@@ -10,6 +10,7 @@ import {
 } from "@/lib/providers/key-guidance";
 import { providerRowsFor } from "@/lib/providers/queries";
 import { requireSession } from "@/lib/session";
+import { SettingsNav } from "../settings-nav";
 import { ProviderKeys } from "./provider-keys";
 
 export const metadata: Metadata = {
@@ -22,10 +23,15 @@ export const metadata: Metadata = {
  *
  * ## Why this is a page and not a tab
  *
- * The mockup's Settings screen has five tabs — Providers, API keys, Publishing, Team, Billing — and
- * four of them belong to Stage 5a and Stage 6. **A tablist with one tab in it is not a tablist**: it
- * would put real ARIA tabs on the page to describe a set of one, and it would imply four screens
- * that do not exist. When the others arrive this page becomes the first panel of them.
+ * The mockup's Settings screen has five tabs — Providers, API keys, Publishing, Team, Billing. Two
+ * more of them arrived in EPIC-055 and the remaining two are Stage 6, so the navigation above is
+ * three links rather than five tabs.
+ *
+ * **It is links rather than a tablist, and that is the answer to the question this comment used to
+ * park.** Each of the three does its own query and is worth sending somebody to, so each is a URL —
+ * and a control that changes the URL is a link, whatever it looks like. `role="tab"` on one would
+ * promise a screen-reader user that a panel is about to swap. `SettingsNav` has the whole argument;
+ * EPIC-055 ruling 1.
  *
  * ## The guidance is above the box, and it is EPIC-043's own words
  *
@@ -61,6 +67,8 @@ export default async function ProvidersSettingsPage() {
         <h1>Providers</h1>
         <p className="app-state">Settings</p>
       </header>
+
+      <SettingsNav current="providers" />
 
       <section className="runs-panel" aria-label={KEY_GUIDANCE_TITLE}>
         <h2>{KEY_GUIDANCE_TITLE}</h2>

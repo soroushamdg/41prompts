@@ -23,6 +23,8 @@ import {
   hashApiKey,
   markApiKeyUsed,
   newApiKeyPlaintext,
+  revokeApiKey,
+  rotateApiKey,
 } from "./api-keys";
 
 const OWNER = "publishes-test-owner";
@@ -296,6 +298,81 @@ describe.skipIf(!HAS_TEST_DATABASE)("publishes", () => {
     it("mints a different value every time", async () => {
       const values = new Set([newApiKeyPlaintext("live"), newApiKeyPlaintext("live"), newApiKeyPlaintext("live")]);
       expect(values.size).toBe(3);
+    });
+
+    // ── EPIC-055: revoke, and rotation as two rows ───────────────────────────────────────────────
+
+    it("revokes a key, idempotently, and only through its own project", async () => {
+      const { key, plaintext } = await createApiKey(db, { project: projectId, name: "Prod", environment: "live" });
+
+      // The control: the lookup this test is about to assert *fails* is proved to succeed first.
+      // Without it, a revoke that did nothing and a lookup that never worked look identical.
+      expect((await apiKeyForPlaintext(db, plaintext))?.id).toBe(key.id);
+
+      expect(await revokeApiKey(db, { project: "proj_ffff", keyId: key.id })).toBe(false);
+      expect((await apiKeyForPlaintext(db, plaintext))?.id).toBe(key.id);
+
+      expect(await revokeApiKey(db, { project: projectId, keyId: key.id })).toBe(true);
+      expect(await apiKeyForPlaintext(db, plaintext)).toBeUndefined();
+
+      // Pressing it twice is not an error; it is a second answer to the same question.
+      expect(await revokeApiKey(db, { project: projectId, keyId: key.id })).toBe(false);
+    });
+
+    it("rotates into two rows, keeping the old one's dates", async () => {
+      const { key: old, plaintext: oldPlaintext } = await createApiKey(db, {
+        project: projectId,
+        name: "Prod",
+        environment: "live",
+      });
+      await markApiKeyUsed(db, old.id, at(9));
+
+      expect((await apiKeyForPlaintext(db, oldPlaintext))?.id).toBe(old.id);
+
+      const rotated = await rotateApiKey(db, { project: projectId, keyId: old.id }, at(20));
+      expect(rotated).toBeDefined();
+
+      // The old plaintext stops working; the new one starts. Both directions, because a rotation
+      // that revoked without minting and one that minted without revoking are different bugs.
+      expect(await apiKeyForPlaintext(db, oldPlaintext)).toBeUndefined();
+      expect((await apiKeyForPlaintext(db, rotated!.plaintext))?.id).toBe(rotated!.key.id);
+
+      // The name and the environment carry over: rotation replaces a credential, not its purpose.
+      expect(rotated!.key.name).toBe("Prod");
+      expect(rotated!.key.environment).toBe("live");
+      expect(rotated!.key.id).not.toBe(old.id);
+
+      // Two rows, and the revoked one still explains itself. This is the whole of ruling 6: an
+      // in-place update would leave `created_at` describing a credential that no longer exists.
+      const listed = await apiKeysForProject(db, projectId);
+      expect(listed).toHaveLength(2);
+      const kept = listed.find((row) => row.id === old.id);
+      expect(kept?.revokedAt?.getTime()).toBe(at(20).getTime());
+      expect(kept?.createdAt.getTime()).toBe(old.createdAt.getTime());
+      expect(kept?.lastUsedAt?.getTime()).toBe(at(9).getTime());
+      expect(kept?.lastFour).toBe(old.lastFour);
+    });
+
+    it("refuses to rotate a key that is not this project's, or is already revoked", async () => {
+      const { key } = await createApiKey(db, { project: projectId, name: "Prod", environment: "live" });
+
+      expect(await rotateApiKey(db, { project: "proj_ffff", keyId: key.id })).toBeUndefined();
+      // Still one row: a refused rotation mints nothing.
+      expect(await apiKeysForProject(db, projectId)).toHaveLength(1);
+
+      await revokeApiKey(db, { project: projectId, keyId: key.id });
+      expect(await rotateApiKey(db, { project: projectId, keyId: key.id })).toBeUndefined();
+      expect(await apiKeysForProject(db, projectId)).toHaveLength(1);
+    });
+
+    it("rotates twice into three rows", async () => {
+      const { key } = await createApiKey(db, { project: projectId, name: "Prod", environment: "live" });
+      const first = await rotateApiKey(db, { project: projectId, keyId: key.id }, at(20));
+      const second = await rotateApiKey(db, { project: projectId, keyId: first!.key.id }, at(30));
+
+      const listed = await apiKeysForProject(db, projectId);
+      expect(listed).toHaveLength(3);
+      expect(listed.filter((row) => row.revokedAt === null).map((row) => row.id)).toEqual([second!.key.id]);
     });
   });
 });

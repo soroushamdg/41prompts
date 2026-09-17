@@ -32,7 +32,7 @@ import {
   users,
   type Db,
 } from "@41prompts/db";
-import { publishVersion, readArtifact, undoPublish } from "./publish";
+import { previewPublish, publishVersion, readArtifact, undoPublish } from "./publish";
 import { buildKey, databaseStore, deployEnv, markerKey } from "./store";
 
 const OWNER = "publish-test-owner";
@@ -162,6 +162,109 @@ describe.skipIf(!HAS_TEST_DATABASE)("publish", () => {
 
   const publish = (over: Partial<Parameters<typeof publishVersion>[0]> = {}) =>
     publishVersion({ db, promptId, owner: OWNER, targetModel: DEFAULT_RUN_MODEL, ...over });
+
+  const preview = (over: Partial<Parameters<typeof previewPublish>[0]> = {}) =>
+    previewPublish({ db, promptId, owner: OWNER, targetModel: DEFAULT_RUN_MODEL, ...over });
+
+  // ── EPIC-055 C6: the page and the endpoint are two callers of one evaluation ────────────────────
+
+  describe("the preview the Deploy page renders", () => {
+    it("agrees with the refusal the endpoint gives, row by row, on a blocked version", async () => {
+      await version([CONTEXT, EXPECTED]);
+      const versionId = (await newestVersion(db, promptId))!.id;
+      await runOver(versionId, [CONTEXT, EXPECTED], "fail");
+
+      const shown = await preview();
+      const attempted = await publish();
+
+      expect(shown.ok).toBe(true);
+      expect(attempted.ok).toBe(false);
+      if (!shown.ok || attempted.ok || attempted.refusal.kind !== "blocked") return;
+
+      // Field by field, not "both are truthy". Two gates that both say `blocked` while disagreeing
+      // about which row blocked is exactly the drift this split exists to make impossible.
+      expect(shown.value.report.blocked).toBe(true);
+      expect(shown.value.report.rows.map((row) => [row.kind, row.verdict, row.reason, row.blocking])).toEqual(
+        attempted.refusal.report.rows.map((row) => [row.kind, row.verdict, row.reason, row.blocking]),
+      );
+      expect(shown.value.report).toEqual(attempted.refusal.report);
+    });
+
+    it("agrees on a version that is not blocked, so the agreement is not a property of refusals", async () => {
+      await version([CONTEXT, EXPECTED]);
+      const versionId = (await newestVersion(db, promptId))!.id;
+      await runOver(versionId, [CONTEXT, EXPECTED], "pass");
+
+      const shown = await preview();
+      const attempted = await publish();
+      expect(shown.ok && attempted.ok).toBe(true);
+      if (!shown.ok || !attempted.ok) return;
+
+      expect(shown.value.report.blocked).toBe(false);
+      expect(shown.value.report).toEqual(attempted.value.report);
+      // And the artifact the page described is the one that was published.
+      expect(shown.value.artifact.buildHash).toBe(attempted.value.artifact.buildHash);
+    });
+
+    it("writes nothing — that is the whole point of it", async () => {
+      await version([CONTEXT, EXPECTED]);
+      const versionId = (await newestVersion(db, promptId))!.id;
+      await runOver(versionId, [CONTEXT, EXPECTED], "pass");
+
+      const before = (await newestVersion(db, promptId))!;
+      expect((await preview()).ok).toBe(true);
+
+      expect(await liveFor(db, promptId)).toBeUndefined();
+      expect(await publishHistory(db, promptId)).toHaveLength(0);
+      expect(await databaseStore.get(markerKey(promptId))).toBeUndefined();
+      // It does not pin the open draft either: looking at Deploy must not close somebody's draft.
+      expect((await newestVersion(db, promptId))!.pinnedAt).toBe(before.pinnedAt);
+
+      // The control: publishing the same version *does* write, so the four assertions above can fail.
+      expect((await publish()).ok).toBe(true);
+      expect(await liveFor(db, promptId)).toBeDefined();
+      expect((await newestVersion(db, promptId))!.pinnedAt).not.toBe(null);
+    });
+
+    it("reports what is Live, so the page can show Live beside Draft", async () => {
+      await version([CONTEXT, CONSTRAINT]);
+      expect((await publish()).ok).toBe(true);
+      const live = await liveFor(db, promptId);
+
+      await version([CONTEXT, CONSTRAINT, { id: "b9", kind: "context", text: "Prefer plain words." }], 2);
+      const shown = await preview();
+      expect(shown.ok).toBe(true);
+      if (!shown.ok) return;
+
+      expect(shown.value.live?.buildHash).toBe(live?.buildHash);
+      expect(shown.value.liveArtifact?.buildHash).toBe(live?.buildHash);
+      expect(shown.value.liveVersion?.id).toBeDefined();
+      // The Draft it is describing is the newest version, not the Live one.
+      expect(shown.value.version.id).toBe((await newestVersion(db, promptId))!.id);
+      expect(shown.value.version.id).not.toBe(shown.value.liveVersion?.id);
+    });
+
+    it("says nothing is Live before anything has been", async () => {
+      await version([CONTEXT, CONSTRAINT]);
+      const shown = await preview();
+      expect(shown.ok).toBe(true);
+      if (!shown.ok) return;
+      expect(shown.value.live).toBe(null);
+      expect(shown.value.liveArtifact).toBe(null);
+      expect(shown.value.liveVersion).toBe(null);
+    });
+
+    it("refuses a prompt that is not the caller's, with the same code the endpoint uses", async () => {
+      await version([CONTEXT, CONSTRAINT]);
+      const shown = await preview({ owner: STRANGER });
+      const attempted = await publish({ owner: STRANGER });
+      expect(shown.ok).toBe(false);
+      expect(attempted.ok).toBe(false);
+      if (shown.ok || attempted.ok) return;
+      expect(shown.refusal.kind).toBe("no_such_prompt");
+      expect(shown.refusal.kind).toBe(attempted.refusal.kind);
+    });
+  });
 
   // ── C4: a passing publish writes the artifact and moves Live ───────────────────────────────────
 

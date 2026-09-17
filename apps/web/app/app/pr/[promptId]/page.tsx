@@ -1,6 +1,9 @@
+import { liveFor, newestVersion } from "@41prompts/db";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { canvasForOwner, compiledForBloks } from "@/lib/canvas/queries";
+import { liveName } from "@/lib/deploy/view";
+import { versionName } from "@/lib/versions/view";
 import { compiledView } from "@/lib/canvas/compiled-view";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
@@ -28,6 +31,13 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
   const declarations = await variablesForPrompt(getDb(), promptId);
   const variables = variablesViewFor(found.bloks, declarations);
 
+  // EPIC-055 C14. The header said the flat word "Draft" and nothing else, which is the shape
+  // `docs/design/README.md` corrects in as many words: "one vocabulary everywhere: 'Draft v7' and
+  // 'Live v6'. Not 'v7 · unsaved', not 'v7 · current'." A prompt with no bloks has no version yet,
+  // and then there is genuinely nothing to name.
+  const version = await newestVersion(getDb(), promptId);
+  const live = await liveFor(getDb(), promptId);
+
   return (
     <main className="app-page">
       <header className="app-pagehead">
@@ -35,7 +45,15 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
           <a href={`/app/p/${found.prompt.project}`}>Project</a>
         </p>
         <h1>{found.prompt.name}</h1>
-        <p className="app-state">Draft</p>
+        <p className="app-state">
+          {version === undefined ? "Draft" : versionName(version)}
+          {live !== undefined && (
+            <>
+              {" · "}
+              <a href={`/app/pr/${promptId}/deploy`}>{liveName(live.versionN)}</a>
+            </>
+          )}
+        </p>
         {/* The mockup's page head carries a run action. It is a link rather than a button because
             it goes somewhere — the runs page, where an input set is chosen — and a button that
             navigates is a link wearing a costume.
@@ -46,8 +64,13 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
           <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/versions`}>
             Versions
           </a>
-          <a className="btn btn-pri btn-sm app-pagehead-action" href={`/app/pr/${promptId}/runs`}>
+          <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/runs`}>
             Run
+          </a>
+          {/* EPIC-055. The primary action on a prompt that has been written and run is to put it in
+              front of an application; before this epic there was no link to the page that does it. */}
+          <a className="btn btn-pri btn-sm app-pagehead-action" href={`/app/pr/${promptId}/deploy`}>
+            Publish…
           </a>
         </span>
       </header>

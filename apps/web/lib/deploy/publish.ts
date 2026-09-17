@@ -91,30 +91,68 @@ export interface PublishRequest {
   anywayReason?: string;
 }
 
-export async function publishVersion(request: PublishRequest): Promise<PublishOutcome> {
+/**
+ * What a publish **would** do, evaluated without doing any of it (EPIC-055 ruling 5).
+ *
+ * This is everything `publishVersion` does up to and including the gate — resolve, permit, compile,
+ * assemble, read what is Live, decide — and **not one write**. `publishVersion` calls it and then
+ * pins and commits; `/app/pr/:id/deploy` calls it and renders.
+ *
+ * ## Why this exists rather than the page evaluating the gate itself
+ *
+ * A second implementation of "may this be published" disagrees with the first the moment either
+ * changes, and the disagreement is silent in both directions: a page saying yes over an endpoint
+ * that says no wastes somebody's afternoon, and a page saying no over an endpoint that says yes
+ * hides the control that `CLAUDE.md` rule 9 is. It is the argument `artifact/schema.ts` makes about
+ * `buildHashOf` — "the failure mode of a second copy being that verification quietly always passes"
+ * — applied to the gate instead of to the hash.
+ *
+ * **It deliberately does not check the reason.** A reason is a property of the act, not of the
+ * version, and the page needs to render the gate before anybody has typed one. `publishVersion`
+ * keeps that check, where the act happens.
+ */
+export interface PublishPreview {
+  /** The version this is about. The page names it, so a stale page is visibly stale. */
+  version: VersionRow;
+  artifact: Artifact;
+  report: GateReport;
+  /** The newest publish event, or null when nothing has ever been Live. */
+  live: PublishEventRow | null;
+  /** What Live resolves to, or null. Read from the store, so a missing object shows as null. */
+  liveArtifact: Artifact | null;
+  liveVersion: VersionRow | null;
+}
+
+export type PreviewOutcome =
+  | { ok: true; value: PublishPreview }
+  | { ok: false; refusal: PublishRefusal };
+
+export async function previewPublish(request: {
+  db: Db;
+  promptId: string;
+  owner: string;
+  versionId?: string;
+  targetModel: string;
+}): Promise<PreviewOutcome> {
   const { db, promptId, owner } = request;
 
   const prompt = await promptForOwner(db, promptId, owner);
-  if (prompt === undefined) return refuse({ kind: "no_such_prompt" });
-  if (!(await mayPublish(db, prompt.project, owner))) return refuse({ kind: "not_permitted" });
+  if (prompt === undefined) return { ok: false, refusal: { kind: "no_such_prompt" } };
+  if (!(await mayPublish(db, prompt.project, owner))) return { ok: false, refusal: { kind: "not_permitted" } };
 
   const version =
     request.versionId === undefined
       ? await newestVersion(db, promptId)
       : await versionById(db, promptId, request.versionId);
-  if (version === undefined) return refuse({ kind: "no_such_version" });
-
-  // Trimmed before it is measured, so ten spaces is not a reason. Whitespace-only collapses to "".
-  const anyway = request.anywayReason === undefined ? undefined : request.anywayReason.trim();
-  if (anyway !== undefined && anyway.length < PUBLISH_REASON_MIN) {
-    return refuse({ kind: "reason_too_short", minimum: PUBLISH_REASON_MIN });
-  }
+  if (version === undefined) return { ok: false, refusal: { kind: "no_such_version" } };
 
   // 1. What does this version compile to, and how many checks does it have? The count decides
   //    whether a run is needed at all, and the run's id goes *inside* the artifact's hash, so this
   //    has to be settled before the artifact can be assembled (ADR-005 §7).
   const recompiled = compileVersion(version);
-  if (recompiled === undefined) return refuse({ kind: "build", refusal: { kind: "unreadable_snapshot" } });
+  if (recompiled === undefined) {
+    return { ok: false, refusal: { kind: "build", refusal: { kind: "unreadable_snapshot" } } };
+  }
 
   const checks = await checksStateFor({
     db,
@@ -133,7 +171,7 @@ export async function publishVersion(request: PublishRequest): Promise<PublishOu
     variables: asDeclarations(await variablesForPrompt(db, promptId)),
     checkSuiteId: checks.kind === "proved" ? checks.suiteRunId : null,
   });
-  if ("refusal" in built) return refuse({ kind: "build", refusal: built.refusal });
+  if ("refusal" in built) return { ok: false, refusal: { kind: "build", refusal: built.refusal } };
 
   // 3. What is Live, so the contract row has something to compare against.
   const store = await storeFor();
@@ -152,9 +190,41 @@ export async function publishVersion(request: PublishRequest): Promise<PublishOu
     targetModel: request.targetModel,
   });
 
+  return {
+    ok: true,
+    value: {
+      version,
+      artifact: built.artifact,
+      report,
+      live: current ?? null,
+      liveArtifact: live,
+      liveVersion,
+    },
+  };
+}
+
+export async function publishVersion(request: PublishRequest): Promise<PublishOutcome> {
+  const { db, promptId, owner } = request;
+
+  // Trimmed before it is measured, so ten spaces is not a reason. Whitespace-only collapses to "".
+  //
+  // **Checked before the preview, not after.** A reason too short is a refusal about the request and
+  // costs nothing to find; compiling a version first to reject it on a length would be four queries
+  // spent on an answer already known.
+  const anyway = request.anywayReason === undefined ? undefined : request.anywayReason.trim();
+  if (anyway !== undefined && anyway.length < PUBLISH_REASON_MIN) {
+    return refuse({ kind: "reason_too_short", minimum: PUBLISH_REASON_MIN });
+  }
+
+  const preview = await previewPublish(request);
+  if (!preview.ok) return refuse(preview.refusal);
+  const { version, artifact, report } = preview.value;
+
   // 4. The gate. `blocked` is a fact about the version; going past it is a decision about a person,
   //    which is why this is two branches here rather than a flag handed to the gate.
   if (report.blocked && anyway === undefined) return refuse({ kind: "blocked", report });
+
+  const store = await storeFor();
 
   // 5. **Pin it, because something is about to point at it.**
   //
@@ -179,7 +249,7 @@ export async function publishVersion(request: PublishRequest): Promise<PublishOu
       store,
       promptId,
       version: pinned,
-      artifact: built.artifact,
+      artifact,
       report,
       actor: owner,
       kind: report.blocked ? "published_anyway" : "published",

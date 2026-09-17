@@ -1,0 +1,208 @@
+/* ── Settings: the navigation, API keys, publishing (EPIC-055) ────────────────────────────────
+   **No green, no red, no amber in this file.** Nothing on these screens is a pass, a failure or a
+   drift: a key is live or revoked, a switch is on or off, and both are states rather than verdicts.
+   Painting "revoked" red would spend one of the three reserved colours on a noun, and would tell
+   somebody their own deliberate act had gone wrong.
+
+   The navigation looks like the mockup's tabs and is a list of links — EPIC-055 ruling 1, and
+   `settings-nav.tsx` carries the argument. `aria-current="page"` is what the styling keys off, so
+   the appearance and the semantics cannot drift apart. */
+
+.settings-nav {
+  margin-bottom: var(--spacing-s5);
+  border-bottom: 1px solid var(--color-line);
+}
+.settings-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--spacing-s1);
+  flex-wrap: wrap;
+}
+.settings-nav-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--spacing-s3);
+  font-size: 14px;
+  color: var(--color-ink-2);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.settings-nav-link:hover {
+  color: var(--color-ink);
+}
+.settings-nav-link:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -2px;
+}
+/* The selected one is keyed off the ARIA state, not a class: they cannot disagree. */
+.settings-nav-link[aria-current="page"] {
+  color: var(--color-ink);
+  font-weight: 600;
+  border-bottom-color: var(--color-ink);
+}
+
+/* ── A project's keys ──────────────────────────────────────────────────────────────────────── */
+
+.keys-project {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: var(--spacing-s4);
+  margin-bottom: var(--spacing-s4);
+}
+.keys-projecthead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-s3);
+}
+.keys-projecthead h2 {
+  font-size: 16px;
+  margin: 0;
+}
+.keys-projectid {
+  font-size: 12px;
+  color: var(--color-ink-3);
+}
+
+/* The one moment a plaintext key exists on a screen. Ink on a sunken plate with a heavy border:
+   it has to be conspicuous without being a verdict, because it is neither good nor bad news. */
+.keys-minted {
+  border: 2px solid var(--color-ink);
+  background: var(--color-sunken);
+  padding: var(--spacing-s3);
+  margin-bottom: var(--spacing-s3);
+}
+.keys-minted-says {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s1);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 var(--spacing-s2);
+}
+.keys-plaintext {
+  display: block;
+  font-size: 13px;
+  word-break: break-all;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  padding: var(--spacing-s2);
+  user-select: all;
+}
+.keys-minted-note {
+  font-size: 12px;
+  color: var(--color-ink-2);
+  margin: var(--spacing-s2) 0 0;
+  line-height: 1.5;
+}
+
+.keys-said {
+  font-size: 13px;
+  color: var(--color-ink-2);
+  margin: 0 0 var(--spacing-s3);
+}
+.keys-said-refused {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.keys-new {
+  display: flex;
+  gap: var(--spacing-s3);
+  align-items: end;
+  flex-wrap: wrap;
+  padding-bottom: var(--spacing-s3);
+  margin-bottom: var(--spacing-s3);
+  border-bottom: 1px solid var(--color-line-2);
+}
+.keys-field {
+  display: grid;
+  gap: var(--spacing-s1);
+  font-size: 12px;
+  color: var(--color-ink-2);
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.keys-field select {
+  font: inherit;
+  font-size: 13px;
+  min-height: 44px;
+  padding: var(--spacing-s2);
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+.keys-field select:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+.keys-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.keys-row {
+  display: flex;
+  gap: var(--spacing-s3);
+  align-items: center;
+  padding: var(--spacing-s3) 0;
+  border-bottom: 1px solid var(--color-line-2);
+  flex-wrap: wrap;
+}
+.keys-row:last-child {
+  border-bottom: 0;
+}
+.keys-row-what {
+  display: grid;
+  gap: 2px;
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.keys-row-what code {
+  font-size: 12px;
+  color: var(--color-ink-2);
+}
+.keys-row-when {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-ink-3);
+  flex: 0 1 auto;
+}
+.keys-row-actions {
+  display: flex;
+  gap: var(--spacing-s2);
+}
+/* Revoked: dimmed and struck, never red. A key you revoked did what you asked. */
+.keys-row-revoked .keys-row-what b,
+.keys-row-revoked .keys-row-what code {
+  text-decoration: line-through;
+  color: var(--color-ink-3);
+}
+.keys-row-stopped {
+  font-weight: 600;
+  color: var(--color-ink-2);
+}
+
+/* ── Publishing ────────────────────────────────────────────────────────────────────────────── */
+
+.settings-row-said {
+  font-size: 12px;
+  color: var(--color-ink-3);
+}
+
+@media (max-width: 720px) {
+  .keys-row-actions {
+    flex-basis: 100%;
+  }
+  .keys-new .btn {
+    flex-basis: 100%;
+  }
+}

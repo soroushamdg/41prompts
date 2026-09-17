@@ -145,3 +145,80 @@ export async function markApiKeyUsed(db: Db, keyId: string, at = new Date()): Pr
 export async function apiKeysForProject(db: Db, projectId: string): Promise<ApiKeyRow[]> {
   return db.select(API_KEY_COLUMNS).from(apiKeys).where(eq(apiKeys.project, projectId)).orderBy(apiKeys.createdAt);
 }
+
+// ── EPIC-055: revoking, and rotation as two rows ─────────────────────────────────────────────────
+
+/**
+ * Revoke a key. Returns whether a row moved.
+ *
+ * **Scoped by project**, the rule `canvas.ts` and `variables.ts` both state: a key is reachable only
+ * through a project the caller already resolved, so no function here takes a bare key id.
+ *
+ * Returning a boolean rather than throwing is deliberate. "That key was already revoked" and "that
+ * key is not in this project" are both answers a surface shows; neither is an error it handles, and
+ * a revoke that is idempotent is one a person can press twice without consequence.
+ */
+export async function revokeApiKey(
+  db: DbOrTx,
+  input: { project: string; keyId: string },
+  at = new Date(),
+): Promise<boolean> {
+  const moved = await db
+    .update(apiKeys)
+    .set({ revokedAt: at })
+    .where(and(eq(apiKeys.id, input.keyId), eq(apiKeys.project, input.project), isNull(apiKeys.revokedAt)))
+    .returning({ id: apiKeys.id });
+  return moved.length > 0;
+}
+
+export interface RotatedKey {
+  /** The new key, and the only time its plaintext exists. */
+  key: ApiKeyRow;
+  plaintext: string;
+  /** The key that was revoked, with its dates intact. */
+  revoked: ApiKeyRow;
+}
+
+/**
+ * Rotate a key: revoke the old row and mint a new one carrying the same name and environment.
+ *
+ * **Two rows, never an update in place** (EPIC-055 ruling 6). Updating `hashed_key` would be one row
+ * and less code, and it cannot answer the question a key table is actually asked after an incident:
+ * *which key was in the field on Tuesday, and when did it stop being*. After an in-place update
+ * `created_at` describes a credential that no longer exists and `last_used_at` mixes the traffic of
+ * two. The old row stays, revoked, with its dates unchanged.
+ *
+ * The same argument `publish_events` makes for deriving Live rather than storing it: a record that
+ * is rewritten is a record that cannot be relied on to explain the past.
+ *
+ * One transaction, so a crash between the two statements cannot leave a project with a revoked key
+ * and no replacement — which would be an outage for whatever was holding it.
+ *
+ * Returns `undefined` when the key is not this project's, or is already revoked. Rotating a revoked
+ * key is refused rather than treated as minting: a person pressing Rotate on a dead row has almost
+ * certainly pressed the wrong row, and quietly issuing a credential is the wrong way to say so.
+ */
+export async function rotateApiKey(
+  db: Db,
+  input: { project: string; keyId: string },
+  at = new Date(),
+): Promise<RotatedKey | undefined> {
+  return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select(API_KEY_COLUMNS)
+      .from(apiKeys)
+      .where(and(eq(apiKeys.id, input.keyId), eq(apiKeys.project, input.project), isNull(apiKeys.revokedAt)))
+      .limit(1);
+    if (existing === undefined) return undefined;
+
+    await revokeApiKey(tx, input, at);
+
+    const minted = await createApiKey(tx, {
+      project: existing.project,
+      name: existing.name,
+      environment: existing.environment,
+    });
+
+    return { key: minted.key, plaintext: minted.plaintext, revoked: { ...existing, revokedAt: at } };
+  });
+}

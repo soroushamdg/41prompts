@@ -1,0 +1,145 @@
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+/**
+ * The NUL-byte gate, and specifically that it **fires** under every root it claims (EPIC-055 C19).
+ *
+ * ## Why this test exists
+ *
+ * `scripts/binary-files.mjs` ran over `packages/` and `apps/` and printed a confident
+ * "486 checked" while two committed documents under `docs/` each held a literal NUL — found on
+ * 2026-09-17 by scanning every tracked file by hand, not by any gate. `docs/epics/HANDOVER.md`
+ * lesson 19: **a gate only guards what it is pointed at**, and nothing had ever checked that this
+ * one was pointed anywhere in particular.
+ *
+ * So the roots were widened, and this is the control. Widening an array and watching the gate stay
+ * green proves nothing — green is also what a gate that looks at nothing prints.
+ *
+ * ## It runs in a throwaway git repository, never in the working tree
+ *
+ * `docs/PROCESS.md`, "A test suite never writes into the working tree": planting a NUL file under
+ * `docs/` here and deleting it afterwards would leave one behind the first time this test crashed,
+ * and a permanently dirty `git status` is how the original NUL survived two self-reviews.
+ *
+ * The script reads `git ls-files`, which works in any repository, so a temp one is a complete
+ * fixture — and it also exercises the untracked path, which is the one that matters (a file is most
+ * likely to carry a NUL in the minutes before it is first staged).
+ *
+ * ## This file itself contained a NUL, and the CI-parity gate is what found it
+ *
+ * Worth writing down rather than quietly deleting, because it is the third instance of the same
+ * mechanism and the first two are already in `docs/epics/HANDOVER.md` as lesson 20.
+ *
+ * The comment below meant to name the escape sequence and wrote the byte instead, in the test whose
+ * subject is that byte. `pnpm binary-files` had been run **before this file existed** — after
+ * widening the roots and cleaning EPIC-052's two documents — and was never run again afterwards, so
+ * it reported 926 files checked and none of them was this one.
+ *
+ * That is failure 2 in `docs/PROCESS.md`'s "Local green is not CI green" table, verbatim: *"Local
+ * was asked about a set of files that did not include the new one."* `node scripts/gates.mjs ci`
+ * clones a commit, so it sees every tracked file, and it went red in 9m32s on a run whose fifteen
+ * other steps were green. Nothing else in the loop would have caught it.
+ */
+
+const SCRIPT = fileURLToPath(new URL("../../scripts/binary-files.mjs", import.meta.url));
+
+/** The roots the script claims to cover. Kept here so the test fails when one is dropped. */
+const ROOTS = ["packages", "apps", "docs", "sdks", "scripts"];
+
+interface Run {
+  ok: boolean;
+  output: string;
+}
+
+/**
+ * Run the real gate inside a fresh repository containing exactly the files given.
+ *
+ * `content` is a `Buffer` so a test can plant a genuine NUL rather than the escape — writing
+ * the six-character escape in a `.ts` file is what the fix for these very documents did, and a test
+ * that planted an escape would be planting the corrected form.
+ */
+function runIn(files: { path: string; content: Buffer }[]): Run {
+  const dir = mkdtempSync(join(tmpdir(), "41p-binary-"));
+  execFileSync("git", ["init", "-q"], { cwd: dir });
+  for (const file of files) {
+    const at = join(dir, file.path);
+    mkdirSync(join(at, ".."), { recursive: true });
+    writeFileSync(at, file.content);
+  }
+  try {
+    return { ok: true, output: execFileSync("node", [SCRIPT], { cwd: dir, encoding: "utf-8" }) };
+  } catch (error) {
+    const failure = error as { stdout?: string; stderr?: string };
+    return { ok: false, output: `${failure.stdout ?? ""}${failure.stderr ?? ""}` };
+  }
+}
+
+const withNul = (before: string) => Buffer.concat([Buffer.from(before), Buffer.from([0]), Buffer.from("after\n")]);
+const clean = (text: string) => Buffer.from(text);
+
+describe("the NUL-byte gate fires under every root it claims", () => {
+  it.each(ROOTS)("catches a NUL under %s/", (root) => {
+    const run = runIn([{ path: `${root}/thing.ts`, content: withNul("before") }]);
+    expect(run.ok).toBe(false);
+    expect(run.output).toContain(`${root}/thing.ts`);
+    expect(run.output).toContain("first NUL at byte 6");
+  });
+
+  it("passes when the same files are clean — so the failures above mean something", () => {
+    const run = runIn(ROOTS.map((root) => ({ path: `${root}/thing.ts`, content: clean("before after\n") })));
+    expect(run.ok).toBe(true);
+    expect(run.output).toContain("contains a NUL byte");
+    for (const root of ROOTS) expect(run.output).toContain(root);
+  });
+
+  it("ignores a root it is not pointed at, which is the defect this test is about", () => {
+    // `infra/` is deliberately not in ROOTS. If somebody adds it, this test should be updated
+    // rather than silently continuing to describe the old set.
+    const run = runIn([{ path: "infra/thing.ts", content: withNul("before") }]);
+    expect(run.ok).toBe(true);
+  });
+
+  it("does not judge a file whose extension is meant to be binary", () => {
+    const run = runIn([{ path: "docs/shot.png", content: withNul("PNG") }]);
+    expect(run.ok).toBe(true);
+  });
+});
+
+describe("it scans the whole file, not only git's 8000-byte window", () => {
+  /**
+   * The case that was live on 2026-09-17 and that a window-limited gate passes.
+   *
+   * `docs/epics/reports/EPIC-052-report.md` carried its NUL at byte 12,411 — past git's heuristic,
+   * so `git diff` rendered it perfectly and it looked fine. `grep` has no window: it read the whole
+   * file, decided it was binary, and returned nothing. `grep -c '^#'` printed `0` for a document
+   * with nineteen Markdown headings.
+   */
+  it("catches a NUL past byte 8000, and says which harm that one causes", () => {
+    const run = runIn([{ path: "docs/report.md", content: withNul("x".repeat(20_000)) }]);
+    expect(run.ok).toBe(false);
+    expect(run.output).toContain("first NUL at byte 20000");
+    expect(run.output).toContain("grep silently finds nothing in it");
+  });
+
+  it("says the other thing for a NUL inside the window", () => {
+    const run = runIn([{ path: "docs/report.md", content: withNul("x".repeat(100)) }]);
+    expect(run.ok).toBe(false);
+    expect(run.output).toContain("git shows NO DIFF for this file");
+  });
+
+  /**
+   * The control for the control. A gate that scanned only the window would pass the 20,000-byte
+   * case above, so this asserts the two cases are genuinely different files — otherwise both tests
+   * could be passing for one reason.
+   */
+  it("distinguishes the two, rather than printing one message for both", () => {
+    const past = runIn([{ path: "docs/a.md", content: withNul("x".repeat(20_000)) }]);
+    const inside = runIn([{ path: "docs/a.md", content: withNul("x".repeat(100)) }]);
+    expect(past.output).not.toContain("git shows NO DIFF for this file");
+    expect(inside.output).not.toContain("grep silently finds nothing in it");
+  });
+});
