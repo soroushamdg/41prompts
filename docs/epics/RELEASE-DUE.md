@@ -4,22 +4,36 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-17T17:10:30.458Z.
+Generated 2026-09-17T22:03:55.990Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `217c9452f56ec8417812886b65c1030515807795` | this checkout |
+| `main` | `64a8115d17c81e8b4fe14d2458aa2c5d2d9406b9` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-137 commits · 696 files changed, 93428 insertions(+), 591 deletions(-)
+151 commits · 772 files changed, 100118 insertions(+), 612 deletions(-)
 
+- 64a8115 docs: EPIC-053 is done
+- 80d8ccb Merge EPIC-053: 41p, and the prompt arrives in a repository instead of a browser tab
+- 28214c3 docs(epic-053): the report, the session log and ten decisions
+- e138196 feat(053): the drive, and the two defects in it that its own output exposed
+- 2936729 fix(053): project ids collide, and nothing drew again
+- 372bc57 fix(053): the connect spec asserted the header ruling 9 replaced, and NodeJS is not a global eslint sees
+- c937b9f fix(053): apps/web's ProcessEnv is augmented, and the hand-built env did not satisfy it
+- 493a3b8 fix(053): two CLI tests were reading scripts/, and only the mirror could see it
+- fef155a fix(053): the gates the first commit had not been asked
+- 4b9a647 feat(053): 41p — link, pull, check, run, decompile, and the file that is yours
+- 10b0340 feat(053): the generator moves into core, and both callers get the same bytes
+- 48f6fb1 docs(epic-053): the epic file, the plan, and nine rulings
+- 1e07495 docs: GATE 5 decided — technical reading, go to Stage 5b
+- 3826a42 docs: GATE 5's readiness, and the release that is now eight epics overdue
 - 217c945 Merge EPIC-055: the delivery UI, and publishing stops being an endpoint
 - 24f18c5 docs(epic-055): report, session log, the backlog row and the handover
 - b2142dd fix(055): the NUL-byte test contained a NUL byte, and only the CI gate could see it
