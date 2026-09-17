@@ -1,6 +1,6 @@
 "use server";
 
-import { addBlok, addInputSet, declareVariable, newProjectId, projects, prompts } from "@41prompts/db";
+import { addBlok, addInputSet, declareVariable, insertProject, prompts } from "@41prompts/db";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
@@ -37,12 +37,12 @@ export async function startFromExampleAction(): Promise<{ ok: boolean; promptId?
   const db = getDb();
 
   const promptId = await db.transaction(async (tx) => {
-    const projectId = newProjectId();
-    await tx.insert(projects).values({
-      id: projectId,
+    // Inside the transaction, so a retried draw is retried against the same snapshot the prompt
+    // below is inserted into. `create-project.ts` says why a retry is needed at all.
+    const projectId = await insertProject(tx, {
       owner: session.user.id,
       name: EXAMPLE_PROJECT_NAME,
-      slug: `${slugify(EXAMPLE_PROJECT_NAME)}-${projectId}`,
+      slugFor: (id) => `${slugify(EXAMPLE_PROJECT_NAME)}-${id}`,
     });
 
     const [prompt] = await tx

@@ -6,7 +6,7 @@ import {
   bloksForPrompt,
   deleteBlok,
   moveBlok,
-  newProjectId,
+  insertProject,
   projects,
   promptForOwner,
   prompts,
@@ -59,9 +59,17 @@ export async function createProjectAction(name: string): Promise<ActionResult & 
   if (trimmed === "") return { ok: false, message: "Give the project a name." };
 
   const db = getDb();
-  const id = newProjectId();
-  // The slug carries the id so two projects of the same name never collide on the unique index.
-  await db.insert(projects).values({ id, owner: session.user.id, name: trimmed, slug: `${slugify(trimmed)}-${id}` });
+  // The slug carries the id so two projects of the same name never collide on the unique index —
+  // which is why `insertProject` takes a function of the id rather than a finished slug.
+  //
+  // **`insertProject` and not a bare insert.** A project id is `proj_` + 4 hex, so two of them
+  // collide often enough to matter once a product creates them constantly; the retry lives in
+  // `packages/db` so all three creation sites get it. `create-project.ts` has the measurement.
+  const id = await insertProject(db, {
+    owner: session.user.id,
+    name: trimmed,
+    slugFor: (projectId) => `${slugify(trimmed)}-${projectId}`,
+  });
   revalidatePath("/app/projects");
   return { ok: true, id };
 }
