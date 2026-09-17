@@ -80,7 +80,7 @@ describe("the R2 store", () => {
     const body = '{"schemaVersion":1,"text":"hello"}';
     await store().put(
       {
-        key: "production/artifacts/abc123.json",
+        key: "production/builds/abc123.json",
         body,
         contentType: "application/json",
         cacheControl: ARTIFACT_CACHE_CONTROL,
@@ -94,7 +94,7 @@ describe("the R2 store", () => {
     // Path style: `/<bucket>/<key>`. Virtual-host style would need a DNS name per bucket.
     // The pathname alone: the SDK appends its own `?x-id=PutObject` for tracing, which is its
     // business and not a fact this test should pin.
-    expect(new URL(request.url, base).pathname).toBe("/artifacts/production/artifacts/abc123.json");
+    expect(new URL(request.url, base).pathname).toBe("/artifacts/production/builds/abc123.json");
     expect(request.body).toBe(body);
     expect(request.headers["cache-control"]).toBe("public, max-age=31536000, immutable");
     expect(request.headers["content-type"]).toBe("application/json");
@@ -130,7 +130,7 @@ describe("the R2 store", () => {
 
     await expect(
       store().put(
-        { key: "production/artifacts/abc123.json", body: "{}", contentType: "application/json", cacheControl: "" },
+        { key: "production/builds/abc123.json", body: "{}", contentType: "application/json", cacheControl: "" },
         { immutable: true },
       ),
     ).resolves.toBeUndefined();
@@ -156,10 +156,10 @@ describe("the R2 store", () => {
       body: '{"schemaVersion":1}',
     };
 
-    const object = await store().get("production/artifacts/abc123.json");
+    const object = await store().get("production/builds/abc123.json");
     expect(seen[0]?.method).toBe("GET");
     expect(object).toEqual({
-      key: "production/artifacts/abc123.json",
+      key: "production/builds/abc123.json",
       body: '{"schemaVersion":1}',
       contentType: "application/json",
       cacheControl: ARTIFACT_CACHE_CONTROL,
@@ -169,21 +169,21 @@ describe("the R2 store", () => {
   it("reads a missing object as undefined rather than throwing", async () => {
     seen.length = 0;
     answer = { status: 404, body: "<Error><Code>NoSuchKey</Code></Error>" };
-    await expect(store().get("production/artifacts/never.json")).resolves.toBeUndefined();
+    await expect(store().get("production/builds/never.json")).resolves.toBeUndefined();
   });
 
   it("does not swallow a 500 — an outage is not an absence", async () => {
     seen.length = 0;
     answer = { status: 500, body: "<Error><Code>InternalError</Code></Error>" };
-    await expect(store().get("production/artifacts/abc123.json")).rejects.toBeTruthy();
+    await expect(store().get("production/builds/abc123.json")).rejects.toBeTruthy();
   });
 
   it("names the CDN, not the bucket, as where a reader fetches", () => {
     // Trailing slashes are trimmed here as well as in `r2ConfigFromEnv`, so a base that arrives
     // with one — from a hand-written environment value, which is how it will arrive — cannot
     // produce `//` in a URL an SDK is told to fetch.
-    expect(store().publicUrl("production/artifacts/abc123.json")).toBe(
-      "https://cdn.example.test/production/artifacts/abc123.json",
+    expect(store().publicUrl("production/builds/abc123.json")).toBe(
+      "https://cdn.example.test/production/builds/abc123.json",
     );
   });
 });

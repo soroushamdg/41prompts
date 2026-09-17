@@ -12,11 +12,35 @@
 // "blok" and "block" one letter apart was a naming defect (ADR-003), and an exemption broad
 // enough to hide a real `block` would give that back.
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { extname, join } from "node:path";
+import { extname, isAbsolute, join } from "node:path";
 
 const FORBIDDEN = ["block", "assertion", "label", "pointer", "artifact", "promote", "enum", "sha", "reconcile", "override", "drifted"];
 
-const ROOTS = ["packages/ui/src", "apps/web/app", "apps/web/lib"];
+// ── The two words CLAUDE.md qualifies with "(UI only)" ──────────────────────────────────────────
+//
+// `CLAUDE.md`'s Vocabulary line reads: "block, assertion (UI only; the type may be `Check`), label,
+// pointer, artifact (UI only), promote, ...". ADR-003 is the same both ways round — "the internal
+// type may be `Check`; the word 'assertion' does not appear in the UI", and "Never in **UI
+// strings**: label, pointer, artifact, ...".
+//
+// This gate applied the whole list to identifiers as well, which is stricter than the rule it
+// enforces. It never mattered until EPIC-051, because nothing under `apps/web/app` or `apps/web/lib`
+// had reason to name the build artifact — and then `@41prompts/core` exported `Artifact`,
+// `artifactOf`, `artifactBytes` and `ARTIFACT_SCHEMA_VERSION` as a **frozen public contract**
+// (ADR-005), which `apps/web` must import by those names and cannot rename.
+//
+// So these two are checked **in UI strings only**: inside a quoted string, or as JSX text. An
+// identifier, a type name or a property is not a UI string and never was. `CLAUDE.md`'s own
+// Definition of Done says "forbidden-word grep over **UI strings**".
+const UI_ONLY = new Set(["assertion", "artifact"]);
+
+/**
+ * The trees scanned. An argument replaces them, which is **only** how the gate's own test points it
+ * at a fixture directory outside the working tree — `apps/web/forbidden-words.test.ts`. `pnpm
+ * forbidden-words` passes none, so CI and every local run scan exactly these three.
+ */
+const DEFAULT_ROOTS = ["packages/ui/src", "apps/web/app", "apps/web/lib"];
+const ROOTS = process.argv.slice(2).length > 0 ? process.argv.slice(2) : DEFAULT_ROOTS;
 const EXTENSIONS = new Set([".ts", ".tsx"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".turbo", "dist", "coverage"]);
 const SKIP_FILES = new Set(["contrast.ts", "contrast-cli.ts", "contrast.test.ts", "token-contract.test.ts"]);
@@ -30,6 +54,42 @@ const WORD_RE = new RegExp(`\\b(${FORBIDDEN.join("|")})s?\\b`, "gi");
 // `block`  — EPIC-013: scrollIntoView({ block: "nearest" }) is a DOM option name, not our word.
 const LABEL_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|htmlFor=/i;
 const BLOCK_CONTEXT_RE = /scrollIntoView\s*\(/;
+
+/**
+ * The spans of `line` that a person could read: quoted strings, and JSX text between `>` and `<`.
+ *
+ * Deliberately line-based, like the rest of this file. A template literal spanning several lines has
+ * each of its lines judged on its own, which over-reports rather than under-reports — the safe
+ * direction for a vocabulary gate.
+ */
+function readableSpans(line) {
+  const spans = [];
+  let quote = null;
+  let start = 0;
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    if (quote === null && (char === '"' || char === "'" || char === "`")) {
+      quote = char;
+      start = i + 1;
+    } else if (char === quote && line[i - 1] !== "\\") {
+      spans.push([start, i]);
+      quote = null;
+    }
+  }
+  if (quote !== null) spans.push([start, line.length]);
+
+  // JSX text: whatever sits between a closing `>` and the next opening `<`.
+  for (const match of line.matchAll(/>([^<>]+)</g)) {
+    const at = match.index + 1;
+    spans.push([at, at + match[1].length]);
+  }
+  return spans;
+}
+
+/** True when `index` falls inside something a person could read. */
+function isReadable(line, index) {
+  return readableSpans(line).some(([from, to]) => index >= from && index < to);
+}
 
 /** True when every forbidden match on this line is a platform API name we cannot rename. */
 function isPlatformApi(line, matches) {
@@ -72,14 +132,19 @@ const repoRoot = new URL("..", import.meta.url).pathname;
 const violations = [];
 
 for (const root of ROOTS) {
-  for (const file of walk(join(repoRoot, root))) {
+  for (const file of walk(isAbsolute(root) ? root : join(repoRoot, root))) {
     const original = readFileSync(file, "utf-8");
     const scanned = stripComments(original);
     const lines = scanned.split("\n");
     const originalLines = original.split("\n");
     lines.forEach((line, index) => {
-      const matches = line.match(WORD_RE);
-      if (!matches) return;
+      // `matchAll` rather than `match`, because the UI-only rule needs each match's **position** and
+      // not only its text: the same word is a violation inside a string and not as an identifier.
+      const found = [...line.matchAll(WORD_RE)].filter(
+        (match) => !UI_ONLY.has(match[1].toLowerCase()) || isReadable(line, match.index),
+      );
+      if (found.length === 0) return;
+      const matches = found.map((match) => match[0]);
       if (isPlatformApi(line, matches)) return;
       violations.push({ file: file.replace(repoRoot, ""), line: index + 1, text: originalLines[index].trim(), matches });
     });

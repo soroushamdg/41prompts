@@ -33,7 +33,7 @@ import {
   type Db,
 } from "@41prompts/db";
 import { publishVersion, readArtifact, undoPublish } from "./publish";
-import { artifactKey, databaseStore, deployEnv, markerKey } from "./store";
+import { buildKey, databaseStore, deployEnv, markerKey } from "./store";
 
 const OWNER = "publish-test-owner";
 const STRANGER = "publish-test-stranger";
@@ -173,7 +173,7 @@ describe.skipIf(!HAS_TEST_DATABASE)("publish", () => {
       if (!outcome.ok) return;
 
       const { artifact } = outcome.value;
-      const stored = await databaseStore.get(artifactKey(artifact.buildHash));
+      const stored = await databaseStore.get(buildKey(artifact.buildHash));
       // Byte-for-byte what core produces. A second serialiser anywhere here is the copy ADR-005
       // warns about, whose failure mode is that verification quietly always passes.
       expect(stored?.body).toBe(artifactBytes(artifact));
@@ -205,8 +205,8 @@ describe.skipIf(!HAS_TEST_DATABASE)("publish", () => {
     it("stores the environment-prefixed key, so staging cannot write over production", async () => {
       await version([CONTEXT]);
       const outcome = await publish();
-      expect(outcome.ok && artifactKey(outcome.value.artifact.buildHash)).toBe(
-        `${deployEnv()}/artifacts/${outcome.ok ? outcome.value.artifact.buildHash : ""}.json`,
+      expect(outcome.ok && buildKey(outcome.value.artifact.buildHash)).toBe(
+        `${deployEnv()}/builds/${outcome.ok ? outcome.value.artifact.buildHash : ""}.json`,
       );
     });
   });
@@ -229,7 +229,7 @@ describe.skipIf(!HAS_TEST_DATABASE)("publish", () => {
 
       // The positive control: the verifier must be able to *fail*. A tampered document read back
       // under the same key is refused rather than used.
-      const key = artifactKey(outcome.value.artifact.buildHash);
+      const key = buildKey(outcome.value.artifact.buildHash);
       const tampered = { ...read!, text: `${read!.text} and one more thing` };
       await databaseStore.put(
         { key: `${key}.tampered`, body: JSON.stringify(tampered), contentType: "application/json", cacheControl: "" },
@@ -397,6 +397,49 @@ describe.skipIf(!HAS_TEST_DATABASE)("publish", () => {
       expect(outcome.refusal).toEqual({ kind: "reason_too_short", minimum: 10 });
       // Nothing moved.
       expect((await liveFor(db, promptId))?.kind).toBe("published");
+    });
+  });
+
+  // ── Found by the drive: a published version must stop changing ─────────────────────────────────
+
+  describe("publishing pins the version it published", () => {
+    /**
+     * **The drive found this**, 2026-09-17: after two publishes the Versions page still showed one
+     * `Draft v1`, because `prompt_versions` rule 2 rewrites the open draft in place while `pinnedAt`
+     * is null. So the second publish's blok set had replaced the first's *inside the row the first
+     * publish event names* — the log said a version was published whose snapshot was no longer what
+     * was published. The artifacts themselves were fine; the ability to explain them was not.
+     */
+    it("stamps pinnedAt, so the next edit mints a new version instead of rewriting this one", async () => {
+      await version([CONTEXT]);
+      expect((await newestVersion(db, promptId))!.pinnedAt).toBeNull();
+
+      expect((await publish()).ok).toBe(true);
+      const after = await newestVersion(db, promptId);
+      expect(after?.pinnedAt).not.toBeNull();
+      expect(after?.n).toBe(1);
+    });
+
+    it("does not close the open draft when the publish was refused", async () => {
+      await version([CONTEXT, EXPECTED]);
+      const versionId = (await newestVersion(db, promptId))!.id;
+      await runOver(versionId, [CONTEXT, EXPECTED], "fail");
+
+      expect((await publish()).ok).toBe(false);
+      // Nothing points at it, so nothing may freeze it. A gate that closes a draft on refusal would
+      // cost a version for every attempt somebody makes to get their checks green.
+      expect((await newestVersion(db, promptId))!.pinnedAt).toBeNull();
+    });
+
+    it("leaves an already pinned version alone", async () => {
+      await version([CONTEXT]);
+      await publish();
+      const first = await newestVersion(db, promptId);
+
+      // A second publish of the same, already pinned version must not restamp it: `pinnedAt` is
+      // when the row stopped changing, not when it was last looked at.
+      await publish();
+      expect((await newestVersion(db, promptId))!.pinnedAt?.getTime()).toBe(first!.pinnedAt?.getTime());
     });
   });
 

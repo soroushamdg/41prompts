@@ -17,7 +17,12 @@ import { getDb } from "@/lib/db";
  *
  * ## Keys carry the environment
  *
- * `<DEPLOY_ENV>/artifacts/<buildHash>.json` and `<DEPLOY_ENV>/markers/<promptId>.json`.
+ * `<DEPLOY_ENV>/builds/<buildHash>.json` and `<DEPLOY_ENV>/markers/<promptId>.json`.
+ *
+ * **`builds/`, not `artifacts/`.** A storage key ends up in an SDK's configuration and in somebody's
+ * access log, which is about as close to a string a customer reads as a non-rendered one gets, and
+ * ADR-003 keeps *artifact* out of what a reader sees. It also matches the thing it names: the
+ * segment after it is `buildHash`.
  *
  * `docs/backlog.md`'s EPIC-006d row is the argument: staging and production already share one R2
  * bucket and one prefix for Postgres dumps, so *"neither environment's backups are distinguishable,
@@ -51,8 +56,8 @@ export function deployEnv(): string {
   return process.env.DEPLOY_ENV ?? "development";
 }
 
-export function artifactKey(buildHash: string): string {
-  return `${deployEnv()}/artifacts/${buildHash}.json`;
+export function buildKey(buildHash: string): string {
+  return `${deployEnv()}/builds/${buildHash}.json`;
 }
 
 export function markerKey(promptId: string): string {

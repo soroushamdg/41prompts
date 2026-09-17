@@ -1,0 +1,10 @@
+$ curl -sSI http://localhost:3111/v1/blob/development/artifacts/7426aa4e01409b4deec22087682de9f58345435d3b6e08a6e29b4ffcaf5f6842.json
+HTTP/1.1 200 OK
+cache-control: public, max-age=31536000, immutable
+content-type: application/json
+etag: "7426aa4e01409b4deec22087682de9f58345435d3b6e08a6e29b4ffcaf5f6842"
+
+$ curl -sSI http://localhost:3111/v1/blob/development/markers/pr_32f3f41b.json
+HTTP/1.1 200 OK
+cache-control: public, max-age=30
+content-type: application/json

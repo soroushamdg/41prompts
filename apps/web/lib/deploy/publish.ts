@@ -12,6 +12,7 @@ import {
   RUN_PARAMS,
   liveFor,
   newestVersion,
+  pinVersion,
   previousLiveFor,
   promptForOwner,
   recordPublishEvent,
@@ -30,7 +31,7 @@ import {
   ARTIFACT_CACHE_CONTROL,
   ARTIFACT_CONTENT_TYPE,
   MARKER_CACHE_CONTROL,
-  artifactKey,
+  buildKey,
   markerKey,
   storeFor,
   type ArtifactStore,
@@ -62,7 +63,7 @@ export type PublishRefusal =
   | { kind: "reason_too_short"; minimum: number }
   | { kind: "blocked"; report: GateReport }
   | { kind: "nothing_to_undo" }
-  | { kind: "artifact_missing" }
+  | { kind: "build_missing" }
   | { kind: "build"; refusal: BuildRefusal };
 
 export interface PublishSuccess {
@@ -155,13 +156,29 @@ export async function publishVersion(request: PublishRequest): Promise<PublishOu
   //    which is why this is two branches here rather than a flag handed to the gate.
   if (report.blocked && anyway === undefined) return refuse({ kind: "blocked", report });
 
+  // 5. **Pin it, because something is about to point at it.**
+  //
+  // `prompt_versions` rule 2 is that the open draft is *rewritten in place* while `pinnedAt` is
+  // null, so without this the next keystroke on the canvas would silently replace the blok set that
+  // an immutable `publish_events` row names — and the history would then say a version was published
+  // whose snapshot is not what was published. The artifact itself is safe either way (it is in the
+  // store under its own content address); what is lost is the ability to explain it.
+  //
+  // A run already does this, for the same reason, through `pinVersionForRun`. Only the newest row
+  // can be unpinned — rule 3 mints `n + 1` the moment the newest is pinned — so pinning the newest
+  // is pinning this one, and an older version is pinned already.
+  //
+  // **After the gate, not before.** A refused publish must not close somebody's open draft: nothing
+  // points at a version that was not published.
+  const pinned = version.pinnedAt === null ? ((await pinVersion(db, promptId)) ?? version) : version;
+
   return {
     ok: true,
     value: await commit({
       db,
       store,
       promptId,
-      version,
+      version: pinned,
       artifact: built.artifact,
       report,
       actor: owner,
@@ -208,7 +225,7 @@ export async function undoPublish(request: UndoRequest): Promise<PublishOutcome>
   const artifact = await readArtifact(store, previous.buildHash);
   // The bytes are gone from the store while the log still names them. Nothing can restore that, and
   // saying so is better than writing a marker that points at a 404.
-  if (artifact === null) return refuse({ kind: "artifact_missing" });
+  if (artifact === null) return refuse({ kind: "build_missing" });
 
   const version = previous.version === null ? null : ((await versionById(db, promptId, previous.version)) ?? null);
 
@@ -247,7 +264,7 @@ async function commit(input: {
   const { store, artifact } = input;
 
   // Immutable, and its key is its own content hash, so a repeat is a no-op by construction.
-  const objectKey = artifactKey(artifact.buildHash);
+  const objectKey = buildKey(artifact.buildHash);
   await store.put(
     {
       key: objectKey,
@@ -309,7 +326,7 @@ async function commit(input: {
  * written by something that is not this code, and neither should reach a gate.
  */
 export async function readArtifact(store: ArtifactStore, buildHash: string): Promise<Artifact | null> {
-  const stored = await store.get(artifactKey(buildHash));
+  const stored = await store.get(buildKey(buildHash));
   if (stored === undefined) return null;
 
   let parsed: unknown;

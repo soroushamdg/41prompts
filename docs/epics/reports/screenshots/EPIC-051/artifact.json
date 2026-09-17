@@ -1,0 +1,45 @@
+{
+  "bloks": [
+    {
+      "id": "blok_0d0192ce51f209c2",
+      "kind": "context",
+      "position": 0,
+      "text": "You triage inbound support email for Northwind."
+    },
+    {
+      "id": "blok_5c6ee013009de904",
+      "kind": "constraint",
+      "position": 1,
+      "text": "Reply in at most 80 words."
+    }
+  ],
+  "buildHash": "f2e110654d6cb223ec628ac5effabb4a5c896780ac466f01c3bab74ada7f7e0f",
+  "checkSuiteId": null,
+  "checks": [],
+  "compilerVersion": "compile@3",
+  "model": "claude-sonnet-5",
+  "params": {
+    "maxOutputTokens": 1024,
+    "temperature": 0
+  },
+  "promptId": "pr_32f3f41b",
+  "schemaVersion": 1,
+  "spans": [
+    {
+      "blokId": "blok_0d0192ce51f209c2",
+      "end": 49,
+      "start": 0,
+      "state": "compiled",
+      "textEnd": 47
+    },
+    {
+      "blokId": "blok_5c6ee013009de904",
+      "end": 77,
+      "start": 49,
+      "state": "compiled",
+      "textEnd": 75
+    }
+  ],
+  "text": "You triage inbound support email for Northwind.\n\nReply in at most 80 words.\n\n",
+  "variables": []
+}

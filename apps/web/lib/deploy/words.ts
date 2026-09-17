@@ -89,7 +89,7 @@ export function refusalBody(refusal: PublishRefusal): { status: number; body: Re
       };
     case "nothing_to_undo":
       return { status: 409, body: { error: refusal.kind, says: "There is no earlier version to go back to." } };
-    case "artifact_missing":
+    case "build_missing":
       return {
         status: 409,
         body: { error: refusal.kind, says: "The earlier build is no longer in storage, so Undo cannot reach it." },
