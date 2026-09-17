@@ -28,7 +28,8 @@
  * to click yet — EPIC-055 owns that — so it is minted directly and the report says so.
  */
 import { chromium, type Page } from "@playwright/test";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 // Imported from inside `apps/web`, not from `scripts/`: the repository root is not a workspace
@@ -41,6 +42,10 @@ const SHOTS = join(ROOT, "docs", "epics", "reports", "screenshots", "EPIC-052");
 mkdirSync(SHOTS, { recursive: true });
 
 const EMAIL = `claude-drive-052-${Date.now()}@example.com`;
+// The SDK's disk cache goes to a temporary directory, not under `docs/`. The screenshots directory
+// is evidence a person reads; a cache is a working file, and `docs/PROCESS.md`'s rule about suites
+// writing into the working tree is about exactly that distinction.
+const CACHE = mkdtempSync(join(tmpdir(), "41p-drive-052-cache-"));
 
 const results: { name: string; ok: boolean; detail: string }[] = [];
 const record = (name: string, ok: boolean, detail: string) => {
@@ -194,7 +199,7 @@ try {
   const sdk = createClient({
     apiKey: plaintext,
     baseUrl: BASE,
-    cacheDir: join(SHOTS, "cache"),
+    cacheDir: CACHE,
     onWarning: (warning) => warnings.push({ code: warning.code, message: warning.message }),
   });
 
@@ -259,7 +264,7 @@ try {
   const offline = createClient({
     apiKey: plaintext,
     baseUrl: "http://127.0.0.1:1/",
-    cacheDir: join(SHOTS, "cache"),
+    cacheDir: CACHE,
     onWarning: () => undefined,
   });
   const fromDisk = offline.resolve(promptId, { customer_name: "Ada" });
@@ -286,10 +291,18 @@ try {
   );
   bundledOnly.close();
 
+  // Two warnings are provoked on purpose above — the cold call before anything is cached, and the
+  // deliberate call with no value for a required variable — so the assertion is that **only** those
+  // two happened. A bare "no warnings" would have been the wrong assertion and the first run of this
+  // drive made it: it failed on the SDK behaving exactly as the two checks above require.
+  const EXPECTED = new Set(["not_found", "missing_variables"]);
+  const unexpected = warnings.filter((warning) => !EXPECTED.has(warning.code));
   record(
-    "nothing the SDK did warned about anything unexpected",
-    warnings.every((warning) => warning.code === "not_found"),
-    warnings.length === 0 ? "no warnings" : warnings.map((w) => w.code).join(", "),
+    "the SDK warned only about the two things this drive provoked on purpose",
+    unexpected.length === 0 && warnings.some((warning) => warning.code === "missing_variables"),
+    warnings.length === 0
+      ? "no warnings at all, which means the control did not fire"
+      : `${warnings.map((w) => w.code).join(", ")}${unexpected.length === 0 ? "" : ` — unexpected: ${unexpected.map((w) => w.message).join("; ")}`}`,
   );
   writeFileSync(join(SHOTS, "warnings.json"), JSON.stringify(warnings, null, 2));
   sdk.close();

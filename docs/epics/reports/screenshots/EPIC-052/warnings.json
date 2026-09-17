@@ -1,0 +1,10 @@
+[
+  {
+    "code": "not_found",
+    "message": "nothing is cached for this prompt yet; a refresh is running in the background"
+  },
+  {
+    "code": "missing_variables",
+    "message": "no value was supplied for customer_name, and neither has a default"
+  }
+]
