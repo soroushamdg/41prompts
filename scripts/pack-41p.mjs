@@ -33,10 +33,17 @@
  *
  * `--out <dir>` puts it somewhere durable, which is what the drive uses so its transcript names a
  * path that still exists afterwards.
+ *
+ * `--no-build` packs whatever `dist` is already there. **`packed.test.ts` must pass it**, and the
+ * reason is a failure this caused: a test that shells out to `pnpm build` while turbo is already
+ * running the test task rebuilds `dist` underneath the packages running beside it. It took out
+ * `@41prompts/sdk`'s own tarball test — which had just listed a `dist` that was being rewritten —
+ * and `@41prompts/web`'s suite, in two different runs, with two different-looking failures and one
+ * cause. `packages/cli/turbo.json` orders the builds instead, which is turbo's job and not a test's.
  */
 
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -53,6 +60,7 @@ const PACKAGES = [
 const argv = process.argv.slice(2);
 const outFlag = argv.indexOf("--out");
 const quiet = argv.includes("--quiet");
+const noBuild = argv.includes("--no-build");
 const say = (line) => {
   if (!quiet) process.stderr.write(`${line}\n`);
 };
@@ -64,9 +72,18 @@ if (outFlag !== -1) {
 }
 
 say(`packing into ${out}`);
-for (const pkg of PACKAGES) {
-  say(`  building ${pkg.name}`);
-  execFileSync("pnpm", ["--filter", pkg.name, "build"], { cwd: REPO, stdio: quiet ? "pipe" : "inherit" });
+if (noBuild) {
+  for (const pkg of PACKAGES) {
+    if (!existsSync(join(REPO, pkg.dir, "dist"))) {
+      process.stderr.write(`pack-41p: ${pkg.name} has no dist and --no-build was passed. Run \`pnpm build\` first.\n`);
+      process.exit(2);
+    }
+  }
+} else {
+  for (const pkg of PACKAGES) {
+    say(`  building ${pkg.name}`);
+    execFileSync("pnpm", ["--filter", pkg.name, "build"], { cwd: REPO, stdio: quiet ? "pipe" : "inherit" });
+  }
 }
 
 for (const pkg of PACKAGES) {

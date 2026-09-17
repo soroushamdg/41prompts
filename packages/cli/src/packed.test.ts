@@ -35,12 +35,15 @@ let work = "";
 
 beforeAll(() => {
   work = mkdtempSync(join(tmpdir(), "41p-packed-"));
-  bin = execFileSync("node", [join(REPO, "scripts", "pack-41p.mjs"), "--quiet", "--out", join(work, "packed")], {
+  // `--no-build`: `packages/cli/turbo.json` makes this package's `test` task depend on `build`, so
+  // core, the SDK and the CLI are all built before a test runs. Building here instead would rebuild
+  // `dist` underneath the packages testing alongside this one — which is exactly what it did once.
+  bin = execFileSync("node", [join(REPO, "scripts", "pack-41p.mjs"), "--quiet", "--no-build", "--out", join(work, "packed")], {
     cwd: REPO,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-}, 300_000);
+}, 120_000);
 
 afterAll(() => {
   rmSync(work, { recursive: true, force: true });

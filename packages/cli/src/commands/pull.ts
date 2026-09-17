@@ -36,7 +36,7 @@ import {
   type CodegenPrompt,
   type CodegenVariable,
 } from "@41prompts/core";
-import { apiFor, type Api, type LivePrompt } from "../api.js";
+import { apiFor, type LivePrompt } from "../api.js";
 import { baseUrlFor, keyFromEnvironment, readConfig, type Config } from "../config.js";
 import { cannotAnswer, ok, type CommandResult } from "../exit.js";
 import { LOCKFILE_FILENAME, LOCKFILE_VERSION, hashOfGeneratedFile, lockfileText, type LockedPrompt } from "../lockfile.js";
