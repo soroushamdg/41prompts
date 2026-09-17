@@ -187,7 +187,7 @@ line **by hand** instead: it contains the word *artifact* zero times.
 
 ### 6d. A literal NUL byte in a source file, caught before it was staged
 
-`never-throws.test.ts` fuzzes with `" "`, and the file as written to disk contained the **byte**
+`never-throws.test.ts` fuzzes with `"\u0000"`, and the file as written to disk contained the **byte**
 rather than the escape. Git would have treated the file as binary and shown no diff for it — which is
 precisely the mechanism `pnpm binary-files` and `.gitattributes` exist for (EPIC-031, CI #202).
 
