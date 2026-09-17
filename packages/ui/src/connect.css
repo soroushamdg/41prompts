@@ -92,6 +92,10 @@
 }
 .connect-cardbody {
   padding: var(--spacing-s4);
+  /* The prompt table has four columns, two of which are ids that cannot wrap, so its min-content
+     width exceeds a phone. A table does not shrink below that, so the card scrolls rather than
+     pushing the whole page sideways — which is what it did at 390px, by 56px, before this line. */
+  overflow-x: auto;
 }
 .connect-card .connect-code {
   border: 0;
