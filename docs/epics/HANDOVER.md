@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-17, after EPIC-055**, for whoever picks this up — person or
+Where things stand as of **2026-09-17, after EPIC-053**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,24 +16,47 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Stage 5a is complete, and `▣ GATE 5` is the next row. It is a full stop.**
+**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053 is done. EPIC-054 is next.**
 
-EPIC-055 merged 2026-09-17: Deploy, Connect, the API keys tab, the Publishing switch, the editor's
-version pill and the Runs page's blocked banner. Publishing is no longer an endpoint you can only
-reach with `fetch`, and an API key is no longer a thing only a drive script can make.
+`docs/decisions/GATE-5.md` records Soroush's ruling of 2026-09-17: the **technical** reading. The row
+is titled *Demand check* and its criteria are two demand numbers the same document marks *not
+measured* elsewhere — but `roadmap.md`'s own reason for exempting this gate from the 2026-09-12
+cancellation is technical: it guards the frozen artifact format and the SDK surface, both of which
+are built, driven, and frozen in ADR-005 and ADR-006. `docs/epics/GATE-5-readiness.md` is the input
+that decision was made on; it offered three readings and chose none.
 
-**Do not start EPIC-053, EPIC-054, EPIC-056 or EPIC-057.** They are Stage 5b, behind GATE 5, and
-`docs/AUTONOMOUS.md` is explicit: a gate is Soroush's decision, it is recorded in
-`docs/decisions/GATE-n.md`, and the epics behind it are not reachable by stepping around it.
-`docs/decisions/GATE-5.md` does not exist.
+**Neither demand number was measured and both are zero.** Not "measured and found low" — there is no
+CDN, no deployed production carrying `/v1`, no published package and no customers. The decision
+proceeds without the gate's own word, exactly as GATE 3's did, and `GATE-5.md` says so.
 
-**GATE 5 cannot be measured today, and that is a fact rather than a delay.** Its criteria are
-*"measured, 30 days after EPIC-055: number of distinct production apps resolving from the CDN; number
-of paying or pilot customers asking for Python, CLI codegen, or source access"*. The first number
-needs a CDN, which needs an R2 bucket, which is Soroush's step — EPIC-051 §4.1, EPIC-052 and
-EPIC-055's ruling 2 all report it unbuilt for that reason, and the roadmap names a client ping as the
-wrong answer. The second needs customers. And the thirty days cannot start while nothing is deployed:
-`origin/main` is **52 commits behind** local `main`. See EPIC-055's session log, "What is next".
+**EPIC-053 merged 2026-09-17** (`80d8ccb`). `41p` is real: `link`, `pull`, `check`, `run`,
+`decompile`, plus the unscoped `41p` wrapper. A developer can hold their prompt the way they hold the
+rest of their code.
+
+**EPIC-054 is next and needs nothing from Soroush until its PyPI step.** The codegen EPIC-053 built
+already writes `prompts.py` and it already passes `mypy --strict`; `sdks/python/fortyone/__init__.py`
+is still EPIC-000's stub. So EPIC-054 is the runtime under a file that already exists and is already
+type-checked. Its PyPI publish is EPIC-006, which is `deferred` — report it, do not fake it.
+
+**EPIC-056 is not reachable.** `GATE-5.md` has the table: it needs `github.com/41prompts/41prompts`
+(EPIC-006, deferred), npm and PyPI trusted publishing (same), and an IP assignment to a legal entity
+that does not yet exist (EPIC-071, deferred). A run that reaches it writes a `BLOCKER` rather than a
+half version. **EPIC-057** is buildable except its external review hour, which needs a person.
+
+**What EPIC-053 settled**, so it is not rediscovered:
+
+1. **The bindings generator lives in `packages/core/src/codegen/`.** `apps/web/lib/connect/generate.ts`
+   is a re-export and `41p pull` is the other caller. They write the same bytes and a test asserts it
+   with a control. Do not add a second generator anywhere.
+2. **The generated header changed** — it carries `docs/roadmap.md`'s *"This file is yours; 41Prompts
+   claims no rights in it."* The Connect page's wording changed with it, deliberately (ruling 9).
+3. **`41p run` does not call a model** and the report §8 says why. If that should change, it needs a
+   `/v1` run endpoint with quota and rate limiting, and that is its own epic.
+4. **Project ids collide and now retry.** `packages/db/src/create-project.ts`. `proj_` + 4 hex is
+   65,536 values; the retry makes it safe and the id is still short enough to fire routinely on a
+   busy account. **Widening it is Soroush's** — it is a `CLAUDE.md` naming rule and a migration.
+5. **`scripts/pack-41p.mjs`** assembles the tree npm would install. Any drive or test that runs the
+   binary uses it; running `tsx src/bin.ts` is the `next dev` failure in a new costume.
 
 **The earlier state, for context. EPIC-050, EPIC-051 and EPIC-052 are done.** The artifact format is frozen
 at v1 (ADR-005), a prompt can be **published**, and as of 2026-09-17 **a program outside this
@@ -51,7 +74,7 @@ seconds without a redeploy. ADR-006 freezes its public API.
    have. The pinning exists; it is not something to remember.
 3. **"Apps resolving" is still not built.** Ruling 2: the page says why in words rather than showing
    an empty table, because an empty table is a *claim*. Still part of GATE 5's demand measure.
-4. **A bundled artifact has no version number** (EPIC-052 §8). Still EPIC-053's question.
+4. **A bundled artifact has no version number** (EPIC-052 §8). `41p pull` writes builds under `41p/builds/<buildHash>.json`, so the file name is the address and the version is in `41p.lock.json` beside it — which answers it for the CLI's output and not for a hand-assembled bundle.
 5. **One ruling of EPIC-055's changes a line of `docs/design/README.md`** — core paints a moved cost
    amber and the README says cost deltas are ink. Core was followed. Report §3.
 
@@ -78,8 +101,8 @@ only its own epic's status cell.
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
 | **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
-| **GATE 5** | **undecided, and not measurable today.** No `docs/decisions/GATE-5.md`. See "Start here". |
-| Stage 5b | **behind the gate.** 053 · 054 · 056 · 057 — do not start. |
+| **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
+| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 next · 057 buildable but for its review hour · **056 not reachable** — see "Start here". |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -120,11 +143,11 @@ Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | see `git log -1` | EPIC-055, merged 2026-09-17 |
-| `origin/main` / staging | `da42eee` | **52 behind** — still EPIC-040's epic file and GATE 3's decision |
-| production | `af089c7` | 95+ behind; only a `v*` tag moves it |
+| local `main` | `06ec30c` | EPIC-053, merged 2026-09-17 |
+| `origin/main` / staging | `da42eee` | **69 behind** — still EPIC-040's epic file and GATE 3's decision |
+| production | `af089c7` = `v0.5.0` | 151 commits behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052 or 055**, and no
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055 or 053**, and no
 staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
@@ -133,8 +156,9 @@ staging URL is evidence about any of them. Check `/healthz`'s `commit` before qu
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
 **A release is due, and more so than last time.** `docs/AUTONOMOUS.md` stops the loop after every
-third completed epic, and 040, 041, 042, 043, 050, 051, 052 and 055 are **eight**. `RELEASE-DUE.md` was generated at `f3fa8a2` and is
-stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushed by an agent.
+third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055 and 053 are **nine**.
+`RELEASE-DUE.md` was regenerated at EPIC-053's merge and is current: **151 commits**, and `v0.6.0` is
+the next tag. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
 
@@ -264,6 +288,36 @@ stale; `node scripts/release-due.mjs` regenerates it. Nothing is tagged or pushe
     space left on device". 68 dangling volumes, 3.485 GB. `docker volume prune` (without `-a`, so no
     stopped project's named volume is touched) after checking every in-use volume is attached to a
     running container.
+
+26. **A gate can be green over a package that does not compile.** `tsconfig.base.json` sets
+    `types: []`, and `packages/cli`'s `process` and `node:fs` resolved **only because its test files
+    pull in `vitest`, whose types reference Node's**. `tsconfig.build.json` excludes tests, so
+    `pnpm typecheck` passed and `pnpm build` failed. Before trusting a typecheck, ask which program
+    it built — two tsconfigs in one package are two different questions.
+
+27. **A test that shells out to a build races the run that invoked it.** `packed.test.ts` ran
+    `pnpm build` while turbo was already executing the test task, rewriting `dist` underneath the
+    packages testing beside it. It failed `@41prompts/sdk`'s tarball test in one run and
+    `@41prompts/web`'s suite in another — two different-looking failures, one cause, and both looked
+    like flakiness. Ordering belongs in `turbo.json`, not in a test.
+
+28. **Lesson 19's other half: a test in a public package may only read the public tree.**
+    `packed.test.ts` read `scripts/`, which `mirror-dry-run` deliberately excludes — green
+    everywhere, `Cannot find module` in the one job that filters. That is `PROCESS.md`'s "Local green
+    is not CI green" **failure #1**, reproduced within the hour of being read. Repo-level tests live
+    in `apps/web`, which the mirror does not contain; `forbidden-words.test.ts` is the precedent. A
+    skip was the alternative and a skip reads as a pass.
+
+29. **A retry that cannot be forced cannot be tested.** The project-id collision survived because
+    `newProjectId` draws an unused id nearly every time, so any suite that inserts projects passes
+    identically against code with no retry at all. `insertProject` takes the generator as a
+    parameter with the real one as its default — both callers share the seam — and the test hands
+    back an already-taken id and counts the draws. **Before asserting a safeguard works, force the
+    thing it guards against.**
+
+30. **Read the server log, not only the test output.** Three CI-mode runs failed e2e on a different
+    test each time, each looking like a timeout. The cause was one sentence nothing in the test
+    output carried: `duplicate key value violates unique constraint "projects_pkey"`.
 
 ## Gates and the local loop
 
