@@ -2,6 +2,28 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
+ * **A test about `41p` that lives in `apps/web`, deliberately.** Read this before moving it back.
+ *
+ * `pnpm mirror-dry-run` filters the repository down to the four public packages and runs their
+ * suites there — it is the gate that proves the public tree stands on its own. `scripts/` is
+ * excluded from that tree on purpose, and `node_modules/.pnpm` and the monorepo's own layout are
+ * not part of it either.
+ *
+ * So a test inside `packages/cli` that reaches for any of those **fails in the mirror and nowhere
+ * else**, which is `docs/PROCESS.md`'s "Local green is not CI green" failure #1, verbatim:
+ * `packages/core`'s suite once read `apps/worker/src/runs/execute.ts`, was green in the monorepo,
+ * and died on `ENOENT` in the one job that filtered the tree. This file was written inside
+ * `packages/cli` first and reproduced it within the hour.
+ *
+ * The alternative was a skip, and `docs/PROCESS.md` is unambiguous that a skip reads as a pass in a
+ * summary line. Moving it to a package the mirror does not contain means it always runs, exactly
+ * once, with no condition attached.
+ *
+ * `apps/web/forbidden-words.test.ts` is the precedent: it tests `scripts/forbidden-words.mjs` and
+ * lives here for the same reason.
+ */
+
+/**
  * `docs/roadmap.md`'s Review line for this epic, executed (EPIC-053, C4 and C5).
  *
  * > **Review.** Generated code compiles under strict in a fresh project.
@@ -37,9 +59,9 @@ import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO = join(HERE, "..", "..", "..");
+const REPO = join(HERE, "..", "..");
 const SDK = join(REPO, "packages", "sdk-ts");
-const GOLDENS = join(HERE, "__goldens__");
+const GOLDENS = join(REPO, "packages", "cli", "src", "__goldens__");
 
 const scratches: string[] = [];
 const scratch = (label: string): string => {
