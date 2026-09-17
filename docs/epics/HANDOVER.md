@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-16, after EPIC-050**, for whoever picks this up — person or
+Where things stand as of **2026-09-17, after EPIC-051**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,31 +16,32 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Stage 5a has started. EPIC-050 is done.** The build artifact is frozen at v1, ADR-005 declares it
-public and versioned, and `packages/core/src/artifact/schema.ts` is now on `CLAUDE.md`'s never-touch
-list in earnest — EPIC-050's epic file was the last explicit instruction that will be given for it.
+**Stage 5a is half built. EPIC-050 and EPIC-051 are done.** The build artifact is frozen at v1
+(ADR-005), and as of 2026-09-17 a prompt can be **published**: a gate that stops on failing checks or
+a broken variable contract, an artifact written to immutable storage under its own content address,
+a Live marker that moves, an audit row that says who and why, and a key-authenticated `/v1` for a
+program to read it all back.
 
-**The next epic is EPIC-051** — the server side of Publish: `POST …/publish` running the gate, R2
-with immutable headers, the audit log, "Publish anyway" with a typed reason, undo, project-scoped
-test/live keys. It has no epic file; write one the way 040 to 043 and 050 were written.
+**The next epic is EPIC-052** — `@41prompts/sdk`: `resolve()`, memory → disk → bundled → network,
+never blocks, never throws, telemetry off. Its dependency (EPIC-050) is done, and EPIC-051 has now
+built the two things it talks to. It has no epic file; write one the way 040 to 043, 050 and 051 were
+written.
 
-**Read `docs/decisions/ADR-005-build-artifact.md` before scoping it.** EPIC-051 is the first caller
-of everything EPIC-050 built, and three of its decisions constrain it directly:
+**Read `docs/epics/reports/EPIC-051-report.md` §4, §8 and §11 before scoping it.** Four things there
+change what EPIC-052 builds:
 
-1. **An artifact is addressed by its content *and its proof*.** `model`, `params` and `checkSuiteId`
-   are inside `buildHash`, so re-publishing byte-identical text after a fresh check suite run writes
-   a **new** R2 object. This is the decision ADR-005 §7 names as most likely to be reversed, and
-   reversing it is a v2 of the format — cheaper to answer before anything is published than after.
-2. **`isCompatible(live, next)` is the gate row** the mockup calls *"Inputs compatible with shipped
-   apps"*. It returns every break with the variable's name, so the gate can say which one.
-3. **`artifactBytes()` is what goes to R2** and `buildHashOf()` is what verifies it. Neither should
-   be reimplemented in `apps/web` or the SDK; a second copy of "how an artifact is serialised" fails
-   by making verification quietly always pass.
-
-**One thing EPIC-051 has to decide that EPIC-050 deliberately did not**: where the two JSON Schema
-documents are served from. They are values in `@41prompts/core`, not files —
-`JSON.stringify(ARTIFACT_JSON_SCHEMA, null, 2)` is the file — and their `$id`s name
-`https://41prompts.ai/schema/…`, which nothing serves yet.
+1. **There is no R2 bucket and no CDN.** `/v1/marker/:promptId` redirects to whatever the store says,
+   which today is this app's own `/v1/blob/...`. The SDK must not hard-code either. Two environment
+   values are new and unset everywhere — `R2_BUCKET_ARTIFACTS` and `R2_PUBLIC_BASE_ARTIFACTS`.
+2. **`buildHashOf()` is the verifier and there is no second one.** `apps/web/lib/deploy/publish.ts`'s
+   `readArtifact` is the worked example: parse, refuse an unknown `schemaVersion`, recompute, compare.
+   ADR-005 §3 says a reader refuses a version it does not recognise, and rule 8 says the SDK never
+   throws — so "refuse" means fall back down the resolve order and warn.
+3. **Variables are declared per prompt, not per version** (report §8). The SDK's variable validation
+   is where that asymmetry first becomes visible to a customer.
+4. **`docs/roadmap.md`'s EPIC-052 entry carries a paragraph that is easy to miss**: EPIC-013's parked
+   question about `packages/core` being resolved two ways in this repo has to be settled there,
+   because that epic decides core's `main` and `exports` for publication.
 
 **`▣ GATE 3`'s status cell in `docs/backlog.md` still says `—`, and the gate is decided.**
 `docs/decisions/GATE-3.md` records it: Go for Stage 4, loud launch deferred. `scripts/pick-next-epic.mjs`
@@ -48,23 +49,17 @@ reads the cell, not the decision file, so it stops on that row and will keep sto
 **One word in that cell (`—` → `go`) unsticks it**, and only Soroush may write it — a run may edit
 only its own epic's status cell.
 
-**Read `docs/epics/reports/EPIC-050-report.md` §11 before scoping anything.** Seven open items; three
-change what somebody builds:
+**ADR-005 §7 is no longer cheap to reverse.** EPIC-050 named provenance-inside-the-content-address as
+the paragraph most likely to be wrong and said it was reversible "before EPIC-051 publishes
+anything". EPIC-051 publishes things. From here it is a v2 of the format.
 
-1. **Provenance inside the content address** (§3.2 above).
-2. **Nobody has reviewed the SHA-256** that now addresses every artifact. Five published FIPS 180-4
-   vectors and 131 message lengths is evidence, not a review. EPIC-057's external review hour.
-3. **`snapshot()` and `compile()` break an `order` tie differently** — `localeCompare` against
-   code-unit `<`, where `compile()`'s own comment says why locale is wrong. Two bloks sharing an
-   `order` is reachable from the canvas. Not fixed in EPIC-050 because it moves stored
-   `snapshotHash` values, which are EPIC-041's dedupe key.
+**What EPIC-050 left open** is unchanged apart from §11.7, which EPIC-051 answered — the two JSON
+Schema documents are **not** served from `app.`; they want EPIC-072 and the marketing host, once.
+The `snapshot()`/`compile()` tie-break disagreement and the unreviewed SHA-256 are both still open.
 
 **What EPIC-042 left open** is unchanged and is in its report §6 and §11 — no provider has ever been
 called by that epic, `MAX_INPUTS` is 100 against the roadmap's 500, five threat-model rows are
 written and not added, and the judge can spend Anthropic money on a run against OpenAI.
-
-**What EPIC-041 left open** is unchanged and is in its own report §11 — the ink-inverted diff pair,
-the silent version gap, no pruning, and restore/A-B pinning the open draft without saying so.
 
 ## Stages
 
@@ -74,7 +69,7 @@ the silent version gap, no pruning, and restore/A-B pinning the open draft witho
 | Stage 3 | **done.** 030 ✅ · 031 ✅ · 031a ✅ · 032 ✅ · 033 ✅ · 034 ✅ |
 | **GATE 3** | **decided 2026-09-16** — `docs/decisions/GATE-3.md`. Go for Stage 4; **loud launch deferred**. |
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
-| **Stage 5a** | **started.** 050 ✅ — the artifact is frozen at v1 (ADR-005). 051 · 052 · 055 to go. GATE 5 sits after EPIC-055. |
+| **Stage 5a** | **half built.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`). 052 · 055 to go. GATE 5 sits after EPIC-055. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -97,11 +92,12 @@ the fallback labels itself `normalised: true`.
 | **EPIC-031a's three unticked criteria** — the resolved model id, a cached repeat at zero, one real judge call. Drivable **only against staging**, which is well behind local `main`. About thirty minutes once he pushes. | next session, or Soroush |
 | **`▣ GATE 3`'s backlog status cell is still `—`** while the gate is decided in `docs/decisions/GATE-3.md`. `pick-next-epic.mjs` reads the cell and stops there on every pass. One word fixes it; `docs/backlog.md` is his file. | Soroush |
 | **ADR-005 §7, provenance inside the content address.** Reversible today at the cost of one schema version, expensive the moment EPIC-051 publishes anything. | Soroush |
-| **Nobody has reviewed the hand-written SHA-256** that now addresses every artifact. EPIC-057's external review hour. | EPIC-057 |
+| **An R2 artifact bucket and a CDN in front of it** — `R2_BUCKET_ARTIFACTS` and `R2_PUBLIC_BASE_ARTIFACTS`. Without them the database store is used, the R2 driver stays unexercised against Cloudflare, and **"apps resolving" cannot exist** — which is part of GATE 5's demand measure. | Soroush |
+| **Nobody has reviewed the hand-written SHA-256** that now addresses every artifact, and it is load-bearing in production code as of EPIC-051. EPIC-057's external review hour. | EPIC-057 |
 | **EPIC-043's Review line** — "Soroush reads it. Every high finding has an epic." The threat model is written and the five rows are drafted; reading it and pasting them is his. | Soroush |
 | **The two open `high` findings**, `043a` and `043e`. See "Start here". | Soroush |
 | **Does a normalised view satisfy rule 6?** The privacy page describes that retention to users. Obtaining the real body means a `fetch` wrapper. **Cheaper to answer before EPIC-042** puts two more providers behind the same adapter. | Soroush |
-| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is well past that, and **five** epics have merged since the last release — 040, 041, 043, 042, 050 — rather than the three `docs/AUTONOMOUS.md` allows. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
+| **A release is overdue, and `RELEASE-DUE.md` is stale.** It was generated at `f3fa8a2`; local `main` is well past that, and **six** epics have merged since the last release — 040, 041, 043, 042, 050, 051 — rather than the three `docs/AUTONOMOUS.md` allows. Regenerate with `node scripts/release-due.mjs`. Cutting it starts with a push only he can make. | Soroush |
 | **EPIC-042's six open questions**, report §11. The three above change what gets built next. | Soroush |
 | **`privacy@41prompts.ai` must exist.** Both legal pages name it. A Cloudflare routing rule, not code. | Soroush |
 | **EPIC-006b/c/d** — Stage 0 debt, all unscheduled: the ~25s deploy gap, the public Coolify hostname, staging and production sharing one R2 prefix. | unscheduled |
@@ -198,6 +194,17 @@ evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 16. **A `.json` file in a public package needs a `.json.license` companion**, not a `REUSE.toml`
     edit — `REUSE.toml` is on `CLAUDE.md`'s never-touch list and the repository already has nine of
     these companions under `packages/core/src`. Found before `reuse lint` had to say it.
+17. **After rebuilding, prove the server you are about to drive is the one you just built.**
+    EPIC-051 lost an hour to a `pkill -f "next-server.*3111"` that matched nothing — `next start`
+    spawns a child whose command line does not carry the port — so the old process kept the socket
+    and the "restarted" server was the previous build. The drive then reported a defect in code that
+    was correct, and both intermediate conclusions drawn from it were wrong. Settled in one run by a
+    twenty-line script that published through the real API and dumped the table (lesson 7, again).
+18. **A defect can live in the seam between two features, where no test written from either
+    feature's spec will look.** EPIC-051's publish endpoints did not pin the version they published,
+    so the next keystroke rewrote the blok set an immutable audit row named. Every test was green;
+    the Versions page — another epic's — was where it showed. The drive looks at the product, which
+    is why it keeps finding what the suite does not.
 
 ## Gates and the local loop
 
