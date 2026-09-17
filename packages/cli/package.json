@@ -1,6 +1,7 @@
 {
   "name": "@41prompts/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "description": "41p: link, pull, check, run and decompile your prompts. Zero dependencies.",
   "type": "module",
   "license": "Apache-2.0",
   "repository": {
@@ -12,24 +13,41 @@
   "bugs": {
     "url": "https://github.com/soroushamdg/41prompts/issues"
   },
+  "keywords": ["prompt", "llm", "prompt-management", "cli", "codegen"],
+  "engines": {
+    "node": ">=20"
+  },
   "bin": {
-    "41p": "./src/bin.ts"
+    "41p": "./dist/bin.js"
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "files": ["dist", "LICENSE", "NOTICE", "README.md"],
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
     "prepublishOnly": "test \"$GITHUB_REPOSITORY\" = 41prompts/41prompts"
   },
+  "dependencies": {
+    "@41prompts/core": "workspace:*",
+    "@41prompts/sdk": "workspace:*"
+  },
   "devDependencies": {
+    "@types/node": "^22.20.1",
     "vitest": "^3.2.7"
   }
 }

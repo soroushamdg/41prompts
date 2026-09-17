@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,5 +85,50 @@ describe("the ADR-003 vocabulary gate", () => {
 
   it("keeps the platform-API exemptions it already had", () => {
     expect(scan('export const Field = () => <label htmlFor="x">Name</label>;').ok).toBe(true);
+  });
+});
+
+/**
+ * **Which trees the gate is pointed at** (EPIC-053, C16).
+ *
+ * Lesson 19, and this is the third time it has applied: `packages/sdk-ts/src` joined the roots in
+ * EPIC-052 and **eleven strings failed immediately**; `scripts/binary-files.mjs` grew three roots in
+ * EPIC-055 and caught two live NUL bytes; `packages/cli/src` joins here and found three on the first
+ * run. A gate only guards what it is pointed at, and the argument list is the easiest part of a gate
+ * to leave behind.
+ *
+ * Two assertions, and neither is sufficient alone. The first is that the root is **in the default
+ * list** — the list is what CI and every local run use, since `pnpm forbidden-words` passes no
+ * arguments. The second is that the scanner **fires on a file in a root it is given**, which the
+ * tests above already establish for the word matching and which is repeated here against a
+ * `packages/cli`-shaped path so the two halves are one argument.
+ *
+ * It is done this way rather than by planting a file inside the real `packages/cli/src` because
+ * `docs/PROCESS.md` forbids a suite writing into the working tree, and a gate test that dirtied the
+ * tree would be trading one of this repository's rules for another.
+ */
+describe("the roots the gate scans", () => {
+  const source = readFileSync(SCRIPT, "utf-8");
+
+  it.each(["packages/ui/src", "apps/web/app", "apps/web/lib", "packages/sdk-ts/src", "packages/cli/src"])(
+    "%s is in the default list, which is what a bare `pnpm forbidden-words` uses",
+    (root) => {
+      const list = source.slice(source.indexOf("const DEFAULT_ROOTS"), source.indexOf("const ROOTS"));
+      expect(list).toContain(`"${root}"`);
+    },
+  );
+
+  it("fires on a CLI-shaped file, rather than merely passing over one", () => {
+    // The positive control for the widening. `41p link`'s own output is the kind of string this is
+    // now guarding — a sentence a person reads on a terminal.
+    const result = scan('export const said = "Your artifact was pulled.";');
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("and passes over the CLI's actual strings", () => {
+    // The other direction: what the commands really say must be clean, or the widening above would
+    // be a gate that is red for ever and therefore ignored.
+    expect(scan('export const said = "Pulled 2 prompts. Run 41p check in CI.";').ok).toBe(true);
   });
 });

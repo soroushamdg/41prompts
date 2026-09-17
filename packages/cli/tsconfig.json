@@ -4,6 +4,13 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
+    // `tsconfig.base.json` sets `types: []`. This package reads files, writes files and exits a
+    // process, so it needs Node's. Declared here rather than inherited because leaving it unset made
+    // `typecheck` pass for the wrong reason: the test files pull in `vitest`, whose types reference
+    // Node's, so `process` and `node:fs` resolved in the program that *included* tests and vanished
+    // from the build program that excludes them. The gate was green over a package that did not
+    // compile.
+    "types": ["node"],
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true

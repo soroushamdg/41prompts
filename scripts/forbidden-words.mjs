@@ -45,8 +45,20 @@ const UI_ONLY = new Set(["assertion", "artifact"]);
  * *"is about as close to a string a customer reads as a non-rendered one gets"*. It is not scanned
  * for `.md`, so `README.md` is out of scope — this gate reads `.ts` and `.tsx` only, and teaching it
  * Markdown (headings, fenced code, link text) is a different gate than the one that exists.
+ *
+ * **`packages/cli/src` joined in EPIC-053**, for the same reason again and for the third time.
+ * Lesson 19 is *a gate only guards what it is pointed at*, and a CLI's output is read by exactly the
+ * person ADR-003's vocabulary is written for — on a terminal, in a CI log, more often than most of
+ * the UI. `forbidden-words.test.mjs` proves the root **fires** rather than merely that the gate
+ * passes: a widened root nobody has watched catch anything is a root that might be spelled wrong.
  */
-const DEFAULT_ROOTS = ["packages/ui/src", "apps/web/app", "apps/web/lib", "packages/sdk-ts/src"];
+const DEFAULT_ROOTS = [
+  "packages/ui/src",
+  "apps/web/app",
+  "apps/web/lib",
+  "packages/sdk-ts/src",
+  "packages/cli/src",
+];
 const ROOTS = process.argv.slice(2).length > 0 ? process.argv.slice(2) : DEFAULT_ROOTS;
 const EXTENSIONS = new Set([".ts", ".tsx"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".turbo", "dist", "coverage"]);
