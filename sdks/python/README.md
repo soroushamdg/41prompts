@@ -40,7 +40,9 @@ fortyone.configure(bundled=bundled)
 
 ```python
 client = fortyone.create_client()
-client.refresh()          # wait once at start-up, where waiting is allowed
+# Name the prompt. With no argument it refreshes what has already been asked for, which on a client
+# you have just built is nothing — so a bare `refresh()` at start-up fetches nothing at all.
+client.refresh("pr_1a2b3c4d")
 ```
 
 ## Configuration

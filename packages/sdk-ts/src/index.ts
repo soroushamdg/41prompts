@@ -8,7 +8,7 @@
  * import { createClient } from "@41prompts/sdk";
  *
  * const prompts = createClient({ apiKey: process.env.FORTYONE_API_KEY });
- * await prompts.refresh();                       // optional: be warm before the first request
+ * await prompts.refresh("pr_1a2b3c4d");           // optional: be warm before the first request
  *
  * const { status, text } = prompts.resolve("pr_1a2b3c4d", { customer_name: "Ada" });
  * if (status === "ok") await model.complete(text);

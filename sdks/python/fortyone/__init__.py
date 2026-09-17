@@ -416,8 +416,13 @@ class Client:
         """Fetch now, and return when it is done.
 
         The one place waiting is allowed, because the caller asked. An application that wants to be
-        warm before it serves its first request calls this once at start-up. With no argument it
-        refreshes every prompt the client has been asked for.
+        warm before it serves its first request calls this once at start-up, **naming the prompt**.
+
+        With no argument it refreshes every prompt the client has been asked for — which on a client
+        that has just been constructed is **none of them**, so a bare ``refresh()`` at start-up
+        fetches nothing. It cannot do otherwise: this package is never told which prompts an
+        application will use. EPIC-054's drive found that documented the wrong way round in four
+        places, this one included.
 
         **It waits rather than returning an awaitable**, where ``@41prompts/sdk`` returns a Promise.
         A Python caller who wants it off the main thread has ``threading`` and ``asyncio.to_thread``

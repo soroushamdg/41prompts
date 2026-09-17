@@ -174,3 +174,35 @@ def _settle(client: fortyone.Client) -> None:
                 return
         time.sleep(0.005)
     raise AssertionError("a refresh did not finish within five seconds")
+
+
+def test_refresh_with_no_argument_fetches_nothing_on_a_fresh_client(clients: list[fortyone.Client]) -> None:
+    """The defect EPIC-054's drive found, in the SDK it was ported from and in this one.
+
+    `refresh()` with no argument refreshes every prompt the client has been asked for, and a client
+    that has just been constructed has been asked for none. It cannot do otherwise: this package is
+    never told which prompts an application will use.
+
+    The behaviour is right; the documentation was not. Four places printed the bare call as the way
+    to be warm before the first request — `packages/sdk-ts/README.md`, that package's own example,
+    the Connect page's fourth step and this package's README — and it fetched nothing, so an
+    application that followed the instruction got exactly the cold start the instruction exists to
+    avoid. Nothing in either suite crossed it, because every other refresh test resolves first.
+    """
+    http = FakeHttp(live_routes(BUILD, BUILD_TEXT))
+    client = make(clients, api_key="41p_test_x", cache_dir=None, http=http)
+
+    client.refresh()
+
+    assert http.urls == []
+    assert client.resolve(PROMPT_ID, {"company": "N"}).status == "unavailable"
+
+
+def test_but_naming_the_prompt_fetches_it(clients: list[fortyone.Client]) -> None:
+    http = FakeHttp(live_routes(BUILD, BUILD_TEXT))
+    client = make(clients, api_key="41p_test_x", cache_dir=None, http=http)
+
+    client.refresh(PROMPT_ID)
+
+    assert http.urls, "the control: refresh(prompt_id) does reach the server"
+    assert client.resolve(PROMPT_ID, {"company": "Northwind"}).status == "ok"

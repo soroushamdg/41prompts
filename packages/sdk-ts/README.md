@@ -40,7 +40,9 @@ Two ways to be ready at start-up, and you can use both:
 
 ```ts
 // Wait once, where waiting is allowed — in your own start-up, not in a request.
-await prompts.refresh();
+// Name the prompts: with no argument it refreshes what has already been asked for, which on a
+// client you have just built is nothing.
+await prompts.refresh("pr_1a2b3c4d");
 
 // Or ship the builds with the deploy, so the first request is right on a cold machine.
 import bundled from "./prompts/builds.json" with { type: "json" };
