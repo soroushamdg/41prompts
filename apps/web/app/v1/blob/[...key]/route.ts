@@ -1,3 +1,4 @@
+import { sha256Text } from "@41prompts/core";
 import { databaseStore, storeFor } from "@/lib/deploy/store";
 
 /**
@@ -21,12 +22,28 @@ import { databaseStore, storeFor } from "@/lib/deploy/store";
  * guard the CDN will not have, and a guard that exists in one environment and not the other is worse
  * than none because it is believed.
  *
- * A key is a **32-hex content hash** or a prompt id, so the object being served is one somebody was
- * told about by a marker they were entitled to read.
+ * A key is a **content hash** or a prompt id, so the object being served is one somebody was told
+ * about by a marker they were entitled to read.
+ *
+ * ## The ETag is derived from the body, and EPIC-052 found out why that matters
+ *
+ * It used to be derived from the **key**. For an artifact that is the same thing — the key is the
+ * content hash — and for a **marker** it was a defect with no symptom: a marker's key is its prompt
+ * id, which never changes, so its ETag never changed either. Nothing had noticed because this route
+ * did not implement `If-None-Match` at all, so no conditional request was ever answered.
+ *
+ * `@41prompts/sdk` sends one on every background refresh. With a constant ETag the first 304 would
+ * have been permanent: **a published version would never reach a running application again**, and
+ * the failure would have looked like the SDK ignoring a publish rather than like a cache header. R2
+ * computes its own ETag from content and would have been right all along, so the two drivers would
+ * also have disagreed — one of them silently.
+ *
+ * Hashing the body per request is affordable because this route exists only where there is no CDN:
+ * one process, small documents, and a request rate bounded by the marker's 30-second max-age.
  */
 export const dynamic = "force-dynamic";
 
-export async function GET(_request: Request, context: { params: Promise<{ key: string[] }> }): Promise<Response> {
+export async function GET(request: Request, context: { params: Promise<{ key: string[] }> }): Promise<Response> {
   const store = await storeFor();
   // When R2 is configured, the marker names the CDN and nothing should be asking this route for
   // bytes. Answering anyway would make this a second, unmeasured way to read the store.
@@ -36,13 +53,16 @@ export async function GET(_request: Request, context: { params: Promise<{ key: s
   const object = await databaseStore.get(key.map(decodeURIComponent).join("/"));
   if (object === undefined) return new Response("Not found", { status: 404 });
 
-  return new Response(object.body, {
-    headers: {
-      "content-type": object.contentType,
-      "cache-control": object.cacheControl,
-      // The same digest the artifact is addressed by. A conditional request can then be answered
-      // without the body, which is what a CDN in front of R2 would do with R2's own ETag.
-      etag: `"${key[key.length - 1]?.replace(/\.json$/, "") ?? ""}"`,
-    },
-  });
+  // The same digest core addresses an artifact by, over whatever this object holds. A conditional
+  // request can then be answered without the body, which is what a CDN in front of R2 would do.
+  const etag = `"${sha256Text(object.body)}"`;
+  const headers = { "content-type": object.contentType, "cache-control": object.cacheControl, etag };
+
+  // A strong comparison, and a list, because a client may send more than one and `*` means "any".
+  const asked = request.headers.get("if-none-match");
+  if (asked !== null && (asked.trim() === "*" || asked.split(",").some((one) => one.trim() === etag))) {
+    return new Response(null, { status: 304, headers });
+  }
+
+  return new Response(object.body, { headers });
 }

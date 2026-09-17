@@ -226,4 +226,64 @@ test.describe("publishing", () => {
     expect(marker.status()).toBe(404);
     expect((await marker.json()).error).toBe("not_published");
   });
+
+  // ── EPIC-052, C14: the route that turns a content address into a URL ───────────────────────────
+
+  test("redirects a published build to its bytes, and 404s one nothing published", async ({ page, request }) => {
+    const mine = await publishable(page, "Buildable");
+    const published = await post(page, `/api/prompts/${mine.promptId}/publish`, {});
+    expect(published.status).toBe(200);
+    const buildHash = (published.body.live as Record<string, string>).buildHash;
+
+    const { plaintext } = await createApiKey(db, { project: mine.projectId, name: "SDK", environment: "live" });
+    const bearer = { Authorization: `Bearer ${plaintext}` };
+
+    const redirected = await request.get(`/v1/build/${buildHash}`, { headers: bearer, maxRedirects: 0 });
+    expect(redirected.status()).toBe(302);
+    expect(redirected.headers().location).toContain("/v1/blob/");
+
+    // Followed, it is the artifact — which is the whole journey `@41prompts/sdk` makes.
+    const artifact = await request.get(`/v1/build/${buildHash}`, { headers: bearer });
+    expect(artifact.status()).toBe(200);
+    expect(((await artifact.json()) as { buildHash: string }).buildHash).toBe(buildHash);
+    expect(artifact.headers()["cache-control"]).toBe("public, max-age=31536000, immutable");
+
+    // A hash nothing published. 64 hex characters, so this is a real content address and not a
+    // malformed one — the 404 is about the audit log, not about the shape of the path.
+    const unknown = await request.get(`/v1/build/${"0".repeat(64)}`, { headers: bearer, maxRedirects: 0 });
+    expect(unknown.status()).toBe(404);
+    expect((await unknown.json()).error).toBe("no_such_build");
+
+    expect((await request.get(`/v1/build/${buildHash}`, { maxRedirects: 0 })).status()).toBe(401);
+  });
+
+  test("answers a conditional request for a Live marker with 304, and changes the tag when Live moves", async ({
+    page,
+    request,
+  }) => {
+    const mine = await publishable(page, "Conditional");
+    const first = await post(page, `/api/prompts/${mine.promptId}/publish`, {});
+    const markerUrl = (first.body.live as Record<string, string>).markerUrl!;
+
+    const before = await request.get(markerUrl);
+    const tag = before.headers()["etag"];
+    expect(tag).toMatch(/^"[0-9a-f]{64}"$/);
+
+    const again = await request.get(markerUrl, { headers: { "If-None-Match": tag! } });
+    expect(again.status()).toBe(304);
+
+    // Publish a second version and the tag must move. **This is the assertion the defect was
+    // hiding**: the tag used to be derived from the key, and a marker's key is its prompt id, so it
+    // could never change — every SDK in the field would have been served 304 for ever and no publish
+    // would ever have reached a running application. EPIC-052 report §6a.
+    await page.goto(`/app/pr/${mine.promptId}`);
+    await addBlok(page, "constraint", "Never promise a refund.");
+    const second = await post(page, `/api/prompts/${mine.promptId}/publish`, {});
+    expect(second.status).toBe(200);
+
+    const after = await request.get(markerUrl, { headers: { "If-None-Match": tag! } });
+    expect(after.status()).toBe(200);
+    expect(after.headers()["etag"]).not.toBe(tag);
+    expect(((await after.json()) as { version: number }).version).toBe(2);
+  });
 });

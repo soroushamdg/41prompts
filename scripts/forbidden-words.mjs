@@ -37,9 +37,16 @@ const UI_ONLY = new Set(["assertion", "artifact"]);
 /**
  * The trees scanned. An argument replaces them, which is **only** how the gate's own test points it
  * at a fixture directory outside the working tree — `apps/web/forbidden-words.test.ts`. `pnpm
- * forbidden-words` passes none, so CI and every local run scan exactly these three.
+ * forbidden-words` passes none, so CI and every local run scan exactly these four.
+ *
+ * **`packages/sdk-ts/src` joined the list in EPIC-052**, and it is the first entry that is not a
+ * surface rendered in a browser. It belongs here for the reason `lib/deploy/store.ts` gives for
+ * calling its keys `builds/` rather than `artifacts/`: a warning an SDK writes into a customer's log
+ * *"is about as close to a string a customer reads as a non-rendered one gets"*. It is not scanned
+ * for `.md`, so `README.md` is out of scope — this gate reads `.ts` and `.tsx` only, and teaching it
+ * Markdown (headings, fenced code, link text) is a different gate than the one that exists.
  */
-const DEFAULT_ROOTS = ["packages/ui/src", "apps/web/app", "apps/web/lib"];
+const DEFAULT_ROOTS = ["packages/ui/src", "apps/web/app", "apps/web/lib", "packages/sdk-ts/src"];
 const ROOTS = process.argv.slice(2).length > 0 ? process.argv.slice(2) : DEFAULT_ROOTS;
 const EXTENSIONS = new Set([".ts", ".tsx"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".turbo", "dist", "coverage"]);

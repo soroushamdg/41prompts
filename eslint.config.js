@@ -19,6 +19,14 @@ export default [
   },
   js.configs.recommended,
   {
+    // `.mjs` in this repository is always a Node script — a build step, a gate, a drive. Without
+    // this, `process` and `console` are undefined globals and `no-undef` fires on correct code.
+    // Added in EPIC-052, when `packages/sdk-ts/build.mjs` became the first `.mjs` inside a package
+    // that `turbo run lint` reaches; `scripts/*.mjs` sit outside every package and are not linted.
+    files: ["**/*.mjs", "**/*.cjs"],
+    languageOptions: { globals: { ...globals.node } }
+  },
+  {
     files: ["**/*.ts", "**/*.tsx"],
     languageOptions: {
       parser: tsParser,

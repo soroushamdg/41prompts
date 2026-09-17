@@ -22,10 +22,22 @@
   "files": ["dist", "LICENSE", "NOTICE", "README.md"],
   "publishConfig": {
     "access": "public",
-    "provenance": true
+    "provenance": true,
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./fixtures": {
+        "types": "./dist/fixtures.d.ts",
+        "default": "./dist/fixtures.js"
+      }
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
