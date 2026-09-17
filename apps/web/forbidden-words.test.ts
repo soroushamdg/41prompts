@@ -27,6 +27,22 @@ import { describe, expect, it } from "vitest";
 
 const SCRIPT = join(fileURLToPath(new URL("../../scripts/forbidden-words.mjs", import.meta.url)));
 
+/**
+ * Every case here spawns a real `node` process, and vitest's default budget is five seconds.
+ *
+ * That default measures the machine rather than the gate. On the machine this was written on
+ * `/usr/local/bin/node` is an **x86_64 binary under Rosetta 2**, so each spawn pays a translation
+ * cost that has nothing to do with the code under test, and `gates.mjs ci` failed two of these on a
+ * loaded host while the whole file ran in 2.4 s unloaded — a forty-fold spread on a quantity the
+ * test is not about.
+ *
+ * `apps/web/cli-generated-code.test.ts` already sets its own budget for the same reason and at
+ * `120_000`; thirty seconds is generous for one process start and still fails an actual hang.
+ * `docs/PROCESS.md`, "Three timing gates report rather than enforce", is the same argument: an
+ * absolute wall-clock budget on a contended machine measures the machine.
+ */
+const SPAWN_TIMEOUT = 30_000;
+
 /** Run the gate over one fixture file. Returns its output and whether it passed. */
 function scan(source: string, extension = "ts"): { ok: boolean; output: string } {
   const dir = mkdtempSync(join(tmpdir(), "41p-forbidden-"));
@@ -39,7 +55,7 @@ function scan(source: string, extension = "ts"): { ok: boolean; output: string }
   }
 }
 
-describe("the ADR-003 vocabulary gate", () => {
+describe("the ADR-003 vocabulary gate", { timeout: SPAWN_TIMEOUT }, () => {
   it("allows the frozen public identifiers apps/web has to import", () => {
     const result = scan(
       [
@@ -107,10 +123,19 @@ describe("the ADR-003 vocabulary gate", () => {
  * `docs/PROCESS.md` forbids a suite writing into the working tree, and a gate test that dirtied the
  * tree would be trading one of this repository's rules for another.
  */
-describe("the roots the gate scans", () => {
+describe("the roots the gate scans", { timeout: SPAWN_TIMEOUT }, () => {
   const source = readFileSync(SCRIPT, "utf-8");
 
-  it.each(["packages/ui/src", "apps/web/app", "apps/web/lib", "packages/sdk-ts/src", "packages/cli/src"])(
+  it.each([
+    "packages/ui/src",
+    "apps/web/app",
+    "apps/web/lib",
+    "packages/sdk-ts/src",
+    "packages/cli/src",
+    // EPIC-054, lesson 19's fourth application. A CLI's output and an SDK's warnings are read by
+    // exactly the person ADR-003's vocabulary is written for; so is a Python package's.
+    "sdks/python/fortyone",
+  ])(
     "%s is in the default list, which is what a bare `pnpm forbidden-words` uses",
     (root) => {
       const list = source.slice(source.indexOf("const DEFAULT_ROOTS"), source.indexOf("const ROOTS"));
@@ -143,7 +168,7 @@ describe("the roots the gate scans", () => {
  *
  * It fired on three real strings the first time it ran, which is why the exemption below exists.
  */
-describe("the vocabulary gate over Python", () => {
+describe("the vocabulary gate over Python", { timeout: SPAWN_TIMEOUT }, () => {
   it("catches the word in a sentence a person would read", () => {
     const result = scan('MESSAGE = "Your artifact is ready."\n', "py");
     expect(result.ok).toBe(false);

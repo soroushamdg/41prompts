@@ -43,7 +43,7 @@ EPIC-053 already wrote the file that calls it.
 | # | criterion | evidence |
 |---|---|---|
 | C1 | Memory → disk → bundled, and never waits for the network | `tests/test_resolve.py` — a transport that sleeps ten seconds, and `resolve()` returns in under half a millisecond having **started** it (the control: a client that skipped the refresh would also be fast) |
-| C2 | Never raises, for any argument | `tests/test_never_raises.py` — 92 cases across every option, prompt id, variable map and handler; it **found a real defect**, §4.2 |
+| C2 | Never raises, for any argument | `tests/test_never_raises.py` — 92 cases across every option, prompt id, variable map and handler; it **found a real defect**, §4.3 |
 | C3 | Zero dependencies, `py.typed` in the wheel | `tests/test_packaging.py` — `importlib.metadata.requires` **with a positive control**, an AST walk of every import against `sys.stdlib_module_names`, and the built wheel's file list |
 | C4 | The canonical encoding agrees with `packages/core` byte for byte | `tests/test_canonical.py` against `tests/canonical_golden.json` — **331 cases generated from Node**, 0 mismatches; §3 |
 | C5 | A real build verifies; a changed one and a substituted one are refused | `tests/test_verify.py` against `packages/core`'s own frozen v1 fixture, read where it lives |
@@ -55,7 +55,7 @@ EPIC-053 already wrote the file that calls it.
 | C11 | `mypy --strict` over `fortyone` itself | `uv run --with mypy mypy --strict fortyone tests` — clean over 22 source files |
 | C12 | Telemetry off by default; on, it adds one header to a request already happening | `tests/test_telemetry.py` — the request list with it on and off asserted **equal** |
 | C13 | The `41prompts` alias distribution | `tests/test_packaging.py` — manifest, `uv build`, and that the wheel contains no module |
-| C14 | `sdks/python/fortyone` in the forbidden-word roots, gate proved to fire | `apps/web/forbidden-words.test.ts` — eight new cases; it fired on three strings immediately, §4.3 |
+| C14 | `sdks/python/fortyone` in the forbidden-word roots, gate proved to fire | `apps/web/forbidden-words.test.ts` — eight new cases; it fired on three strings immediately, §4.4 |
 | C15 | `41p pull --lang python` prints the install line | `packages/cli/src/commands/pull.test.ts`, with the assertion that the old sentence is gone |
 | C16 | The divergence table is complete | `tests/test_divergence.py` — names read out of `packages/sdk-ts`'s own source, **both directions**, with two controls; it found a missing row |
 | C17 | `pnpm test`, `typecheck`, `lint` green; `gates.mjs ci` green on the commit | §7 |
@@ -202,9 +202,15 @@ do not plausibly share a line with the word in prose; a key and its value do.
 
 ### 4.5 `pnpm binary-files` caught a raw NUL byte in my own generator
 
-`scripts/write-canonical-golden.mjs` needed the string `" "` as a test case and it
-was written as three raw control bytes. Git would have shown **no diff** for that file. Written as
+`scripts/write-canonical-golden.mjs` needed a string of three C0 control characters as a test
+case, and it was written as three raw bytes rather than as escapes. Git would have shown **no diff** for that file. Written as
 escapes, with the reason on the line above it. Same gate, same lesson, third epic running.
+
+**And then this report did it.** The paragraph you are reading carried a NUL of its own — the
+sentence naming the bytes contained them — and `gates.mjs ci` failed on it in a clean checkout
+while `pnpm binary-files` had passed locally minutes earlier, because the report had not been
+committed yet. EPIC-055's report says the same thing about its own fix-test. The gate has now
+caught this class four times and has never once been caught by a person.
 
 ### 4.6 Python cannot take `{{customer name}}` as a keyword argument — still true, still measured
 
