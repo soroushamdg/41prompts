@@ -418,3 +418,55 @@ export async function resultCountsFor(
 
   return new Map(rows.map((row) => [row.suiteRun, { total: row.total, failed: row.failed }]));
 }
+
+/**
+ * The newest finished run of one version **on one model** (EPIC-051's publish gate).
+ *
+ * The model is part of the question and not a detail: `CLAUDE.md` rule 9 blocks publishing when
+ * checks fail *on the target model*, so a run that passed on Claude says nothing about publishing
+ * against Gemini. A caller that filtered only by version would be answering a different question and
+ * would pass the gate with evidence about a model nobody is publishing to.
+ *
+ * `state = 'done'` rather than "not refused": a run that is still going has results that will change.
+ */
+export async function newestFinishedRunFor(
+  db: Db,
+  where: { prompt: string; version: string; model: string },
+): Promise<SuiteRunRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(suiteRuns)
+    .where(
+      and(
+        eq(suiteRuns.prompt, where.prompt),
+        eq(suiteRuns.version, where.version),
+        eq(suiteRuns.model, where.model),
+        eq(suiteRuns.state, "done"),
+      ),
+    )
+    .orderBy(desc(suiteRuns.createdAt))
+    .limit(1);
+  return row === undefined ? undefined : asSuiteRunRow(row);
+}
+
+/**
+ * How many checks a run had, and how each of its results came out.
+ *
+ * Three counts rather than two, because EPIC-030's third outcome is not a rounding error:
+ * `not_graded` is "nobody can tell yet" and folding it into either of the others is the one thing
+ * that whole epic refused to do. `resultCountsFor` above answers a list row's icon; this answers a
+ * gate, which needs to tell "all six passed" from "four passed and two nobody could grade".
+ */
+export async function outcomeCountsFor(
+  db: Db,
+  suiteRunId: string,
+): Promise<{ passed: number; failed: number; notGraded: number }> {
+  const rows = await db
+    .select({ outcome: suiteResults.outcome, n: sql<number>`count(*)::int` })
+    .from(suiteResults)
+    .where(eq(suiteResults.suiteRun, suiteRunId))
+    .groupBy(suiteResults.outcome);
+
+  const of = (outcome: string) => rows.find((row) => row.outcome === outcome)?.n ?? 0;
+  return { passed: of("pass"), failed: of("fail"), notGraded: of("not_graded") };
+}

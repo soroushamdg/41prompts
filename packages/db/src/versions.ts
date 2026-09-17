@@ -239,6 +239,26 @@ export async function pinVersion(db: Db, promptId: string): Promise<VersionRow |
 }
 
 /** A prompt's versions, newest first. EPIC-041 renders this; EPIC-040 only proves it is right. */
+/**
+ * One version of one prompt, by id (EPIC-051).
+ *
+ * `versionForOwner` in `apps/web` finds a version by scanning the page the Versions screen shows,
+ * which is the right answer for that screen and the wrong one for publishing: a prompt with a long
+ * history can have a Live version far outside the newest fifty, and "the artifact that is Live" must
+ * be readable however old it is.
+ *
+ * Scoped by `prompt` as well as `id` so that a caller who resolved *this* prompt cannot reach a
+ * version of another one by passing its id.
+ */
+export async function versionById(db: Db, promptId: string, versionId: string): Promise<VersionRow | undefined> {
+  const [row] = await db
+    .select()
+    .from(promptVersions)
+    .where(and(eq(promptVersions.prompt, promptId), eq(promptVersions.id, versionId)))
+    .limit(1);
+  return row as VersionRow | undefined;
+}
+
 export async function versionsForPrompt(db: Db, promptId: string, limit = 50): Promise<VersionRow[]> {
   const rows = await db
     .select()
