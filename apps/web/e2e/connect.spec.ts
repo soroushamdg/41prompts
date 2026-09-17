@@ -95,6 +95,46 @@ test.describe("Connect", () => {
     await expect(row).toContainText("not published");
   });
 
+  /**
+   * The defect EPIC-055's drive found, as a test.
+   *
+   * A prompt that uses `{{…}}` and never declares the name still needs that value. Generating the
+   * signature from declarations alone produced a function a developer cannot pass the name to, and
+   * the model then receives the prompt with the placeholder still in it — the failure
+   * `packages/sdk-ts/README.md` says nobody notices for a week.
+   */
+  test("takes a used-but-undeclared variable, and marks it in the table", async ({ page }) => {
+    const promptId = await newPrompt(page, "Undeclared");
+    // Two names, one declared and one not, so the file has to distinguish them rather than
+    // include-everything or include-nothing.
+    await addBlok(page, "context", "Write to {{customer_name}} about order {{order_id}}.");
+    await page.getByRole("tab", { name: "Variables" }).click();
+    await page.getByRole("button", { name: "Declare order_id" }).click();
+    await expect(
+      page.getByRole("region", { name: "Declared variables" }).getByText("order_id", { exact: true }),
+    ).toBeVisible();
+
+    await page.getByRole("link", { name: "Project", exact: true }).click();
+    const projectId = page.url().split("/app/p/")[1]!.split(/[/?#]/)[0]!;
+    await page.goto(`/app/p/${projectId}/connect`);
+
+    const file = await page.getByTestId("generated-file").textContent();
+    // Both names are in the signature; the undeclared one is required, because optionality comes
+    // from a default and it has none.
+    expect(file).toContain("customer_name: string");
+    expect(file).toContain("order_id: string");
+    expect(file).not.toContain("customer_name?");
+
+    // And the page says which one has no contract, rather than quietly papering over it.
+    const row = page.locator(".connect-prompts tbody tr").filter({ hasText: promptId });
+    await expect(row).toContainText("customer_name — not declared");
+    await expect(row.locator(".connect-undeclared")).toHaveCount(1);
+
+    // The control: `order_id` is declared, so it is *not* marked — the marker distinguishes rather
+    // than decorating every name.
+    await expect(row).not.toContainText("order_id — not declared");
+  });
+
   test("says a project with no prompts has none, rather than emitting an empty module", async ({ page }) => {
     await page.goto("/app/projects");
     await page.getByLabel("New project").fill(`Empty ${Date.now()}`);

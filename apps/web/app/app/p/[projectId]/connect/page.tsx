@@ -1,13 +1,14 @@
 import { isOptional } from "@41prompts/core";
-import { liveForProject, variablesForPrompt } from "@41prompts/db";
+import { bloksForPrompt, liveForProject, variablesForPrompt } from "@41prompts/db";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { listPrompts } from "@/lib/canvas/queries";
+import { listPrompts, type CanvasBlok } from "@/lib/canvas/queries";
 import { generatedPromptsFile, identifiersFor, type ConnectPrompt } from "@/lib/connect/generate";
 import { CONNECT_STEPS, TELEMETRY_NOTE } from "@/lib/connect/steps";
 import { getDb } from "@/lib/db";
 import { liveName } from "@/lib/deploy/view";
 import { requireSession } from "@/lib/session";
+import { variablesViewFor } from "@/lib/variables/queries";
 
 export const metadata: Metadata = { title: "Connect · 41Prompts", robots: { index: false, follow: false } };
 
@@ -42,14 +43,34 @@ export default async function ConnectPage({ params }: { params: Promise<{ projec
   const liveByPrompt = new Map(live.map((row) => [row.id, row.live]));
 
   const prompts: ConnectPrompt[] = await Promise.all(
-    found.prompts.map(async (prompt) => ({
-      id: prompt.id,
-      name: prompt.name,
-      variables: (await variablesForPrompt(getDb(), prompt.id)).map((declaration) => ({
-        name: declaration.name,
-        optional: isOptional(declaration),
-      })),
-    })),
+    found.prompts.map(async (prompt) => {
+      // **Uses, not declarations.** A prompt that says `{{customer_name}}` while nothing declares it
+      // still needs that value, and a generated file whose signature omits it cannot fill the
+      // prompt. `variablesViewFor` is the Variables tab's own reader, so the two agree about what
+      // this prompt uses — including a name typed into a hand-edited span.
+      const declarations = await variablesForPrompt(getDb(), prompt.id);
+      const bloks = (await bloksForPrompt(getDb(), prompt.id)) as CanvasBlok[];
+      const view = variablesViewFor(bloks, declarations);
+
+      const declaredBy = new Map(declarations.map((declaration) => [declaration.name, declaration]));
+      const used = [...new Set(view.occurrences.map((occurrence) => occurrence.name))].sort();
+      // Declared-but-unused names stay in the signature: they are part of the contract the artifact
+      // carries, and dropping one would make the file disagree with `isCompatible`.
+      const names = [...new Set([...used, ...declarations.map((declaration) => declaration.name)])].sort();
+
+      return {
+        id: prompt.id,
+        name: prompt.name,
+        variables: names.map((name) => {
+          const declaration = declaredBy.get(name);
+          return {
+            name,
+            optional: declaration !== undefined && isOptional(declaration),
+            declared: declaration !== undefined,
+          };
+        }),
+      };
+    }),
   );
 
   const identifiers = identifiersFor(prompts);
@@ -128,9 +149,22 @@ export default async function ConnectPage({ params }: { params: Promise<{ projec
                           {prompt.variables.length === 0 ? (
                             <span className="connect-prompts-none">none</span>
                           ) : (
-                            prompt.variables
-                              .map((variable) => (variable.optional ? `${variable.name}?` : variable.name))
-                              .join(", ")
+                            // `join` cannot separate elements, so the separator is in the markup.
+                            prompt.variables.map((variable, index) => (
+                              <span
+                                key={variable.name}
+                                className={variable.declared ? undefined : "connect-undeclared"}
+                                title={
+                                  variable.declared
+                                    ? undefined
+                                    : "Used in the prompt but never declared, so nothing records what it is or what happens when it is missing."
+                                }
+                              >
+                                {index === 0 ? "" : ", "}
+                                {variable.optional ? `${variable.name}?` : variable.name}
+                                {variable.declared ? "" : " — not declared"}
+                              </span>
+                            ))
                           )}
                         </td>
                         <td>

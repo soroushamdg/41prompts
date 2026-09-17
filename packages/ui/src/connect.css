@@ -131,6 +131,14 @@
   color: var(--color-ink-3);
 }
 
+/* A variable the prompt uses and nothing declares. **Not amber**: rule 10 reserves it for drift, and
+   an undeclared name has not moved — it was never written down. Weighted ink, and the words "not
+   declared" beside it, so the state is readable without the colour. */
+.connect-undeclared {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
 .connect-telemetry {
   border: 1px solid var(--color-line);
   background: var(--color-surface);

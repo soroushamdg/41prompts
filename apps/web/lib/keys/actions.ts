@@ -58,12 +58,10 @@ export async function createKeyAction(
 
   const { key, plaintext } = await createApiKey(db, { project: projectId, name: trimmed, environment });
   revalidatePath(KEYS_PATH);
-  return {
-    ok: true,
-    plaintext,
-    lastFour: key.lastFour,
-    message: "Copy it now. This is the only time it is shown.",
-  };
+  // **No message.** "Copy it now, this is the only time it is shown" is the panel's own headline and
+  // is always true of a minted key; returning it here as well printed it twice, which the drive's
+  // screenshot showed. `message` is for what is specific to *this* act — see `rotateKeyAction`.
+  return { ok: true, plaintext, lastFour: key.lastFour };
 }
 
 /**
@@ -88,7 +86,8 @@ export async function rotateKeyAction(projectId: string, keyId: string): Promise
     ok: true,
     plaintext: rotated.plaintext,
     lastFour: rotated.key.lastFour,
-    message: `Copy it now. This is the only time it is shown. The key ending ${rotated.revoked.lastFour} has stopped working.`,
+    // Only the part the panel's headline does not already say.
+    message: `The key ending ${rotated.revoked.lastFour} has stopped working.`,
   };
 }
 

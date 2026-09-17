@@ -82,9 +82,7 @@ function ProjectKeys({ project }: { project: ProjectView }) {
           <code className="keys-plaintext" data-testid="minted-key">
             {result.plaintext}
           </code>
-          <p className="keys-minted-note">
-            {result.message}
-          </p>
+          {result.message !== undefined && <p className="keys-minted-note">{result.message}</p>}
         </div>
       )}
       {result !== undefined && result.plaintext === undefined && (
@@ -125,7 +123,11 @@ function ProjectKeys({ project }: { project: ProjectView }) {
         </Button>
       </form>
 
-      {project.live.length === 0 && project.revoked.length === 0 ? (
+      {/* `result?.plaintext === undefined` is the guard, and it is not cosmetic: minting sets the
+          panel above immediately and `router.refresh()` lands a moment later, so without it the page
+          spends that moment showing a key and saying "No keys yet" directly underneath it. The drive
+          screenshotted exactly that. */}
+      {project.live.length === 0 && project.revoked.length === 0 && result?.plaintext === undefined ? (
         <p className="runs-note">No keys yet. The first one is what lets a program read this project.</p>
       ) : (
         <ul className="keys-rows">

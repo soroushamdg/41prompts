@@ -2,7 +2,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
-import { db, deleteTestUser } from "./db";
+import { deleteTestUser } from "./db";
 import { expectNoHorizontalOverflow } from "./overflow";
 import { addBlok, newPrompt, signIn } from "./runs-helpers";
 

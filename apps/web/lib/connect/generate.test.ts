@@ -45,7 +45,7 @@ describe("the identifier a prompt name becomes", () => {
 describe("the generated prompts.ts", () => {
   it("writes one function per prompt, with the id inline", () => {
     const file = generatedPromptsFile([
-      prompt({ id: "pr_1a2b3c4d", name: "Refund classifier", variables: [{ name: "email", optional: false }] }),
+      prompt({ id: "pr_1a2b3c4d", name: "Refund classifier", variables: [{ name: "email", optional: false, declared: true }] }),
     ]);
     expect(file).toContain('import { createClient } from "@41prompts/sdk";');
     expect(file).toContain("const prompts = createClient({ apiKey: process.env.FORTYONE_API_KEY });");
@@ -57,8 +57,8 @@ describe("the generated prompts.ts", () => {
     const file = generatedPromptsFile([
       prompt({
         variables: [
-          { name: "email", optional: false },
-          { name: "locale", optional: true },
+          { name: "email", optional: false, declared: true },
+          { name: "locale", optional: true, declared: true },
         ],
       }),
     ]);
@@ -76,10 +76,41 @@ describe("the generated prompts.ts", () => {
   it("quotes a variable name that is not an identifier", () => {
     // Variable names come from `{{…}}` in somebody's prompt text and are not constrained.
     const file = generatedPromptsFile([
-      prompt({ variables: [{ name: "customer name", optional: false }, { name: "x-locale", optional: true }] }),
+      prompt({ variables: [{ name: "customer name", optional: false, declared: true }, { name: "x-locale", optional: true, declared: true }] }),
     ]);
     expect(file).toContain('"customer name": string');
     expect(file).toContain('"x-locale"?: string');
+  });
+
+  /**
+   * The drive found this and it is the reason the signature is built from **uses** rather than
+   * declarations (EPIC-055, report §6).
+   *
+   * A prompt whose text says `{{customer_name}}` while nothing declares that name still needs the
+   * value. A signature omitting it is a function a developer cannot pass the name to, and the model
+   * then receives a prompt with `{{customer_name}}` still in it — which the SDK README names as the
+   * failure nobody notices for a week.
+   */
+  it("takes an undeclared variable, and takes it as required", () => {
+    const file = generatedPromptsFile([
+      prompt({
+        variables: [
+          { name: "order_id", optional: true, declared: true },
+          { name: "customer_name", optional: false, declared: false },
+        ],
+      }),
+    ]);
+    expect(file).toContain("v: { order_id?: string; customer_name: string }");
+  });
+
+  it("never marks an undeclared variable optional, whatever it is told", () => {
+    // Optionality comes from a default, and a name nothing declares has no default to fall back on.
+    // A caller who omitted it would ship a prompt with a hole in it.
+    const file = generatedPromptsFile([
+      prompt({ variables: [{ name: "customer_name", optional: true, declared: false }] }),
+    ]);
+    expect(file).toContain("v: { customer_name: string }");
+    expect(file).not.toContain("customer_name?");
   });
 
   it("says so when a project has no prompts, rather than emitting an empty module", () => {

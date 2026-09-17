@@ -22,8 +22,27 @@
 export interface ConnectPrompt {
   id: string;
   name: string;
-  /** Declared variables, in the order the page shows them. `optional` means it has a default. */
-  variables: readonly { name: string; optional: boolean }[];
+  /**
+   * Every variable the prompt **uses**, not only the ones it declares.
+   *
+   * ## The drive found this, and the difference is the whole point of the file
+   *
+   * A prompt whose text says `{{customer_name}}` while nothing has declared that name is a prompt
+   * with a real input and no contract. Generating the signature from declarations alone produced
+   * `refundClassifier(v: { order_id: string })` for a prompt that also needs `customer_name` — so a
+   * developer copying the file gets a function TypeScript will not let them pass the missing name
+   * to, and the model receives a prompt with `{{customer_name}}` still in it.
+   *
+   * `packages/sdk-ts/README.md` names that failure in as many words: *"Sending a model a prompt with
+   * `{{customer_name}}` still in it produces a confident answer about a customer called
+   * 'customer_name', and nobody notices for a week."* A generated file that causes it is worse than
+   * no generated file.
+   *
+   * So the signature is built from **uses**, and `declared` records whether each one has a contract
+   * — the page says which do not, because an undeclared variable is a real gap rather than a detail
+   * this file should paper over.
+   */
+  variables: readonly { name: string; optional: boolean; declared: boolean }[];
 }
 
 /** The file's first lines. Kept here so the test and the page cannot disagree about them. */
@@ -110,8 +129,10 @@ export function generatedPromptsFile(prompts: readonly ConnectPrompt[]): string 
         "}",
       ].join("\n");
     }
+    // An undeclared variable cannot be optional: optionality comes from a default, and a name with
+    // no declaration has no default to fall back on.
     const fields = prompt.variables
-      .map((variable) => `${propertyKey(variable.name)}${variable.optional ? "?" : ""}: string`)
+      .map((variable) => `${propertyKey(variable.name)}${variable.optional && variable.declared ? "?" : ""}: string`)
       .join("; ");
     return [
       `export function ${identifier}(v: { ${fields} }) {`,
