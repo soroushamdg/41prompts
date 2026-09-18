@@ -241,10 +241,9 @@ in front of it.
 - **A separate 3,000 an hour for `/v1/blob`**, which has no key to bucket by and is therefore the
   weakest-protected of the four. A CDN is what actually absorbs this and there is no CDN.
 - **All four routes**, not only the one the roadmap names.
-- **The exhausted-address check runs before the database is touched.** A limiter that only counts
-  *after* `keyFromRequest` bounds the responses and not the work, and the work is what a brute force
-  is buying. `peekLimit` reads the window without consuming it, so a caller who never fails
-  authentication is never counted into that bucket.
+- **The count happens after authentication, never before it** — and an earlier draft of this epic
+  had it the other way round. See the residual below; it is the most interesting thing in this
+  finding.
 - **`429` with `Retry-After`**, in `refusalResponse`'s `{ error: … }` shape so an SDK that learned to
   read `error` for a 401 does not need a second shape. **`fortyone` honours it**, process-wide,
   because the limit is per key and every prompt a client holds is behind the same key.
@@ -254,18 +253,39 @@ finding 3. Its behaviour under a limit is: warn on the `network` code with the s
 keep serving from memory, ask again next interval. **No customer loses a prompt**; the cost is
 requests our own endpoint refuses cheaply.
 
-**Residual, and two of them are structural.**
+**Residual.**
 
 1. **The window store is in memory, per process.** One web container today, so it *is* the global
    counter — the moment there are two, every limit doubles. A redeploy also forgives everybody
    mid-window. Acceptable for a limit whose purpose is to bound cost and brute force rather than to
-   enforce a quota somebody paid for; wrong the day it becomes a quota.
+   enforce a quota somebody paid for; wrong the day it becomes a quota. §8 row 057d.
 2. **`Retry-After` is not enforceable.** A client that ignores it is refused cheaply and keeps
    asking. That is the floor, not a fix.
-3. **A legitimate caller sharing an egress address with 60 failed attempts an hour is peeked into the
-   refusal.** The narrow case where the pre-auth check is unfair, and it is the price of not buying a
-   database lookup per guess.
+3. **A well-formed wrong key still costs one indexed lookup**, at whatever rate the caller chooses,
+   until the address bucket refuses them. Bounded by 60 an hour per address for the *refusals*, not
+   for the lookups. Accepted — see below for why the alternative was worse.
 4. **Nothing limits bandwidth.** A caller inside their budget can fetch the same build 20,000 times.
+
+**And the mitigation had a defect of its own, which is worth more than the finding.** The first
+version of `v1-limits.ts` refused an address that had exhausted the unauthenticated budget *before*
+`keyFromRequest` ran, precisely to close residual 3. It was written, tested, committed — and then
+removed, because it was a worse problem than the one it solved:
+
+- **A pre-auth gate sees an address and nothing else.** A customer's fleet shares its egress address
+  with everything else behind that NAT. So **anyone could have deliberately spent a target's sixty
+  unauthenticated requests and had that customer's entire fleet refused before it was
+  authenticated** — a targeted denial of service, introduced while mitigating one, against the exact
+  asset this finding is about.
+- **What it bounded is nearly nothing.** `keyFromRequest` answers `missing_key` with no query at all
+  when there is no header, and `apiKeyForPlaintext` refuses a malformed token through
+  `environmentOfPlaintext` *before* it reaches a query. Only a well-formed `41p_live_…` token costs
+  a lookup, and a key is 128 bits of `randomBytes`, so guessing is not the threat — volume is, and
+  the address bucket bounds volume.
+
+It was found by asking how the browser drive would demonstrate the limit, not by a test: every test
+of the pre-auth version passed, because each one was written from the same mistaken premise.
+`v1-limits.test.ts`'s *"a stranger filling the address bucket"* block is the regression test, and it
+names the removed function so a later edit cannot reintroduce the shape by copying an old diff.
 
 ### Finding 6 — dependency confusion · **high** · **modelled, not mitigated — the mitigation is an account**
 

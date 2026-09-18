@@ -9,7 +9,6 @@ import {
   limitV1,
   limitV1Blob,
   rateLimitedResponse,
-  refuseExhaustedAddress,
   V1_ANON_LIMIT,
   V1_BLOB_LIMIT,
   V1_KEY_LIMIT,
@@ -95,30 +94,6 @@ describe("a caller with no usable key, on the address bucket", () => {
     expect(limitV1(request, null, NOW).allowed).toBe(false);
   });
 
-  it("is refused before the database is asked anything, once the budget is gone", () => {
-    // This is the whole point of `refuseExhaustedAddress`. A limiter that only consumes *after*
-    // `keyFromRequest` bounds the responses and not the work — every attempt would still cost a
-    // SHA-256 and an indexed lookup, which is what a brute force is actually spending.
-    const request = requestFrom("192.0.2.6");
-    expect(refuseExhaustedAddress(request, NOW).allowed).toBe(true);
-
-    for (let i = 0; i < V1_ANON_LIMIT.max + 1; i += 1) limitV1(request, null, NOW);
-
-    const refused = refuseExhaustedAddress(request, NOW);
-    expect(refused.allowed).toBe(false);
-    expect(refused.retryAfterSeconds).toBeGreaterThan(0);
-  });
-
-  it("does not consume the bucket when it peeks", () => {
-    // The control for the line above: if a peek consumed, a healthy caller sharing an address with
-    // nobody would refuse themselves just by arriving, and the limit would be half what it says.
-    const request = requestFrom("192.0.2.7");
-    for (let i = 0; i < 500; i += 1) expect(refuseExhaustedAddress(request, NOW).allowed).toBe(true);
-    for (let i = 0; i < V1_ANON_LIMIT.max; i += 1) {
-      expect(limitV1(request, null, NOW).allowed, `attempt ${i + 1}`).toBe(true);
-    }
-  });
-
   it("shares one bucket when there is no address at all, rather than exempting", () => {
     // `checkLimit`'s rule: a null bucket is not a free pass. Anyone who strips the header would
     // otherwise be unlimited, which is the opposite of what a limit is for.
@@ -134,6 +109,45 @@ describe("a caller with no usable key, on the address bucket", () => {
     expect(bucket).not.toBeNull();
     expect(bucket).not.toContain("203.0.113.99");
     expect(bucket?.startsWith("ip:")).toBe(true);
+  });
+});
+
+/**
+ * **A stranger cannot lock out a customer** (EPIC-057 ruling 12).
+ *
+ * This is the regression test for a defect that was written, committed and then removed. The first
+ * version of `v1-limits.ts` peeked at the address bucket *before* `keyFromRequest`, so that a caller
+ * trying keys did not buy an indexed lookup per attempt. A pre-auth gate sees only an address, and a
+ * customer's fleet shares its egress address with everything else behind that NAT — so anybody could
+ * have spent a target's sixty unauthenticated requests on purpose and had that customer's whole
+ * fleet refused before it was authenticated.
+ *
+ * It bounded almost nothing: `keyFromRequest` answers `missing_key` with no query when there is no
+ * header, and `apiKeyForPlaintext` refuses a malformed key before it reaches one. These tests exist
+ * so the ordering cannot quietly go back.
+ */
+describe("a stranger filling the address bucket", () => {
+  it("does not refuse an authenticated caller from that same address", () => {
+    const address = "203.0.113.200";
+
+    // The stranger, from that address, spends the whole unauthenticated budget and then some.
+    for (let i = 0; i < V1_ANON_LIMIT.max + 50; i += 1) limitV1(requestFrom(address), null, NOW);
+    expect(limitV1(requestFrom(address), null, NOW).allowed).toBe(false);
+
+    // The customer, from the same address, with a real key. Must be entirely unaffected.
+    for (let i = 0; i < 500; i += 1) {
+      expect(limitV1(requestFrom(address), "ak_customer", NOW).allowed, `request ${i + 1}`).toBe(true);
+    }
+  });
+
+  it("and the address bucket is still the one that refused the stranger — the control", () => {
+    // Without this, the test above would pass equally on a limiter that had stopped counting
+    // unauthenticated requests at all, which would be the opposite mistake.
+    const address = "203.0.113.201";
+    for (let i = 0; i < V1_ANON_LIMIT.max + 1; i += 1) limitV1(requestFrom(address), null, NOW);
+
+    expect(peekLimit(addressBucket(requestFrom(address)), V1_ANON_LIMIT, NOW).allowed).toBe(false);
+    expect(peekLimit(keyBucket("ak_customer"), V1_KEY_LIMIT, NOW).allowed).toBe(true);
   });
 });
 
@@ -239,16 +253,25 @@ describe("every /v1 route calls the limiter", () => {
     expect(CALLS.test("export async function GET(): Promise<Response> { return Response.json({}); }")).toBe(false);
   });
 
-  it("the three authenticated routes peek the address before touching the database", () => {
-    // Ordering is the mitigation, not a detail — so it is asserted rather than described. The peek
-    // has to come before `keyFromRequest`, or the brute force still buys a lookup per attempt.
+  it("the three authenticated routes count the limit after authenticating, never before", () => {
+    // Ordering is the mitigation, so it is asserted rather than described — and this asserts the
+    // ordering ruling 12 arrived at, which is the opposite of the one the first draft had. A gate
+    // in front of `keyFromRequest` cannot tell a customer from a stranger.
     for (const file of routes.filter((one) => !one.includes("blob"))) {
       const source = readFileSync(file, "utf8");
-      const peek = source.indexOf("refuseExhaustedAddress(request)");
       const auth = source.indexOf("keyFromRequest(db, request)");
-      expect(peek, file).toBeGreaterThan(-1);
+      const limit = source.indexOf("limitV1(request,");
       expect(auth, file).toBeGreaterThan(-1);
-      expect(peek, file).toBeLessThan(auth);
+      expect(limit, file).toBeGreaterThan(-1);
+      expect(auth, file).toBeLessThan(limit);
+    }
+  });
+
+  it("no route gates on the address before authenticating", () => {
+    // The removed function by name, so a later edit cannot reintroduce the shape by copying an old
+    // diff. If a genuine pre-auth gate is ever wanted, this test is where the argument has to be had.
+    for (const file of routes) {
+      expect(readFileSync(file, "utf8"), file).not.toContain("refuseExhaustedAddress");
     }
   });
 });

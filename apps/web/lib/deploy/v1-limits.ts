@@ -1,5 +1,5 @@
 import { clientAddress, hashIdentity } from "@41prompts/db";
-import { checkLimit, peekLimit, type LimitVerdict } from "@/lib/rate-limit";
+import { checkLimit, type LimitVerdict } from "@/lib/rate-limit";
 
 /**
  * Rate limits for `/v1` (EPIC-057).
@@ -17,9 +17,28 @@ import { checkLimit, peekLimit, type LimitVerdict } from "@/lib/rate-limit";
  * authenticates and the one whose traffic we actually mean to bound.
  *
  * **Per address, for a request with no usable key.** A `401` is answered before any key exists, so
- * the key bucket cannot see a stranger at all — and every attempt costs `apiKeyForPlaintext` a
- * SHA-256 and an indexed database query, at whatever rate the caller chooses. Limiting only one of
- * the two would be the gate pointed at one tree again (`HANDOVER.md` lesson 19).
+ * the key bucket cannot see a stranger at all. Limiting only one of the two would be the gate
+ * pointed at one tree again (`HANDOVER.md` lesson 19).
+ *
+ * ## The count happens **after** authentication, and an earlier draft got this wrong
+ *
+ * EPIC-057 ruling 12. The first version of this module peeked at the address bucket *before*
+ * `keyFromRequest`, to stop a caller trying keys from buying an indexed lookup per attempt. It was
+ * removed, because it was a worse defect than the one it prevented:
+ *
+ * - **It could not tell a customer from a stranger.** A pre-auth gate sees only an address, and a
+ *   customer's fleet shares an egress address with everything else behind that NAT. So **anyone
+ *   could have spent a target's 60 unauthenticated requests deliberately and had that customer's
+ *   entire fleet refused before it was even authenticated** — a targeted denial of service,
+ *   introduced while mitigating one.
+ * - **The cost it bounded is nearly nothing.** `keyFromRequest` returns `missing_key` with no query
+ *   when there is no header, and `apiKeyForPlaintext` refuses a malformed key through
+ *   `environmentOfPlaintext` *before* it reaches a query. The only request that touches the database
+ *   is one carrying a well-formed `41p_live_…`/`41p_test_…` token, and those cost one indexed lookup
+ *   on a SHA-256 digest each. A key is 128 bits, so guessing is not a threat; the volume is.
+ *
+ * So a failed authentication is **counted** against the address, which is what bounds the volume,
+ * and an authenticated caller is never gated by a bucket a stranger can fill.
  *
  * ## All four routes
  *
@@ -122,29 +141,12 @@ export function rateLimitedResponse(verdict: LimitVerdict): Response {
 }
 
 /**
- * Refuse an address that has already exhausted the unauthenticated budget, **before** the database
- * is asked anything.
- *
- * This is the first line of every authenticated `/v1` route, and it is not a micro-optimisation.
- * A limiter that only consumes after `keyFromRequest` bounds the *responses* and not the *work* —
- * every attempt still costs a SHA-256 and an indexed lookup, which is exactly what a brute force is
- * spending. Peeking first means the 61st bad key from one address costs a `Map` read.
- *
- * **A caller who never fails authentication never consumes this bucket**, so a real fleet is never
- * peeked into it. The case this does catch unfairly is a legitimate caller sharing an egress address
- * with somebody making 60 failed attempts an hour; `docs/security/sdk-threat-model.md` states that
- * rather than leaving it to be discovered.
- */
-export function refuseExhaustedAddress(request: Request, now?: number): LimitVerdict {
-  return peekLimit(addressBucket(request), V1_ANON_LIMIT, now);
-}
-
-/**
  * Count one `/v1` request and say whether it is allowed.
  *
  * `keyId` is the authenticated key's id, or `null` for a request that presented no usable key —
  * which is what selects the bucket. Called **after** `keyFromRequest` on the three authenticated
- * routes, so a valid key is never charged to the shared anonymous bucket.
+ * routes, so a valid key is never charged to the shared anonymous bucket **and is never refused on
+ * the strength of it** (see the header, and ruling 12).
  */
 export function limitV1(request: Request, keyId: string | null, now?: number): LimitVerdict {
   return keyId === null

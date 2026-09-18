@@ -2,7 +2,7 @@ import { buildWasPublished } from "@41prompts/db";
 import { getDb } from "@/lib/db";
 import { keyFromRequest, refusalResponse } from "@/lib/deploy/api-auth";
 import { buildKey, storeFor } from "@/lib/deploy/store";
-import { limitV1, rateLimitedResponse, refuseExhaustedAddress } from "@/lib/deploy/v1-limits";
+import { limitV1, rateLimitedResponse } from "@/lib/deploy/v1-limits";
 
 /**
  * `GET /v1/build/:buildHash` — where this artifact's bytes are served from (EPIC-052).
@@ -47,9 +47,6 @@ import { limitV1, rateLimitedResponse, refuseExhaustedAddress } from "@/lib/depl
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ buildHash: string }> }): Promise<Response> {
-  const exhausted = refuseExhaustedAddress(request);
-  if (!exhausted.allowed) return rateLimitedResponse(exhausted);
-
   const db = getDb();
   const auth = await keyFromRequest(db, request);
   const limit = limitV1(request, auth.ok ? auth.key.id : null);

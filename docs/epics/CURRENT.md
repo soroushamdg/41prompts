@@ -268,6 +268,36 @@ Python process refuses a cache directory other users can write and a Node proces
 Node one is the majority. Withholding a real fix from Python to keep the two symmetrical would help
 nobody; the divergence table and finding 5 both carry it.
 
+### 12. The rate limit counts **after** authentication, and the first version of this epic got it backwards
+
+**Written, tested, committed, then removed.** `v1-limits.ts` originally refused an address that had
+spent its sixty unauthenticated requests *before* `keyFromRequest` ran, so that somebody trying keys
+did not buy an indexed database lookup per attempt. Ruling 3 argued for it and it was wrong.
+
+**A pre-auth gate sees an address and nothing else.** A customer's fleet shares its egress address
+with everything else behind that NAT — so **anybody could have deliberately spent a target's sixty
+requests and had that customer's whole fleet refused before it was even authenticated.** That is a
+targeted denial of service against the asset the finding is about, introduced by the mitigation for
+it.
+
+**And it bounded almost nothing.** Checked rather than assumed: `keyFromRequest` answers
+`missing_key` with **no query** when there is no header, and `apiKeyForPlaintext` refuses a malformed
+token through `environmentOfPlaintext` **before** it reaches a query. The only request that touches
+the database carries a well-formed `41p_live_…`/`41p_test_…` token, and a key is 128 bits of
+`randomBytes` — guessing is not the threat. Volume is, and the address bucket bounds volume by
+counting failures.
+
+So a failed authentication is **counted** against the address and an authenticated caller is never
+gated by a bucket a stranger can fill. `peekLimit` stays, gating nothing, because a test that wants
+to prove *which* bucket a request was charged to has to read one without spending it.
+
+**How it was found matters.** Not by a test — every test of the pre-auth version passed, because
+each was written from the same mistaken premise, which is `PROCESS.md`'s *"a test written from the
+implementation asserts the implementation"* in its purest form. It was found by asking **how the
+browser drive would demonstrate the limit**, and noticing that the demonstration would have to show
+a customer being locked out by a stranger. That is the browser drive earning its place before it was
+even written.
+
 ## Acceptance criteria
 
 - [ ] **C1.** `docs/security/sdk-threat-model.md` exists and covers **all six** classes the Tasks
@@ -284,7 +314,9 @@ nobody; the divergence table and finding 5 both carry it.
       not share a bucket. Verified: `apps/web/lib/deploy/v1-limits.test.ts`.
 - [ ] **C4.** **An unauthenticated caller is limited too, on a tighter bucket**, and `/v1/blob` —
       which has no key — is limited by address. Verified: same file, with a control proving the
-      authenticated bucket is the one being consumed when a key is present.
+      authenticated bucket is the one being consumed when a key is present. **And a stranger who
+      fills an address bucket cannot refuse an authenticated caller from that same address** —
+      ruling 12, with the removed function named so the shape cannot come back.
 - [ ] **C5.** All four `/v1` routes are limited. Verified: a test that enumerates the route files and
       fails when one of them does not call the limiter — so a fifth route added later cannot quietly
       be the unlimited one.

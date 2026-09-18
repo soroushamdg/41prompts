@@ -112,13 +112,16 @@ export function checkLimit(bucket: string | null, limit: Limit, now: number = Da
 /**
  * Is this bucket already exhausted? Reads the window; **does not** record an attempt.
  *
- * Added in EPIC-057 for a specific reason, and it is not a convenience. `/v1` counts a failed
- * authentication against the caller's address — but it only learns the authentication failed by
- * doing the SHA-256 and the indexed lookup, so a limiter that only ever consumes *after* auth bounds
- * the *responses* and not the *work*, and the work is the thing a brute force is spending.
+ * **It gates nothing, deliberately.** It was written in EPIC-057 to refuse an exhausted address
+ * before `/v1` touched the database, and that was removed as a worse defect than the one it
+ * prevented — a pre-auth gate sees only an address, so anybody could have filled a customer's
+ * shared egress bucket and locked out their whole fleet. `lib/deploy/v1-limits.ts`'s header has the
+ * argument and the measurement; ruling 12 is the decision.
  *
- * So `/v1` peeks first and refuses an already-exhausted address before touching the database. A
- * caller who never fails authentication never consumes that bucket and is never peeked into it.
+ * What it is kept for is a real assertion: a test that wants to prove **which** bucket a request
+ * was charged to has to read one without spending it. `v1-limits.test.ts` uses it to show that an
+ * authenticated caller consumed the key bucket and left the address bucket untouched — a claim the
+ * module's own comments make and which nothing else could check.
  *
  * It does not extend the window: a peek that reset or extended anything would let a caller hold
  * themselves refused, or escape by asking politely.
