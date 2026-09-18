@@ -85,11 +85,41 @@ dimensions regardless of `maxDiffPixelRatio`. §4.4 is what was done about it.
 The second caveat — the runner is slower, so a load-only failure passes here — is not engaged by
 anything in this epic.
 
-### 3.1 The gate ran twice
+### 3.1 The gate ran three times, and run 2 caught a real defect in this epic's own test
 
-Run 1 was green, 16/16, 10m59s, on `04c798b`. It was started before two further changes landed
-(`SECURITY.md`'s address and the drive script), and `gates.mjs ci` tests a **commit**, so run 1 is
-not evidence about the tree being merged. Run 2 is.
+| run | commit | result |
+|---|---|---|
+| 1 | `04c798b` | green, 16/16, 10m59s — but started before two further changes landed, and `gates.mjs ci` tests a **commit**, so it is not evidence about the merged tree |
+| 2 | `2afe50c` | **FAILED**, `pnpm test`, 10m54s — see below |
+| 3 | the merge commit's parent | green, 16/16 — the one this merges on |
+
+**Run 2 failed on `apps/web/legal-entity.test.ts`, which this epic wrote, catching
+`docs/decisions/AUTONOMOUS.md`, which this epic also wrote.** Two assertions, one cause:
+
+```
+× the copyright holder > is named on every licence header, with no placeholder left anywhere
+  → expected [ 'docs/decisions/AUTONOMOUS.md:134' ] to deeply equal []
+× the historical record > still says what it said, and nothing else has acquired the placeholder
+  → a new file carries the placeholder: expected [ Array(2) ] to deeply equal []
+```
+
+The test asked whether a line **contained** `SPDX-FileCopyrightText` and the placeholder. Line 134 is
+this epic's own ruling about the substitution, which quotes both in one markdown table row. **A
+document explaining that headers were rewritten is not a header that was missed.**
+
+The fix is a narrowing and not a widening: a header is a line that *is* one — beginning, after
+nothing but whitespace and a comment marker (`//`, `#`, `*`, `--`, `<!--`, `;`), with the tag. A
+table row begins with `|`; a sentence begins with a word. And because narrowing a matcher whose job
+is catching something is how a check stops catching it, `isAnSpdxHeader` now has nine control cases —
+six forms it must still read as a header, three it must not.
+
+Two files were then added to the allow-list because they are this epic's own paperwork and can only
+say what they say by quoting the string: `docs/decisions/AUTONOMOUS.md`, and the drive's own
+`terminal-transcript.txt`, which records that the placeholder is absent from every served page.
+
+**Run 1 passed because the rulings had not been committed yet.** This is the second time in this
+epic that a check written here fired on something real before a human read it, and the first time it
+fired on me.
 
 ### 3.2 `pnpm mirror-dry-run`, in more detail
 
@@ -255,6 +285,23 @@ Twelve, in `docs/decisions/AUTONOMOUS.md`, appended not edited. The three worth 
    reads *"Legal entity named in every LICENSE/NOTICE"*.
 3. **The footer names the company, not the brand.** The mockup draws `© 2026 41Prompts`; this renders
    `© 2026 41Prompts Inc.`. One word, and it is the word the epic exists for — a `©` names a holder.
+
+## 6a. This epic edits files on the "never touch" list, and is allowed to
+
+`CLAUDE.md` lists **"Any `LICENSE`, `NOTICE`, or `REUSE.toml`"** among the things not to touch
+*without an explicit instruction in the current epic*. This epic touched all three kinds: four
+proprietary `LICENSE` bodies, six `NOTICE` files, `REUSE.toml`, and a new `mirror/REUSE.toml`.
+
+**The instruction is the epic's own Tasks line** — `docs/roadmap.md`, EPIC-056: *"Apache-2.0 +
+NOTICE + SPDX"* — and its Review line, *"Licence headers present everywhere. Legal entity named in
+every LICENSE/NOTICE."* There is no way to satisfy either without editing them, and this is the one
+epic in the roadmap whose subject they are. Recorded here rather than left for a reader to notice,
+because "it seemed necessary" is exactly the reasoning that list exists to refuse.
+
+Two other list entries were touched under their standing carve-outs: `docs/decisions/AUTONOMOUS.md`
+(appended to, never edited — `docs/AUTONOMOUS.md` grants this explicitly) and EPIC-056's own status
+cell in `docs/backlog.md` at step 8. **Nothing else in `docs/decisions/`, nothing in
+`docs/roadmap.md`, no other backlog row, and nothing in `infra/` was changed.**
 
 ## 7. Open questions, all yours
 

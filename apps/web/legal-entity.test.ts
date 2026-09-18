@@ -38,6 +38,21 @@ const PLACEHOLDER = `<legal ${"entity"}>`;
 const tracked = () =>
   execFileSync("git", ["ls-files"], { cwd: REPO, encoding: "utf-8" }).split("\n").filter(Boolean);
 
+/**
+ * Is this line an SPDX copyright header, as opposed to prose that mentions one?
+ *
+ * The first version of this asked whether the line *contained* `SPDX-FileCopyrightText`, and
+ * `gates.mjs ci` failed on it: `docs/decisions/AUTONOMOUS.md`'s own ruling about this substitution
+ * quotes the tag and the placeholder in the same markdown table row. A document explaining that
+ * headers were rewritten is not a header that was missed.
+ *
+ * A real header begins the line, after nothing but whitespace and a comment marker — `//`, `#`,
+ * `*`, `--`, `<!--`, `;`. A table row begins with `|` and a sentence begins with a word. That is
+ * the whole discriminator, and `isAnSpdxHeader` below has the control proving it still fires.
+ */
+const HEADER = /^[\s]*(?:<!--|\/\/|\/\*|\*|#|--|;)?\s*SPDX-FileCopyrightText\b/;
+const isAnSpdxHeader = (line: string) => HEADER.test(line);
+
 const read = (rel: string) => readFileSync(join(REPO, rel), "utf-8");
 
 /**
@@ -60,10 +75,14 @@ const HISTORICAL_RECORDS = [
 
 /** EPIC-056's own paperwork, which necessarily quotes the string it removed. */
 const THIS_EPIC = [
+  "docs/decisions/AUTONOMOUS.md",
   "docs/epics/CURRENT.md",
   "docs/epics/EPIC-056-open-source-split.md",
   "docs/epics/plan-EPIC-056.md",
   "docs/epics/reports/EPIC-056-report.md",
+  // The drive's transcript, which records that the placeholder is absent from every served page —
+  // and can only say so by quoting it.
+  "docs/epics/reports/screenshots/EPIC-056/terminal-transcript.txt",
   "docs/epics/sessions/EPIC-056-session.md",
   "apps/web/legal-entity.test.ts",
 ];
@@ -107,7 +126,7 @@ describe("the copyright holder", () => {
         continue; // a path that is tracked but not a readable file here
       }
       text.split("\n").forEach((line, i) => {
-        if (line.includes("SPDX-FileCopyrightText") && line.includes(PLACEHOLDER)) {
+        if (isAnSpdxHeader(line) && line.includes(PLACEHOLDER)) {
           offenders.push(`${rel}:${i + 1}`);
         }
       });
@@ -141,6 +160,32 @@ describe("the copyright holder", () => {
       expect(read(rel), rel).toContain("Copyright [yyyy] [name of copyright owner]");
       expect(read(rel), rel).not.toContain(HOLDER);
     }
+  });
+});
+
+describe("what counts as a header", () => {
+  /**
+   * The positive control for the narrowing above (`CLAUDE.md`'s "every absence assertion needs a
+   * positive control"). The check that matters is `not.toContain`, and a matcher narrowed into
+   * matching nothing would pass it silently.
+   */
+  it.each([
+    "SPDX-FileCopyrightText: 2026 41Prompts Inc.",
+    "// SPDX-FileCopyrightText: 2026 41Prompts Inc.",
+    "# SPDX-FileCopyrightText: 2026 41Prompts Inc.",
+    " * SPDX-FileCopyrightText: 2026 41Prompts Inc.",
+    "-- SPDX-FileCopyrightText: 2026 41Prompts Inc.",
+    "<!-- SPDX-FileCopyrightText: 2026 41Prompts Inc. -->",
+  ])("still reads %s as a header", (line) => {
+    expect(isAnSpdxHeader(line)).toBe(true);
+  });
+
+  it.each([
+    "| 2026-09-18 | EPIC-056 | 423 `SPDX-FileCopyrightText` lines were rewritten | … |",
+    "Every source file carries an `SPDX-FileCopyrightText` line.",
+    "  grep -c SPDX-FileCopyrightText",
+  ])("does not read %s as a header", (line) => {
+    expect(isAnSpdxHeader(line)).toBe(false);
   });
 });
 
