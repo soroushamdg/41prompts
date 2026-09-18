@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # lone-cr-line-endings — Lone carriage returns as line endings — the case nobody plans for, and the one that silently makes a whole prompt one paragraph.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 //
 // Writes the two cross-language disk-cache fixtures (EPIC-054 ruling 5, C9).

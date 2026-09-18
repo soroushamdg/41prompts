@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # fires-rule-without-check-beside-untestable — The mutual-exclusion case, in one prompt: a rule that is both JSON-shaped and hedged with "where possible" belongs to `untestable` and must not also produce this finding, while the rule beside it, which no vague phrase touches, must.

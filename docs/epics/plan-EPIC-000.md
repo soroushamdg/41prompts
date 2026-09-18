@@ -105,12 +105,12 @@ is left as written. See `docs/decisions/ADR-002-licensing-and-repos.md` for why.
 First two lines of every `.ts`/`.tsx` file under `packages/core/src`, `packages/sdk-ts/src`, `packages/cli/src`
 (tests included — the epic's grep command covers `src` unconditionally):
 ```
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 ```
 Python, `sdks/python/fortyone/**/*.py` (and any `.pyi`):
 ```
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 ```
 Verified at the end with the epic's own command:
@@ -130,7 +130,7 @@ Zero dependencies. `sideEffects: false`.
 
 ### `packages/sdk-ts` — package name `@41prompts/sdk`, directory `packages/sdk-ts`
 ```ts
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 export type ResolveOptions = { onWarning?: (message: string) => void };
@@ -198,7 +198,7 @@ dev = ["pytest"]
 ```
 `resolve()` mirrors the TS shape, never raises:
 ```python
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 
 from typing import Callable, Optional, TypedDict

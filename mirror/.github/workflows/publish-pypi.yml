@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Publishes the two PyPI distributions on a `v*` tag, using PyPI trusted publishing (OIDC).
+# No API token, for the same reason as npm: a token is a credential that can leak and an OIDC
+# exchange is scoped to this workflow in this repository.
+#
+# EPIC-057 recorded that the two Python distributions have no mechanical publish guard — npm has
+# `prepublishOnly` and Python has no equivalent lifecycle hook. The repository check below IS that
+# guard, which is why it appears twice here: once as the job `if:`, and once as an explicit step
+# that fails loudly rather than skipping silently.
+
+name: publish to PyPI
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.repository == '41prompts/41prompts'
+    runs-on: ubuntu-latest
+    strategy:
+      # Sequential: two distributions, and a failure in the first should stop the second rather
+      # than leaving one half of a release on PyPI.
+      max-parallel: 1
+      matrix:
+        package: [sdks/python, sdks/python-alias]
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: refuse to publish from anywhere but the public repository
+        # Python has no `prepublishOnly`. This is the whole of the mechanical guard.
+        run: |
+          test "$GITHUB_REPOSITORY" = 41prompts/41prompts || {
+            echo "refusing to publish from $GITHUB_REPOSITORY" >&2
+            exit 1
+          }
+
+      - uses: astral-sh/setup-uv@v5
+      - run: uv build --out-dir dist
+        working-directory: ${{ matrix.package }}
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: ${{ matrix.package }}/dist

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # api-contract-check — Expectations written as equalities about a response body, mixed with two ordinary rules. The second `expected` prompt, deliberately less uniform than the first.

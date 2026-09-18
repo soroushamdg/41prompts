@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # wall-of-text — One paragraph of more than 4,000 characters with no blank line anywhere. Rule 6 is the only thing standing between this and a single unusable segment.

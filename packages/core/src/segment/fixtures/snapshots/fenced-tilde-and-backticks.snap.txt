@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # fenced-tilde-and-backticks — A tilde fence containing backtick fence markers, plus a separate backtick fence with an info string. A tilde fence is never closed by backticks.

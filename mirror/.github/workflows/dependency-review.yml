@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
+# SPDX-License-Identifier: Apache-2.0
+#
+# A pull request that adds a dependency to a published package is the cheapest supply-chain attack
+# on this project, and `packages/core` ships inside `@41prompts/sdk` by being inlined at build
+# time — so a dependency added here reaches a customer's process without appearing in their tree.
+#
+# `scripts/license-gate.mjs` in the private repository already fails the build when a non-permissive
+# licence reaches a public package. This is the half that a stranger's pull request meets.
+
+name: dependency review
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    if: github.repository == '41prompts/41prompts'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/dependency-review-action@v4
+        with:
+          comment-summary-in-pr: always
+          fail-on-severity: moderate
+          # Matches license-gate.mjs's permissive set. A copyleft licence reaching a package that
+          # ships inside somebody else's application is a licensing problem for them, not for us,
+          # which is exactly why it is ours to refuse.
+          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, 0BSD, Unlicense, Python-2.0

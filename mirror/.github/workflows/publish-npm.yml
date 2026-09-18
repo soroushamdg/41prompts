@@ -1,0 +1,55 @@
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Publishes the four npm distributions on a `v*` tag, using npm trusted publishing (OIDC).
+# There is no NPM_TOKEN and there must not be one: a token in a secret is a credential that can
+# leak; an OIDC exchange is scoped to this workflow in this repository and expires in minutes.
+#
+# The `if:` on every job is not decoration. This file is authored in the PRIVATE monorepo and
+# copied into the public mirror by the history-preserving filter, so it exists in both. A workflow
+# that fires in the private repository would spend Actions minutes on a publish that
+# `prepublishOnly` is going to refuse anyway — and `docs/backlog.md`'s EPIC-009 section records
+# 2,175 billed minutes in this repository's first 8.4 days against a 2,000-minute month, which
+# stopped every deploy mid-epic. Failing cheaply is not the same as not running.
+#
+# `apps/web/public-distributions.test.ts` asserts the guard is on every job here. A comment would
+# not have survived the first edit.
+
+name: publish to npm
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.repository == '41prompts/41prompts'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+      # Dependency order: nothing depends on core or sdk, cli depends on both, 41p depends on cli.
+      # `pnpm publish` rewrites `workspace:*` to the exact version being published.
+      - name: publish @41prompts/core
+        run: pnpm --filter @41prompts/core publish --access public --no-git-checks
+      - name: publish @41prompts/sdk
+        run: pnpm --filter @41prompts/sdk publish --access public --no-git-checks
+      - name: publish @41prompts/cli
+        run: pnpm --filter @41prompts/cli publish --access public --no-git-checks
+      - name: publish 41p
+        run: pnpm --filter 41p publish --access public --no-git-checks

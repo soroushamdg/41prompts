@@ -1,14 +1,24 @@
 #!/usr/bin/env node
 // EPIC-007 decision 4: a licence outside the allow-list fails the build for a public package's
-// own dependency closure (packages/core, packages/cli, packages/sdk-ts — sdks/python is a
-// separate, non-pnpm ecosystem and currently ships zero dependencies per pyproject.toml, so it
-// isn't checked here); the same finding anywhere else in the workspace is a warning, not a block.
+// own dependency closure (the four npm distributions named in PUBLIC_PACKAGES below — the two
+// PyPI distributions are a separate, non-pnpm ecosystem and ship zero dependencies per their
+// pyproject.toml, so they are not checked here); the same finding anywhere else in the workspace
+// is a warning, not a failure.
 // Also emits the CycloneDX SBOM `pnpm sbom` uses (see .github/workflows/compliance.yml).
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
-const PUBLIC_PACKAGES = ["@41prompts/core", "@41prompts/cli", "@41prompts/sdk-ts"];
+// Every npm distribution that is actually published — `publishConfig.access: "public"` in its
+// own manifest. These are pnpm FILTER names, so they must be package names and not directory
+// names: from EPIC-007 until EPIC-056 this list said "@41prompts/sdk-ts", which is the directory
+// `packages/sdk-ts` and not the package `@41prompts/sdk`, so it matched no project and pnpm
+// quietly narrowed the check to the two names that did match. The SDK's dependency closure —
+// the one package whose code is inlined into somebody else's application — had never been
+// licence-checked, and `41p` was not here at all.
+//
+// `apps/web/public-distributions.test.ts` asserts this list equals what the workspace publishes.
+const PUBLIC_PACKAGES = ["@41prompts/core", "@41prompts/cli", "@41prompts/sdk", "41p"];
 
 // Permissive-only (decision 4's exact list). Pnpm reports the SPDX identifier as declared in
 // each package's own package.json `license` field, which is why both hyphen styles for BSD show

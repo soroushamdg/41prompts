@@ -28,7 +28,7 @@ so every later epic starts from a green build.
   This product includes software developed at 41Prompts (https://41prompts.ai).
   ```
 - SPDX header as the first two lines of every `.ts`, `.tsx`, `.py`, `.pyi` under the four public paths:
-  `// SPDX-FileCopyrightText: 2026 <legal entity>` / `// SPDX-License-Identifier: Apache-2.0` (Python: `#`).
+  `// SPDX-FileCopyrightText: 2026 41Prompts Inc.` / `// SPDX-License-Identifier: Apache-2.0` (Python: `#`).
 - Root `LICENSES/Apache-2.0.txt` and `LICENSES/LicenseRef-41Prompts-Proprietary.txt` (text in ADR-002 / licensing review).
 - Boundary enforcement with dependency-cruiser, **allow-list form**, using a `tsconfig.depcruise.json` that path-maps every `@41prompts/*` so undeclared imports resolve and are caught as boundary errors rather than "not found". Rules:
   1. `public-only-imports-public`: from `packages/(core|cli|sdk-ts)` to anything not in those paths, node builtins, or `node_modules` → error.

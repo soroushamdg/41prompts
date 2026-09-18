@@ -18,9 +18,9 @@ dependencies = []
 # Deliberately the private repository and not `41prompts/41prompts`, which does not exist: an empty
 # placeholder reads as abandoned to a stranger, a private one reads as unreleased. EPIC-056 creates
 # the public mirror and re-points every one of these as part of that change, not before.
-Homepage = "https://github.com/soroushamdg/41prompts/tree/main/sdks/python#readme"
-Repository = "https://github.com/soroushamdg/41prompts"
-Issues = "https://github.com/soroushamdg/41prompts/issues"
+Homepage = "https://github.com/41prompts/41prompts/tree/main/sdks/python#readme"
+Repository = "https://github.com/41prompts/41prompts"
+Issues = "https://github.com/41prompts/41prompts/issues"
 
 [build-system]
 requires = ["hatchling"]

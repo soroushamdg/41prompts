@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
@@ -19,7 +19,7 @@ import type { Compiled, PromptBlok } from "./types.js";
 function render(name: string, describes: string, compiled: Compiled, bloks: readonly PromptBlok[]): string {
   // REUSE-IgnoreStart -- the header written into every generated snapshot, not a licence for this file.
   const header = [
-    "# SPDX-FileCopyrightText: 2026 <legal entity>",
+    "# SPDX-FileCopyrightText: 2026 41Prompts Inc.",
     "# SPDX-License-Identifier: Apache-2.0",
     "#",
     `# ${name} — ${describes}`,

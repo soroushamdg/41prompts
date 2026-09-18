@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # quiet-containment — A short rule whose every word appears somewhere in a long paragraph. Overlap divides by the smaller vocabulary, so containment scores a perfect 1.0 — `repeated` must not fire.

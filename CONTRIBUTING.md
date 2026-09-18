@@ -2,10 +2,24 @@
 
 ## Public vs. proprietary
 
-Four packages are public, Apache-2.0, and eventually mirrored to their own repository
-(`docs/decisions/ADR-002-licensing-and-repos.md`): `packages/core`, `packages/cli`,
-`packages/sdk-ts` (published as `@41prompts/sdk`), and `sdks/python` (`fortyone-prompts`, import
-`fortyone`). Every source file in them carries a real
+**Six distributions are public**, Apache-2.0, and mirrored to their own repository
+(`docs/decisions/ADR-002-licensing-and-repos.md`, and EPIC-056 for the split itself) — four on npm
+and two on PyPI:
+
+| directory | published as |
+|---|---|
+| `packages/core` | `@41prompts/core` |
+| `packages/cli` | `@41prompts/cli` |
+| `packages/cli-unscoped` | `41p` |
+| `packages/sdk-ts` | `@41prompts/sdk` |
+| `sdks/python` | `fortyone-prompts`, import `fortyone` |
+| `sdks/python-alias` | `41prompts` |
+
+It said "four packages" until 2026-09-18 and had done since before `packages/cli-unscoped` and
+`sdks/python-alias` existed. `apps/web/public-distributions.test.ts` now derives the set from the
+workspace and fails when this table disagrees with it, so the count cannot go stale again.
+
+Every source file in them carries a real
 <!-- REUSE-IgnoreStart -->`SPDX-FileCopyrightText`/`SPDX-License-Identifier: Apache-2.0`<!-- REUSE-IgnoreEnd -->
 header — add one to any new file you create there.
 
@@ -37,7 +51,8 @@ pnpm compliance
 This runs, in order: `REUSE` licence-header linting over the whole repo, the dependency-cruiser
 and Turborepo boundary checks, the ADR-003 forbidden-word grep, the dependency licence gate (fails
 on a non-permissive licence reaching a public package; warns, doesn't block, everywhere else), and
-a mirror dry-run that extracts the four public packages with their real git history into a scratch
-clone and proves it installs and tests completely standalone. Each check can also be run on its
+a mirror dry-run that extracts all six public distributions with their real git history into a
+scratch clone, promotes `mirror/` to the root, and proves the result installs and tests completely
+standalone. Each check can also be run on its
 own — `pnpm reuse-lint`, `pnpm boundaries`, `pnpm forbidden-words`, `pnpm license-gate`,
 `pnpm mirror-dry-run` — see `package.json`'s `scripts` for the exact commands.
