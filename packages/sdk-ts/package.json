@@ -7,12 +7,12 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/soroushamdg/41prompts.git",
+    "url": "git+https://github.com/41prompts/41prompts.git",
     "directory": "packages/sdk-ts"
   },
-  "homepage": "https://github.com/soroushamdg/41prompts/tree/main/packages/sdk-ts#readme",
+  "homepage": "https://github.com/41prompts/41prompts/tree/main/packages/sdk-ts#readme",
   "bugs": {
-    "url": "https://github.com/soroushamdg/41prompts/issues"
+    "url": "https://github.com/41prompts/41prompts/issues"
   },
   "keywords": ["prompt", "llm", "prompt-management", "openai", "anthropic"],
   "engines": {

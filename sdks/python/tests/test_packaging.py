@@ -126,17 +126,23 @@ def test_the_alias_builds_and_contains_no_module(tmp_path: pathlib.Path) -> None
     assert not [name for name in names if name.endswith(".py")], names
 
 
-def test_neither_manifest_points_at_a_repository_that_does_not_exist_yet() -> None:
-    """EPIC-056 creates `41prompts/41prompts` and re-points every URL in the same change.
+def test_both_manifests_point_at_the_public_repository() -> None:
+    """Inverted by EPIC-056, 2026-09-18, which is the change this test was written to wait for.
 
-    An empty placeholder repository reads as abandoned to a stranger and a private one reads as
-    unreleased, which is what we are. Until the mirror is real these point at the private
-    repository — Soroush's ruling of 2026-09-11, and it applies to a `pyproject.toml` exactly as it
-    applies to a `package.json`.
+    It used to read `test_neither_manifest_points_at_a_repository_that_does_not_exist_yet`, and it
+    was right for as long as that was true: an empty placeholder repository reads as abandoned to a
+    stranger and a private one reads as unreleased, so until the mirror was real these pointed at
+    the private repository (Soroush's ruling of 2026-09-11).
+
+    `41prompts/41prompts` exists now, so the ruling's own condition has been met and the assertion
+    turns over rather than being deleted. The private repository keeps its name in `infra/` and in
+    the image paths the box pulls — the mirror is a second repository, not a rename of the first,
+    which is why this checks the manifests and nothing else does.
     """
     for directory in (PACKAGE, ALIAS):
         urls = _manifest(directory)["project"]["urls"]  # type: ignore[index]
         assert isinstance(urls, dict)
+        assert urls, f"{directory.name}: no project URLs at all"
         for url in urls.values():
-            assert "41prompts/41prompts" not in url, f"{directory.name}: {url}"
-            assert url.startswith("https://github.com/soroushamdg/41prompts")
+            assert url.startswith("https://github.com/41prompts/41prompts"), f"{directory.name}: {url}"
+            assert "soroushamdg" not in url, f"{directory.name}: {url}"

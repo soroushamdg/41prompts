@@ -19,9 +19,9 @@ keywords = ["prompt", "llm", "prompt-management"]
 dependencies = ["fortyone-prompts==0.1.0"]
 
 [project.urls]
-Homepage = "https://github.com/soroushamdg/41prompts/tree/main/sdks/python-alias#readme"
-Repository = "https://github.com/soroushamdg/41prompts"
-Issues = "https://github.com/soroushamdg/41prompts/issues"
+Homepage = "https://github.com/41prompts/41prompts/tree/main/sdks/python-alias#readme"
+Repository = "https://github.com/41prompts/41prompts"
+Issues = "https://github.com/41prompts/41prompts/issues"
 
 [build-system]
 requires = ["hatchling"]

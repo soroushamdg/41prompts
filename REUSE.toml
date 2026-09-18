@@ -1,7 +1,7 @@
 version = 1
 SPDX-PackageName = "41prompts"
 SPDX-PackageSupplier = "41Prompts Inc."
-SPDX-PackageDownloadLocation = "https://github.com/soroushamdg/41prompts"
+SPDX-PackageDownloadLocation = "https://github.com/41prompts/41prompts"
 
 # CLAUDE.md's own rule: public packages (packages/core, packages/cli, packages/sdk-ts,
 # sdks/python) carry a real SPDX header on every source file, checked in directly — that's
@@ -16,6 +16,16 @@ SPDX-PackageDownloadLocation = "https://github.com/soroushamdg/41prompts"
 # build if no annotation here covers `packages/ui`, `packages/db`, `packages/logger` or `apps/worker`.
 # While the repository is public, this file and those four `LICENSE` files are the whole of what
 # separates "you may use this" from "you may not". Narrowing a glob below is a licensing change.
+
+# The `DCO` file is the Developer Certificate of Origin 1.1, reproduced verbatim. It is a licence
+# document published by The Linux Foundation, it carries its own permission notice ("copy and
+# distribute verbatim copies ... but changing it is not allowed"), and 41Prompts Inc. claims no
+# copyright in it. It cannot carry an SPDX header without changing the text it forbids changing,
+# which is exactly what an annotation here is for.
+[[annotations]]
+path = ["DCO"]
+SPDX-FileCopyrightText = "2004, 2006 The Linux Foundation and its contributors"
+SPDX-License-Identifier = "LicenseRef-DCO-1.1"
 
 [[annotations]]
 path = [
@@ -54,6 +64,18 @@ SPDX-License-Identifier = "LicenseRef-41Prompts-Proprietary"
 # REUSE itself requires a licence for) ship as part of the same public artifact as their `src`
 # (or `fortyone`/`tests`) trees, which already carry real Apache-2.0 headers — these get the same
 # licence, not the repo-wide proprietary default above, since they are the public package.
+# `mirror/` is the public repository's own root, promoted to the top level by
+# scripts/mirror-dry-run.sh's path rename. Its Markdown and YAML files carry real headers; these
+# four cannot (JSON has no comments, and a LICENSE and a NOTICE ship verbatim).
+[[annotations]]
+path = [
+  "mirror/LICENSE",
+  "mirror/NOTICE",
+  "mirror/package.json",
+]
+SPDX-FileCopyrightText = "2026 41Prompts Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
 [[annotations]]
 path = [
   "packages/cli/NOTICE",
