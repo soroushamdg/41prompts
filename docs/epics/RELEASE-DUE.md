@@ -4,22 +4,37 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-18T00:16:11.136Z.
+Generated 2026-09-18T03:15:00.778Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `8249331dc724808492d802c4d408e7cc7d8fda8d` | this checkout |
+| `main` | `81efdc00a8bc8de3f9d1a3a09ea1147695df9a05` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-163 commits · 816 files changed, 108053 insertions(+), 647 deletions(-)
+178 commits · 834 files changed, 112267 insertions(+), 747 deletions(-)
 
+- 81efdc0 Merge EPIC-057: the delivery path, modelled — and the three places it was weaker than it read
+- c77399f docs(epic-057): which gates a docs-only commit is answerable to, written down
+- 1a642fd docs(epic-057): the gate ran twice, and the second run is the one this merges on
+- 7766ae2 docs(epic-057): the report, the session log, twelve rulings and the backlog row
+- 8a0ad29 feat(057): the drive — three mitigations against the built app, 17/17
+- c5d380e fix(057): the pre-auth rate-limit gate was a way to lock out a customer, and it is gone
+- e650e1d fix(057): the substitute build's type, written out rather than inferred
+- b065071 fix(057): the moved limiter carried two raw NUL bytes, in the line that warns about them
+- f5f55a0 docs(057): the delivery path, modelled — six findings, two of them high
+- 27586a2 test(057): the mismatched build is refused at the seam, and fetch really does drop the key
+- bc5588e feat(057): fortyone refuses a cache directory it does not own, and honours a 429
+- bca55ab feat(057): /v1 is rate limited, and the limiter moved instead of being copied
+- e31359c docs(epic-057): the epic file, the plan, and ten rulings
+- 573243a docs: the handover, at EPIC-054
+- 7710bab docs: RELEASE-DUE regenerated at EPIC-054's merge
 - 8249331 docs: EPIC-054 is done
 - db96cfc Merge EPIC-054: fortyone, and the prompt arrives in a Python process
 - b1aadd7 docs(epic-054): the gate table, and what the drive does and does not cover

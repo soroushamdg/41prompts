@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-17, after EPIC-054**, for whoever picks this up — person or
+Where things stand as of **2026-09-17, after EPIC-057**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,7 +16,8 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053 and EPIC-054 are done. EPIC-057 is next.**
+**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053, EPIC-054 and EPIC-057 are done. EPIC-056
+is next and is NOT reachable — a run that reaches it writes a `BLOCKER`.**
 
 `docs/decisions/GATE-5.md` records Soroush's ruling of 2026-09-17: the **technical** reading. The row
 is titled *Demand check* and its criteria are two demand numbers the same document marks *not
@@ -38,6 +39,50 @@ the deploy bundled, never waits for the network, never raises, and picks up a ne
 in about thirty seconds. Zero dependencies. A real Python process resolving a prompt published two
 minutes earlier from the built app is the drive, 17 of 17. **Its PyPI publish was skipped, not
 faked** — EPIC-006 is `deferred` and EPIC-056 is not reachable; report §8.
+
+**EPIC-057 merged 2026-09-17** (`81efdc0`). The delivery path has a threat model —
+`docs/security/sdk-threat-model.md`, six triaged findings — and the three weaknesses modelling it
+found are closed in code. `/v1` is rate limited where it had no limit at all.
+
+**What EPIC-057 settled**, so it is not rediscovered:
+
+1. **A content address is not a signature, and `disk.ts` said so without drawing the conclusion.**
+   Re-deriving `buildHash` proves a document *intact*, not *ours* — anyone who can write where an SDK
+   reads can write any prompt text, compute the hash and pick the `promptId` too. On Linux and in
+   every container `tmpdir()` is `/tmp` at `1777`, whoever creates our directory first sets its mode,
+   and **`mkdir(mode=0o700)` does nothing to a directory that already exists**, so the `stat`
+   afterwards is the control. `fortyone` refuses a non-private cache directory; `@41prompts/sdk` does
+   not — see 2 below. **Only a signature fixes this properly**, and that is row 057c.
+2. **ADR-006's 15 KB bundle budget refuses all three `@41prompts/sdk` mitigations**, measured four
+   ways: baseline 15,121 of 15,360, and the cheapest single one is 290 bytes against 239 spare. There
+   is no slack — `client.ts` 3,450 B, `verify.ts` 1,756 B, core's `sha256.ts` 2,178 B and
+   `canonical.ts` 1,416 B are all load-bearing. ADR-006 predicted the budget binding and said to
+   *measure what got in, not widen the number*, so working code was reverted. **The two SDKs now
+   have different security postures and the Node one is weaker and in the majority.** Row 057a is
+   Soroush's, with three options. **Do not re-attempt this without answering the budget question
+   first** — the code is in the epic's history if the answer is "move it".
+3. **`WarningCode` is NOT frozen against additions.** ADR-006 §7 says adding one is *"explicitly
+   minor … the right trade against never being able to name a new failure"*, and it costs zero bundle
+   bytes because the type is erased. EPIC-057's ruling 7 first claimed the opposite and was corrected.
+   There is no `rate_limited` code only because `@41prompts/sdk` has no 429 behaviour to raise it and
+   `test_divergence.py` holds both unions identical; the code arrives with the behaviour, in 057a.
+4. **A rate limit must be counted AFTER authentication, never before.** EPIC-057's first version
+   gated on the caller's address pre-auth, which meant **anyone could spend a target's shared egress
+   budget and have that customer's whole fleet refused before it was authenticated** — a denial of
+   service introduced by the mitigation for one. And it bounded nearly nothing: `keyFromRequest` does
+   no query with no header and `apiKeyForPlaintext` refuses a malformed token before it reaches one.
+   `v1-limits.test.ts` names the removed function so the shape cannot come back by copying an old
+   diff. **Found by asking how the browser drive would demonstrate the limit, before the drive was
+   written.**
+5. **`fetch` really does drop `Authorization` across an origin** — measured now
+   (`packages/sdk-ts/src/redirect.test.ts`), with a same-origin control. The comment had asserted it
+   since EPIC-052 and EPIC-054 found the same claim was *false* for `urllib`.
+6. **Five package names are unregistered on npm and PyPI**, `pip install fortyone` included, and the
+   only mitigation is an account. **This is the one finding in the document that expires** — a name
+   someone else takes first cannot be recovered. Row 057b, Soroush's, EPIC-006 is `deferred`.
+7. **The two Python distributions have no mechanical publish guard.** `prepublishOnly` is an npm
+   lifecycle script and there is no publish workflow; the four npm packages have both it and
+   `provenance: true`. EPIC-056 is the change that has to carry the Python check.
 
 **What EPIC-054 settled**, so it is not rediscovered:
 
@@ -138,7 +183,7 @@ only its own epic's status cell.
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
 | **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
-| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 next, buildable but for its review hour · **056 not reachable** — see "Start here". |
+| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · **056 not reachable** — see "Start here". |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -162,7 +207,11 @@ the fallback labels itself `normalised: true`.
 | **`▣ GATE 3`'s backlog status cell is still `—`** while the gate is decided in `docs/decisions/GATE-3.md`. `pick-next-epic.mjs` reads the cell and stops there on every pass. One word fixes it; `docs/backlog.md` is his file. | Soroush |
 | **ADR-005 §7, provenance inside the content address.** Reversible today at the cost of one schema version, expensive the moment EPIC-051 publishes anything. | Soroush |
 | **An R2 artifact bucket and a CDN in front of it** — `R2_BUCKET_ARTIFACTS` and `R2_PUBLIC_BASE_ARTIFACTS`. Without them the database store is used, the R2 driver stays unexercised against Cloudflare, and **"apps resolving" cannot exist** — which is part of GATE 5's demand measure. | Soroush |
-| **Nobody has reviewed the hand-written SHA-256** that now addresses every artifact, and it is load-bearing in production code as of EPIC-051. EPIC-057's external review hour. | EPIC-057 |
+| **Nobody has reviewed the hand-written SHA-256** that addresses every build, and it is now read by two SDKs in two languages. **EPIC-057 did not close this** — its external review hour needs a person who is not the agent, and `docs/epics/reports/EPIC-057-report.md` §8 lists what the hour should cover, in order, with this first. Row 057e. | Soroush |
+| **The 15 KB bundle budget, and whether a security fix may move it.** Three `@41prompts/sdk` mitigations are written, measured and reverted. Row 057a. Until it is answered the Node SDK is the weaker of the two. | Soroush |
+| **Registering the five package names** on npm and PyPI. Row 057b, and the only finding that *expires*. | Soroush |
+| **Signing the build** — ADR-005 v2, four decisions, and the new one: Python's standard library has no signature verification at all, so it also asks whether `fortyone`'s zero dependencies or authenticity matters more. Row 057c. | Soroush |
+| **Rate limits that survive a second web container.** The window store is process memory; true today, wrong the day there are two. Row 057d. | unscheduled |
 | **EPIC-043's Review line** — "Soroush reads it. Every high finding has an epic." The threat model is written and the five rows are drafted; reading it and pasting them is his. | Soroush |
 | **The two open `high` findings**, `043a` and `043e`. See "Start here". | Soroush |
 | **Does a normalised view satisfy rule 6?** The privacy page describes that retention to users. Obtaining the real body means a `fetch` wrapper. **Cheaper to answer before EPIC-042** puts two more providers behind the same adapter. | Soroush |
@@ -179,12 +228,12 @@ Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `7710bab` | EPIC-054, merged 2026-09-17 as `db96cfc` |
-| `origin/main` / staging | `da42eee` | **81 behind** — still EPIC-040's epic file and GATE 3's decision |
-| production | `af089c7` = `v0.5.0` | 164 commits behind; only a `v*` tag moves it |
+| local `main` | `81efdc0` | EPIC-057, merged 2026-09-17 |
+| `origin/main` / staging | `da42eee` | **95 behind** — still EPIC-040's epic file and GATE 3's decision |
+| production | `af089c7` = `v0.5.0` | 178 commits behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053 or 054**,
-and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054 or
+057**, and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
 `"commit":"unknown"`. The proof that the server you are about to drive is the build you just made is
@@ -192,8 +241,8 @@ and no staging URL is evidence about any of them. Check `/healthz`'s `commit` be
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
 **A release is due, and more so than last time.** `docs/AUTONOMOUS.md` stops the loop after every
-third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053 and 054 are **ten**.
-`RELEASE-DUE.md` was regenerated at EPIC-054's merge and is current: **163 commits, 816 files**, and
+third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053, 054 and 057 are **eleven**.
+`RELEASE-DUE.md` was regenerated at EPIC-057's merge and is current: **178 commits, 834 files**, and
 `v0.6.0` is the next tag. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
@@ -209,7 +258,7 @@ third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053 and 054 ar
 - **The browser drive is a Definition-of-Done item**, against the **built** app — `turbo run build`,
   then `next start`. Never `pnpm dev`.
 
-## Thirty-two things recent epics cost, worth not relearning
+## Thirty-seven things recent epics cost, worth not relearning
 
 1. **A helper that normalises state hides the defect from every test that uses it.** `PROCESS.md`
    has the rule and the three instances.
@@ -368,6 +417,36 @@ third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053 and 054 ar
     declared there is silently filtered out one process later. The gate would have printed `4 x 2`
     and spawned 71. `apps/web/gates-parallelism.test.ts` pins the two files together and was proved
     to fire; any new knob needs the same two edits.
+
+33. **A gate's exit code is the only machine-checkable part of it, and a pipe throws it away.**
+    `pnpm binary-files 2>&1 | tail -3 && git commit` committed on a **red** gate, because a
+    pipeline's status is the *last* command's and `tail` succeeded. Lesson 24 says run the gate again
+    after the last file; this is its companion — **read `$?`, not the last three lines.** Every gate
+    in the second half of EPIC-057 was checked with `echo $?`.
+34. **A wrong invocation of a gate reads exactly like a failing gate.** `uvx reuse lint` exited 1
+    here on a missing encoding module; the repo's script is
+    `uvx --with charset-normalizer reuse lint`, which passes 1226/1226. That is lesson 20's shape
+    (`grep -P` on macOS) with a different tool: **run the repository's own command, not your
+    reconstruction of it.**
+35. **A document about a defect carries it as readily as a test about one.** EPIC-055 put a NUL byte
+    in its NUL-byte test; EPIC-057 put four across three files — twice in the limiter's own warning
+    about them, then once each in the report and session-log paragraphs *about* that. Every one was a
+    tool interpreting the escape being named. **The only safe way to name that escape is to describe
+    it in words, or to write bytes through something that cannot interpret them.** And the sweep must
+    walk every tracked, modified and untracked file: the gate names the *first* NUL in the *first*
+    offending file, so fix-and-rerun says nothing about how many there are.
+36. **A mitigation can be a worse vulnerability than the thing it mitigates, and its own tests will
+    not say so.** EPIC-057's first rate limiter gated on the caller's address before authenticating,
+    which let anyone lock out a customer's whole fleet by spending their shared egress budget. Every
+    test passed, because each was written from the same premise —`PROCESS.md`'s "a test written from
+    the implementation asserts the implementation". **It was found by asking how the browser drive
+    would demonstrate the feature**, and noticing the demonstration would have to show a customer
+    being harmed. Ask that question before writing the drive, not while writing it.
+37. **A budget is a real constraint even when what it refuses is a security fix**, and ADR-006 wrote
+    down the response in advance: *measure what got in, do not widen the number.* EPIC-057 wrote three
+    mitigations, measured them four ways, and reverted them. **Measuring a negative properly is most
+    of an hour and it is not wasted** — it is what turns "it did not fit" into a table somebody can
+    decide from. See also lesson 26: before trusting a budget, ask which program it measured.
 
 ## Gates and the local loop
 
