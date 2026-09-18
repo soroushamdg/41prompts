@@ -4,22 +4,34 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-17T22:03:55.990Z.
+Generated 2026-09-18T00:16:11.136Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `64a8115d17c81e8b4fe14d2458aa2c5d2d9406b9` | this checkout |
+| `main` | `8249331dc724808492d802c4d408e7cc7d8fda8d` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-151 commits · 772 files changed, 100118 insertions(+), 612 deletions(-)
+163 commits · 816 files changed, 108053 insertions(+), 647 deletions(-)
 
+- 8249331 docs: EPIC-054 is done
+- db96cfc Merge EPIC-054: fortyone, and the prompt arrives in a Python process
+- b1aadd7 docs(epic-054): the gate table, and what the drive does and does not cover
+- af8a1ec test(054): pin the parallelism knob to the list that decides whether it exists
+- 9c5b2bf fix(054): the gate was the busy machine — 71 vitest processes on 8 cores
+- ba72d5d fix(054): the NUL byte was in the report about the NUL byte, and the gate tests measure the machine
+- 4112dcf fix(054): the connect spec pinned the snippet the refresh fix replaced
+- 27c461e fix(054): the documented way to be warm before your first request did nothing
+- 5698c69 feat(054): fortyone — resolve(), the three sources, and the encoding that had to be exact
+- ef88dea docs(epic-054): the epic file, the plan, and ten rulings
+- ba805e8 docs: the handover, at EPIC-053
+- 06ec30c docs: RELEASE-DUE regenerated at EPIC-053's merge
 - 64a8115 docs: EPIC-053 is done
 - 80d8ccb Merge EPIC-053: 41p, and the prompt arrives in a repository instead of a browser tab
 - 28214c3 docs(epic-053): the report, the session log and ten decisions
