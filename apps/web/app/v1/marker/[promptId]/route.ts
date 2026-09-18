@@ -2,6 +2,7 @@ import { liveFor, promptById } from "@41prompts/db";
 import { getDb } from "@/lib/db";
 import { keyFromRequest, refusalResponse } from "@/lib/deploy/api-auth";
 import { markerKey, storeFor } from "@/lib/deploy/store";
+import { limitV1, rateLimitedResponse } from "@/lib/deploy/v1-limits";
 
 /**
  * `GET /v1/marker/:promptId` — where this prompt's Live marker is served from (EPIC-051).
@@ -25,12 +26,22 @@ import { markerKey, storeFor } from "@/lib/deploy/store";
  * 404 for a prompt in this key's project that has never been published, and **403** for one that is
  * not. They are different answers deliberately: see `api-auth.ts` for why `/v1` does not use the
  * app's 404-for-everything rule.
+ *
+ * ## It is rate limited (EPIC-057)
+ *
+ * This is the route `docs/roadmap.md`'s Tests line names, because it is the one an installed SDK
+ * calls on a timer for ever. `lib/deploy/v1-limits.ts` carries the two buckets, the numbers, and the
+ * reason the limit is counted **after** authentication rather than before it (ruling 12): a gate in
+ * front of `keyFromRequest` could not tell a customer from a stranger, so anyone could have spent a
+ * shared egress address's budget and locked out that customer's whole fleet.
  */
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ promptId: string }> }): Promise<Response> {
   const db = getDb();
   const auth = await keyFromRequest(db, request);
+  const limit = limitV1(request, auth.ok ? auth.key.id : null);
+  if (!limit.allowed) return rateLimitedResponse(limit);
   if (!auth.ok) return refusalResponse(auth.status, auth.reason);
 
   const { promptId } = await context.params;

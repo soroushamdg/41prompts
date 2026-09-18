@@ -27,6 +27,12 @@ redirect to another host and reading what arrived.
 **Nothing here raises, and a timeout is not an exception either.** Every failure becomes a warning
 the caller is handed.
 
+**A 429 is honoured (EPIC-057).** ``/v1`` is rate limited, and a client that ignores the refusal
+makes the endpoint pay for it at the same rate it paid for the answer. A 429 comes back as its own
+outcome carrying ``Retry-After`` and ``__init__`` stops asking until it has passed. This is one of
+two places this package is stricter than ``@41prompts/sdk``, which cannot afford the code inside
+ADR-006's 15 KB bundle budget (EPIC-057 ruling 11); the divergence table in ``README.md`` says so.
+
 **A response is read to a limit.** ``urllib`` will happily read a body for as long as a server keeps
 sending one, and the SDK's whole promise is that we cannot take a customer's application down. The
 limit is generous against any real build and finite against a server that has stopped being one; a
@@ -47,7 +53,15 @@ from ._disk import Entry
 from ._types import SdkWarning, WarningCode
 from ._verify import read_build, read_marker
 
-__all__ = ["HttpResponse", "Http", "NetworkConfig", "Outcome", "fetch_live", "urllib_http"]
+__all__ = [
+    "DEFAULT_RETRY_AFTER_SECONDS",
+    "Http",
+    "HttpResponse",
+    "NetworkConfig",
+    "Outcome",
+    "fetch_live",
+    "urllib_http",
+]
 
 # 16 MiB. A compiled prompt with its bloks, spans and checks is kilobytes; a hundred times the
 # largest plausible build is still nothing, and an unbounded read is a memory exhaustion somebody
@@ -158,6 +172,11 @@ class Outcome:
         undo back to a build still in memory would keep reporting the version it undid from.
     ``entry``
         A new Live build. ``build_text`` is the bytes as they arrived, for the disk cache to store.
+    ``rate_limited``
+        The endpoint refused us for asking too often and said when to come back (EPIC-057). Its own
+        kind rather than a ``warning``, because the caller has to *do* something with it — stop
+        asking — and a warning is a thing a caller reads. The warning is raised as well, so nothing
+        is silent.
     ``warning``
         Something went wrong, and it is a value rather than an exception.
     """
@@ -169,6 +188,33 @@ class Outcome:
     entry: Entry | None = None
     build_text: str | None = None
     warning: SdkWarning | None = None
+    retry_after_seconds: float | None = None
+
+
+# How long a 429 is honoured for when ``Retry-After`` is missing or is not delta-seconds.
+#
+# A 429 with no header is still a refusal, and reading it as "come back immediately" would make the
+# unluckiest clients the loudest. ``Retry-After`` may also be an HTTP-date; parsing one needs a
+# clock this module does not have, so a date falls through to this default. The one-day ceiling is
+# so a server saying "a year" cannot silently retire a client for ever.
+DEFAULT_RETRY_AFTER_SECONDS = 60.0
+_MAX_RETRY_AFTER_SECONDS = 24 * 60 * 60.0
+
+
+def _retry_after_of(response: HttpResponse) -> float:
+    """Seconds from a ``Retry-After``, or the default. Delta-seconds only; never a date."""
+    # Header names are case-insensitive over the wire and this is a plain mapping, so both spellings
+    # are tried rather than assuming whichever one the last server used.
+    raw = response.headers.get("retry-after") or response.headers.get("Retry-After")
+    if raw is None:
+        return DEFAULT_RETRY_AFTER_SECONDS
+    try:
+        seconds = float(int(str(raw).strip()))
+    except ValueError:
+        return DEFAULT_RETRY_AFTER_SECONDS
+    if seconds < 0:
+        return DEFAULT_RETRY_AFTER_SECONDS
+    return min(seconds, _MAX_RETRY_AFTER_SECONDS)
 
 
 def _failure(status: int, what: str, prompt_id: str) -> SdkWarning:
@@ -178,6 +224,18 @@ def _failure(status: int, what: str, prompt_id: str) -> SdkWarning:
         return SdkWarning("unauthorised", "the API key is scoped to another project", prompt_id)
     if status == 404:
         return SdkWarning("not_found", "nothing is published for this prompt", prompt_id)
+    if status == 429:
+        # The code stays ``network``, and **not because a new one is forbidden** — ADR-006 section 7
+        # says adding a ``WarningCode`` is explicitly minor and the right trade. It is because
+        # ``@41prompts/sdk`` ships no 429 handling (EPIC-057 ruling 11) and
+        # ``tests/test_divergence.py`` holds both unions identical, so a ``rate_limited`` code would
+        # be declared in the TypeScript surface and never raised there. A code nobody can reach is
+        # worse than a message a caller has to read. It arrives with the behaviour, in row 057a.
+        return SdkWarning(
+            "network",
+            f"the {what} request was rate limited (429); the background refresh will wait",
+            prompt_id,
+        )
     return SdkWarning("network", f"the {what} request answered {status}", prompt_id)
 
 
@@ -214,6 +272,12 @@ def fetch_live(config: NetworkConfig, prompt_id: str, etag: str | None, held: st
         return Outcome("warning", warning=SdkWarning("network", marker_got, prompt_id))
     if marker_got.status == 304:
         return Outcome("unchanged")
+    if marker_got.status == 429:
+        return Outcome(
+            "rate_limited",
+            warning=_failure(429, "Live marker", prompt_id),
+            retry_after_seconds=_retry_after_of(marker_got),
+        )
     if not 200 <= marker_got.status < 300:
         return Outcome("warning", warning=_failure(marker_got.status, "Live marker", prompt_id))
 
@@ -242,6 +306,12 @@ def fetch_live(config: NetworkConfig, prompt_id: str, etag: str | None, held: st
     if isinstance(build_got, str):
         return Outcome("warning", warning=SdkWarning("network", build_got, prompt_id))
     if not 200 <= build_got.status < 300:
+        if build_got.status == 429:
+            return Outcome(
+                "rate_limited",
+                warning=_failure(429, "build", prompt_id),
+                retry_after_seconds=_retry_after_of(build_got),
+            )
         return Outcome("warning", warning=_failure(build_got.status, "build", prompt_id))
 
     # Both halves of the roadmap's "artifact sha verified against pointer": the document hashes to

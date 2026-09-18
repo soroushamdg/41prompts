@@ -159,3 +159,128 @@ def test_no_install_id_where_nothing_can_be_written(tmp_path: pathlib.Path) -> N
     blocked = tmp_path / "file"
     blocked.write_text("not a directory", encoding="utf-8")
     assert install_id(str(blocked / "under")) is None
+
+
+# ── EPIC-057: the directory has to be ours, because a content address is not a signature ─────────
+
+
+def test_a_world_writable_cache_directory_is_refused(tmp_path: pathlib.Path) -> None:
+    """The mitigation for artifact substitution (EPIC-057 C7).
+
+    `read_from_disk` re-verifies the content address, which proves a document is **intact** and not
+    that it is **ours** — anyone who can write here can write any text and compute its own
+    `buildHash`. So a directory other users can write into is refused before a byte is read.
+    """
+    warnings, warn = collect()
+    entry = Entry(build=BUILD, version=6, published_at="2026-09-16T14:03:07Z", etag='"tag"')
+    write_to_disk(str(tmp_path), PROMPT_ID, entry, BUILD_TEXT, warn)  # type: ignore[arg-type]
+
+    # The control, and it is the whole reason this test can mean anything: the very same directory
+    # and the very same file read back fine a line before it is chmodded. Without this, a refusal
+    # below would be indistinguishable from the cache never having worked at all.
+    assert read_from_disk(str(tmp_path), PROMPT_ID, warn) is not None  # type: ignore[arg-type]
+    assert warnings == []
+
+    os.chmod(tmp_path, 0o777)
+    refused = read_from_disk(str(tmp_path), PROMPT_ID, warn)  # type: ignore[arg-type]
+
+    assert refused is None
+    assert len(warnings) == 1
+    assert warnings[0].code == "disk"
+    assert "writable by other users" in warnings[0].message
+    # Rule 8: never fatal. Memory and bundled are untouched, which is what makes failing closed safe.
+
+
+def test_a_group_writable_cache_directory_is_refused_too(tmp_path: pathlib.Path) -> None:
+    """`0o022` is the test, not `0o002` — a shared group is as good as the world on a build host."""
+    warnings, warn = collect()
+    entry = Entry(build=BUILD, version=1, published_at=None, etag=None)
+    write_to_disk(str(tmp_path), PROMPT_ID, entry, BUILD_TEXT, warn)  # type: ignore[arg-type]
+
+    os.chmod(tmp_path, 0o770)
+    assert read_from_disk(str(tmp_path), PROMPT_ID, warn) is None  # type: ignore[arg-type]
+    assert any("writable by other users" in one.message for one in warnings)
+
+
+def test_a_private_directory_is_not_refused(tmp_path: pathlib.Path) -> None:
+    """The second control: proves the check is about the mode and not about `tmp_path`."""
+    warnings, warn = collect()
+    entry = Entry(build=BUILD, version=2, published_at=None, etag=None)
+    write_to_disk(str(tmp_path), PROMPT_ID, entry, BUILD_TEXT, warn)  # type: ignore[arg-type]
+
+    for mode in (0o700, 0o750, 0o755):
+        os.chmod(tmp_path, mode)
+        assert read_from_disk(str(tmp_path), PROMPT_ID, warn) is not None, oct(mode)  # type: ignore[arg-type]
+    assert warnings == []
+
+
+def test_the_directory_this_package_creates_is_owner_only(tmp_path: pathlib.Path) -> None:
+    """Created `0o700`, which is the half of the fix that stops the race rather than detecting it.
+
+    `write_to_disk` is the first thing to create the directory in an ordinary process, so getting
+    there first with the right mode is what makes the check above almost never fire.
+    """
+    warnings, warn = collect()
+    directory = tmp_path / "does-not-exist-yet"
+    entry = Entry(build=BUILD, version=3, published_at=None, etag=None)
+    write_to_disk(str(directory), PROMPT_ID, entry, BUILD_TEXT, warn)  # type: ignore[arg-type]
+
+    assert warnings == []
+    assert directory.exists()
+    # `makedirs`' mode is masked by the umask, so 0o700 is a ceiling: assert no group or other bit
+    # rather than an exact number, or this fails on a machine with a different umask.
+    assert os.stat(directory).st_mode & 0o077 == 0, oct(os.stat(directory).st_mode)
+
+
+def test_a_missing_directory_is_not_reported_as_hostile(tmp_path: pathlib.Path) -> None:
+    """A cold start is not a refusal. There is nothing in a directory that is not there."""
+    from fortyone._disk import cache_dir_refusal
+
+    assert cache_dir_refusal(str(tmp_path / "never-created")) is None
+    # The control: the same function does refuse the directory that *is* there and is hostile, so
+    # a `None` above is about absence rather than about the function never refusing anything.
+    os.chmod(tmp_path, 0o777)
+    assert cache_dir_refusal(str(tmp_path)) is not None
+
+
+def test_a_directory_owned_by_another_user_is_refused(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The ownership half, forced rather than asserted.
+
+    `HANDOVER.md` lesson 29: before asserting a safeguard works, force the thing it guards against.
+    Nobody can `chown` without root, so the uid is moved instead — the same seam, reached from the
+    other side — and the control is that the unpatched `getuid` sees the directory as ours.
+
+    `monkeypatch` rather than a hand-rolled `try`/`finally`: it restores even when an assertion
+    fails, and the thing being patched here is `os.getuid`. Leaving that moved would break every
+    test after this one for a reason none of them would name.
+    """
+    from fortyone import _disk as disk
+
+    assert disk.cache_dir_refusal(str(tmp_path)) is None  # the control
+
+    real_uid = os.getuid()
+    monkeypatch.setattr(os, "getuid", lambda: real_uid + 1)
+
+    refusal = disk.cache_dir_refusal(str(tmp_path))
+    assert refusal is not None
+    assert "owned by another user" in refusal
+
+
+def test_the_check_is_skipped_where_there_is_no_getuid(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Windows has no `getuid` and no POSIX mode bits.
+
+    A check that cannot run must not read as a check that failed — a `disk` warning on every Windows
+    read would train people to ignore the one code that matters. It also must not read as one that
+    passed, which is why the module docstring names the platforms covered (lesson 20).
+    """
+    from fortyone import _disk as disk
+
+    os.chmod(tmp_path, 0o777)
+    assert disk.cache_dir_refusal(str(tmp_path)) is not None  # the control: POSIX sees it
+
+    monkeypatch.delattr(os, "getuid")
+    assert disk.cache_dir_refusal(str(tmp_path)) is None

@@ -130,6 +130,23 @@ name in the TypeScript surface has no row.
 | *(none)* | **`Authorization` is dropped on a cross-origin redirect** | `fetch` does this; `urllib` does not, and `/v1/marker` redirects to a CDN. Without it the default transport would send your API key to somebody else's access log. |
 | *(no limit on a response body)* | 16 MiB, refused rather than truncated | A truncated document would fail its content address and report as tampering, which means something entirely different to whoever reads the log. |
 | `.d.ts` | **`py.typed`**, no `.pyi` | PEP 561 makes a stub file *override* the module's own annotations, so a stale `.pyi` silently wins over correct code. One copy, checked by `mypy --strict`. |
+| *(none)* | **the cache directory must be private** | EPIC-057. Created `0o700`, and a directory owned by another user or writable by group or other is refused before a byte is read. Re-verifying a content address proves a document is *intact*, not that it is *ours* — anyone who can write there can write any text and compute its own `buildHash`. On Linux `tempfile.gettempdir()` is `/tmp` at mode `1777`, and whoever creates our directory first sets its mode. |
+| *(none)* | **a `429` is honoured** | EPIC-057. `/v1` is rate limited, and a client that ignores the refusal makes the endpoint pay for it at the same rate it paid for the answer. `Retry-After` stops the background refresh, process-wide, because the limit is per API key. |
+
+### Two of those rows are security posture, not naming, and they should not be permanent
+
+The last two rows and the 16 MiB one are the only places in this table where the two SDKs are not
+*equally* careful — everywhere else the difference is a language convention. **The reason is a
+budget, not a judgement.** ADR-006 §1 caps `@41prompts/sdk` at 15 KB minified and it had **239 bytes
+of headroom**; measured on 2026-09-17, the cache-directory check alone costs 290 bytes, and all
+three together cost 1,183. ADR-006's own Consequences section anticipated the budget being the
+binding constraint and said the response is *"to measure what got in — not to widen the number,
+which is a Review line"*, so it was measured and the number was left alone.
+
+Python has no such budget, so it has the mitigations. **A Node process is therefore the more exposed
+of the two**, and it is the majority. `docs/security/sdk-threat-model.md` finding 3 and EPIC-057
+ruling 11 carry what closes the gap; withholding a working fix from Python to keep the two
+symmetrical would have helped nobody.
 
 **Not a divergence, worth saying:** the disk cache is the same format in the same directory
 (`<tmpdir>/41prompts-sdk`), so a container running both shares one warm cache. Each SDK's suite reads
