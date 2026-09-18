@@ -317,14 +317,21 @@ describe.skipIf(!HAS_TEST_DATABASE)("a mismatched build, at the seam", () => {
     const stored = await databaseStore.get(key);
 
     // A real, self-consistent build for a different prompt, served under this build's key.
-    const other = JSON.parse(stored!.body) as Record<string, unknown>;
+    //
+    // `Record<string, unknown>` is written out rather than inferred: a spread of a record plus one
+    // literal property narrows to `{ promptId: string }` under `noUncheckedIndexedAccess`, and the
+    // `delete` below then fails to compile for a reason that has nothing to do with the test.
     const { buildHashOf } = await import("@41prompts/core");
-    const body = { ...other, promptId: "pr_99887766" };
+    const other = JSON.parse(stored!.body) as Record<string, unknown>;
+    const body: Record<string, unknown> = { ...other, promptId: "pr_99887766" };
     delete body["buildHash"];
-    const reHashed = { ...body, buildHash: buildHashOf({ ...body, buildHash: "" } as never) };
-    // Prove the substitute is itself intact, or this test would be re-proving the previous one.
-    expect(buildHashOf(reHashed as never)).toBe(reHashed.buildHash);
-    expect(reHashed.buildHash).not.toBe(liveBuildHash);
+    const substituteHash = buildHashOf({ ...body, buildHash: "" } as never);
+    const reHashed: Record<string, unknown> = { ...body, buildHash: substituteHash };
+
+    // Prove the substitute is itself intact, or this test would be re-proving the previous one:
+    // the point here is a document that passes check 1 and fails check 2.
+    expect(buildHashOf(reHashed as never)).toBe(substituteHash);
+    expect(substituteHash).not.toBe(liveBuildHash);
 
     await db
       .update(publishedArtifacts)
