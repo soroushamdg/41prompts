@@ -5,8 +5,13 @@
  * The generated `prompts.py` (EPIC-053).
  *
  * Written by `41p pull --lang python`. The Connect page does not offer it — EPIC-055's Goal line is
- * "TypeScript path only" and `fortyone.resolve()` is still EPIC-000's stub, which is why the command
- * says so when it writes this file (ruling 3).
+ * "TypeScript path only" — and the command prints the install line for the runtime this file calls.
+ *
+ * **EPIC-053 wrote this against a stub.** `fortyone.resolve()` returned `unavailable` for
+ * everything, so the file compiled, imported and ran while answering nothing, and `41p pull` said
+ * so out loud. EPIC-054 built the runtime underneath it and that sentence went with it; what is
+ * generated here has not changed, and `sdks/python/tests/test_generated_bindings.py` now type-checks
+ * this file's golden against the real module rather than against the stub.
  *
  * ## It takes keyword arguments where TypeScript takes an object, and that is a real divergence
  *

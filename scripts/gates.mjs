@@ -25,7 +25,7 @@
 // PARTIAL with the reason.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, cpus as osCpus, tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { applyWhenUnset, placeholders } from "../apps/web/e2e/env.mjs";
@@ -65,6 +65,12 @@ const quiet = (cmd, args) => {
   return { ok: r.status === 0, out: `${r.stdout ?? ""}${r.stderr ?? ""}` };
 };
 const sleep = (ms) => spawnSync(process.execPath, ["-e", `setTimeout(()=>{}, ${ms})`]);
+
+// `availableParallelism` respects a container's CPU quota where `cpus().length` reports the host's,
+// which is the difference between sizing for a 2-core runner and sizing for the machine it happens
+// to be hosted on. It arrived in Node 18.14 and this repository is on 22; the fallback is there
+// because a gate that throws on an older Node reports nothing about the code.
+const cpuCount = () => (typeof availableParallelism === "function" ? availableParallelism() : osCpus().length);
 
 // --- the throwaway database ---------------------------------------------------------------------
 
@@ -495,9 +501,59 @@ function newestSummary(after) {
   }
 }
 
+/**
+ * **Nine packages each sized their own worker pool to the machine, and turbo ran all nine at once.**
+ *
+ * Vitest's fork pool defaults to roughly one worker per core *per package*, and `turbo run` defaults
+ * to ten concurrent tasks. Measured on this machine (8 cores) during one `pnpm test`, sampling every
+ * four seconds: **71 concurrent vitest processes at peak, and a one-minute load average of 262** —
+ * thirty-three times the number of cores. Nothing was wrong with any of those suites.
+ *
+ * That is what every unexplained timeout in this repository has been. Failures arrived as
+ * `Test timed out in 5000ms` in packages a change had never touched, and as
+ * `[vitest-worker]: Timeout calling "onTaskUpdate"` — a **sixty-second** RPC to a main process that
+ * could not get scheduled — in a package reporting 581 of 581 tests passed. `@41prompts/sdk`'s
+ * never-throws fuzz takes 320 ms alone and 5,880 ms inside a parallel run, against a 5,000 ms
+ * budget. Each was explained as the machine being busy, which was true and was not the cause: the
+ * run was the machine being busy.
+ *
+ * So the total is budgeted instead of being left to nine independent guesses. `VITEST_MAX_FORKS`
+ * is vitest's own knob and applies to every package at once, which is why it is set here rather
+ * than copied into nine `vitest.config.ts` files — `docs/PROCESS.md` has four entries about a
+ * second copy that goes stale silently.
+ *
+ * This is deliberately not `--concurrency=1`. Packages still overlap; what stops is each of them
+ * sizing a pool as though it were alone on the host. It sizes itself from the host, so a 2-core CI
+ * runner gets 2 × 1 and this machine gets 4 × 2.
+ */
+function parallelism() {
+  const cpus = Math.max(1, cpuCount());
+  const concurrency = Math.max(2, Math.floor(cpus / 2));
+  const forks = Math.max(1, Math.floor(cpus / concurrency));
+  return { concurrency, forks };
+}
+
 function turbo(name) {
   const before = Date.now();
-  const result = run("npx", ["turbo", "run", name, "--continue", "--summarize"]);
+  const { concurrency, forks } = parallelism();
+  // Only `test` spawns worker pools; `lint` and `typecheck` are one process per package.
+  //
+  // **`VITEST_MAX_FORKS` has to be declared in `turbo.json`'s `globalPassThroughEnv` or setting it
+  // here does nothing at all.** Declaring any pass-through list puts turbo in strict environment
+  // mode, so a task sees only the names on it — a knob that is set, logged, and then filtered out
+  // one process later. That is the shape of this epic's own §4.1 defect, and the reason the line
+  // below prints the numbers: a run that says "4 × 2" and then spawns 71 processes is a run whose
+  // own report can be checked against `ps`.
+  if (name === "test") {
+    process.env.VITEST_MAX_FORKS = String(forks);
+    console.log(
+      `  parallelism: ${concurrency} package(s) at a time × ${forks} vitest fork(s), ` +
+        `on ${cpuCount()} core(s)`
+    );
+  }
+  const result = run("npx", [
+    "turbo", "run", name, "--continue", "--summarize", `--concurrency=${concurrency}`,
+  ]);
   const summary = newestSummary(before);
   // **Filter to the task that was asked for.** A task with `dependsOn` pulls its dependencies into
   // the same run summary, so `typecheck` — which now depends on `build` — returns twelve rows for

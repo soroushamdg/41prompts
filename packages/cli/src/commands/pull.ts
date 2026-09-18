@@ -45,9 +45,17 @@ import type { Env } from "../out.js";
 /** Where bundled builds land. A directory, because there is one file per build. */
 export const BUNDLE_DIR = "41p/builds";
 
-/** The sentence ruling 3 requires. Written once, asserted as a literal. */
-export const PYTHON_RUNTIME_NOTE =
-  "The Python runtime is EPIC-054: fortyone.resolve() returns unavailable until it ships.";
+/**
+ * What a Python pull needs told, written once and asserted as a literal.
+ *
+ * **It changed in EPIC-054** (ruling 10). EPIC-053 printed *"The Python runtime is EPIC-054:
+ * fortyone.resolve() returns unavailable until it ships"*, which was true then and false from the
+ * moment `sdks/python` shipped — and a CLI that lies about its own ecosystem is worse than one that
+ * says nothing. What a person needs now is the install line, which stands exactly as the Connect
+ * page's `npm install @41prompts/sdk` stands: the command they will run, for a package EPIC-006 has
+ * not yet registered a name for.
+ */
+export const PYTHON_RUNTIME_NOTE = "Install the runtime this file calls: pip install fortyone-prompts";
 
 export interface PullArgs {
   readonly key?: string;

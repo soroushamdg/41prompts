@@ -80,12 +80,12 @@ export const CONNECT_STEPS: readonly ConnectStep[] = [
   {
     slug: "offline",
     title: "Be right on a cold start",
-    says: "The first call in a fresh process has nothing cached yet. Wait once in your own start-up, or ship the builds with your deploy.",
+    says: "The first call in a fresh process has nothing cached yet. Wait once in your own start-up — naming the prompt, because a client you have just built has not been asked for anything — or ship the builds with your deploy.",
     code: `// Wait once, where waiting is allowed — in your own start-up, not in a request.
-await prompts.refresh();`,
+await prompts.refresh("pr_1a2b3c4d");`,
     language: "ts",
     readmeMustContain: [
-      "await prompts.refresh();",
+      'await prompts.refresh("pr_1a2b3c4d");',
       "// Wait once, where waiting is allowed — in your own start-up, not in a request.",
     ],
   },

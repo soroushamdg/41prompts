@@ -58,9 +58,10 @@ const DEFAULT_ROOTS = [
   "apps/web/lib",
   "packages/sdk-ts/src",
   "packages/cli/src",
+  "sdks/python/fortyone",
 ];
 const ROOTS = process.argv.slice(2).length > 0 ? process.argv.slice(2) : DEFAULT_ROOTS;
-const EXTENSIONS = new Set([".ts", ".tsx"]);
+const EXTENSIONS = new Set([".ts", ".tsx", ".py"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".turbo", "dist", "coverage"]);
 const SKIP_FILES = new Set(["contrast.ts", "contrast-cli.ts", "contrast.test.ts", "token-contract.test.ts"]);
 
@@ -69,10 +70,27 @@ const SKIP_FILES = new Set(["contrast.ts", "contrast-cli.ts", "contrast.test.ts"
 const WORD_RE = new RegExp(`\\b(${FORBIDDEN.join("|")})s?\\b`, "gi");
 // Each exemption records the epic that added it and why, so the list stays auditable and nobody
 // has to reconstruct the argument from a blame view.
-// `label`  — EPIC-003: the <label> element and aria-label/aria-labelledby are the accessibility API.
-// `block`  — EPIC-013: scrollIntoView({ block: "nearest" }) is a DOM option name, not our word.
+// `label`    — EPIC-003: the <label> element and aria-label/aria-labelledby are the accessibility API.
+// `block`    — EPIC-013: scrollIntoView({ block: "nearest" }) is a DOM option name, not our word.
+// `artifact` — EPIC-054: the **key** of the disk-cache record, which `@41prompts/sdk` already
+//              writes and `fortyone` reads out of the same directory (EPIC-054 ruling 5). It is a
+//              serialisation field name, not a sentence, and `disk.ts` writes it as a TypeScript
+//              property — an identifier, which this gate has never flagged. Python has no such
+//              thing: a JSON key is a string literal, so the same field in the same format is a
+//              violation in one language and not in the other. Renaming it on the Python side
+//              would end the shared cache; renaming it on both would be a format change for a
+//              gate's convenience. So it is exempt exactly where it is a quoted key or index of
+//              that record, and nowhere else.
+//
+//              **Per occurrence, not per line**, unlike the two above. The first version exempted
+//              the whole line when every match on it was `artifact`, and its own control caught
+//              that `{"artifact": "your artifact is ready"}` then passed — the key exempting the
+//              sentence beside it. The two older exemptions keep the line rule because `<label>`
+//              and `scrollIntoView` do not plausibly share a line with the word in prose; this one
+//              does, because the value beside a key is exactly where a message lives.
 const LABEL_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|htmlFor=/i;
 const BLOCK_CONTEXT_RE = /scrollIntoView\s*\(/;
+const RECORD_KEY_RE = /(["'])artifact\1\s*[:\])]/g;
 
 /**
  * The spans of `line` that a person could read: quoted strings, and JSX text between `>` and `<`.
@@ -105,6 +123,22 @@ function readableSpans(line) {
   return spans;
 }
 
+/**
+ * The spans of `line` holding the shared cache record's key — the word itself, not the quotes.
+ *
+ * See `RECORD_KEY_RE`'s comment. A match inside one of these is a serialisation field name; a match
+ * anywhere else on the same line is not exempt, which is the whole difference from the two
+ * line-level exemptions.
+ */
+function recordKeySpans(line) {
+  const spans = [];
+  for (const match of line.matchAll(RECORD_KEY_RE)) {
+    const at = match.index + 1;
+    spans.push([at, at + "artifact".length]);
+  }
+  return spans;
+}
+
 /** True when `index` falls inside something a person could read. */
 function isReadable(line, index) {
   return readableSpans(line).some(([from, to]) => index >= from && index < to);
@@ -122,8 +156,61 @@ function blank(match) {
   return match.replace(/[^\n]/g, " ");
 }
 
-function stripComments(source) {
-  return source.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/\/\/.*$/gm, blank);
+function stripComments(source, python) {
+  if (!python) return source.replace(/\/\*[\s\S]*?\*\//g, blank).replace(/\/\/.*$/gm, blank);
+  return stripPython(source);
+}
+
+/**
+ * Blank Python comments and docstrings, keeping every other character in place.
+ *
+ * A scanner rather than two regular expressions, because the naive version — blank from `#` to the
+ * end of the line — also blanks the rest of a line containing a `#` inside a string literal, and
+ * that **under-reports**: a forbidden word after such a `#` would go unseen. A vocabulary gate may
+ * over-report; it may not under-report. So quotes are tracked and a `#` only starts a comment
+ * outside one.
+ *
+ * A triple-quoted string is treated as a comment because in Python that is what a docstring is —
+ * the prose convention, matching how this file already exempts a JSDoc block in TypeScript. An
+ * ordinary single-quoted string is left alone and is exactly what `readableSpans` then reads.
+ *
+ * Newlines are preserved throughout so line numbers in a violation still point at the right line.
+ */
+function stripPython(source) {
+  let out = "";
+  let i = 0;
+  while (i < source.length) {
+    const three = source.slice(i, i + 3);
+    if (three === '"""' || three === "\'\'\'") {
+      const end = source.indexOf(three, i + 3);
+      const stop = end === -1 ? source.length : end + 3;
+      out += blank(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    const char = source[i];
+    if (char === "#") {
+      const end = source.indexOf("\n", i);
+      const stop = end === -1 ? source.length : end;
+      out += blank(source.slice(i, stop));
+      i = stop;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      // Copy the literal through, escapes included, so `readableSpans` sees it as a string.
+      let j = i + 1;
+      while (j < source.length && source[j] !== char && source[j] !== "\n") {
+        j += source[j] === "\\" ? 2 : 1;
+      }
+      const stop = Math.min(j + 1, source.length);
+      out += source.slice(i, stop);
+      i = stop;
+      continue;
+    }
+    out += char;
+    i += 1;
+  }
+  return out;
 }
 
 function walk(dir) {
@@ -140,7 +227,12 @@ function walk(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       out.push(...walk(full));
-    } else if (EXTENSIONS.has(extname(entry)) && !entry.endsWith(".test.ts") && !entry.endsWith(".test.tsx")) {
+    } else if (
+      EXTENSIONS.has(extname(entry)) &&
+      !entry.endsWith(".test.ts") &&
+      !entry.endsWith(".test.tsx") &&
+      !entry.startsWith("test_")
+    ) {
       out.push(full);
     }
   }
@@ -153,14 +245,17 @@ const violations = [];
 for (const root of ROOTS) {
   for (const file of walk(isAbsolute(root) ? root : join(repoRoot, root))) {
     const original = readFileSync(file, "utf-8");
-    const scanned = stripComments(original);
+    const scanned = stripComments(original, extname(file) === ".py");
     const lines = scanned.split("\n");
     const originalLines = original.split("\n");
     lines.forEach((line, index) => {
       // `matchAll` rather than `match`, because the UI-only rule needs each match's **position** and
       // not only its text: the same word is a violation inside a string and not as an identifier.
+      const keys = recordKeySpans(line);
       const found = [...line.matchAll(WORD_RE)].filter(
-        (match) => !UI_ONLY.has(match[1].toLowerCase()) || isReadable(line, match.index),
+        (match) =>
+          (!UI_ONLY.has(match[1].toLowerCase()) || isReadable(line, match.index)) &&
+          !keys.some(([from, to]) => match.index >= from && match.index < to),
       );
       if (found.length === 0) return;
       const matches = found.map((match) => match[0]);

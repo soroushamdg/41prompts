@@ -27,10 +27,26 @@ import { describe, expect, it } from "vitest";
 
 const SCRIPT = join(fileURLToPath(new URL("../../scripts/forbidden-words.mjs", import.meta.url)));
 
+/**
+ * Every case here spawns a real `node` process, and vitest's default budget is five seconds.
+ *
+ * That default measures the machine rather than the gate. On the machine this was written on
+ * `/usr/local/bin/node` is an **x86_64 binary under Rosetta 2**, so each spawn pays a translation
+ * cost that has nothing to do with the code under test, and `gates.mjs ci` failed two of these on a
+ * loaded host while the whole file ran in 2.4 s unloaded — a forty-fold spread on a quantity the
+ * test is not about.
+ *
+ * `apps/web/cli-generated-code.test.ts` already sets its own budget for the same reason and at
+ * `120_000`; thirty seconds is generous for one process start and still fails an actual hang.
+ * `docs/PROCESS.md`, "Three timing gates report rather than enforce", is the same argument: an
+ * absolute wall-clock budget on a contended machine measures the machine.
+ */
+const SPAWN_TIMEOUT = 30_000;
+
 /** Run the gate over one fixture file. Returns its output and whether it passed. */
-function scan(source: string): { ok: boolean; output: string } {
+function scan(source: string, extension = "ts"): { ok: boolean; output: string } {
   const dir = mkdtempSync(join(tmpdir(), "41p-forbidden-"));
-  writeFileSync(join(dir, "fixture.ts"), source);
+  writeFileSync(join(dir, `fixture.${extension}`), source);
   try {
     return { ok: true, output: execFileSync("node", [SCRIPT, dir], { encoding: "utf-8" }) };
   } catch (error) {
@@ -39,7 +55,7 @@ function scan(source: string): { ok: boolean; output: string } {
   }
 }
 
-describe("the ADR-003 vocabulary gate", () => {
+describe("the ADR-003 vocabulary gate", { timeout: SPAWN_TIMEOUT }, () => {
   it("allows the frozen public identifiers apps/web has to import", () => {
     const result = scan(
       [
@@ -107,10 +123,19 @@ describe("the ADR-003 vocabulary gate", () => {
  * `docs/PROCESS.md` forbids a suite writing into the working tree, and a gate test that dirtied the
  * tree would be trading one of this repository's rules for another.
  */
-describe("the roots the gate scans", () => {
+describe("the roots the gate scans", { timeout: SPAWN_TIMEOUT }, () => {
   const source = readFileSync(SCRIPT, "utf-8");
 
-  it.each(["packages/ui/src", "apps/web/app", "apps/web/lib", "packages/sdk-ts/src", "packages/cli/src"])(
+  it.each([
+    "packages/ui/src",
+    "apps/web/app",
+    "apps/web/lib",
+    "packages/sdk-ts/src",
+    "packages/cli/src",
+    // EPIC-054, lesson 19's fourth application. A CLI's output and an SDK's warnings are read by
+    // exactly the person ADR-003's vocabulary is written for; so is a Python package's.
+    "sdks/python/fortyone",
+  ])(
     "%s is in the default list, which is what a bare `pnpm forbidden-words` uses",
     (root) => {
       const list = source.slice(source.indexOf("const DEFAULT_ROOTS"), source.indexOf("const ROOTS"));
@@ -130,5 +155,74 @@ describe("the roots the gate scans", () => {
     // The other direction: what the commands really say must be clean, or the widening above would
     // be a gate that is red for ever and therefore ignored.
     expect(scan('export const said = "Pulled 2 prompts. Run 41p check in CI.";').ok).toBe(true);
+  });
+});
+
+/**
+ * The Python root (EPIC-054 ruling 7) — lesson 19's fourth application.
+ *
+ * `sdks/python/fortyone` joined `DEFAULT_ROOTS`, and a root added without teaching the gate `.py`
+ * would have scanned nothing and reported clean: **a widened root that guards nothing is worse than
+ * no root**, because the run then names a tree it has not checked. So every claim here is about the
+ * gate firing, not about it passing.
+ *
+ * It fired on three real strings the first time it ran, which is why the exemption below exists.
+ */
+describe("the vocabulary gate over Python", { timeout: SPAWN_TIMEOUT }, () => {
+  it("catches the word in a sentence a person would read", () => {
+    const result = scan('MESSAGE = "Your artifact is ready."\n', "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("catches it in a single-quoted string too", () => {
+    const result = scan("MESSAGE = 'the pointer moved'\n", "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("pointer");
+  });
+
+  it("does not catch it in a comment or a docstring, which are prose and not output", () => {
+    const result = scan(
+      ['"""The artifact format, and the pointer it names."""', "", "# The artifact is public.", "VALUE = 1", ""].join("\n"),
+      "py",
+    );
+    expect(result.output).toContain("clean");
+    expect(result.ok).toBe(true);
+  });
+
+  it("still sees a violation on a line that follows a comment containing a hash inside a string", () => {
+    // The scanner exists for this: blanking from the first `#` would have hidden the word after it,
+    // and a vocabulary gate may over-report but must never under-report.
+    const result = scan('SEPARATOR = "#"\nMESSAGE = "the artifact is ready"\n', "py");
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("allows the shared cache record's key, which @41prompts/sdk writes and fortyone reads", () => {
+    const result = scan(
+      ['record = {"artifact": text}', 'value = record["artifact"]', 'other = record.get("artifact")', ""].join("\n"),
+      "py",
+    );
+    expect(result.output).toContain("clean");
+    expect(result.ok).toBe(true);
+  });
+
+  it("and that exemption does not cover the word anywhere else on the line", () => {
+    // The control on the exemption. A line that has the key *and* a sentence is still a violation.
+    const result = scan('record = {"artifact": "your artifact is ready"}\n', "py");
+    expect(result.ok).toBe(false);
+  });
+
+  it("skips a pytest file, the way it skips a .test.ts", () => {
+    const dir = mkdtempSync(join(tmpdir(), "41p-forbidden-"));
+    writeFileSync(join(dir, "test_thing.py"), 'MESSAGE = "your artifact is ready"\n');
+    const output = execFileSync("node", [SCRIPT, dir], { encoding: "utf-8" });
+    expect(output).toContain("clean");
+  });
+
+  it("names the Python root in its own default list", () => {
+    // Proves the root is spelled the way the tree spells it. A typo would scan nothing and pass.
+    const output = execFileSync("node", [SCRIPT], { encoding: "utf-8" });
+    expect(output).toContain("sdks/python/fortyone");
   });
 });

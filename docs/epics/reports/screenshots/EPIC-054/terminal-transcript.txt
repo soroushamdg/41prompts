@@ -1,0 +1,31 @@
+$ 41p pull --lang python   # exit 0
+Pulled 1 prompt from http://localhost:3117 (live).
+  prompts.py
+  41p.lock.json
+  41p/builds/ — 1 build for createClient({ bundled })
+
+Install the runtime this file calls: pip install fortyone-prompts
+
+$ python3 drive.py   # exit 0
+MODULE /Users/soro/Documents/Development/41prompts/41prompts-v2/sdks/python/fortyone/__init__.py
+RESULT {"status": "ok", "version": 1, "source": "memory", "build_hash": "9de4c39bbaae2281008bc566f5a6ce3413918eaecd86d7586082deeb057f6452", "model": "claude-sonnet-5", "text": "You triage inbound refund requests for Northwind.\n\nAddress the writer as Ada and reply in at most 80 words.\n\n"}
+
+$ python3 drive.py   # exit 0
+STATUS unavailable
+nothing is cached for this prompt yet; a refresh is running in the background (pr_1dff1829) — pass on_warning to handle this yourself; further 'not_found' warnings are not repeated
+
+$ python3 drive.py   # exit 0
+STATUS ok
+TEXT You triage inbound refund requests for Northwind. |  | Address the writer as Ada and reply in at most 80 words. |  | 
+
+$ mypy --strict prompts.py   # exit 0
+Success: no issues found in 1 source file
+
+$ python3 drive.py   # exit 0
+RESULT {"status": "ok", "source": "disk", "version": 1}
+
+$ python3 drive.py   # exit 0
+RESULT {"status": "ok", "source": "bundled", "count": 1}
+
+$ python3 drive.py   # exit 0
+RESULT {"version": 2, "has_rule": true, "first": 2}

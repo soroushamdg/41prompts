@@ -60,7 +60,11 @@ test.describe("Connect", () => {
     await expect(page.getByText("npm install @41prompts/sdk")).toBeVisible();
     await expect(page.getByText("FORTYONE_API_KEY=41p_live_…")).toBeVisible();
     await expect(page.getByText(/createClient\(\{ apiKey: process\.env\.FORTYONE_API_KEY \}\)/).first()).toBeVisible();
-    await expect(page.getByText("await prompts.refresh();")).toBeVisible();
+    // The prompt id is named, and that is the assertion. EPIC-054's drive found the bare
+    // `refresh()` this step used to print fetches nothing on a client that has just been built,
+    // so an application following the instruction got the cold start the step exists to avoid.
+    await expect(page.getByText('await prompts.refresh("pr_1a2b3c4d");')).toBeVisible();
+    await expect(page.getByText("await prompts.refresh();")).toHaveCount(0);
 
     // TypeScript only (the roadmap's Goal line). No Python, no Swift, and no language tabs.
     await expect(page.getByText("pip install", { exact: false })).toHaveCount(0);

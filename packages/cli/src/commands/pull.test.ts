@@ -119,7 +119,7 @@ describe("41p pull", () => {
   });
 
   describe("--lang python", () => {
-    it("writes prompts.py and says what the Python runtime does today", async () => {
+    it("writes prompts.py and names the runtime it calls", async () => {
       const env = testEnv(world);
       const result = await pull(env, { lang: "python" });
 
@@ -127,6 +127,18 @@ describe("41p pull", () => {
       expect(env.files.has("prompts.ts")).toBe(false);
       expect(env.files.get("prompts.py")).toContain("def refund_classifier(*, customer_name: str, email: str, locale: Optional[str] = None)");
       expect((result.out ?? []).join("\n")).toContain(PYTHON_RUNTIME_NOTE);
+    });
+
+    it("and no longer says the runtime is unavailable, because it is not", async () => {
+      // EPIC-054 ruling 10. The sentence EPIC-053 printed was true when it was written and false on
+      // the day `sdks/python` shipped; this is the assertion that it went away rather than being
+      // left to rot next to a working package.
+      const env = testEnv(world);
+      const result = await pull(env, { lang: "python" });
+      const said = (result.out ?? []).join("\n");
+      expect(said).not.toContain("returns unavailable");
+      expect(said).not.toContain("EPIC-054");
+      expect(said).toContain("pip install fortyone-prompts");
     });
 
     it("— and the TypeScript pull does not say it", async () => {

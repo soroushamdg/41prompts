@@ -233,3 +233,52 @@ describe("one in-flight request per prompt", () => {
     expect(sdk.resolve(PROMPT_ID, { customer_name: "Ada" }).status).toBe("ok");
   });
 });
+
+/**
+ * `refresh()` with no argument, and the documentation that was wrong about it for two epics
+ * (EPIC-054's drive).
+ *
+ * The behaviour is right and cannot be otherwise: this package is never told which prompts an
+ * application will use, so "refresh everything" can only mean everything it has been asked for. On
+ * a client that has just been constructed that is nothing.
+ *
+ * What was wrong was every place that showed it. `README.md`, `index.ts`'s own example and the
+ * Connect page's fourth step all printed `await prompts.refresh()` as the way to be warm before the
+ * first request, and it fetched nothing — so an application that followed the instruction got
+ * exactly the cold start the instruction exists to avoid, and the symptom is one `unavailable` at
+ * boot that never happens again once the process is warm. **Nothing in this suite crossed it**: the
+ * refresh tests all resolve first, which is what fills `wanted`.
+ */
+describe("refresh with no argument", () => {
+  it("fetches nothing on a client that has not been asked for a prompt", async () => {
+    const live = server();
+    const sdk = client({ apiKey: "41p_test_x", cacheDir: null, fetch: live.fetch, onWarning: () => undefined });
+
+    await sdk.refresh();
+
+    expect(live.calls).toEqual([]);
+    expect(sdk.resolve(PROMPT_ID, { customer_name: "Ada" }).status).toBe("unavailable");
+  });
+
+  it("but naming the prompt fetches it, which is what the documentation now says", async () => {
+    const live = server();
+    const sdk = client({ apiKey: "41p_test_x", cacheDir: null, fetch: live.fetch, onWarning: () => undefined });
+
+    await sdk.refresh(PROMPT_ID);
+
+    expect(live.calls.length).toBeGreaterThan(0);
+    expect(sdk.resolve(PROMPT_ID, { customer_name: "Ada", tone: "warm" }).status).toBe("ok");
+  });
+
+  it("and after a resolve it refreshes what was asked for", async () => {
+    const live = server();
+    const sdk = client({ apiKey: "41p_test_x", cacheDir: null, fetch: live.fetch, onWarning: () => undefined });
+
+    sdk.resolve(PROMPT_ID);
+    const before = live.calls.length;
+    await sdk.refresh();
+
+    expect(live.calls.length).toBeGreaterThanOrEqual(before);
+    expect(sdk.resolve(PROMPT_ID, { customer_name: "Ada", tone: "warm" }).status).toBe("ok");
+  });
+});

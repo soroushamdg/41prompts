@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# EPIC-007 decision 5: proves the four public packages (packages/core, packages/cli,
-# packages/sdk-ts, sdks/python) can be extracted with their real git history and installed and
+# EPIC-007 decision 5: proves the public packages (packages/core, packages/cli, packages/sdk-ts,
+# sdks/python and its `41prompts` alias distribution) can be extracted with their real git history and installed and
 # tested completely standalone -- the actual split (EPIC-056) is a separate epic; this only
 # proves it would work. Everything happens inside a scratch clone; the real repo, its remote, and
 # its working tree are never touched, and nothing here is ever pushed anywhere.
@@ -24,6 +24,7 @@ uvx git-filter-repo --force \
   --path packages/cli \
   --path packages/sdk-ts \
   --path sdks/python \
+  --path sdks/python-alias \
   --path LICENSES \
   --path REUSE.toml \
   --path package.json \

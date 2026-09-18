@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-17, after EPIC-053**, for whoever picks this up — person or
+Where things stand as of **2026-09-17, after EPIC-054**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,7 +16,7 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053 is done. EPIC-054 is next.**
+**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053 and EPIC-054 are done. EPIC-057 is next.**
 
 `docs/decisions/GATE-5.md` records Soroush's ruling of 2026-09-17: the **technical** reading. The row
 is titled *Demand check* and its criteria are two demand numbers the same document marks *not
@@ -33,15 +33,45 @@ proceeds without the gate's own word, exactly as GATE 3's did, and `GATE-5.md` s
 `decompile`, plus the unscoped `41p` wrapper. A developer can hold their prompt the way they hold the
 rest of their code.
 
-**EPIC-054 is next and needs nothing from Soroush until its PyPI step.** The codegen EPIC-053 built
-already writes `prompts.py` and it already passes `mypy --strict`; `sdks/python/fortyone/__init__.py`
-is still EPIC-000's stub. So EPIC-054 is the runtime under a file that already exists and is already
-type-checked. Its PyPI publish is EPIC-006, which is `deferred` — report it, do not fake it.
+**EPIC-054 merged 2026-09-17.** `fortyone` is real: `resolve()` answers from memory, disk or what
+the deploy bundled, never waits for the network, never raises, and picks up a new published version
+in about thirty seconds. Zero dependencies. A real Python process resolving a prompt published two
+minutes earlier from the built app is the drive, 17 of 17. **Its PyPI publish was skipped, not
+faked** — EPIC-006 is `deferred` and EPIC-056 is not reachable; report §8.
+
+**What EPIC-054 settled**, so it is not rediscovered:
+
+1. **`refresh()` with no argument fetches nothing on a fresh client**, in both SDKs, and four
+   documents said otherwise — the npm README, the package's own example, the Connect page's fourth
+   step and the new Python README. Fixed; both SDKs now have a test. The behaviour is right and
+   cannot change: neither package is ever told which prompts an application will use.
+2. **`sdks/python/fortyone/_canonical.py` is a second implementation of core's encoding**, and it
+   has to be. It is pinned by `tests/canonical_golden.json` (331 cases from Node) *and* by
+   re-deriving `packages/core`'s own frozen v1 fixture. **Do not "simplify" it to `json.dumps`** —
+   `json.dumps(1.0)` is `1.0` and `JSON.stringify(1.0)` is `1`, and the symptom is `hash_mismatch`
+   on every build, which reads as tampering.
+3. **The disk cache is one format shared with `@41prompts/sdk`**, same directory. Each language's
+   suite reads a record the other wrote. `scripts/write-cross-language-cache.mts` regenerates both.
+4. **`urllib` forwards `Authorization` across a cross-origin redirect and `fetch` does not.** Fixed
+   in `_network.py`; `/v1/marker` redirects to a CDN, so without it a customer's key reaches
+   somebody else's access log. **An input for EPIC-057.**
+5. **`py.typed`, no `.pyi`** (ruling 1), and `mypy --strict` over the package and its suite.
 
 **EPIC-056 is not reachable.** `GATE-5.md` has the table: it needs `github.com/41prompts/41prompts`
 (EPIC-006, deferred), npm and PyPI trusted publishing (same), and an IP assignment to a legal entity
 that does not yet exist (EPIC-071, deferred). A run that reaches it writes a `BLOCKER` rather than a
-half version. **EPIC-057** is buildable except its external review hour, which needs a person.
+half version. **EPIC-057** is buildable except its external review hour, which needs a person — and
+EPIC-054 hands it two findings already written down (point 4 above, and a 16 MiB cap on a response
+body that `@41prompts/sdk` does not have).
+
+**One thing about this machine, measured rather than guessed (2026-09-17).** Three `pnpm test` runs
+and two `gates.mjs ci` runs failed on **timeouts** — never assertions — in five different sets of
+tests, most of them in packages the epic did not touch. `sysctl hw.ncpu` is 8 and `uptime` reported
+load averages of 67 to 174 during the session. The largest single CPU consumer was `oahd-helper` at
+88%: **`/usr/local/bin/node` is a Mach-O x86_64 binary on an arm64 Mac**, so every Node process runs
+under Rosetta 2 translation. `docs/PROCESS.md` already names this as "the cheapest single change
+available to this number" and left it unmeasured; it is now measured, and it is the difference
+between a gate that is green and one that is red for reasons unrelated to the change under test.
 
 **What EPIC-053 settled**, so it is not rediscovered:
 
@@ -102,7 +132,7 @@ only its own epic's status cell.
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
 | **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
-| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 next · 057 buildable but for its review hour · **056 not reachable** — see "Start here". |
+| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 next, buildable but for its review hour · **056 not reachable** — see "Start here". |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.

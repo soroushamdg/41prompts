@@ -75,6 +75,12 @@ path = [
   "sdks/python/README.md",
   "sdks/python/pyproject.toml",
   "sdks/python/uv.lock",
+  "sdks/python/fortyone/py.typed",
+  "sdks/python/tests/canonical_golden.json",
+  "sdks/python/tests/cross-language/**",
+  "sdks/python-alias/NOTICE",
+  "sdks/python-alias/README.md",
+  "sdks/python-alias/pyproject.toml",
 ]
 SPDX-FileCopyrightText = "2026 <legal entity>"
 SPDX-License-Identifier = "Apache-2.0"

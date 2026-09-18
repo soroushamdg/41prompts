@@ -155,8 +155,13 @@ export interface Client {
    * Fetch now, and resolve when it is done.
    *
    * The one place waiting is allowed, because the caller asked. An application that wants to be warm
-   * before it serves its first request awaits this once at start-up. With no argument it refreshes
-   * every prompt the client has been asked for.
+   * before it serves its first request awaits this once at start-up, **naming the prompt**.
+   *
+   * With no argument it refreshes every prompt the client has been asked for — which on a client
+   * that has just been constructed is **none of them**, so a bare `refresh()` at start-up fetches
+   * nothing. It cannot do otherwise: this package is never told which prompts an application will
+   * use. EPIC-054's drive found the README, this package's own example and the Connect page all
+   * printing the bare call as the way to be warm; the call is right and the instruction was wrong.
    */
   refresh(promptId?: string): Promise<void>;
   /** Stop the refresh timer. A client that is not closed keeps refreshing, but never holds the process open. */
