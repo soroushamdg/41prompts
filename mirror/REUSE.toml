@@ -17,6 +17,7 @@ SPDX-PackageDownloadLocation = "https://github.com/41prompts/41prompts"
 
 [[annotations]]
 path = [
+  ".dependency-cruiser.cjs",
   ".editorconfig",
   ".gitattributes",
   ".gitignore",
@@ -26,9 +27,11 @@ path = [
   "LICENSE",
   "NOTICE",
   "package.json",
+  "eslint.config.js",
   "pnpm-lock.yaml",
   "tsconfig.base.json",
   "tsconfig.depcruise.json",
+  "turbo.json",
   "packages/**",
   "sdks/**",
 ]
