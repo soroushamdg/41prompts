@@ -102,21 +102,24 @@ environment, its own throwaway Postgres, every gate both workflows run in the or
 
 ### 3.1 The CI-parity run — green, on the commit, all sixteen steps
 
-`node scripts/gate-run.mjs` on `8a0ad293` (the drive commit; the report and session log follow it).
+Run **twice**, because `PROCESS.md` says the gate's answer is about a specific commit and no other.
+The first was on `8a0ad293` (the drive); the report, the session log and the ruling-7 correction
+landed after it, so it was re-run on `7766ae22` and that is the one this epic merges on. Both green,
+16/16, 10m46s and 10m49s. The table below is the second run.
 
 ```
 CI mode — every gate CI runs, every result
 --------------------------------------------------------------------
   checkout
-    git clone + checkout 8a0ad293       PASS        0m02s
+    git clone + checkout 7766ae22       PASS        0m02s
   ci.yml
     pnpm install --frozen-lockfile      PASS        0m07s
     pnpm lint                           PASS        0m25s
-    pnpm typecheck                      PASS        1m01s
+    pnpm typecheck                      PASS        1m02s
     pnpm db:migrate                     PASS        0m02s
-    pnpm test                           PASS        0m54s
+    pnpm test                           PASS        0m57s
     playwright install chromium         PASS        0m01s
-    pnpm e2e                            PASS        6m25s    4 test(s) skipped on darwin
+    pnpm e2e                            PASS        6m27s    4 test(s) skipped on darwin
     uv run pytest -q (sdks/python)      PASS        0m27s
   compliance.yml
     reuse lint                          PASS        0m04s
@@ -127,7 +130,7 @@ CI mode — every gate CI runs, every result
     license-gate --sbom                 PASS        0m02s
     pnpm mirror-dry-run                 PASS        1m06s
 --------------------------------------------------------------------
-  16 step(s), all passed, 10m46s wall
+  16 step(s), all passed, 10m49s wall
 ```
 
 **Two of those are worth naming rather than scanning past.**
@@ -139,8 +142,8 @@ repo-level tests — `sdk-threat-model.test.ts` reading `docs/`, and `artifact-s
 importing `packages/db` — are in `apps/web`, which the mirror does not contain, and the dry run
 confirms the filtered tree still installs and passes 289 Python tests standalone.
 
-`pnpm e2e` took **6m25s** against the 2m40s `PROCESS.md` records, and the run is longer overall
-(10m46s against the measured 5m39s–6m31s). The added suites account for it; nothing was investigated
+`pnpm e2e` took **6m27s** against the 2m40s `PROCESS.md` records — the suite is 264 tests now, not
+178 — and the run is longer overall (10m49s against the measured 5m39s–6m31s). The added suites account for it; nothing was investigated
 because nothing failed, and it is recorded here so the next person reading that table is not
 surprised.
 
