@@ -225,10 +225,12 @@ def _failure(status: int, what: str, prompt_id: str) -> SdkWarning:
     if status == 404:
         return SdkWarning("not_found", "nothing is published for this prompt", prompt_id)
     if status == 429:
-        # The code stays ``network``. ``WarningCode`` is frozen for the TypeScript SDK by ADR-006
-        # section 1, and the two surfaces are held in parity by ``tests/test_divergence.py`` — so a
-        # code that exists in one language and not the other would be a divergence bought for a
-        # branch a caller can already make on the message.
+        # The code stays ``network``, and **not because a new one is forbidden** — ADR-006 section 7
+        # says adding a ``WarningCode`` is explicitly minor and the right trade. It is because
+        # ``@41prompts/sdk`` ships no 429 handling (EPIC-057 ruling 11) and
+        # ``tests/test_divergence.py`` holds both unions identical, so a ``rate_limited`` code would
+        # be declared in the TypeScript surface and never raised there. A code nobody can reach is
+        # worse than a message a caller has to read. It arrives with the behaviour, in row 057a.
         return SdkWarning(
             "network",
             f"the {what} request was rate limited (429); the background refresh will wait",

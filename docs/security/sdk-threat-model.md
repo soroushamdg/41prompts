@@ -253,6 +253,14 @@ finding 3. Its behaviour under a limit is: warn on the `network` code with the s
 keep serving from memory, ask again next interval. **No customer loses a prompt**; the cost is
 requests our own endpoint refuses cheaply.
 
+**There is also no `rate_limited` warning code, and that is not because one is forbidden.** ADR-006
+§7 says adding a `WarningCode` is *"explicitly minor … the right trade against never being able to
+name a new failure"*, and it costs no bundle bytes because the type is erased. It is absent because
+`@41prompts/sdk` has no 429 behaviour to raise it and `test_divergence.py` holds both languages'
+unions identical — so the code would be declared in the surface most customers use and never fire
+there. It arrives with the behaviour, in row 057a. Until then a caller can read the fact in the
+message and cannot branch on it.
+
 **Residual.**
 
 1. **The window store is in memory, per process.** One web container today, so it *is* the global

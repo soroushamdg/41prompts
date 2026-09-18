@@ -178,20 +178,29 @@ Same constant, same refusal — the body is refused rather than truncated, becau
 fails its content address and would report as `hash_mismatch`, which means *somebody served you the
 wrong document*. EPIC-054 made that exact argument about a different failure and it holds here.
 
-### 7. A `429` backs the refresh off, and **no new `WarningCode` is added**
+### 7. A `429` backs the refresh off, and **no `rate_limited` code is added — for a reason that is not the freeze**
 
-A rate limit nothing respects is a rate limit that makes the problem worse: every limited client
-keeps its 30-second timer, so the endpoint pays for the refusal at the same rate it paid for the
-answer. Both SDKs now skip refreshing until `Retry-After` has elapsed.
+A rate limit nothing respects is a rate limit that makes the problem worse: a limited client keeps
+its 30-second timer, so the endpoint pays for the refusal at the same rate it paid for the answer.
+`fortyone` now skips refreshing until `Retry-After` has elapsed.
 
-**The warning stays `network`.** `WarningCode` is frozen by ADR-006 §1 and `frozen.test.ts` fails when
-a value appears. Widening an output union is a breaking change for any customer with an exhaustive
-`switch`, and the existing fallback already produces *"the Live marker request answered 429"*, which
-names the status in the message.
+**The warning stays `network`, and the first draft of this ruling gave the wrong reason.** It said
+`WarningCode` is frozen by ADR-006 §1 so a new value would be a breaking change. **ADR-006 §7 says
+the opposite, in as many words:** *"Adding a `WarningCode` is explicitly minor — a caller who
+switches exhaustively on it will get a type error, and that is the right trade against never being
+able to name a new failure."* So a new code is permitted and, by the ADR's own preference,
+encouraged. It also costs **zero bundle bytes**: `WarningCode` is a type and is erased.
 
-**What that costs, stated rather than glossed:** a customer can read it but cannot branch on it.
-That is a real narrowing and it is finding 6's residual, with a row in §8 for whoever opens ADR-006
-next — which EPIC-056 will, to publish.
+**The real reason is ruling 11.** `@41prompts/sdk` ships no `429` handling at all, and
+`test_divergence.py` holds the two languages' unions identical — so adding `rate_limited` now would
+declare a code in the TypeScript surface that nothing there can ever raise, in the SDK most customers
+use. A declared-and-unreachable warning code is its own dishonesty: somebody would write a `case` for
+it in Node and wait for ever.
+
+So the code is added **with** the behaviour, in row 057a, and until then the existing fallback names
+the fact in the message — *"the Live marker request was rate limited (429); the background refresh
+will wait"*. What that costs, stated rather than glossed: a caller can read it and cannot branch on
+it.
 
 ### 8. Dependency confusion is modelled and not mitigated, because the mitigation is an account
 
