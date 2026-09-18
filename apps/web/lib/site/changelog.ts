@@ -55,6 +55,13 @@ export const NOT_USER_VISIBLE: Readonly<Record<string, string>> = {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    id: "stage-6",
+    stage: "Stage 6",
+    heading: "The site says what the product does, and a test keeps it honest",
+    body: "Features, Delivery, Docs, Security, Changelog and Guides, plus the third-party notices. Every claim on them is held as data naming the work that shipped it, and the build fails if a page says something this repository cannot back.",
+    epics: ["EPIC-072"]
+  },
+  {
     id: "stage-5b",
     stage: "Stage 5b",
     heading: "A command line, Python, and the open repository",

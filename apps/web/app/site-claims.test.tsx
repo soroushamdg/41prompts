@@ -43,6 +43,11 @@ function textOf(element: ReactElement): string {
   return renderToStaticMarkup(element)
     .replace(/<script[\s\S]*?<\/script>/g, " ")
     .replace(/<pre[\s\S]*?<\/pre>/g, " ")
+    // The notices page's package list is 423 generated identifiers, not prose. EPIC-072's drive
+    // failed on it: `@aws-sdk/credential-provider-sso` matched the SSO pattern, and read as a claim
+    // that this product does single sign-on. It is a dependency's name. The page's own sentences —
+    // its lede and its closing paragraph — are outside this list and stay under every check.
+    .replace(/<ul class="legal-list">[\s\S]*?<\/ul>/g, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/&#x27;/g, "'")
     .replace(/&#39;/g, "'")
@@ -126,7 +131,11 @@ const UNBACKED: readonly (readonly [string, RegExp])[] = [
   ["invented awards", /#1\b|award|best[- ]in[- ]class|leading/i],
   ["a compliance certification", /\bSOC\s*2\b|\bISO\s*27001\b|\bHIPAA\b|\bFedRAMP\b/i],
   ["a price", /\$\d/],
-  ["hiring", /\bwe(?:'re| are) hiring\b|\bopen (?:roles|positions)\b/i]
+  ["hiring", /\bwe(?:'re| are) hiring\b|\bopen (?:roles|positions)\b/i],
+  // These two were in `claims.test.ts`'s registry denylist and not here, so the pages were checked
+  // more loosely than the registry they are built from. EPIC-072's drive found the gap.
+  ["single sign-on", /\bSSO\b|\bSAML\b|\bSCIM\b/i],
+  ["roles or an audit trail", /\brole-based\b|\baudit (?:trail|log)\b/i]
 ];
 
 describe("no page claims anything we cannot back", () => {
@@ -141,9 +150,26 @@ describe("no page claims anything we cannot back", () => {
     ["SOC 2 Type I underway", /\bSOC\s*2\b/i],
     ["$29 per seat", /\$\d/],
     ["10,000+ prompts compiled", CUSTOMER_COUNT],
-    ["We're hiring", /\bwe(?:'re| are) hiring\b/i]
+    ["We're hiring", /\bwe(?:'re| are) hiring\b/i],
+    ["SSO / SAML", /\bSSO\b|\bSAML\b/i],
+    ["Roles and audit log", /\baudit (?:trail|log)\b/i]
   ])("would still catch %s", (sentence, pattern) => {
     expect(sentence).toMatch(pattern);
+  });
+
+  /**
+   * The control on the one exclusion above.
+   *
+   * Stripping the generated package list is how a pattern stops firing by accident, so this proves
+   * the notices page's **own prose** is still being read: its closing paragraph is in the text these
+   * patterns scan, and a sentence removed from that paragraph would be noticed.
+   */
+  it("still reads the notices page's own sentences", () => {
+    const text = RENDERED.get("/legal/third-party-notices") ?? "";
+    expect(text).toContain("have no third-party dependencies of their own");
+    expect(text).toContain("third-party packages");
+    // And the generated list really is excluded, or the exclusion is doing nothing.
+    expect(text).not.toContain("@aws-sdk/credential-provider-sso");
   });
 });
 

@@ -71,7 +71,7 @@ describe("the entries are well formed", () => {
   });
 
   it("puts the newest stage first", () => {
-    expect(CHANGELOG[0]?.id).toBe("stage-5b");
+    expect(CHANGELOG[0]?.id).toBe("stage-6");
     expect(CHANGELOG.at(-1)?.id).toBe("stage-0");
   });
 

@@ -24,7 +24,12 @@ export default function FeaturesPage() {
       current="features"
       eyebrow="Features"
       heading="Everything in the prompt layer, in one place."
-      lede="Twelve things this does today. Every one of them is built, and every sentence below names the part of the codebase that does it."
+      // **No count in this sentence, deliberately.** It said "Twelve things this does today" and the
+      // page grew to twenty-one in the same session — a claim that went stale between one commit and
+      // the next. `site-claims.test.tsx` requires every *digit* on a page to be explained, and a
+      // spelled-out count walks straight past that: "Twelve" is a word. The cheapest guard is not to
+      // carry a number that has to be maintained alongside the thing it counts.
+      lede="Everything below is built. Every sentence names the part of the codebase that does it, and a test in this repository fails if one of them stops being true."
     >
       <div className="site-wrap">
         <div className="site-grid site-grid-3">

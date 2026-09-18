@@ -235,14 +235,24 @@
 .site-foot {
   padding: var(--spacing-s7) 0 var(--spacing-s6);
 }
+/* The logo column plus one column per footer group.
+   **It was `2fr 1fr 1fr 1fr` — a fourth group wrapped underneath the logo**, which EPIC-072's drive
+   screenshot showed and no assertion could: every link was present, answered 200 and was clickable,
+   and the grid was still visibly wrong. Sized off the group count instead, so the next group does
+   not repeat this. */
 .site-foot-grid {
   display: grid;
   gap: var(--spacing-s5);
   grid-template-columns: repeat(2, 1fr);
 }
-@media (min-width: 860px) {
+@media (min-width: 720px) {
   .site-foot-grid {
-    grid-template-columns: 2fr 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (min-width: 940px) {
+  .site-foot-grid {
+    grid-template-columns: 1.6fr repeat(4, 1fr);
   }
 }
 .site-foot-blurb {
