@@ -1,0 +1,45 @@
+version = 1
+SPDX-PackageName = "41prompts"
+SPDX-PackageSupplier = "41Prompts Inc."
+SPDX-PackageDownloadLocation = "https://github.com/41prompts/41prompts"
+
+# The PUBLIC repository's REUSE configuration.
+#
+# The monorepo's own `REUSE.toml` is not this file and must never be filtered into the public tree:
+# it declares `LicenseRef-41Prompts-Proprietary` over `apps/**`, `packages/db/**`, `docs/**`,
+# `infra/**` and `scripts/**`, none of which exist here. Shipping it would put a proprietary
+# licence declaration — and the licence text it names — into a repository where every single file
+# is Apache-2.0, which is the opposite of the clarity the split exists to create.
+#
+# Everything in this repository is Apache-2.0. Source files carry their own headers; what is listed
+# below is the set that cannot (JSON has no comments) or must not (a licence document shipped
+# verbatim) carry one.
+
+[[annotations]]
+path = [
+  ".editorconfig",
+  ".gitattributes",
+  ".gitignore",
+  ".nvmrc",
+  ".prettierignore",
+  ".prettierrc.json",
+  "LICENSE",
+  "NOTICE",
+  "package.json",
+  "pnpm-lock.yaml",
+  "tsconfig.base.json",
+  "tsconfig.depcruise.json",
+  "packages/**",
+  "sdks/**",
+]
+SPDX-FileCopyrightText = "2026 41Prompts Inc."
+SPDX-License-Identifier = "Apache-2.0"
+
+# The Developer Certificate of Origin 1.1, reproduced verbatim. A licence document published by
+# The Linux Foundation, not code authored here. It carries its own permission notice — copy and
+# distribute verbatim, changing it is not allowed — so it cannot take an SPDX header without
+# changing the text that forbids changing it. 41Prompts Inc. claims no copyright in it.
+[[annotations]]
+path = ["DCO"]
+SPDX-FileCopyrightText = "2004, 2006 The Linux Foundation and its contributors"
+SPDX-License-Identifier = "LicenseRef-DCO-1.1"

@@ -45,8 +45,8 @@ uvx git-filter-repo --force \
   --path packages/sdk-ts \
   --path sdks/python \
   --path sdks/python-alias \
-  --path LICENSES \
-  --path REUSE.toml \
+  --path LICENSES/Apache-2.0.txt \
+  --path LICENSES/LicenseRef-DCO-1.1.txt \
   --path DCO \
   --path SECURITY.md \
   --path TRADEMARKS.md \
@@ -66,13 +66,14 @@ uvx git-filter-repo --force \
   --path-rename mirror/:
 
 echo "[mirror-dry-run] resulting top-level tree:"
-find . -maxdepth 2 -not -path "./.git*" | sort
+find . -maxdepth 2 -not -path "./.git" -not -path "./.git/*" | sort
 
 echo "[mirror-dry-run] confirming no proprietary path survived the filter"
 for forbidden in packages/db packages/ui packages/logger apps infra scripts docs mirror \
                  .github/workflows/deploy.yml .github/workflows/build-images.yml \
                  .github/workflows/rollback.yml .github/workflows/ci.yml \
-                 .github/workflows/compliance.yml CLAUDE.md; do
+                 .github/workflows/compliance.yml CLAUDE.md \
+                 LICENSES/LicenseRef-41Prompts-Proprietary.txt; do
   if [ -e "$forbidden" ]; then
     echo "[mirror-dry-run] FAIL: $forbidden is still present after filtering" >&2
     exit 1
@@ -111,6 +112,9 @@ pnpm install --no-frozen-lockfile
 
 echo "[mirror-dry-run] pnpm test (packages/core, packages/cli, packages/cli-unscoped, packages/sdk-ts)"
 pnpm test
+
+echo "[mirror-dry-run] pnpm compliance (the public tree's own REUSE headers and boundary rules)"
+pnpm compliance
 
 echo "[mirror-dry-run] uv run pytest (sdks/python)"
 (cd sdks/python && uv run pytest -q)
