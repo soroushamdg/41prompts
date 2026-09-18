@@ -10,7 +10,8 @@
     "start": "next start",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lighthouse": "node ../../scripts/lighthouse-site.mjs"
   },
   "dependencies": {
     "@41prompts/core": "workspace:*",
@@ -31,12 +32,14 @@
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
+    "@41prompts/cli": "workspace:*",
     "@41prompts/sdk": "workspace:*",
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "lighthouse": "^13.5.0",
     "vitest": "^3.2.7"
   }
 }

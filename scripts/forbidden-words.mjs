@@ -11,7 +11,7 @@
 // AND every match on that line to be the one word — because the point of this check is that
 // "blok" and "block" one letter apart was a naming defect (ADR-003), and an exemption broad
 // enough to hide a real `block` would give that back.
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { extname, isAbsolute, join } from "node:path";
 
 const FORBIDDEN = ["block", "assertion", "label", "pointer", "artifact", "promote", "enum", "sha", "reconcile", "override", "drifted"];
@@ -92,6 +92,22 @@ const LABEL_CONTEXT_RE = /<label\b|<\/label>|aria-label(?:ledby)?["']?\s*[:=]|ht
 const BLOCK_CONTEXT_RE = /scrollIntoView\s*\(/;
 const RECORD_KEY_RE = /(["'])artifact\1\s*[:\])]/g;
 
+// `path`   — EPIC-072: a string that is a **repo-relative path to something that exists on disk**.
+//            `packages/core/src/artifact/` is a real directory, frozen by ADR-005 and named in
+//            `CLAUDE.md`'s own never-touch list, so any file that has to cite it — a claims
+//            registry pointing a reader at the evidence, a comment, a test fixture list — is
+//            naming a file rather than using the word.
+//
+//            **The exemption is the filesystem, not a pattern**, and that is deliberate. A rule
+//            written as a regular expression over "things that look like paths" is satisfiable by
+//            prose: "the artifact/schema is frozen" reads as a path to anything matching
+//            `\w+/\w+`. A rule that requires the string to resolve to a file or directory in this
+//            repository cannot be satisfied by a sentence, because a sentence is not a file.
+//
+//            Per occurrence, like the record key above, so `"the artifact at packages/core/src/
+//            artifact/schema.ts"` still fails on the first one.
+const PATH_LIKE_RE = /[A-Za-z0-9_.@-]+(?:\/[A-Za-z0-9_.@*-]+)+/g;
+
 /**
  * The spans of `line` that a person could read: quoted strings, and JSX text between `>` and `<`.
  *
@@ -135,6 +151,22 @@ function recordKeySpans(line) {
   for (const match of line.matchAll(RECORD_KEY_RE)) {
     const at = match.index + 1;
     spans.push([at, at + "artifact".length]);
+  }
+  return spans;
+}
+
+/**
+ * The spans of `line` that are paths to files or directories that exist in this repository.
+ *
+ * See `PATH_LIKE_RE`'s comment: the candidate is found by shape and then **confirmed against the
+ * filesystem**, which is what makes this impossible to satisfy with prose.
+ */
+function realPathSpans(line, repoRoot) {
+  const spans = [];
+  for (const match of line.matchAll(PATH_LIKE_RE)) {
+    const candidate = match[0];
+    if (!existsSync(join(repoRoot, candidate))) continue;
+    spans.push([match.index, match.index + candidate.length]);
   }
   return spans;
 }
@@ -252,10 +284,12 @@ for (const root of ROOTS) {
       // `matchAll` rather than `match`, because the UI-only rule needs each match's **position** and
       // not only its text: the same word is a violation inside a string and not as an identifier.
       const keys = recordKeySpans(line);
+      const paths = realPathSpans(line, repoRoot);
       const found = [...line.matchAll(WORD_RE)].filter(
         (match) =>
           (!UI_ONLY.has(match[1].toLowerCase()) || isReadable(line, match.index)) &&
-          !keys.some(([from, to]) => match.index >= from && match.index < to),
+          !keys.some(([from, to]) => match.index >= from && match.index < to) &&
+          !paths.some(([from, to]) => match.index >= from && match.index < to),
       );
       if (found.length === 0) return;
       const matches = found.map((match) => match[0]);

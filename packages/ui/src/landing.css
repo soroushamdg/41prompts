@@ -654,3 +654,281 @@ a.logo {
   flex-shrink: 0;
   gap: var(--spacing-s3);
 }
+
+/* ─────────────────────── marketing pages (EPIC-072) ───────────────────────
+   The layout primitives `41prompts-full-mockup.html` draws for Features, Delivery, Docs, Security,
+   Changelog and Guides, ported to the token set. Copy is not ported: `docs/design/README.md` makes
+   the prototypes the spec for the interface, and EPIC-072 extends that — a prototype is not a source
+   of facts about the company. The sentences come from `apps/web/lib/site/claims.ts`.
+
+   Data surfaces are hairlines with no shadow and no radius; interactive surfaces get the 2px ink
+   border and the hard offset. That split is EPIC-003's and is the reason `.site-card` has no shadow
+   while `.ask-chip` does. */
+
+.site-sect {
+  padding: var(--spacing-s7) 0;
+}
+@media (min-width: 860px) {
+  .site-sect {
+    padding: var(--spacing-s8) 0;
+  }
+}
+.site-page-head h1 {
+  margin: var(--spacing-s4) 0 0;
+  max-width: 20ch;
+  font-size: clamp(26px, 5.2vw, 42px);
+  line-height: 1.08;
+}
+.site-lede {
+  margin-top: var(--spacing-s5);
+  max-width: 62ch;
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+/* The mockup's `.strip` of feature items: a hairline grid, one column on a phone. */
+.site-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  margin-top: var(--spacing-s6);
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 720px) {
+  .site-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1040px) {
+  .site-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.site-grid-item {
+  padding: var(--spacing-s5);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 720px) {
+  .site-grid-item {
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .site-grid-item:nth-child(2n) {
+    border-right: 0;
+  }
+}
+@media (min-width: 1040px) {
+  .site-grid-3 .site-grid-item {
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .site-grid-3 .site-grid-item:nth-child(2n) {
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .site-grid-3 .site-grid-item:nth-child(3n) {
+    border-right: 0;
+  }
+}
+.site-grid-item .eyebrow {
+  font-size: 11px;
+}
+/* `h2`, never `h3` under an `h1`: axe's heading-order rule is right that a jump is a lie about the
+   structure, and `.strip-step h2` above made the same choice for the home page. */
+.site-grid-item h2 {
+  margin: var(--spacing-s2) 0;
+  font-size: 17px;
+}
+.site-grid-item p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+/* A data surface: hairline, no radius, no shadow. */
+.site-card {
+  border: var(--border-hairline) solid var(--color-line);
+  background: var(--color-surface);
+}
+.site-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s3);
+  padding: var(--spacing-s3) var(--spacing-s4);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  font-size: 13px;
+  color: var(--color-ink-2);
+}
+.site-card-body {
+  padding: var(--spacing-s4);
+}
+
+.site-two {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-s6);
+  align-items: start;
+}
+@media (min-width: 940px) {
+  .site-two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The mockup's `.bul`: a marker in a square, a bold line, an explanation under it. */
+.site-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.site-step {
+  display: flex;
+  gap: var(--spacing-s3);
+  padding: var(--spacing-s3) 0;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+.site-step:last-child {
+  border-bottom: 0;
+}
+.site-step-marker {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: var(--border-hairline) solid var(--color-line-2);
+  font-family: var(--font-mono, monospace);
+  font-size: 11.5px;
+  color: var(--color-ink-2);
+}
+.site-step-marker-pass {
+  border-color: var(--color-pass);
+  color: var(--color-pass);
+}
+.site-step-marker-fail {
+  border-color: var(--color-fail);
+  color: var(--color-fail);
+}
+.site-step-marker-drift {
+  border-color: var(--color-warn);
+  color: var(--color-warn);
+}
+.site-step-body b {
+  display: block;
+  font-size: 14.5px;
+}
+.site-step-body span {
+  display: block;
+  margin-top: 2px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+/* A row of one fact against one sentence — the changelog and the notices page. */
+.site-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-s2);
+  padding: var(--spacing-s4);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 720px) {
+  .site-row {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: var(--spacing-s5);
+  }
+}
+.site-row:last-child {
+  border-bottom: 0;
+}
+.site-row-key {
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  color: var(--color-ink-3);
+}
+.site-row-key b {
+  display: block;
+  font-family: inherit;
+  color: var(--color-ink);
+}
+.site-row-body h2,
+.site-row-body h3 {
+  margin: 0 0 var(--spacing-s2);
+  font-size: 16px;
+}
+.site-row-body p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+/* Monospace sample of something real — a command, a generated file, a terminal transcript. */
+.site-code {
+  margin: 0;
+  padding: var(--spacing-s4);
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  font-family: var(--font-mono, monospace);
+  font-size: 12.5px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+}
+
+/* ── the Ask-AI chip ──
+   Interactive, so it carries the 2px border and the hard offset. The transform on hover is the
+   only motion here and `@media (prefers-reduced-motion: reduce)` removes it — `packages/ui`'s rule
+   is that reduced motion shows the end state, and a hover nudge has no end state worth showing. */
+.ask-chiprow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-top: var(--spacing-s5);
+}
+.ask-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 var(--spacing-s4);
+  border: var(--border-ink) solid var(--color-ink);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 120ms var(--ease-brand, ease), box-shadow 120ms var(--ease-brand, ease);
+}
+.ask-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-offset-sm, 2px 2px 0) var(--color-plate);
+}
+.ask-chip-mark {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ask-chip {
+    transition: none;
+  }
+  .ask-chip:hover {
+    transform: none;
+    box-shadow: var(--shadow-offset-sm, 2px 2px 0) var(--color-plate);
+  }
+}
+.ask-sheet-label {
+  display: block;
+  margin-bottom: var(--spacing-s2);
+  font-size: 13px;
+  color: var(--color-ink-2);
+}
+.ask-sheet-dests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-top: var(--spacing-s3);
+}
