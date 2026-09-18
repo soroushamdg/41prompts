@@ -4,22 +4,35 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-18T03:15:00.778Z.
+Generated 2026-09-18T14:43:45.903Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `81efdc00a8bc8de3f9d1a3a09ea1147695df9a05` | this checkout |
+| `main` | `7de3c9a3da9b9370051912a144bde6c53d53c9a6` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-178 commits · 834 files changed, 112267 insertions(+), 747 deletions(-)
+191 commits · 1005 files changed, 115026 insertions(+), 960 deletions(-)
 
+- 7de3c9a Merge EPIC-056: the open-source split — a public repository that is real, and a copyright line that names somebody
+- bf0f589 docs(epic-056): the three gate runs, and which gates this docs-only commit answers to
+- 7f8b67f fix(056): the header check matched prose about a header, and the gate caught it
+- 2afe50c fix(056): the two landing baselines the footer moved, regenerated on Linux
+- 2da5cb9 feat(056): the drive against the built app — 16/16
+- 763b5b8 feat(056): the drive, and SECURITY.md stops inventing a second reporting address
+- 04c798b feat(056): three-step quickstarts, the publishing notes corrected, and one test that derives the set instead of holding it
+- 80ad58a fix(056): three root config files the public tree covered nowhere
+- f10565b feat(056): the public tree gets its own REUSE.toml, and the dry-run proves its compliance
+- 424f8e5 feat(056): the public tree gets a root, all six distributions, and the three files a stranger reads
+- ff0ca4c feat(056): 41Prompts Inc. is named, and the footer gets the line it has been missing since EPIC-016
+- 89d9097 docs(epic-056): the epic file and the plan, with the four facts it turns on
+- c53dd8b docs: the handover and RELEASE-DUE, at EPIC-057
 - 81efdc0 Merge EPIC-057: the delivery path, modelled — and the three places it was weaker than it read
 - c77399f docs(epic-057): which gates a docs-only commit is answerable to, written down
 - 1a642fd docs(epic-057): the gate ran twice, and the second run is the one this merges on

@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-17, after EPIC-057**, for whoever picks this up — person or
+Where things stand as of **2026-09-18, after EPIC-056**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,8 +16,22 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**`▣ GATE 5` is decided and Stage 5b is open. EPIC-053, EPIC-054 and EPIC-057 are done. EPIC-056
-is next and is NOT reachable — a run that reaches it writes a `BLOCKER`.**
+**Stage 5b is COMPLETE. EPIC-056 merged on 2026-09-18 and it was the last row in the stage.**
+
+**EPIC-056 was the row `GATE-5.md` called "Not buildable", and it became buildable that morning.**
+Soroush reported that the GitHub org, the npm and PyPI accounts and the IP assignment are all
+done — the exact three things that entry named — so the epic was built instead of blockered.
+`41Prompts Inc.` is now the copyright holder in every licence header, `LICENSE` and `NOTICE`, the
+footer carries its `©` line, and the public tree extracts, installs, tests and licence-lints
+standalone with all six distributions. **Nothing is published and the repository has not been
+created**: `docs/epics/reports/EPIC-056-report.md` §8 lists seven steps that need a person, none of
+them ticked. Two package names — npm `41p` and PyPI `fortyone-prompts` — are **available and
+unregistered**, which is EPIC-057's row `057b` and the one finding in this project that expires.
+
+**The next row is Stage 6, and nothing in it has an epic file.** EPIC-070 (Stripe) needs an account;
+EPIC-072 (marketing site final) depends on 016 and 055, both done, and is buildable. EPIC-071 is
+`deferred`. `pick-next-epic.mjs` will still stop on `▣ GATE 3` before reaching any of them — see
+below, it is one word in a cell and it is yours.
 
 `docs/decisions/GATE-5.md` records Soroush's ruling of 2026-09-17: the **technical** reading. The row
 is titled *Demand check* and its criteria are two demand numbers the same document marks *not
@@ -183,7 +197,8 @@ only its own epic's status cell.
 | **Stage 4** | **done.** 040 ✅ · 041 ✅ · 042 ✅ · 043 ✅ (still awaiting Soroush's read of the threat model) |
 | **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
-| **Stage 5b** | **open.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · **056 not reachable** — see "Start here". |
+| **Stage 5b** | **done, 2026-09-18.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · 056 ✅ (the split, the holder named, the mirror real — **but nothing published**, report §8). |
+| **Stage 6** | **not started, and no row has an epic file.** 070 Stripe (needs an account) · 071 `deferred` (lawyer) · 072 marketing site final (**buildable** — depends on 016 and 055, both done) · 073 launch 2 (depends on 035, which GATE 3 deferred). |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -224,16 +239,16 @@ the fallback labels itself `normalised: true`.
 
 ## Where the code is
 
-Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
+Measured 2026-09-18 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `81efdc0` | EPIC-057, merged 2026-09-17 |
-| `origin/main` / staging | `da42eee` | **95 behind** — still EPIC-040's epic file and GATE 3's decision |
-| production | `af089c7` = `v0.5.0` | 178 commits behind; only a `v*` tag moves it |
+| local `main` | `7de3c9a` | EPIC-056, merged 2026-09-18 |
+| `origin/main` / staging | `da42eee` | **108 behind** — still EPIC-040's epic file and GATE 3's decision |
+| production | `af089c7` = `v0.5.0` | only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054 or
-057**, and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057
+or 056**, and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
 `"commit":"unknown"`. The proof that the server you are about to drive is the build you just made is
