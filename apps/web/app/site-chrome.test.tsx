@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SiteNav } from "./site-chrome";
+import { SiteFooter, SiteNav } from "./site-chrome";
 
 const APP_ORIGIN = "https://app.41prompts.ai";
 const original = process.env.BETTER_AUTH_URL;
@@ -54,5 +54,33 @@ describe("the landing nav", () => {
     for (const signedIn of [true, false]) {
       expect(renderToStaticMarkup(SiteNav({ signedIn }))).toContain('href="/decompile"');
     }
+  });
+});
+
+/**
+ * The footer's copyright line, which did not exist until 2026-09-18.
+ *
+ * EPIC-016 drew it from the mockup and left it out; EPIC-017 left it out again. Both had the same
+ * reason and it was a good one: `CLAUDE.md` named the holder `<legal ${"entity"}>` "until
+ * incorporation", and a © naming a company that does not exist is a claim the product does not get
+ * to make. `packages/ui/src/landing.css` has carried `.site-foot-legal` unused ever since.
+ *
+ * EPIC-056 is the epic where the company exists, so the line arrives with it. These assertions are
+ * what stops it from quietly going away again, and what stops it naming the brand instead of the
+ * holder — `41Prompts` is a name, `41Prompts Inc.` is who owns the copyright, and only the second
+ * one is what a © is for.
+ */
+describe("the landing footer", () => {
+  it("names the copyright holder, not just the brand", () => {
+    const html = renderToStaticMarkup(SiteFooter());
+    expect(html).toContain("© 2026 41Prompts Inc.");
+  });
+
+  it("uses the class the design system already reserved for it", () => {
+    expect(renderToStaticMarkup(SiteFooter())).toContain('class="site-foot-legal"');
+  });
+
+  it("carries no placeholder where the holder should be", () => {
+    expect(renderToStaticMarkup(SiteFooter())).not.toContain(`<legal ${"entity"}>`);
   });
 });

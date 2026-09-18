@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 // Corpus prompts for the three blok kinds the original 25 never contained.

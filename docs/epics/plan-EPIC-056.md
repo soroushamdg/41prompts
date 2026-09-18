@@ -67,7 +67,7 @@ it is not this run's to do.
 
 **1d. The test.** `scripts/legal-entity.test.mjs` (or the nearest existing home) asserts:
 
-- no `SPDX-FileCopyrightText` line anywhere contains `<legal entity>`;
+- no `SPDX-FileCopyrightText` line anywhere contains `41Prompts Inc.`;
 - every proprietary `LICENSE`, the proprietary licence text, all six `NOTICE`s and `REUSE.toml`
   name `41Prompts Inc.`;
 - the files still containing the placeholder are **exactly** a named allow-list — so a new file

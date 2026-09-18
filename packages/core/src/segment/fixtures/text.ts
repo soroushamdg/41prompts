@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 // Every corpus prompt is built line by line rather than as one template literal. In a fixture

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # all-context — A prompt with no rules at all — nothing but role and background. Every blok is context, and nothing merges.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 /** Generated bindings, one function per prompt (EPIC-053). See `types.ts` for why this is here. */

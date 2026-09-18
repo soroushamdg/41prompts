@@ -75,7 +75,7 @@ showing a sample as though it were the set.
   The first two are read by **a customer's process**, not by ours: `@41prompts/sdk` falls back to them
   when `apiKey` and `baseUrl` are not passed to `createClient`. `FORTYONE_BASE_URL` exists for a
   self-hosted deployment and for a test pointing at localhost; it defaults to `https://app.41prompts.ai`.
-- Public source files carry `SPDX-License-Identifier: Apache-2.0` headers. Copyright holder is `<legal entity>` until incorporation.
+- Public source files carry `SPDX-License-Identifier: Apache-2.0` headers. Copyright holder is `41Prompts Inc.`.
 
 ## Server access
 

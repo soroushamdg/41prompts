@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # short-paragraphs — Several paragraphs, each comfortably under the threshold and each holding more than one sentence. None of them may be split: under the threshold, a paragraph is one thing.

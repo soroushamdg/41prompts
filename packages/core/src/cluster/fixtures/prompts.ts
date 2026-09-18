@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 // Whole-prompt clustering fixtures. Written before the merge rule, on purpose: `false-merge` is

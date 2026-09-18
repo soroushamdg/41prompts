@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # fires-contradiction-inside-one-blok — The antonym case carried from EPIC-011a: token overlap merges these two into ONE blok, so a detector that compares bloks can never see it.

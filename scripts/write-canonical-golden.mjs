@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 //
 // Writes `sdks/python/tests/canonical_golden.json` — what `packages/core`'s canonical encoder

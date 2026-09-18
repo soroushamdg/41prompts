@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # bulleted-with-nesting — A bulleted list with sub-bullets. Each nested list stays with its parent item (rule 5) rather than becoming a loose segment.

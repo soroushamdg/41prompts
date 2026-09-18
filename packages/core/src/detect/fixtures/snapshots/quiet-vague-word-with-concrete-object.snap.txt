@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # quiet-vague-word-with-concrete-object — Words that sound vague — "appropriate", "good", "reasonable" — each attached to something a check could actually verify. `untestable` must not fire.

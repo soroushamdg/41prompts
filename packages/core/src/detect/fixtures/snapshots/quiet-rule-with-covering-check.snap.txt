@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # quiet-rule-with-covering-check — A machine-checkable rule that an `expected` blok in the same prompt already covers. `rule_without_check` must not fire — this is the case the detector exists to distinguish, and firing here would tell somebody who has done the work that they have not.

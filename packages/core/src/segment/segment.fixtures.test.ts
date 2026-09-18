@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2026 <legal entity>
+// SPDX-FileCopyrightText: 2026 41Prompts Inc.
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
@@ -23,7 +23,7 @@ function renderSnapshot(fixture: SegmentFixture, segments: readonly Segment[]): 
   // REUSE-IgnoreStart -- the two lines below are the *snapshot's* header, written into every
   // generated file, not a second licence declaration for this source file.
   const header = [
-    "# SPDX-FileCopyrightText: 2026 <legal entity>",
+    "# SPDX-FileCopyrightText: 2026 41Prompts Inc.",
     "# SPDX-License-Identifier: Apache-2.0",
     "#",
     `# ${fixture.name} — ${fixture.describes}`,

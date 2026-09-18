@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # multi-range — The shape the product is named for: one rule stated in the opening line and restated verbatim as the last numbered rule, which must become one blok with two non-adjacent ranges.

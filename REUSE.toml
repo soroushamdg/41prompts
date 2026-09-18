@@ -1,6 +1,6 @@
 version = 1
 SPDX-PackageName = "41prompts"
-SPDX-PackageSupplier = "<legal entity>"
+SPDX-PackageSupplier = "41Prompts Inc."
 SPDX-PackageDownloadLocation = "https://github.com/soroushamdg/41prompts"
 
 # CLAUDE.md's own rule: public packages (packages/core, packages/cli, packages/sdk-ts,
@@ -47,7 +47,7 @@ path = [
   "packages/ui/**",
   "scripts/**",
 ]
-SPDX-FileCopyrightText = "2026 <legal entity>"
+SPDX-FileCopyrightText = "2026 41Prompts Inc."
 SPDX-License-Identifier = "LicenseRef-41Prompts-Proprietary"
 
 # The four public packages' own non-source files (package metadata, project config, the NOTICE
@@ -82,5 +82,5 @@ path = [
   "sdks/python-alias/README.md",
   "sdks/python-alias/pyproject.toml",
 ]
-SPDX-FileCopyrightText = "2026 <legal entity>"
+SPDX-FileCopyrightText = "2026 41Prompts Inc."
 SPDX-License-Identifier = "Apache-2.0"

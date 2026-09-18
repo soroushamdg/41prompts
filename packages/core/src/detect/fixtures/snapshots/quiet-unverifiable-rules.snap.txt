@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # quiet-unverifiable-rules — Four real rules that no check kind we have would cover — they are about invention, promises, apologies and guessing, none of which is a shape, a value, a length or a substring. `rule_without_check` must not fire just because a prompt has rules and no checks.

@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2026 <legal entity>
+# SPDX-FileCopyrightText: 2026 41Prompts Inc.
 # SPDX-License-Identifier: Apache-2.0
 #
 # fires-rule-without-check — Three rules a check could verify — a shape, a set of allowed values, a required substring — in a prompt with no `expected` blok at all. The common case, and the one this finding exists for.

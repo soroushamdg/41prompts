@@ -95,9 +95,12 @@ export function SiteFooter() {
             </div>
           ))}
         </div>
-        {/* No copyright line. `CLAUDE.md` keeps the holder as `<legal entity>` until incorporation,
-            and a © naming a company that does not exist yet is exactly the kind of claim decision 4
-            rules out. EPIC-017 adds it with the rest of the legal text. */}
+        {/* The mockup draws `© 2026 41Prompts`; this names the company, which is the whole of
+            EPIC-056. It was held back through EPIC-016 and EPIC-017 because a © naming a company
+            that did not exist is the kind of claim `docs/design/README.md` decision 4 rules out.
+            It exists as of 2026-09-18, so the line arrives. `.site-foot-legal` has been in
+            `packages/ui/src/landing.css` since EPIC-016, unused, waiting for exactly this. */}
+        <p className="site-foot-legal">© 2026 41Prompts Inc.</p>
       </div>
     </footer>
   );
