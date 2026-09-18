@@ -102,6 +102,9 @@ importers:
         specifier: ^4.3.3
         version: 4.3.3
     devDependencies:
+      '@41prompts/sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdk-ts
       '@axe-core/playwright':
         specifier: ^4.13.0
         version: 4.13.0(playwright-core@1.63.0)
