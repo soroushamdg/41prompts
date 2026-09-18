@@ -34,9 +34,6 @@ export default function ArticlePage() {
 
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
       <SiteNavWithSession />
 
       <main className="prose-page" id="main">

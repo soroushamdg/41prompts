@@ -1,0 +1,18 @@
+PASS  the server answering is the build just made — BUILD_ID 2EyJUf6a9N5UAc98tw2r9 is in the HTML
+PASS  /features renders styled with its heading — HTTP 200 · h1 "Everything in the prompt layer, in one place." · --color-ink #111
+PASS  /delivery renders styled with its heading — HTTP 200 · h1 "Change a prompt. Your application has it in a minute." · --color-ink #111
+PASS  /docs renders styled with its heading — HTTP 200 · h1 "Reference" · --color-ink #111
+PASS  /security renders styled with its heading — HTTP 200 · h1 "Your prompts, your keys, your traffic." · --color-ink #111
+PASS  /changelog renders styled with its heading — HTTP 200 · h1 "What shipped" · --color-ink #111
+PASS  /guides renders styled with its heading — HTTP 200 · h1 "How to do the common things" · --color-ink #111
+PASS  /legal/third-party-notices renders styled with its heading — HTTP 200 · h1 "Third-party notices" · --color-ink #111
+PASS  /features shows the registry's own sentences, not a paraphrase — 6 claims found verbatim
+PASS  no new page claims a certification, a lesson, a price, SSO or a customer count — 7 pages clean against 6 patterns
+PASS  the notices page lists the real dependency closure — 423 rows rendered against 423 generated; first is @ai-sdk/anthropic@4.0.56
+PASS  the Ask-AI chip sends the exact text it showed, to somebody else's site — host claude.ai · query is identical to the textarea (229 chars)
+PASS  at 390px the nav's section links are collapsed, as the mockup specifies — section links are hidden at 390px
+PASS  every collapsed page is reachable from the footer by clicking, on a phone — reached Features, Delivery, Docs from the footer at 390px
+PASS  no horizontal page scroll at 390px — scrollWidth − clientWidth = 0px
+PASS  every footer link answers 200 on the built app — 14 links, all 200
+PASS  the new pages are painted in dark mode — text rgb(180, 178, 172) on rgb(11, 11, 11), height 18px
+PASS  a fresh account reaches the workbench on the built app — landed on /app/projects as claude-drive-072-1789760737981@example.com

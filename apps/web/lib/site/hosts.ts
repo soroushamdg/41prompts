@@ -35,6 +35,14 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/decompile",
   "/d",
   "/guides",
+  // The five EPIC-072 added. They are marketing by default like everything else here, and the
+  // reason the list is written out is that `hosts.test.ts` walks `app/` and fails on a route nobody
+  // classified — which is how these arrived in this list rather than being noticed on staging.
+  "/features",
+  "/delivery",
+  "/docs",
+  "/security",
+  "/changelog",
   "/legal",
   "/contact",
   "/waitlist",

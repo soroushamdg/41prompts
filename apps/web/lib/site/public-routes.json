@@ -1,0 +1,19 @@
+{
+  "indexed": [
+    "/",
+    "/features",
+    "/delivery",
+    "/docs",
+    "/security",
+    "/changelog",
+    "/guides",
+    "/guides/what-your-prompt-does-not-check",
+    "/decompile",
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/security",
+    "/legal/sub-processors",
+    "/legal/third-party-notices"
+  ],
+  "notIndexed": ["/contact", "/sign-in", "/sign-up"]
+}

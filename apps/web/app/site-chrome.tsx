@@ -1,16 +1,25 @@
 import { LogoMark, ThemeToggle } from "@41prompts/ui";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
-import { FOOTER_GROUPS } from "@/lib/site/links";
+import {
+  FOOTER_GROUPS,
+  NAV_ALWAYS_LINKS,
+  NAV_SECTION_LINKS,
+  type SiteNavCurrent
+} from "@/lib/site/links";
 import { appOrigin } from "@/lib/site/url";
 
 /**
  * The nav and the footer, shared by every public page.
  *
- * **The nav is nearly empty on purpose** (decision 2). The mockup's Product · Features · Delivery ·
- * Pricing · Learn · Docs row and its "Start free" button are both gone: those pages are EPIC-072 and
- * there is nothing to start. Sign in is a small link, sign up is not promoted at all, and the only
- * action the page pushes is the ask bar.
+ * **EPIC-016 left the nav nearly empty and said why**: the mockup's Product · Features · Delivery ·
+ * Pricing · Learn · Docs row named pages that did not exist, and a nav link to a 404 is worse than
+ * no nav. **EPIC-072 fills in the four that now exist** — Features, Delivery, Docs, Decompiler — and
+ * leaves Pricing and Learn out for the original reason: there is still nothing to sell and there are
+ * still no lessons. `lib/site/links.ts` holds the table and carries the argument.
+ *
+ * The "Start free" button stays gone. Sign in is a small link, sign up is not promoted, and the only
+ * action the home page pushes is the ask bar.
  */
 /**
  * Whether this visitor is signed in, read on the server.
@@ -32,7 +41,7 @@ async function hasSession(): Promise<boolean> {
 }
 
 export interface SiteNavProps {
-  readonly current?: "home" | "decompile";
+  readonly current?: SiteNavCurrent;
   /** Whether to offer the dashboard or sign-in. Passed in, so this component stays pure. */
   readonly signedIn: boolean;
 }
@@ -43,32 +52,66 @@ export interface SiteNavProps {
  */
 export function SiteNav({ current, signedIn }: SiteNavProps) {
   return (
-    <nav className="site-nav" aria-label="Main">
-      <div className="site-nav-inner">
-        <LogoMark href="/" size="20px" />
-        <span className="site-nav-spacer" />
-        <a className="site-nav-link" href="/decompile" aria-current={current === "decompile" ? "page" : undefined}>
-          Decompiler
-        </a>
-        {/* Absolute, and to the other host: `/app` on the apex would only 301 there anyway, and a
+    <>
+      {/* **The skip link belongs to the chrome, not to each page** (EPIC-072). It used to be
+          rendered by whichever page remembered it, which meant `/` and the one guide had one and
+          `/decompile`, `/contact` and all four legal pages did not — a keyboard reader tabbing into
+          any of those walked the whole nav first. Nothing asserted it, because the assertion lived
+          on the home page's own test. It is here now, so a page cannot be built without it.
+          `/sign-in` and `/sign-up` render no nav and correctly still have none: a skip link with
+          nothing to skip is a focusable element that does nothing. */}
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      <nav className="site-nav" aria-label="Main">
+        <div className="site-nav-inner">
+          <LogoMark href="/" size="20px" />
+          <span className="site-nav-spacer" />
+          {/* Collapses below 900px, as the mockup's own `.navlinks` does. The footer carries all
+            three at every width, so nothing becomes unreachable — see `lib/site/links.ts`, which has
+            the measurement that settled it. */}
+          <span className="site-nav-links">
+            {NAV_SECTION_LINKS.map((link) => (
+              <a
+                key={link.href}
+                className="site-nav-link"
+                href={link.href}
+                aria-current={link.id === current ? "page" : undefined}
+              >
+                {link.name}
+              </a>
+            ))}
+          </span>
+          {NAV_ALWAYS_LINKS.map((link) => (
+            <a
+              key={link.href}
+              className="site-nav-link"
+              href={link.href}
+              aria-current={link.id === current ? "page" : undefined}
+            >
+              {link.name}
+            </a>
+          ))}
+          {/* Absolute, and to the other host: `/app` on the apex would only 301 there anyway, and a
             link that visibly goes where it says is worth more than a tidy relative href. */}
-        {signedIn ? (
-          <a className="site-nav-link" href={`${appOrigin()}/app`} data-testid="nav-dashboard">
-            Go to dashboard
-          </a>
-        ) : (
-          <a className="site-nav-link" href={`${appOrigin()}/sign-in`} data-testid="nav-sign-in">
-            Sign in
-          </a>
-        )}
-        <ThemeToggle />
-      </div>
-    </nav>
+          {signedIn ? (
+            <a className="site-nav-link" href={`${appOrigin()}/app`} data-testid="nav-dashboard">
+              Go to dashboard
+            </a>
+          ) : (
+            <a className="site-nav-link" href={`${appOrigin()}/sign-in`} data-testid="nav-sign-in">
+              Sign in
+            </a>
+          )}
+          <ThemeToggle />
+        </div>
+      </nav>
+    </>
   );
 }
 
 /** What every page renders. Reads the session on the server and hands it to the pure component. */
-export async function SiteNavWithSession({ current }: { current?: "home" | "decompile" }) {
+export async function SiteNavWithSession({ current }: { current?: SiteNavCurrent }) {
   return <SiteNav current={current} signedIn={await hasSession()} />;
 }
 

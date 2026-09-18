@@ -226,3 +226,50 @@ describe("the vocabulary gate over Python", { timeout: SPAWN_TIMEOUT }, () => {
     expect(output).toContain("sdks/python/fortyone");
   });
 });
+
+/**
+ * The path exemption (EPIC-072).
+ *
+ * `apps/web/lib/site/claims.ts` points a reader at the code behind each claim, and one of those
+ * paths is `packages/core/src/artifact/schema.ts` — a real directory, frozen by ADR-005 and named
+ * in `CLAUDE.md`'s own never-touch list. The gate read it as the word.
+ *
+ * **The exemption is the filesystem, not a pattern.** A rule written as "things that look like a
+ * path" is satisfiable by prose — `artifact/schema` matches almost any such pattern — and this
+ * repository has already been bitten twice by a gate narrowed until it stopped firing (EPIC-056
+ * §4.7, and the customer-count pattern that read the product's own name as a count). Requiring the
+ * candidate to **resolve to a file or directory in this repository** cannot be satisfied by a
+ * sentence, because a sentence is not a file.
+ */
+describe("the path exemption", { timeout: SPAWN_TIMEOUT }, () => {
+  it("allows a path to a directory that exists in this repository", () => {
+    const result = scan('export const evidence = "packages/core/src/artifact/schema.ts";');
+    expect(result.output).toContain("clean");
+    expect(result.ok).toBe(true);
+  });
+
+  it("allows it inside a longer line, beside other code", () => {
+    const result = scan('const rows = [{ id: "build", evidence: "packages/core/src/artifact" }];');
+    expect(result.ok).toBe(true);
+  });
+
+  /**
+   * The controls, and they are the point. Each of these is path-shaped and none of them resolves,
+   * so a pattern-based exemption would let all three through.
+   */
+  it.each([
+    ["a path-shaped phrase that is not a path", 'export const s = "the artifact/schema is frozen";'],
+    ["a path under a directory that does not exist", 'export const s = "packages/nope/src/artifact/schema.ts";'],
+    ["a plausible but absent file", 'export const s = "apps/web/lib/artifact/reader.ts";']
+  ])("still catches %s", (_label, source) => {
+    const result = scan(source);
+    expect(result.ok).toBe(false);
+    expect(result.output).toContain("artifact");
+  });
+
+  it("does not let a real path exempt a sentence beside it", () => {
+    // Per occurrence, like the record-key exemption above.
+    const result = scan('export const s = "see packages/core/src/artifact/schema.ts — your artifact is ready";');
+    expect(result.ok).toBe(false);
+  });
+});
