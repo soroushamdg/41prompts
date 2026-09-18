@@ -1,16 +1,13 @@
 /**
  * Rate limits for the public decompiler.
  *
- * **In-memory, per process, and that is a deliberate limit rather than an oversight.** The
- * deployment is one web container (see `infra/docker-compose.staging.yml`), so an in-memory counter
- * *is* the global counter today; the moment there are two, this becomes per-instance and the real
- * limits double. That is written here rather than discovered later, and the seam is one function
- * wide so a Postgres- or Redis-backed store slots in without touching a caller.
- *
- * Every limit is a named constant (epic decision 5), and exceeding one returns a calm message that
- * names the limit. Never a silent failure, and never a CAPTCHA on a first offence — somebody who
- * pastes four prompts in a minute is interested, not hostile.
+ * **The mechanism moved to `apps/web/lib/rate-limit.ts` in EPIC-057** and is re-exported here, so
+ * the three call sites in this feature did not move with it. That file carries the reasoning about
+ * why the store is in-memory and what that costs now that `/v1` depends on it too; this one is the
+ * three numbers and why each is what it is.
  */
+
+export { checkLimit, resetLimitsForTest, type Limit, type LimitVerdict } from "@/lib/rate-limit";
 
 /**
  * Decompiling: deliberately generous, because of what it actually costs.
@@ -31,93 +28,3 @@ export const SHARE_LIMIT = { max: 20, windowMs: 60 * 60 * 1000, name: "20 shared
 
 /** The waitlist: one person does not need many attempts. */
 export const WAITLIST_LIMIT = { max: 5, windowMs: 60 * 60 * 1000, name: "5 waitlist attempts an hour" } as const;
-
-export interface Limit {
-  readonly max: number;
-  readonly windowMs: number;
-  readonly name: string;
-}
-
-export interface LimitVerdict {
-  readonly allowed: boolean;
-  /** Seconds until the window resets. Only meaningful when `allowed` is false. */
-  readonly retryAfterSeconds: number;
-  readonly message?: string;
-}
-
-interface Window {
-  count: number;
-  resetAt: number;
-}
-
-const windows = new Map<string, Window>();
-
-/**
- * How many entries the store will hold before it starts evicting.
- *
- * A `Map` keyed by caller is an unbounded allocation driven by strangers — exactly the shape of
- * problem this module exists to prevent, so it would be careless to introduce one here. At the cap
- * the oldest-expiring entries go first; evicting somebody's counter only ever forgives them, never
- * penalises them.
- */
-const MAX_TRACKED = 10_000;
-
-function evictIfNeeded(now: number): void {
-  if (windows.size < MAX_TRACKED) return;
-  for (const [key, window] of windows) {
-    if (window.resetAt <= now) windows.delete(key);
-  }
-  if (windows.size < MAX_TRACKED) return;
-  // Still full of live windows: drop the ones resetting soonest, which are the closest to being
-  // forgotten anyway.
-  const byReset = [...windows.entries()].sort((left, right) => left[1].resetAt - right[1].resetAt);
-  for (const [key] of byReset.slice(0, Math.ceil(MAX_TRACKED / 10))) windows.delete(key);
-}
-
-/**
- * Record one attempt against a limit and say whether it is allowed.
- *
- * A `null` bucket — no address, no session — is **not** a free pass: it shares one bucket with every
- * other unidentified caller. The alternative is that anyone who strips a header is unlimited.
- */
-export function checkLimit(bucket: string | null, limit: Limit, now: number = Date.now()): LimitVerdict {
-    // `\u0000` as an escape, never a raw NUL byte: git treats a file containing one as binary and
-  // shows no diff for it, which is how packages/core/src/cluster/cluster.ts went unreviewed for two
-  // epics. `pnpm binary-files` caught this one in CI.
-  //
-  // A separator that cannot appear in either half, so ("a b", "c") and ("a", "b c") cannot collide
-  // into one bucket and share a limit.
-  const key = `${limit.name}\u0000${bucket ?? "anonymous"}`;
-  evictIfNeeded(now);
-
-  const existing = windows.get(key);
-  if (existing === undefined || existing.resetAt <= now) {
-    windows.set(key, { count: 1, resetAt: now + limit.windowMs });
-    return { allowed: true, retryAfterSeconds: 0 };
-  }
-
-  existing.count += 1;
-  if (existing.count <= limit.max) return { allowed: true, retryAfterSeconds: 0 };
-
-  const retryAfterSeconds = Math.max(1, Math.ceil((existing.resetAt - now) / 1000));
-  return {
-    allowed: false,
-    retryAfterSeconds,
-    // Names the limit, says when it lifts, and does not imply wrongdoing. Somebody who hits this is
-    // almost always enthusiastic rather than hostile.
-    message: `That is the limit for now — ${limit.name}. Try again in ${describeWait(retryAfterSeconds)}.`
-  };
-}
-
-function describeWait(seconds: number): string {
-  if (seconds < 60) return `${seconds} seconds`;
-  const minutes = Math.ceil(seconds / 60);
-  if (minutes < 60) return minutes === 1 ? "a minute" : `${minutes} minutes`;
-  const hours = Math.ceil(minutes / 60);
-  return hours === 1 ? "an hour" : `${hours} hours`;
-}
-
-/** Clear every window. Tests only. */
-export function resetLimitsForTest(): void {
-  windows.clear();
-}

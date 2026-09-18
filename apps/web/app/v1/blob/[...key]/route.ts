@@ -1,5 +1,6 @@
 import { sha256Text } from "@41prompts/core";
 import { databaseStore, storeFor } from "@/lib/deploy/store";
+import { limitV1Blob, rateLimitedResponse } from "@/lib/deploy/v1-limits";
 
 /**
  * `GET /v1/blob/<key>` — the bytes, when the artifact store is this database (EPIC-051).
@@ -40,10 +41,21 @@ import { databaseStore, storeFor } from "@/lib/deploy/store";
  *
  * Hashing the body per request is affordable because this route exists only where there is no CDN:
  * one process, small documents, and a request rate bounded by the marker's 30-second max-age.
+ *
+ * ## And bounded by a rate limit as well, since EPIC-057
+ *
+ * "Bounded by the marker's max-age" is a statement about a well-behaved SDK, not about a stranger.
+ * This is the one `/v1` route with **no key to bucket by**, so it is limited by address alone —
+ * which makes it the weakest of the four, and `docs/security/sdk-threat-model.md` says so rather
+ * than implying the limit is as good as the others'. A CDN in front of R2 is what actually absorbs
+ * this, and there is no CDN; that is the same absence this whole route exists for.
  */
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: Promise<{ key: string[] }> }): Promise<Response> {
+  const limit = limitV1Blob(request);
+  if (!limit.allowed) return rateLimitedResponse(limit);
+
   const store = await storeFor();
   // When R2 is configured, the marker names the CDN and nothing should be asking this route for
   // bytes. Answering anyway would make this a second, unmeasured way to read the store.

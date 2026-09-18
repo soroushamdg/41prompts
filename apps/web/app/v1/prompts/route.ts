@@ -2,6 +2,7 @@ import { liveForProject } from "@41prompts/db";
 import { getDb } from "@/lib/db";
 import { keyFromRequest, refusalResponse } from "@/lib/deploy/api-auth";
 import { markerKey, storeFor } from "@/lib/deploy/store";
+import { limitV1, rateLimitedResponse, refuseExhaustedAddress } from "@/lib/deploy/v1-limits";
 
 /**
  * `GET /v1/prompts` — the prompts a key can see, and what is Live for each (EPIC-051).
@@ -13,12 +14,21 @@ import { markerKey, storeFor } from "@/lib/deploy/store";
  * `no-store`, because the answer depends on which key asked. A shared cache in front of this would
  * eventually serve one customer's list to another, and that is not a risk worth a cache on a route
  * that is called once at process start.
+ *
+ * Rate limited on the same two buckets as the other three (EPIC-057, `lib/deploy/v1-limits.ts`).
+ * "Called once at process start" is a description of a well-behaved caller, not a property of the
+ * route.
  */
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request): Promise<Response> {
+  const exhausted = refuseExhaustedAddress(request);
+  if (!exhausted.allowed) return rateLimitedResponse(exhausted);
+
   const db = getDb();
   const auth = await keyFromRequest(db, request);
+  const limit = limitV1(request, auth.ok ? auth.key.id : null);
+  if (!limit.allowed) return rateLimitedResponse(limit);
   if (!auth.ok) return refusalResponse(auth.status, auth.reason);
 
   const store = await storeFor();

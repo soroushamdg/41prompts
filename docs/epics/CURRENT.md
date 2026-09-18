@@ -48,10 +48,11 @@ and every remaining `high` finding has an owner and a backlog row written ready 
   the roadmap names. Ruling 3.
 - **The in-memory limiter moves out of `lib/decompile/`** to `apps/web/lib/rate-limit.ts`, unchanged,
   with the decompile constants left where they are. Ruling 2.
-- **The disk cache is created and checked as owner-only**, in both SDKs — the mitigation for finding
-  "artifact substitution", which is the most serious thing modelling this found. Ruling 5.
-- **`@41prompts/sdk` reads a response to a limit**, as `fortyone` already does. Ruling 6.
-- **Both SDKs honour a `429`** by not asking again until `Retry-After` has passed. Ruling 7.
+- **The disk cache is created and checked as owner-only** — the mitigation for finding "artifact
+  substitution", which is the most serious thing modelling this found. Ruling 5. **`fortyone` only**:
+  ruling 11 has the four measurements that took it out of `@41prompts/sdk`.
+- **`fortyone` honours a `429`** by not asking again until `Retry-After` has passed. Ruling 7, and
+  ruling 11 for why its TypeScript half is owed rather than built.
 - **A system-level test that a mismatched artifact is refused** — through the real route and the real
   store, not only through `verify.ts` with a hand-made string. Ruling 4.
 
@@ -224,6 +225,49 @@ made on text we did not publish. `medium` means degraded service or an unanswera
 the fact. `low` means it is worth writing down. Written here so the two documents can be read
 together.
 
+### 11. The 15 KB bundle budget refuses all three TypeScript SDK mitigations, and ADR-006 says what to do about that
+
+**Found by building them and measuring, after they were written and working.** The numbers, all on
+this machine, `esbuild --minify` over `dist/index.js`, budget 15,360:
+
+| variant | minified | against budget |
+|---|---|---|
+| baseline, as EPIC-054 left it | 15,121 | **239 spare** |
+| + the disk-cache owner check, written as tightly as it honestly can be | 15,411 | **51 over** |
+| + 429 back-off + a post-hoc body-size refusal + the disk check | 16,304 | 944 over |
+| + a streaming body reader, which is the only version that bounds the allocation | 16,590 | 1,230 over |
+
+**The cheapest single mitigation is 290 bytes and there are 239.** It is not close, and it is not a
+coding problem: `client.ts` (3,450 B), `verify.ts` (1,756 B), core's `sha256.ts` (2,178 B) and
+`canonical.ts` (1,416 B) are all load-bearing, tree-shaking already drops everything else, and there
+is no slack to reclaim.
+
+**ADR-006 predicted this and wrote down the answer**, in Consequences:
+
+> The bundle budget is measured on every test run and currently has **206 bytes of headroom**. The
+> next feature in this package very likely breaks it, and **the correct response is to measure what
+> got in — not to widen the number, which is a Review line.**
+
+It also settles the reading, in §6: *"The Review line's 15 KB budget is measured on the minified
+bytes, because that is what their bundler emits."* So the gzipped figure — 6,764 B, less than half
+the budget — is not available as an escape, and neither is editing the constant.
+
+**So the three do not ship in `@41prompts/sdk`.** The budget stays exactly where it is, nothing is
+merged past a red gate, and the mitigations become the loudest **owed** finding in the document with
+the table above and a row in §8.
+
+**What ADR-006 did not anticipate is which feature would be first to hit the wall.** It expected a
+*feature*; the first casualty is a *fix* — and the most serious one this epic found. A Review line
+correctly refusing to be widened for a convenience is a different question from one refusing to be
+widened for a security control, and that question is Soroush's. The row names his three options:
+move the budget, pay for the mitigations out of `client.ts`, or ship `@41prompts/sdk` without them.
+
+**`fortyone` has no such budget and its mitigations do ship.** That leaves the two SDKs with
+**different security postures**, which is bad and is therefore stated rather than smoothed over: a
+Python process refuses a cache directory other users can write and a Node process does not, and the
+Node one is the majority. Withholding a real fix from Python to keep the two symmetrical would help
+nobody; the divergence table and finding 5 both carry it.
+
 ## Acceptance criteria
 
 - [ ] **C1.** `docs/security/sdk-threat-model.md` exists and covers **all six** classes the Tasks
@@ -248,18 +292,20 @@ together.
       store, one byte changed, the client warns `hash_mismatch` and keeps serving what it held; the
       untampered object resolves through the identical path. Verified:
       `apps/web/lib/deploy/artifact-substitution.test.ts`.
-- [ ] **C7.** **The disk cache is owner-only.** Created `0o700`; a directory that is group- or
-      world-writable, or owned by another user, is refused with a `disk` warning and no exception,
-      in **both** SDKs. Verified: `packages/sdk-ts/src/disk.test.ts` and
-      `sdks/python/tests/test_disk.py`, each chmodding a real directory and each with the control
-      that a correct directory is used.
-- [ ] **C8.** **`@41prompts/sdk` refuses a response body over 16 MiB** rather than reading it, with
-      the same constant `fortyone` uses, and a test pins the two numbers together. Verified:
-      `packages/sdk-ts/src/network.test.ts`.
-- [ ] **C9.** **A `429` is honoured.** After one, neither SDK issues another request until
-      `Retry-After` has elapsed, and it resumes afterwards. No new `WarningCode`; `frozen.test.ts`
-      and the Python divergence test still pass unchanged. Verified: `refresh.test.ts` and
-      `tests/test_stale.py`, each counting requests.
+- [ ] **C7.** **`fortyone`'s disk cache is owner-only.** Created `0o700`; a directory that is group-
+      or world-writable, or owned by another user, is refused with a `disk` warning and no exception.
+      Verified: `sdks/python/tests/test_disk.py`, chmodding a real directory, with the control that a
+      correct directory is used. **`@41prompts/sdk`'s half is owed** — ruling 11, and it is §8's row.
+- [ ] **C8.** **The 15 KB budget is measured against each of the three mitigations and the numbers
+      are in the report**, rather than the budget being widened or the finding being asserted without
+      one. Verified: ruling 11's table, reproducible with
+      `pnpm --filter @41prompts/sdk test -- package.test.ts`, which prints all three figures on every
+      run. `fortyone`'s own 16 MiB cap is unchanged and still tested.
+- [ ] **C9.** **`fortyone` honours a `429`**: after one it issues no request until `Retry-After` has
+      elapsed, and resumes afterwards. Verified: `tests/test_stale.py`, counting requests, with the
+      control that a client which was never refused keeps asking. **`@41prompts/sdk` does not**, by
+      ruling 11; its behaviour under a limit — warn on `network`, keep serving from memory, ask again
+      next interval — is named in the report and in the document rather than left to be discovered.
 - [ ] **C10.** **`fetch` really does drop `Authorization` across an origin**, which
       `packages/sdk-ts/src/network.ts` asserts in a comment and nothing has measured. Proved against
       two loopback servers on different origins, with the control that a same-origin redirect still
