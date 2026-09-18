@@ -43,7 +43,7 @@ from typing import Any, Callable, Mapping, Sequence
 from ._bind import bind_variables
 from ._canonical import js_number
 from ._disk import Entry, default_cache_dir, install_id, read_from_disk, write_to_disk
-from ._network import Http, NetworkConfig, fetch_live, urllib_http
+from ._network import DEFAULT_RETRY_AFTER_SECONDS, Http, NetworkConfig, fetch_live, urllib_http
 from ._types import ResolveResult, ResolveSource, SdkWarning, WarningCode, WarningHandler
 from ._verify import check_build
 
@@ -343,6 +343,16 @@ class Client:
         self._memory: dict[str, Entry] = {}
         self._in_flight: dict[str, threading.Event] = {}
         self._last_attempt: dict[str, float] = {}
+        # When the endpoint last told us to stop asking, as a clock reading before which no request
+        # is made (EPIC-057).
+        #
+        # **Process-wide rather than per prompt.** The `/v1` limit is per API key, and every prompt
+        # this client holds is behind the same key — so a 429 on one prompt's marker is the whole
+        # client's news, and backing off only that prompt would keep the other nine hammering an
+        # endpoint that has already said no.
+        #
+        # `0.0` means "no limit in effect", which is the state a well-behaved caller never leaves.
+        self._refused_until = 0.0
         self._wanted: set[str] = set()
         self._disk_checked: set[str] = set()
         self._lock = threading.RLock()
@@ -480,7 +490,11 @@ class Client:
                 )
             return
 
+        # The endpoint has already refused us and said when to come back. Asking again before then
+        # is the behaviour that makes a rate limit cost the server more than the traffic it limited.
         with self._lock:
+            if self._now() < self._refused_until:
+                return
             held = self._memory.get(prompt_id)
         outcome = fetch_live(
             network,
@@ -489,6 +503,13 @@ class Client:
             str(held.build.get("buildHash")) if held is not None else None,
         )
 
+        if outcome.kind == "rate_limited":
+            assert outcome.warning is not None
+            wait = outcome.retry_after_seconds
+            with self._lock:
+                self._refused_until = self._now() + (wait if wait is not None else DEFAULT_RETRY_AFTER_SECONDS)
+            self._warn(outcome.warning)
+            return
         if outcome.kind == "warning":
             assert outcome.warning is not None
             self._warn(outcome.warning)

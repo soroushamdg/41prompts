@@ -26,6 +26,42 @@ is left behind is a temporary file rather than a corrupt cache.
 caller's argument reaching ``join`` is a directory traversal. Ids are ``pr_`` plus eight hex, so
 anything that is not plainly a file-safe name is refused before a path is built from it rather than
 escaped afterwards.
+
+**The directory has to be ours, because a content address is not a signature (EPIC-057).**
+
+Above, this module says a file on disk "is not ours in any sense that matters" and re-verifies the
+content address on the way out. *That proves the document is intact. It does not prove it is ours.*
+``build_hash`` is a SHA-256 of the document's own canonical encoding, so anyone who can write into
+this directory can write any text they like, compute its ``build_hash`` themselves, and hand us a
+document that passes every check this package makes — ``prompt_id`` included, since they choose that
+too. The result is a prompt of a stranger's writing sent to a customer's model, with no warning
+anywhere. It is prompt injection with no model involved, delivered through a file.
+
+Measured on 2026-09-17, both platforms:
+
+- **Linux**: ``tempfile.gettempdir()`` is ``/tmp``, mode ``1777``. World-writable and sticky. The
+  sticky bit stops another user *deleting* our directory once it exists; it does nothing to stop
+  them **creating it first**, and whoever creates it sets its mode.
+- **macOS**: it is a per-user ``/var/folders/.../T`` at mode ``700``, so the cache already sits
+  inside a private directory there. The exposure is a Linux and container one, which is where this
+  ships.
+- ``os.makedirs(mode=0o700)`` **does nothing to a directory that already exists** — an
+  attacker-created ``0777`` stays ``0777``, and the mode is masked by the umask even when it does
+  not. So the mode argument is not the control; the ``os.stat`` afterwards is.
+
+So the directory is created ``0o700`` *and* checked before it is read: not owned by this user, or
+writable by group or other, and the cache is refused with a ``disk`` warning. Memory and bundled are
+untouched, which is what makes failing closed here safe.
+
+**What this does not fix.** A process running as the same user can still write the cache, and that
+is inherent — it is our own uid. Only a signature makes a document *ours* rather than merely intact,
+and that is a key, a distribution mechanism and a format version.
+``docs/security/sdk-threat-model.md`` finding 3 carries the row.
+
+**``@41prompts/sdk`` does not have this check**, and that is a divergence in *security posture*
+rather than in naming — the one kind this project would rather not have. EPIC-057 ruling 11 has the
+four measurements: the check costs 290 bytes minified and ADR-006's 15 KB budget had 239 to spare.
+It is stated in ``sdks/python/README.md``'s divergence table rather than smoothed over.
 """
 
 from __future__ import annotations
@@ -41,7 +77,15 @@ from typing import Any, Mapping
 from ._types import SdkWarning, WarningHandler
 from ._verify import read_build
 
-__all__ = ["CACHE_DIR_NAME", "Entry", "default_cache_dir", "install_id", "read_from_disk", "write_to_disk"]
+__all__ = [
+    "CACHE_DIR_NAME",
+    "Entry",
+    "cache_dir_refusal",
+    "default_cache_dir",
+    "install_id",
+    "read_from_disk",
+    "write_to_disk",
+]
 
 # Conservative on purpose: a superset of the id format, and a subset of what a filename may be.
 _SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
@@ -51,6 +95,43 @@ CACHE_DIR_NAME = "41prompts-sdk"
 
 def default_cache_dir() -> str:
     return os.path.join(tempfile.gettempdir(), CACHE_DIR_NAME)
+
+
+# Owner only. Masked by the umask on creation and ignored entirely when the directory already
+# exists, which is the case that matters; ``cache_dir_refusal`` is the control.
+_OWNER_ONLY = 0o700
+
+
+def cache_dir_refusal(directory: str) -> str | None:
+    """Why this cache directory cannot be trusted, or ``None`` when it can (EPIC-057).
+
+    A sentence rather than a boolean, because a customer reading "writable by other users" can act
+    on it and "the cache was ignored" cannot be acted on at all. Python has no bundle budget to pay
+    for that, which is the one place this package is allowed to be more generous than its
+    TypeScript counterpart.
+
+    **Windows has no** ``os.getuid`` **and no POSIX mode bits**, so there is nothing to check and
+    the answer is ``None`` — a check that cannot run must not read as a check that passed, which is
+    why the module docstring names the platforms this covers.
+
+    A directory that is not there yet is fine: there is nothing in it to have been substituted, and
+    the ordinary read path already treats a missing file as a cold start.
+    """
+    getuid = getattr(os, "getuid", None)
+    if getuid is None:
+        return None
+
+    try:
+        stats = os.stat(directory)
+    except OSError:
+        return None
+
+    if stats.st_uid != getuid():
+        return f"the cache directory {directory} is owned by another user"
+    # Group or other write. Owner-write is the point of the directory.
+    if stats.st_mode & 0o022:
+        return f"the cache directory {directory} is writable by other users"
+    return None
 
 
 @dataclass(frozen=True)
@@ -89,6 +170,13 @@ def read_from_disk(directory: str, prompt_id: str, warn: WarningHandler) -> Entr
     """
     path = _file_for(directory, prompt_id)
     if path is None:
+        return None
+
+    # Before a byte is read. A document out of a directory somebody else can write is a document
+    # somebody else chose, and it will hash correctly because they hashed it. See the docstring.
+    refusal = cache_dir_refusal(directory)
+    if refusal is not None:
+        warn(SdkWarning("disk", f"{refusal}; the cache is being ignored", prompt_id))
         return None
 
     try:
@@ -146,7 +234,7 @@ def write_to_disk(directory: str, prompt_id: str, entry: Entry, build_text: str,
 
     temporary = f"{path}.{uuid.uuid4()}.tmp"
     try:
-        os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory, mode=_OWNER_ONLY, exist_ok=True)
         with open(temporary, "w", encoding="utf-8") as handle:
             handle.write(json.dumps(record))
         os.replace(temporary, path)
@@ -180,7 +268,7 @@ def install_id(directory: str) -> str | None:
 
     created = str(uuid.uuid4())
     try:
-        os.makedirs(directory, exist_ok=True)
+        os.makedirs(directory, mode=_OWNER_ONLY, exist_ok=True)
         with open(path, "w", encoding="utf-8") as handle:
             handle.write(created)
         return created
