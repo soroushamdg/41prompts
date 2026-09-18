@@ -1,3 +1,5 @@
+import publicRoutes from "./public-routes.json";
+
 /**
  * Every destination the site chrome links to, in one table.
  *
@@ -50,13 +52,39 @@ export interface NavLink extends SiteLink {
   readonly id: SiteNavCurrent;
 }
 
-/** The nav. Short on purpose: four destinations is the most a reader scans without reading. */
-export const NAV_LINKS: readonly NavLink[] = [
+/**
+ * The section links, which **collapse below 900px**.
+ *
+ * `41prompts-full-mockup.html` does exactly this — `.navlinks { display: none }` with
+ * `@media (min-width: 900px) { .navlinks { display: flex } }` — and the prototype is the spec for
+ * the interface, so this is its decision rather than a new one.
+ *
+ * It was also the only answer that survived measurement. With all four links inline the nav is
+ * **185px wider than a 390px viewport**, and because the nav is on every page that made *every*
+ * public page scroll sideways — including `/` and `/legal/privacy`, whose bodies this epic never
+ * touched. One defect, seven failing tests, two of them in suites belonging to other epics. Wrapping
+ * onto a second row was the alternative and is BUG-069, which was filed for exactly that.
+ *
+ * Nothing becomes unreachable: the footer carries every one of these at every width.
+ */
+export const NAV_SECTION_LINKS: readonly NavLink[] = [
   { id: "features", name: "Features", href: "/features" },
   { id: "delivery", name: "Delivery", href: "/delivery" },
-  { id: "docs", name: "Docs", href: "/docs" },
-  { id: "decompile", name: "Decompiler", href: "/decompile" }
+  { id: "docs", name: "Docs", href: "/docs" }
 ];
+
+/**
+ * The links that stay at every width, beside Sign in and the theme toggle.
+ *
+ * **Decompiler is here rather than above, and that is load-bearing.** EPIC-016's
+ * `landing.spec.ts` asserts a 44px `Decompiler` link in the nav *at 390px*; it is also the one page
+ * a phone reader is most likely to want, since it needs no account. The mockup keeps it out of
+ * `.navlinks` for the same reason.
+ */
+export const NAV_ALWAYS_LINKS: readonly NavLink[] = [{ id: "decompile", name: "Decompiler", href: "/decompile" }];
+
+/** Everything in the nav, for the tests and the walk. */
+export const NAV_LINKS: readonly NavLink[] = [...NAV_SECTION_LINKS, ...NAV_ALWAYS_LINKS];
 
 /** Pages that exist and do what they say. */
 export const PRODUCT_LINKS: readonly SiteLink[] = [
@@ -93,27 +121,27 @@ export const FOOTER_GROUPS: readonly SiteLinkGroup[] = [
 export const ALL_FOOTER_LINKS: readonly SiteLink[] = FOOTER_GROUPS.flatMap((group) => group.links);
 
 /**
- * Every public page, for the tests that walk them all.
+ * Every public page, and which of them are deliberately kept out of search.
  *
- * `/d/[id]` and `/waitlist/unsubscribe` are deliberately absent: both need a token in the path and
+ * **It is JSON rather than a TypeScript array, and that is the whole point.**
+ * `scripts/lighthouse-site.mjs` is plain Node with no transpiler in front of it — the same
+ * constraint that put `apps/web/e2e/env.mjs` where it is — so it cannot import a `.ts` file. A
+ * second copy of the list inside that script is a decision that lives here and goes stale silently:
+ * the page added next month would be missing from it and the run would report a clean pass over a
+ * site it had not fully seen. One file, four readers — this module, `app/sitemap.ts`,
+ * `routes-agree.test.ts` over `app/robots.ts`, and the Lighthouse script.
+ *
+ * **`notIndexed` is intent, and it is checked in both directions.** `robots.txt` has disallowed
+ * `/contact`, `/sign-in` and `/sign-up` since EPIC-015, because none of the three is a destination
+ * for a search result. Lighthouse scores that as an SEO failure — `is-crawlable`, weight 4 of 11 —
+ * so those three come in at 63 to 66 and the roadmap's "Lighthouse ≥ 90 all pages" cannot be met on
+ * them without indexing pages we deliberately do not index. Naming them here lets the Lighthouse
+ * run drop that **one** audit for **these** routes and keep every other SEO audit — and lets
+ * `routes-agree.test.ts` fail if a page ever becomes uncrawlable without being named.
+ *
+ * `/d/[id]` and `/waitlist/unsubscribe` are absent from both: each needs a token in the path and
  * neither is reachable from the chrome.
  */
-export const PUBLIC_ROUTES: readonly string[] = [
-  "/",
-  "/features",
-  "/delivery",
-  "/docs",
-  "/security",
-  "/changelog",
-  "/guides",
-  "/guides/what-your-prompt-does-not-check",
-  "/decompile",
-  "/contact",
-  "/sign-in",
-  "/sign-up",
-  "/legal/terms",
-  "/legal/privacy",
-  "/legal/security",
-  "/legal/sub-processors",
-  "/legal/third-party-notices"
-];
+export const INDEXED_ROUTES: readonly string[] = publicRoutes.indexed;
+export const NOT_INDEXED_ROUTES: readonly string[] = publicRoutes.notIndexed;
+export const PUBLIC_ROUTES: readonly string[] = [...publicRoutes.indexed, ...publicRoutes.notIndexed];

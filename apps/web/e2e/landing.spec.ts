@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { INDEXED_ROUTES, NOT_INDEXED_ROUTES } from "../lib/site/links";
 
 async function setTheme(page: Page, theme: "light" | "dark") {
   await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
@@ -379,22 +380,45 @@ test.describe("metadata", () => {
     expect(body).toMatch(/Sitemap: http/);
   });
 
-  test("sitemap.xml lists only pages that exist and are indexable", async ({ request }) => {
+  /**
+   * **Rewritten in EPIC-072, from a hand-written list to the served list against the route table.**
+   *
+   * It used to hold seven paths in a fixed order. That copy was correct until six pages shipped and
+   * then it was simply the old site written down — and it failed on the new sitemap rather than on
+   * anything being wrong, which is the least useful way for a test to go red. The property worth
+   * asserting is not "these seven": it is that **what is served equals what the site says it has**,
+   * and that nothing disallowed is advertised. `lib/site/routes-agree.test.ts` checks the same pair
+   * against the source; this checks the XML a crawler actually receives.
+   */
+  test("sitemap.xml lists exactly the indexed pages, and nothing disallowed", async ({ request }) => {
     const body = await (await request.get("/sitemap.xml")).text();
     const locs = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]!).pathname);
-    expect(locs).toEqual([
-      "/",
-      "/decompile",
-      "/guides/what-your-prompt-does-not-check",
-      // The legal pages joined the sitemap in EPIC-017, when they stopped being placeholders. A
-      // privacy policy a crawler cannot reach is not much of a policy.
-      "/legal/terms",
-      "/legal/privacy",
-      "/legal/sub-processors",
-      "/legal/security"
-    ]);
+    expect(locs.length).toBeGreaterThan(10);
+    expect([...locs].sort()).toEqual([...INDEXED_ROUTES].sort());
+    for (const route of NOT_INDEXED_ROUTES) expect(locs, `${route} is not indexed`).not.toContain(route);
     // Anything disallowed in robots.txt must not be advertised here.
     expect(body).not.toContain("/d/");
+  });
+
+  /**
+   * **The lines are parsed, not searched for as substrings**, and the first version of this was
+   * wrong in exactly that way: `expect(body).not.toContain("Disallow: /")` fails on a file
+   * containing `Disallow: /d/`, because one is a prefix of the other. It reported a defect in
+   * `robots.ts`, which was correct the whole time.
+   */
+  test("robots.txt disallows what the sitemap leaves out, and nothing it advertises", async ({ request }) => {
+    const body = await (await request.get("/robots.txt")).text();
+    const disallowed = new Set(
+      [...body.matchAll(/^Disallow:\s*(\S*)\s*$/gm)].map((match) => match[1] ?? "")
+    );
+    expect(disallowed.size).toBeGreaterThan(3);
+    for (const route of NOT_INDEXED_ROUTES) expect([...disallowed], `${route}`).toContain(route);
+    // The control: a page meant to be indexed must not be on a Disallow line of its own, and must
+    // not sit under a disallowed prefix either.
+    for (const route of INDEXED_ROUTES) {
+      const blocked = [...disallowed].some((prefix) => prefix !== "" && route.startsWith(prefix));
+      expect(blocked, `${route} is advertised in the sitemap and disallowed in robots.txt`).toBe(false);
+    }
   });
 
   /**

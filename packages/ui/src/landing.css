@@ -932,3 +932,22 @@ a.logo {
   gap: var(--spacing-s2);
   margin-top: var(--spacing-s3);
 }
+
+/* The nav's section links collapse below 900px, exactly as the mockup's `.navlinks` does.
+   Measured: with all four inline the nav is 185px wider than a 390px viewport, and because the nav
+   is on every public page that made every public page scroll sideways — including two whose bodies
+   EPIC-072 never touched. `apps/web/lib/site/links.ts` carries the argument. */
+.site-nav-links {
+  display: none;
+}
+@media (min-width: 900px) {
+  .site-nav-links {
+    display: contents;
+  }
+}
+
+/* A package name and version has no spaces in it, so a narrow column has nowhere to break. */
+.site-row-body .legal-list li,
+.site-row-key {
+  overflow-wrap: anywhere;
+}

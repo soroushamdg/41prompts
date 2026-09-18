@@ -30,9 +30,6 @@ export const metadata: Metadata = {
 export default function HomePage() {
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
       <SiteNavWithSession current="home" />
 
       <main id="main">

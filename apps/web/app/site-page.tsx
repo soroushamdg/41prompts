@@ -26,9 +26,6 @@ export interface SitePageProps {
 export function SitePage({ current, eyebrow, heading, lede, children }: SitePageProps) {
   return (
     <>
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
       <SiteNavWithSession current={current} />
 
       <main id="main">

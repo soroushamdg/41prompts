@@ -30,8 +30,12 @@ test.describe("every public page", () => {
       expect(response?.status(), `${route} did not answer 200`).toBe(200);
       await expect(page.locator("h1")).toHaveCount(1);
       await expect(page.locator("h1")).not.toBeEmpty();
-      await expect(page.locator('a.skip-link[href="#main"]')).toHaveCount(1);
       await expect(page.locator("main#main")).toHaveCount(1);
+      // The skip link comes from `SiteNav`, so it is on every page that has a nav to skip.
+      // `/sign-in` and `/sign-up` render no nav, and a skip link with nothing to skip is a
+      // focusable element that does nothing — they are exempt by that rule, not by name.
+      const navs = await page.locator("nav.site-nav").count();
+      await expect(page.locator('a.skip-link[href="#main"]')).toHaveCount(navs > 0 ? 1 : 0);
     });
   }
 });
@@ -60,6 +64,14 @@ test.describe("the chrome goes where it says", () => {
    * everything — which is exactly what a misconfigured catch-all does — so this proves the
    * instrument can report a 404.
    */
+  test("the skip link is on every page with a nav, and the control is a page without one", async ({ page }) => {
+    // The positive control on the rule above: if `SiteNav` stopped rendering it, this fails.
+    await page.goto("/legal/terms");
+    await expect(page.locator('a.skip-link[href="#main"]')).toHaveCount(1);
+    await page.goto("/sign-in");
+    await expect(page.locator("nav.site-nav")).toHaveCount(0);
+  });
+
   test("a route nobody built is a 404, so the two walks above mean something", async ({ request }) => {
     expect((await request.get("/pricing")).status()).toBe(404);
     expect((await request.get("/careers")).status()).toBe(404);
