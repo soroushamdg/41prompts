@@ -3,6 +3,8 @@
 An alias for [`fortyone-prompts`](../python). Installing it installs that; there is nothing else in
 here.
 
+## Three steps
+
 ```bash
 pip install 41prompts     # or: pip install fortyone-prompts
 ```
@@ -25,5 +27,7 @@ dependency.
 Apache-2.0. `sdks/python/README.md` is the documentation, including the divergence table against
 `@41prompts/sdk`.
 
-**Neither name is on PyPI yet.** Registering them needs an account (EPIC-006) and publishing needs
-the public repository (EPIC-056).
+**`41prompts` is registered on PyPI and `fortyone-prompts` is not yet**, which is the wrong way
+round for an alias — this package depends on the one that has no name reserved. Both are available
+and neither has been published; `github.com/41prompts/41prompts` exists as of 2026-09-18 and the
+publishing workflow is written.

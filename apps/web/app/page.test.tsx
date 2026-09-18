@@ -72,12 +72,24 @@ describe("/", () => {
  * in a report saying the check was made is worth exactly as much as the day it was written; this
  * fails the build the first time somebody pastes in a "trusted by" row.
  */
+/**
+ * Narrowed 2026-09-18, when EPIC-056 put "© 2026 41Prompts Inc." in the footer and this pattern
+ * read the product's own name as a count: `\d[\d,.]*` takes the "41" out of "41Prompts" and
+ * "Prompts" satisfies the alternation. The `\b` before the noun fixes it — a word boundary cannot
+ * fall between "1" and "P", both being word characters — and it is the whole of the change.
+ *
+ * Narrowing a pattern that exists to catch something is how a check quietly stops catching it, so
+ * the control below is not optional.
+ */
+const CUSTOMER_COUNT =
+  /\b\d[\d,.]*\s*(?:\+|k\b|m\b)?\s*\b(?:companies|teams|engineers|developers|users|customers|prompts)/i;
+
 describe("nothing on this page is a claim we cannot back", () => {
   it.each([
     ["trusted by", /trusted by/i],
     ["used by / loved by", /\b(?:used|loved|chosen) by\b/i],
     ["join N others", /\bjoin \d/i],
-    ["customer counts", /\b\d[\d,.]*\s*(?:\+|k\b|m\b)?\s*(?:companies|teams|engineers|developers|users|customers|prompts)/i],
+    ["customer counts", CUSTOMER_COUNT],
     ["testimonial furniture", /testimonial|—\s*[A-Z][a-z]+ [A-Z][a-z]+,\s*(?:CTO|CEO|VP|Head of)/],
     ["star ratings", /[★⭐]|\d(?:\.\d)?\s*\/\s*5\b/],
     ["fake urgency", /limited (?:beta|time|spots)|only \d+ (?:left|spots)|ends (?:today|soon)|countdown/i],
@@ -85,6 +97,32 @@ describe("nothing on this page is a claim we cannot back", () => {
   ])("carries no %s", (_label, pattern) => {
     expect(text).not.toMatch(pattern);
   });
+
+  /**
+   * The positive control (`CLAUDE.md`'s "every absence assertion needs a positive control").
+   *
+   * Everything above is `expect(text).not.toMatch(...)`, which passes when the page is clean and
+   * would also pass if the pattern had been narrowed into matching nothing at all. These are the
+   * strings it exists to refuse, and the strings it must go on ignoring.
+   */
+  it.each([
+    "Trusted by 1,200 teams",
+    "5k users and counting",
+    "40 companies ship with us",
+    "10,000+ prompts compiled",
+    "3 engineers, one afternoon",
+    "2m developers",
+    "500+ customers",
+  ])("would still catch %s", (claim) => {
+    expect(claim).toMatch(CUSTOMER_COUNT);
+  });
+
+  it.each(["© 2026 41Prompts Inc.", "41Prompts", "41P", "Paste a prompt"])(
+    "does not mistake %s for a count",
+    (notAClaim) => {
+      expect(notAClaim).not.toMatch(CUSTOMER_COUNT);
+    }
+  );
 
   it("shows no images, so there are no partner logos to be wrong about", () => {
     expect(html).not.toMatch(/<img\b/);
@@ -104,7 +142,8 @@ describe("nothing on this page is a claim we cannot back", () => {
       ["03", "step number"],
       ["41", "the product's name"],
       ["100", "the input cap in KB — MAX_INPUT_BYTES, enforced in code"],
-      ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"]
+      ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"],
+      ["2026", "the year in the footer's © line, which EPIC-056 added once there was a company to name"]
     ]);
     const numbers = text.match(/\d[\d.,]*/g) ?? [];
     for (const number of numbers) {

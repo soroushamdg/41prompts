@@ -3,6 +3,8 @@
 Resolve a published 41Prompts prompt at runtime, from Python. Import name `fortyone`.
 **Zero dependencies** — standard library only. Apache-2.0.
 
+## Three steps
+
 ```bash
 pip install fortyone-prompts
 ```

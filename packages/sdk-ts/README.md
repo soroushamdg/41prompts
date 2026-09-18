@@ -6,6 +6,8 @@ Resolve a published prompt at runtime, in Node.
 
 Zero dependencies. Apache-2.0. Node 20 or newer.
 
+## Three steps
+
 ```bash
 npm install @41prompts/sdk
 ```

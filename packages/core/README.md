@@ -3,6 +3,28 @@
 Pure TypeScript core of 41Prompts: the segmenter, classifier, clustering, detectors, compiler, checks,
 deterministic graders, and artifact schema. Zero dependencies, no DOM, no IO. Apache-2.0.
 
+## Three steps
+
+```bash
+npm install @41prompts/core
+```
+
+```ts
+import { segment, classify, cluster, detect } from "@41prompts/core";
+
+const bloks = cluster(segment(myPrompt).map((s) => ({ ...s, ...classify(s) })));
+```
+
+```ts
+const findings = detect(bloks, myPrompt);
+// -> rules with nothing checking them, contradictions, repetition, padding —
+//    each pointing at the exact span of text that causes it.
+```
+
+**No model is called and nothing leaves the process.** Segmentation and clustering are
+deterministic by design: the same text always cuts the same way, so a boundary is never something
+you have to re-run to reproduce.
+
 ## What is here today
 
 - **`segment(text)`** — cuts a prompt into segments with exact source offsets, deterministically.
@@ -26,5 +48,9 @@ deterministic graders, and artifact schema. Zero dependencies, no DOM, no IO. Ap
   data, and the root is the surface the SDK contract freezes.
 - **`applyBudgetIncrement()`** — the pure decision behind the per-run cost cap.
 
-The classifier, clustering, detectors, compiler, checks, graders and artifact schema land in the
-rest of Stage 1 and Stage 2.
+Also here, and used by `@41prompts/sdk` and `41p` rather than called directly very often: the
+per-blok compiler and its span cache, the check model and the deterministic graders, the variable
+contract, the version model, and the frozen v1 build format with its content address — a SHA-256
+written out in pure TypeScript, because this package may have no dependencies and no `node:crypto`.
+It is proved against the published FIPS 180-4 vectors. **It has not been reviewed by a
+cryptographer**, and `SECURITY.md` says so.

@@ -16,7 +16,7 @@ SPDX-License-Identifier: Apache-2.0
 41p decompile <file>           read a prompt file and say what is wrong with it
 ```
 
-## Getting started
+## Three steps
 
 ```
 export FORTYONE_API_KEY=41p_live_…      # Settings → API keys, shown once
@@ -111,5 +111,7 @@ goes back in the mapping one line later, where you can see it.
 
 ## Not published yet
 
-`github.com/41prompts/41prompts` does not exist yet, and every `prepublishOnly` in this repository
-refuses until it does.
+`github.com/41prompts/41prompts` exists as of 2026-09-18 and the publishing workflows are written,
+but nothing has been published. `@41prompts/cli` can be — the `@41prompts` scope is registered — and
+`41p` cannot yet, because the unscoped name has not been claimed. Every `prepublishOnly` in this
+repository still refuses outside the public repository, which is deliberate.
