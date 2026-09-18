@@ -7,8 +7,13 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Reporting a vulnerability
 
-Email **security@41prompts.ai**. Please do not open a public issue for a vulnerability, and please
+Email **privacy@41prompts.ai**. Please do not open a public issue for a vulnerability, and please
 do not disclose it publicly until we have had a chance to respond.
+
+That is the address `app.41prompts.ai/legal/security` already publishes, and it is deliberately the
+same one: two addresses for the same thing means a report reaches whichever the finder happened to
+read, and one of the two inboxes is watched less. A dedicated `security@` alias would read better
+and is not worth a second place for a report to go missing.
 
 Include what you need to include for us to reproduce it: the version or commit, the steps, and what
 you observed. If you have a proof of concept, send it — we would rather read it than guess at it.
@@ -17,7 +22,7 @@ you observed. If you have a proof of concept, send it — we would rather read i
 a plan within ten, and credit in the release notes if you want it. If we disagree with your severity
 we will say so and say why, rather than quietly filing it lower.
 
-**This is a small project.** There is no bounty programme and no dedicated security team. What there
+**This is a small project.** There is no bounty programme and no dedicated security team, and the address above is a routing rule rather than a team inbox. What there
 is: the reports are read by the people who wrote the code, and the threat models below are the ones
 we hold ourselves to.
 
