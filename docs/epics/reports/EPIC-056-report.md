@@ -91,7 +91,7 @@ anything in this epic.
 |---|---|---|
 | 1 | `04c798b` | green, 16/16, 10m59s — but started before two further changes landed, and `gates.mjs ci` tests a **commit**, so it is not evidence about the merged tree |
 | 2 | `2afe50c` | **FAILED**, `pnpm test`, 10m54s — see below |
-| 3 | the merge commit's parent | green, 16/16 — the one this merges on |
+| 3 | `7f8b67f` | **green, 16/16, 10m46s** — the one this merges on |
 
 **Run 2 failed on `apps/web/legal-entity.test.ts`, which this epic wrote, catching
 `docs/decisions/AUTONOMOUS.md`, which this epic also wrote.** Two assertions, one cause:
@@ -120,6 +120,20 @@ say what they say by quoting the string: `docs/decisions/AUTONOMOUS.md`, and the
 **Run 1 passed because the rulings had not been committed yet.** This is the second time in this
 epic that a check written here fired on something real before a human read it, and the first time it
 fired on me.
+
+### 3.1a The one commit after the green gate, and what it is answerable to
+
+EPIC-057's rule: a **docs-only** commit after a green gate records which gates it is answerable to
+and runs those; anything touching code gets a fresh run, not a table. The only commit after run 3 is
+this report's own run-3 row. It is docs-only — `git diff --stat` is one file under `docs/`.
+
+| gate | reads this change? | result |
+|---|---|---|
+| `pnpm test` | **yes, and this one is not optional here** — `apps/web/legal-entity.test.ts` walks every tracked file, `docs/` included, which is exactly how run 2 failed | re-run, 9/9 |
+| `pnpm binary-files` | yes — its roots include `docs/` | re-run, clean |
+| `reuse lint` | yes — every file needs licence information | re-run, compliant |
+| `pnpm forbidden-words` | no — its roots are `packages/ui/src`, `apps/web/app`, `apps/web/lib`, `packages/sdk-ts/src`, `packages/cli/src`, `sdks/python/fortyone` | not re-run |
+| lint, typecheck, e2e, pytest, boundaries, turbo boundaries, license-gate, mirror-dry-run | no — no source, no manifest, no lockfile, and `docs/` does not survive the mirror filter | not re-run |
 
 ### 3.2 `pnpm mirror-dry-run`, in more detail
 
