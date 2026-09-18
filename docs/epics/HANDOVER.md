@@ -33,7 +33,7 @@ proceeds without the gate's own word, exactly as GATE 3's did, and `GATE-5.md` s
 `decompile`, plus the unscoped `41p` wrapper. A developer can hold their prompt the way they hold the
 rest of their code.
 
-**EPIC-054 merged 2026-09-17.** `fortyone` is real: `resolve()` answers from memory, disk or what
+**EPIC-054 merged 2026-09-17** (`db96cfc`). `fortyone` is real: `resolve()` answers from memory, disk or what
 the deploy bundled, never waits for the network, never raises, and picks up a new published version
 in about thirty seconds. Zero dependencies. A real Python process resolving a prompt published two
 minutes earlier from the built app is the drive, 17 of 17. **Its PyPI publish was skipped, not
@@ -64,14 +64,20 @@ half version. **EPIC-057** is buildable except its external review hour, which n
 EPIC-054 hands it two findings already written down (point 4 above, and a 16 MiB cap on a response
 body that `@41prompts/sdk` does not have).
 
-**One thing about this machine, measured rather than guessed (2026-09-17).** Three `pnpm test` runs
-and two `gates.mjs ci` runs failed on **timeouts** — never assertions — in five different sets of
-tests, most of them in packages the epic did not touch. `sysctl hw.ncpu` is 8 and `uptime` reported
-load averages of 67 to 174 during the session. The largest single CPU consumer was `oahd-helper` at
-88%: **`/usr/local/bin/node` is a Mach-O x86_64 binary on an arm64 Mac**, so every Node process runs
-under Rosetta 2 translation. `docs/PROCESS.md` already names this as "the cheapest single change
-available to this number" and left it unmeasured; it is now measured, and it is the difference
-between a gate that is green and one that is red for reasons unrelated to the change under test.
+6. **The gate was starving itself, and the paragraph that used to sit here blamed the laptop.**
+   Three `gates.mjs ci` runs failed `pnpm test` on timeouts — never assertions — in packages the
+   epic never touched. Measured with `ps` during one run: **71 concurrent vitest processes and a
+   load average of 262, on 8 cores**, because nine packages each size a vitest fork pool to the host
+   while `turbo run` schedules ten tasks. `scripts/gates.mjs` budgets the total now, and the run got
+   **faster**: 16 processes, load 60, `pnpm test` 1m26s to 1m03s, `@41prompts/db` 52.6s to 17.8s,
+   `cli-generated-code.test.ts` 76.2s to 21.6s. Lessons 31 and 32 below.
+
+**Node here is still translated, and that is now a second-order effect (2026-09-17).**
+`/usr/local/bin/node` is a Mach-O **x86_64** binary on an **arm64** Mac — `oahd-helper`, Rosetta 2's
+daemon, was the largest single CPU consumer during a gate run at 88%. `docs/PROCESS.md` has called a
+native arm64 Node "the cheapest single change available to this number" since 2026-09-14 and it is
+still unmeasured. It is worth doing and it is **not** what was failing the gates; installing a
+toolchain is Soroush's machine, not this repository's.
 
 **What EPIC-053 settled**, so it is not rediscovered:
 
@@ -173,12 +179,12 @@ Measured 2026-09-17 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `06ec30c` | EPIC-053, merged 2026-09-17 |
-| `origin/main` / staging | `da42eee` | **69 behind** — still EPIC-040's epic file and GATE 3's decision |
-| production | `af089c7` = `v0.5.0` | 151 commits behind; only a `v*` tag moves it |
+| local `main` | `7710bab` | EPIC-054, merged 2026-09-17 as `db96cfc` |
+| `origin/main` / staging | `da42eee` | **81 behind** — still EPIC-040's epic file and GATE 3's decision |
+| production | `af089c7` = `v0.5.0` | 164 commits behind; only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055 or 053**, and no
-staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053 or 054**,
+and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
 `"commit":"unknown"`. The proof that the server you are about to drive is the build you just made is
@@ -186,9 +192,9 @@ staging URL is evidence about any of them. Check `/healthz`'s `commit` before qu
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
 **A release is due, and more so than last time.** `docs/AUTONOMOUS.md` stops the loop after every
-third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055 and 053 are **nine**.
-`RELEASE-DUE.md` was regenerated at EPIC-053's merge and is current: **151 commits**, and `v0.6.0` is
-the next tag. Nothing is tagged or pushed by an agent.
+third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053 and 054 are **ten**.
+`RELEASE-DUE.md` was regenerated at EPIC-054's merge and is current: **163 commits, 816 files**, and
+`v0.6.0` is the next tag. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
 
@@ -203,7 +209,7 @@ the next tag. Nothing is tagged or pushed by an agent.
 - **The browser drive is a Definition-of-Done item**, against the **built** app — `turbo run build`,
   then `next start`. Never `pnpm dev`.
 
-## Twenty-five things recent epics cost, worth not relearning
+## Thirty-two things recent epics cost, worth not relearning
 
 1. **A helper that normalises state hides the defect from every test that uses it.** `PROCESS.md`
    has the rule and the three instances.
@@ -348,6 +354,20 @@ the next tag. Nothing is tagged or pushed by an agent.
 30. **Read the server log, not only the test output.** Three CI-mode runs failed e2e on a different
     test each time, each looking like a timeout. The cause was one sentence nothing in the test
     output carried: `duplicate key value violates unique constraint "projects_pkey"`.
+
+31. **Nine packages each sized a vitest fork pool to the machine, and turbo ran ten at once.**
+    Measured during one `pnpm test`: **71 concurrent processes and a load average of 262 on 8
+    cores.** Every unexplained `Test timed out in 5000ms` in this repository was that, plus a
+    sixty-second `onTaskUpdate` RPC in a package reporting 581 of 581 passed. Three CI-gate runs
+    were lost to it while it was being called a busy laptop. `scripts/gates.mjs` budgets the total
+    now — `--concurrency` and `VITEST_MAX_FORKS`, both from `availableParallelism()` — and the run
+    got **faster**. **Before blaming the host, count the processes.**
+
+32. **`turbo.json` declaring `globalPassThroughEnv` puts turbo in strict environment mode**, so a
+    task sees only the names on that list. An environment variable set anywhere else and not
+    declared there is silently filtered out one process later. The gate would have printed `4 x 2`
+    and spawned 71. `apps/web/gates-parallelism.test.ts` pins the two files together and was proved
+    to fire; any new knob needs the same two edits.
 
 ## Gates and the local loop
 
