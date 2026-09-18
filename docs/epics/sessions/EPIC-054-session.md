@@ -138,6 +138,36 @@ The first `gates.mjs ci` run was **2 of 16 failed**, and only one of them was th
   the worker's RPC to the reporter, not a test. `cli-generated-code.test.ts` took 66.5 s in that run
   against ~23 s locally.
 
+### The oversubscription was the cause, and it took four runs to stop calling it the weather
+
+The paragraph above was written mid-epic and its last sentence — "that is host oversubscription,
+named, with the measurement" — was right about the words and wrong about the subject. It read as a
+statement about the *host*: a busy laptop, a Node running under Rosetta. Both true, neither the
+cause.
+
+Run 3 failed `pnpm test` again — `canvas.test.ts` at 5,380 ms against a 5,000 ms default, and
+`apps/web` reporting **581 of 581 tests passed** and failing anyway on a sixty-second
+`onTaskUpdate` RPC. Fifteen of sixteen steps were green, `pnpm e2e` included. Rather than run it a
+fourth time and hope, the thing was probed: one `pnpm test`, `ps` sampled every four seconds.
+
+**71 concurrent vitest processes. A one-minute load average of 262. Eight cores.**
+
+Nine packages, each sizing a vitest fork pool to the machine, and `turbo run` scheduling ten tasks
+at once. The run was the busy machine. `scripts/gates.mjs` now budgets the total — turbo's
+`--concurrency` and vitest's `VITEST_MAX_FORKS`, both from `availableParallelism()`. After: 16
+processes, load 60, nine of nine packages passing, and the run **faster** (1m26s to 1m03s).
+
+**The trap on the way was worth the twenty minutes it took to notice.** `turbo.json` declares
+`globalPassThroughEnv`, and declaring one puts turbo in strict environment mode: a task sees only
+the names on that list. `VITEST_MAX_FORKS` set in `gates.mjs` and not declared there would have
+been filtered out one process later, and the gate would have printed a number it was not
+achieving — this epic's own §4.1 defect, in the tool that checks for defects. It is declared, and
+the gate prints what it chose so the claim can be checked against `ps`.
+
+One suite was changed and it is not a concession: `canvas.test.ts`'s rebalance makes ~440 real
+round trips to Postgres, so vitest's 5,000 ms default was measuring the database's latency rather
+than the rebalance. Its own budget is 60 s, which still fails a rebalance that never fires.
+
 `pnpm mirror-dry-run` passed, which was the structural risk of this epic: the Python suite reads
 `packages/core`'s frozen fixtures, `packages/sdk-ts`'s source and `packages/cli`'s golden by relative
 path, and all three survive the public-only filter. **274 tests passed inside the filtered tree.**

@@ -430,6 +430,12 @@ ships no module of its own, and builds. `packages/cli-unscoped` is the precedent
 3. **`▣ GATE 3`'s status cell still reads `—`** and `scripts/pick-next-epic.mjs` stops on it, so the
    picker could not hand me this epic. One word (`—` → `go`) unsticks it and only you may write it.
    This is the third report to say so.
+4. **A native arm64 Node is yours to install, and it is now the only part of section 7.1 left
+   open.** `/usr/local/bin/node` is an x86_64 build on an arm64 Mac, so every Node process in this
+   repository runs translated. `docs/PROCESS.md` has called this "the cheapest single change
+   available to this number" since 2026-09-14 and it is still unmeasured. The oversubscription that
+   was actually failing the gates is fixed; this is the remaining multiplier, and installing a
+   toolchain on your machine is not a change this repository can make for you.
 
 ---
 
