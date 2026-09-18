@@ -133,7 +133,25 @@ CI mode — every gate CI runs, every result
   16 step(s), all passed, 10m49s wall
 ```
 
-**Two of those are worth naming rather than scanning past.**
+**And one commit landed after that run: `1a642fd`, which is this paragraph.** It changes exactly one
+file, `docs/epics/reports/EPIC-057-report.md`. Rather than a third eleven-minute run, `PROCESS.md`'s
+own test was applied — *ask what the gate would have checked* — and the gates that actually read a
+markdown file under `docs/` were run on the head instead:
+
+| gate | reads `docs/*.md`? | result on the head |
+|---|---|---|
+| `pnpm binary-files` | **yes**, and it is the gate that found two NULs in committed documents | exit **0**, 1055 files in full |
+| `reuse lint` | **yes** — every file needs copyright and licence | exit **0**, 1226 / 1226 |
+| `pnpm test` | only through `sdk-threat-model.test.ts`, which reads `docs/security/…` and not this file — run anyway, because EPIC-050's lesson 15 is a docs-only commit going red in another package's tests | exit **0**, 9/9 |
+| `pnpm forbidden-words` | **no** — its roots are five source trees and `sdks/python/fortyone`, and its extensions are `.ts`, `.tsx`, `.py` | not applicable |
+| `pnpm lint`, `typecheck`, `e2e`, `mirror-dry-run`, `license-gate`, `boundaries` | **no** — no source, no manifest, no lockfile, and the mirror does not contain `docs/` | not applicable |
+
+Stated rather than assumed, because *"the question is whether the gate would have told you something,
+not whether it ran"* cuts both ways: it is only an argument if the answer is written down. **The merge
+is on `7766ae22`'s green plus this table.** Anything touching code after a green gate gets a fresh
+run, not a table.
+
+**Two of the sixteen are worth naming rather than scanning past.**
 
 `pnpm mirror-dry-run` **passed**, which is the gate that would have caught this epic's most likely
 structural mistake: `PROCESS.md`'s *"Local green is not CI green"* failure #1 is a test in a public
