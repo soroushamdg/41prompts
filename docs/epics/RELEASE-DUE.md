@@ -4,22 +4,29 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-18T14:43:45.903Z.
+Generated 2026-09-18T20:12:40.631Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `7de3c9a3da9b9370051912a144bde6c53d53c9a6` | this checkout |
+| `main` | `637a669eda19e2ad498c97014d391a6b86ada9ed` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-191 commits · 1005 files changed, 115026 insertions(+), 960 deletions(-)
+198 commits · 1044 files changed, 122347 insertions(+), 1018 deletions(-)
 
+- 637a669 Merge EPIC-072: the marketing site says what the product does, and a test keeps it honest
+- d539ad6 docs(epic-072): the report, the session log, eight rulings — and the two things the drive changed
+- 5a8dffa fix(072): the two landing baselines the chrome moved, regenerated on Linux
+- 0bcc19d fix(072): the nav overflowed every page by 185px, and the sitemap never heard of the new ones
+- e7baef4 feat(072): six pages the repository can back, and a registry that says so
+- 8ebf28b docs(epic-072): the epic file and the plan — six pages, five refused, and a claims registry
+- 576fb1f docs: EPIC-056 is done, the handover, and RELEASE-DUE regenerated
 - 7de3c9a Merge EPIC-056: the open-source split — a public repository that is real, and a copyright line that names somebody
 - bf0f589 docs(epic-056): the three gate runs, and which gates this docs-only commit answers to
 - 7f8b67f fix(056): the header check matched prose about a header, and the gate caught it

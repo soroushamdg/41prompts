@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Handover
 
-Where things stand as of **2026-09-18, after EPIC-056**, for whoever picks this up — person or
+Where things stand as of **2026-09-18, after EPIC-072**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,22 +16,69 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**Stage 5b is COMPLETE. EPIC-056 merged on 2026-09-18 and it was the last row in the stage.**
+**EPIC-072 merged on 2026-09-18 (`637a669`) and Stage 6 has begun.** The marketing site has the
+pages the nav promises: `/features`, `/delivery`, `/docs`, `/security`, `/changelog`, `/guides` and
+`/legal/third-party-notices`.
 
-**EPIC-056 was the row `GATE-5.md` called "Not buildable", and it became buildable that morning.**
-Soroush reported that the GitHub org, the npm and PyPI accounts and the IP assignment are all
-done — the exact three things that entry named — so the epic was built instead of blockered.
-`41Prompts Inc.` is now the copyright holder in every licence header, `LICENSE` and `NOTICE`, the
-footer carries its `©` line, and the public tree extracts, installs, tests and licence-lints
-standalone with all six distributions. **Nothing is published and the repository has not been
-created**: `docs/epics/reports/EPIC-056-report.md` §8 lists seven steps that need a person, none of
-them ticked. Two package names — npm `41p` and PyPI `fortyone-prompts` — are **available and
+**The thing to know before touching any page copy**: `apps/web/lib/site/claims.ts` holds every
+marketing sentence as data, each naming the epic that shipped it and a path to the evidence, and
+three tests bind it. A page may only render a sentence that is in the registry; a claim may only
+name an epic that has a report in `docs/epics/reports/`; and `changelog.test.ts` walks those reports
+in **both** directions, so an epic that ships user-visible work and is not mentioned fails the
+build. If you want new copy and cannot name the epic that shipped it, that is the test telling you
+something.
+
+**Five of the mockup's site pages are deliberately not built**, each with its reason in
+`docs/epics/EPIC-072-marketing-site-final.md`'s Out of scope: `/pricing` (needs EPIC-070 — no
+checkout, no metering, and the roadmap marks its prices unvalidated), `/learn` (Stage 7), `/blog`
+(EPIC-073 owns real content), **`/about`** and **`/careers`** — the last two need facts only Soroush
+has, and `/about`'s mockup names a second co-founder. Do not build them from the mockup.
+
+**What is next.** Stage 6's remaining rows are **EPIC-070** (Stripe — needs an account),
+**EPIC-071** (`deferred`, lawyer) and **EPIC-073** (depends on EPIC-035, which GATE 3 deferred). So
+the next buildable row is not in Stage 6: it is **Stage 7's EPIC-064** (a paper-prototype study,
+which needs two recruited people) or **EPIC-060**, the lesson engine, which depends on it. There is
+also unscheduled Stage 0 debt — **EPIC-006d**, staging and production sharing one R2 backup prefix,
+which is a real isolation defect and is scoped in the backlog. **Nothing in Stage 6 or 7 has an epic
+file**, so `pick-next-epic.mjs` would stop on the first `todo` row without one even if the gate cells
+were fixed.
+
+**`pick-next-epic.mjs` still stops on `▣ GATE 3`.** Both gates are decided — `GATE-3.md` Go on
+2026-09-16, `GATE-5.md` Go on 2026-09-17 — and every epic behind both has shipped. The picker reads
+the **status cell**, which still says `—` in `docs/backlog.md`. One word in each unsticks it and
+both are Soroush's; `GATE-5.md`'s closing section is titled "One thing this decision cannot do for
+itself".
+
+**What EPIC-072 settled**, so it is not rediscovered:
+
+1. **`apps/web/lib/site/public-routes.json` is the route table.** `links.ts`, `app/sitemap.ts`, the
+   Lighthouse runner and `lib/site/routes-agree.test.ts` all read it, and that test fails if any of
+   them grows its own copy. It exists because `sitemap.ts` had a hand-written list and simply did not
+   mention six live pages — linked from the nav and invisible to a crawler that starts there.
+2. **The nav's section links collapse below 900px**, as `41prompts-full-mockup.html`'s `.navlinks`
+   does. With all four inline the nav is **185px wider than a 390px viewport**, and since the nav is
+   on every page that made *every* public page scroll sideways — 17 e2e failures across three spec
+   files, two of them belonging to other epics. Wrapping to a second row is BUG-069. Decompiler stays
+   inline because `landing.spec.ts` asserts a 44px Decompiler link at 390px.
+3. **The skip link lives in `SiteNav`**, not in each page. It was on two public pages out of eight.
+   `/sign-in` and `/sign-up` render no nav and correctly still have none.
+4. **Lighthouse is run by hand**, `scripts/lighthouse-site.mjs` against the built app, never from
+   `gates.mjs` — a server, a browser and minutes, which is PROCESS.md's measured argument about the
+   e2e container. Read `$?`, not the table. Its `is-crawlable` adjustment for `/contact`, `/sign-in`
+   and `/sign-up` is **checked in both directions**; do not make it one-way, or a page silently
+   dropping out of search becomes invisible.
+5. **A spelled-out count is a claim the digit guard cannot see.** "Twelve things this does today"
+   went stale inside one session. Prefer a lede with no number in it.
+6. **`scripts/forbidden-words.mjs` exempts a string that resolves to a real path** in this
+   repository — the filesystem, not a pattern, because a pattern is satisfiable by prose. Four
+   controls, including "the artifact/schema is frozen".
+
+**Stage 5b closed with EPIC-056 on 2026-09-18.** `41Prompts Inc.` is the copyright holder in every
+licence header, `LICENSE` and `NOTICE`, and the public tree extracts, installs, tests and
+licence-lints standalone with all six distributions. **Nothing is published and the repository has
+not been created**: `docs/epics/reports/EPIC-056-report.md` §8 lists seven steps that need a person,
+none ticked. Two package names — npm `41p` and PyPI `fortyone-prompts` — are **available and
 unregistered**, which is EPIC-057's row `057b` and the one finding in this project that expires.
-
-**The next row is Stage 6, and nothing in it has an epic file.** EPIC-070 (Stripe) needs an account;
-EPIC-072 (marketing site final) depends on 016 and 055, both done, and is buildable. EPIC-071 is
-`deferred`. `pick-next-epic.mjs` will still stop on `▣ GATE 3` before reaching any of them — see
-below, it is one word in a cell and it is yours.
 
 `docs/decisions/GATE-5.md` records Soroush's ruling of 2026-09-17: the **technical** reading. The row
 is titled *Demand check* and its criteria are two demand numbers the same document marks *not
@@ -116,12 +163,12 @@ found are closed in code. `/v1` is rate limited where it had no limit at all.
    somebody else's access log. **An input for EPIC-057.**
 5. **`py.typed`, no `.pyi`** (ruling 1), and `mypy --strict` over the package and its suite.
 
-**EPIC-056 is not reachable.** `GATE-5.md` has the table: it needs `github.com/41prompts/41prompts`
-(EPIC-006, deferred), npm and PyPI trusted publishing (same), and an IP assignment to a legal entity
-that does not yet exist (EPIC-071, deferred). A run that reaches it writes a `BLOCKER` rather than a
-half version. **EPIC-057** is buildable except its external review hour, which needs a person — and
-EPIC-054 hands it two findings already written down (point 4 above, and a 16 MiB cap on a response
-body that `@41prompts/sdk` does not have).
+~~**EPIC-056 is not reachable.**~~ **Superseded: it shipped on 2026-09-18.** `GATE-5.md` recorded it
+as needing `github.com/41prompts/41prompts`, npm and PyPI trusted publishing, and an IP assignment to
+a legal entity that did not exist — and Soroush reported all three done that morning. Kept struck
+through rather than deleted, because the paragraph below it is still live and because a reader
+arriving at `GATE-5.md`'s table should be able to see which row moved. **EPIC-057**'s external review
+hour still needs a person and is still not ticked.
 
 6. **The gate was starving itself, and the paragraph that used to sit here blamed the laptop.**
    Three `gates.mjs ci` runs failed `pnpm test` on timeouts — never assertions — in packages the
@@ -198,7 +245,7 @@ only its own epic's status cell.
 | **Stage 5a** | **done.** 050 ✅ (artifact frozen, ADR-005) · 051 ✅ (publish, the gate, the store, `/v1`) · 052 ✅ (`@41prompts/sdk`, ADR-006) · 055 ✅ (Deploy, Connect, keys, the publish flow). |
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
 | **Stage 5b** | **done, 2026-09-18.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · 056 ✅ (the split, the holder named, the mirror real — **but nothing published**, report §8). |
-| **Stage 6** | **not started, and no row has an epic file.** 070 Stripe (needs an account) · 071 `deferred` (lawyer) · 072 marketing site final (**buildable** — depends on 016 and 055, both done) · 073 launch 2 (depends on 035, which GATE 3 deferred). |
+| **Stage 6** | **started.** 072 ✅ (the site's six pages and the claims registry; **five mockup pages deliberately refused**, report §8) · 070 Stripe (needs an account) · 071 `deferred` (lawyer) · 073 launch 2 (depends on 035, which GATE 3 deferred). No remaining row has an epic file. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.
@@ -235,6 +282,8 @@ the fallback labels itself `normalised: true`.
 | **EPIC-042's six open questions**, report §11. The three above change what gets built next. | Soroush |
 | **`privacy@41prompts.ai` must exist.** Both legal pages name it. A Cloudflare routing rule, not code. | Soroush |
 | **EPIC-006b/c/d** — Stage 0 debt, all unscheduled: the ~25s deploy gap, the public Coolify hostname, staging and production sharing one R2 prefix. | unscheduled |
+| **`/about` and `/careers` are not built.** Both need facts only he has — whether there is a second founder and what their role is, and whether he is hiring. The mockup names *Rambod Azimi, Co-founder, Engineering* and a founding year of 2025; none of that is on a page. EPIC-072 report §11. | Soroush |
+| **`/pricing` is not built.** $29/$79 are marked unvalidated and EPIC-005, which would have validated them, is cut. The page belongs in EPIC-070, which needs a Stripe account. | Soroush |
 | **EPIC-006, EPIC-090, EPIC-071** — `deferred`, each waiting on something only Soroush can do. | Soroush |
 
 ## Where the code is
@@ -243,22 +292,22 @@ Measured 2026-09-18 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `7de3c9a` | EPIC-056, merged 2026-09-18 |
-| `origin/main` / staging | `da42eee` | **108 behind** — still EPIC-040's epic file and GATE 3's decision |
+| local `main` | `637a669` | EPIC-072, merged 2026-09-18 |
+| `origin/main` / staging | `da42eee` | **115 behind** — still EPIC-040's epic file and GATE 3's decision |
 | production | `af089c7` = `v0.5.0` | only a `v*` tag moves it |
 
-**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057
-or 056**, and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
+**So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057,
+056 or 072**, and no staging URL is evidence about any of them. Check `/healthz`'s `commit` before quoting one.
 
 **`/healthz` cannot identify a locally built app either** — with no `COMMIT_SHA` it answers
 `"commit":"unknown"`. The proof that the server you are about to drive is the build you just made is
 `apps/web/.next/BUILD_ID`, which appears verbatim in the HTML the server returns. EPIC-052's drive
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
-**A release is due, and more so than last time.** `docs/AUTONOMOUS.md` stops the loop after every
-third completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053, 054 and 057 are **eleven**.
-`RELEASE-DUE.md` was regenerated at EPIC-057's merge and is current: **178 commits, 834 files**, and
-`v0.6.0` is the next tag. Nothing is tagged or pushed by an agent.
+**A release is due, and more so again.** `docs/AUTONOMOUS.md` stops the loop after every third
+completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057, 056 and 072 are
+**thirteen**. `RELEASE-DUE.md` was regenerated at EPIC-072's merge: **198 commits** ahead of
+production, which is still `af089c7` = `v0.5.0`. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
 
