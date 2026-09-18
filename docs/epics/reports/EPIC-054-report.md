@@ -58,7 +58,7 @@ EPIC-053 already wrote the file that calls it.
 | C14 | `sdks/python/fortyone` in the forbidden-word roots, gate proved to fire | `apps/web/forbidden-words.test.ts` — eight new cases; it fired on three strings immediately, §4.4 |
 | C15 | `41p pull --lang python` prints the install line | `packages/cli/src/commands/pull.test.ts`, with the assertion that the old sentence is gone |
 | C16 | The divergence table is complete | `tests/test_divergence.py` — names read out of `packages/sdk-ts`'s own source, **both directions**, with two controls; it found a missing row |
-| C17 | `pnpm test`, `typecheck`, `lint` green; `gates.mjs ci` green on the commit | §7 |
+| C17 | `pnpm test`, `typecheck`, `lint` green; `gates.mjs ci` green on the commit | §7 — 9/9, 9/9, 12/12 locally, and **16 of 16 steps green on `af8a1ec`**, 13m20s. It took four runs and §7.1 is why |
 | C18 | The drive | §5 — 17/17 |
 
 **Eighteen ticked. One task from the roadmap's line is skipped rather than ticked: PyPI trusted
@@ -254,6 +254,22 @@ Then it leaves the browser and runs a **real Python interpreter**, and that is t
 Screenshots, the generated file and the whole terminal transcript are in
 `docs/epics/reports/screenshots/EPIC-054/`.
 
+**The drive covers the tree that is merged, and that was checked rather than assumed.** Three
+commits landed after the drive's last round, and `git diff --stat 27c461e..HEAD -- apps packages
+sdks` names every source file they touch:
+
+```
+apps/web/e2e/connect.spec.ts       |  6 ++-
+apps/web/forbidden-words.test.ts   | 33 ++++++++++++--
+apps/web/gates-parallelism.test.ts | 88 ++++++++++++++++++++++++++++++++++++++
+packages/db/src/canvas.test.ts     | 11 ++++-
+```
+
+Four files, all of them tests. No route, no component, no stylesheet, nothing in `packages/core`,
+`packages/sdk-ts`, `packages/cli` or `sdks/python`. `docs/PROCESS.md`'s third stop — *"merging would
+land something you have not driven in a browser"* — is therefore not reached, and this paragraph
+exists so that a reader does not have to take that on trust.
+
 **Two rounds.** The first was 11/16 and produced §4.1. The second was 15/16 and produced the
 cold-start pair above. The Connect screenshot was retaken after a rebuild, because the first one was
 the build made **before** the snippet was corrected and still showed the old line — which is lesson
@@ -375,7 +391,72 @@ assertion: the `canvas.test.ts` rebalance at 5,380 ms, and `apps/web`'s `onTaskU
 
 ### 7.3 The table
 
-*(run 4's table goes here)*
+**Run 4, green, on `af8a1ec` — the commit that is merged.** 13m20s wall.
+
+```
+  checkout
+    git clone + checkout af8a1ec9       PASS        0m03s
+  ci.yml
+    pnpm install --frozen-lockfile      PASS        0m08s
+    pnpm lint                           PASS        0m34s
+    pnpm typecheck                      PASS        1m38s
+    pnpm db:migrate                     PASS        0m03s
+    pnpm test                           PASS        1m12s
+    playwright install chromium         PASS        0m02s
+    pnpm e2e                            PASS        7m25s    4 test(s) skipped on darwin
+    uv run pytest -q (sdks/python)      PASS        0m34s
+  compliance.yml
+    reuse lint                          PASS        0m04s
+    pnpm boundaries                     PASS        0m07s
+    turbo boundaries                    PASS        0m01s
+    pnpm forbidden-words                PASS        0m01s
+    pnpm binary-files                   PASS        0m01s
+    license-gate --sbom                 PASS        0m03s
+    pnpm mirror-dry-run                 PASS        1m23s
+
+  16 step(s), all passed, 13m20s wall
+```
+
+**`pnpm test` in that run: 9 checked, 9 passed**, and it is worth reading beside run 3's numbers
+because the same commits are being tested with one knob different:
+
+| | run 3 | run 4 |
+|---|---|---|
+| `pnpm test` | **FAIL**, 7 of 9 packages | **PASS**, 9 of 9, 1m12s |
+| `@41prompts/db` | 52.62s, one test timed out at 5,380 ms | **17.76s**, 188 of 188 |
+| `@41prompts/web` | 94.05s, 581 passed and a 60 s RPC timeout | **586 passed** (the five new guard tests included) |
+| `cli-generated-code.test.ts` | 76,206 ms | **21,570 ms** |
+| the TypeScript golden compile inside it | 43,562 ms | **4,604 ms** |
+
+`pnpm mirror-dry-run` passed, which was this epic's structural risk: the Python suite reads
+`packages/core`'s frozen fixtures, `packages/sdk-ts`'s source and `packages/cli`'s golden by
+relative path, and all three survive the public-only filter — **274 tests pass inside the filtered
+tree**. That is `docs/PROCESS.md`'s "Local green is not CI green" failure #1 checked deliberately
+rather than met later.
+
+**Local, in this working tree, every package reporting** — `docs/PROCESS.md`, "Paste the summary,
+not the adjective":
+
+```
+test — 9 checked, 9 passed        (41p, cli, core, db, logger, sdk, ui, web, worker)
+typecheck — 9 checked, 9 passed
+lint — 12 checked, 12 passed      (9 packages + dependency-cruiser, turbo boundaries, forbidden words)
+```
+
+### 7.4 What the green does not cover, which the run prints itself
+
+The gate ends with this block every time and `docs/PROCESS.md` says it is part of the result rather
+than a footer. Two items, both unchanged by anything in this epic:
+
+1. **The runner is Linux and this is darwin.** The four visual-regression baselines are `-linux.png`
+   and their specs skip here — named individually by `apps/web/e2e/skip-reporter.ts` at the end of
+   the run, which says in as many words that the layout gate did not execute. A layout change can
+   pass this run and fail CI (2026-09-14, CI #206).
+2. **The runner is slower than this machine.** A test that only fails under load passes here for the
+   same reason it passed before (CI #209).
+
+And **since 2026-09-15 nothing catches them afterwards**, because nothing is pushed. Section 9 has
+the rest of what this epic never proved.
 
 ---
 

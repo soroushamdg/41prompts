@@ -188,6 +188,25 @@ later.
 
 ---
 
+## The verification tail
+
+`node scripts/gates.mjs ci` on `af8a1ec`, the commit that is merged — **16 of 16 steps, exit 0,
+13m20s**. Four runs were needed and the report's section 7 says why each of the first three was red.
+
+```
+  16 step(s), all passed, 13m20s wall
+
+  What a green here still does not cover
+    - The runner is Linux and this is darwin: the four visual-regression baselines are
+      `-linux.png` and their specs skip here.
+    - The runner is slower than this machine.
+```
+
+Locally, every package reporting: `test` 9 of 9, `typecheck` 9 of 9, `lint` 12 of 12.
+`sdks/python`: 274 pytest cases, and 274 again inside the mirror dry run's filtered tree.
+
+---
+
 ## For the next session
 
 **EPIC-057 is next** — the SDK threat model — and it is buildable except its one external review
