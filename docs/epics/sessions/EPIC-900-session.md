@@ -98,7 +98,19 @@ npx tsx scripts/drive-epic-900.mts
 ```
 
 A second `gates.mjs ci` run covers the docs commit that carries the report, because it also touches
-`apps/web/lib/site/changelog.ts`, which is application code. Its result is appended below at merge.
+`apps/web/lib/site/changelog.ts`, which is application code:
+
+```
+node scripts/gates.mjs ci --allow-dirty        # commit 7f554b6
+  17 step(s), all passed, 13m29s wall
+  · pnpm e2e  PASS  7m16s  4 test(s) skipped on darwin
+  · pnpm dead-code  PASS  0m01s
+  --allow-dirty: 1 uncommitted file(s) were NOT part of this run.   [app-icon.jpg]
+```
+
+Both runs print the same three uncovered things, and the first — darwin skipping the four `-linux`
+visual baselines — is the one that matters most this epic, because React and Next both moved. The
+report says so rather than implying the green covered it.
 
 ## Open questions
 
