@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2026 41Prompts Inc.
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
 # EPIC-041 report — the Versions page: history, semantic diff, restore, A/B

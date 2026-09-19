@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-FileCopyrightText: 2026 41Prompts Inc.
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 #
 # Committed in the repo and wired up by `pnpm hooks:install` (which `pnpm install` runs for you).
 # The logic is in Node, matching every other check in `scripts/`; this is the shim git calls.

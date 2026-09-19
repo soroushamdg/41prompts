@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 41Prompts Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 /**
  * Point git at the repo's committed hooks.

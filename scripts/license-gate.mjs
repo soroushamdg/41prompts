@@ -9,6 +9,16 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 
+// The pure half of the proprietary boundary, in its own module so it can be tested without
+// running this gate. See that file's header for why the SPDX tags in it are built from fragments.
+import {
+  HEADER_EXEMPT,
+  PROPRIETARY_SPDX,
+  apacheDeclarations,
+  boundaryFiles,
+  proprietaryGlobs,
+} from "./license-boundary.mjs";
+
 // Every npm distribution that is actually published — `publishConfig.access: "public"` in its
 // own manifest. These are pnpm FILTER names, so they must be package names and not directory
 // names: from EPIC-007 until EPIC-056 this list said "@41prompts/sdk-ts", which is the directory
@@ -23,7 +33,28 @@ const PUBLIC_PACKAGES = ["@41prompts/core", "@41prompts/cli", "@41prompts/sdk", 
 // Permissive-only (decision 4's exact list). Pnpm reports the SPDX identifier as declared in
 // each package's own package.json `license` field, which is why both hyphen styles for BSD show
 // up in practice.
-const ALLOWED_LICENSES = new Set(["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "0BSD", "Unlicense", "Python-2.0"]);
+//
+// EPIC-901, 2026-09-18: `MIT-0`, `BlueOak-1.0.0` and `CC0-1.0` were added after the first monthly
+// audit. All three are unambiguously permissive — MIT-0 is MIT with the attribution clause removed,
+// BlueOak-1.0.0 is OSI-approved and was written to be clearer than MIT, and CC0-1.0 is a
+// public-domain dedication — and all three were producing warnings on every compliance run for nine
+// of the seventeen findings EPIC-007's report asked someone to actually look at. A permanent warning
+// about a licence nobody objects to is noise that teaches people to skim the list, which is how the
+// tenth one gets missed. Added here rather than baselined in `docs/security/audit-baseline.json`,
+// because a baseline entry is for something accepted **despite** being a concern and these are not.
+const ALLOWED_LICENSES = new Set([
+  "MIT",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "0BSD",
+  "Unlicense",
+  "Python-2.0",
+  "MIT-0",
+  "BlueOak-1.0.0",
+  "CC0-1.0",
+]);
 
 // --- The proprietary boundary (2026-09-13) -----------------------------------------------------
 //
@@ -42,7 +73,6 @@ const ALLOWED_LICENSES = new Set(["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Cl
 // rest of scripts/. Without these markers REUSE reads the first literal as this file's own tag
 // and the compliance job fails on a file nobody relicensed.
 const PROPRIETARY_PACKAGES = ["packages/ui", "packages/db", "packages/logger", "apps/worker"];
-const PROPRIETARY_SPDX = "LicenseRef-41Prompts-Proprietary";
 // npm's own word for "no licence granted". Kept alongside the SPDX ref because the two say the
 // same thing to different readers — npm/pnpm, and REUSE.
 const ACCEPTED_PACKAGE_LICENSE = new Set(["UNLICENSED", PROPRIETARY_SPDX]);
@@ -79,8 +109,25 @@ function checkProprietaryBoundary() {
       failures.push(`REUSE.toml: no annotation glob covers ${pkg}.`);
     }
 
-    // An Apache-2.0 header inside a proprietary package is a licence grant nobody decided to make.
-    const files = execFileSync("git", ["ls-files", "-z", pkg], { encoding: "utf-8" }).split("\0").filter(Boolean);
+  }
+
+  // An Apache-2.0 header inside a proprietary tree is a licence grant nobody decided to make —
+  // failure 2 of the two this function exists for.
+  //
+  // **EPIC-901, 2026-09-18: this used to run over the four packages above and nothing else.**
+  // `REUSE.toml` declares eight trees proprietary and ADR-002 says `docs/` is among them, and the
+  // gate had never looked at four of them. The first monthly audit found **102 files** carrying
+  // `SPDX-License-Identifier: Apache-2.0` inside them — 91 under `docs/`, 6 under `scripts/`, 2
+  // under `apps/web`, 1 under `.githooks/`. REUSE's default precedence is `closest`, so a file's own
+  // header beats the glob: those files were genuinely licensed Apache-2.0, in a repository that was
+  // public for a period in September 2026, while `README.md` said in as many words that `docs/` and
+  // `scripts/` are all rights reserved.
+  //
+  // The tree list is **read out of `REUSE.toml`** rather than written here, because a second copy
+  // of a decision goes stale silently — which is the defect this comment is describing.
+  const entries = [];
+  for (const glob of proprietaryGlobs(reuse)) {
+    const files = boundaryFiles((args) => execFileSync("git", args, { encoding: "utf-8" }), glob.replace(/\/\*\*$/, ""));
     for (const file of files) {
       let body;
       try {
@@ -88,10 +135,11 @@ function checkProprietaryBoundary() {
       } catch {
         continue; // unreadable or binary; binary-files.mjs owns that failure
       }
-      if (body.includes("SPDX-License-Identifier: Apache-2.0")) {
-        failures.push(`${file}: carries an Apache-2.0 SPDX header inside a proprietary package.`);
-      }
+      entries.push({ glob, file, body });
     }
+  }
+  for (const { glob, file } of apacheDeclarations(entries, HEADER_EXEMPT)) {
+    failures.push(`${file}: declares Apache-2.0 inside a proprietary tree (${glob}).`);
   }
 
   if (failures.length > 0) {
@@ -100,7 +148,11 @@ function checkProprietaryBoundary() {
     console.error("Source being visible is not a grant of a licence, and this gate is what keeps that true.");
     process.exit(1);
   }
-  console.log(`License gate: proprietary boundary intact (${PROPRIETARY_PACKAGES.length} packages checked).`);
+  const globs = proprietaryGlobs(reuse);
+  console.log(
+    `License gate: proprietary boundary intact (${PROPRIETARY_PACKAGES.length} packages, ` +
+      `${globs.length} trees, ${HEADER_EXEMPT.size} named header exemption(s)).`,
+  );
 }
 
 checkProprietaryBoundary();

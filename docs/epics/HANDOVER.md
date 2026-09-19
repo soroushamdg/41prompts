@@ -1,11 +1,11 @@
 <!--
 SPDX-FileCopyrightText: 2026 41Prompts Inc.
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
 # Handover
 
-Where things stand as of **2026-09-18, after EPIC-072**, for whoever picks this up — person or
+Where things stand as of **2026-09-19, after EPIC-901**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -15,6 +15,51 @@ rebuilt a finished epic. `git log --oneline -15`, `ls docs/epics/reports/`, and 
 both environments take a minute and are the truth.
 
 ## Start here
+
+**There is no buildable product epic left. Every remaining row needs Soroush** — verified row by row
+against `docs/backlog.md` on 2026-09-19, not remembered:
+
+| row | what it waits on |
+|---|---|
+| EPIC-035 loud launch | **his own GATE 3 ruling deferred it**, and Show HN / Product Hunt are posts by a person |
+| EPIC-070 Stripe | a Stripe account |
+| EPIC-071 legal full | `deferred` — he declined the lawyer |
+| EPIC-073 launch 2 | depends on EPIC-035 |
+| EPIC-064 research | two recruited newcomers |
+| EPIC-060–063 lessons | depend on EPIC-064, and Stage 6 cannot complete |
+| EPIC-006b/c/d | `not scheduled` |
+
+**That is the headline, and it is not a complaint.** The product is built: Stages 0–5b, plus
+EPIC-072's marketing site and EPIC-901's audit. What is left is money, a launch, a lawyer, and
+people — and `docs/AUTONOMOUS.md` says a row whose dependency is a person is skipped and said out
+loud, never half-built. **`EPIC-900` is the one row still buildable with nothing from him**: the
+tech-debt sweep, minus the infra drill, which needs the box.
+
+**EPIC-901 merged on 2026-09-19 and the monthly audit exists.** `pnpm audit-run` is one command over
+five checks — `pnpm audit`, `pip-audit`, `gitleaks`, the licence gate and its SBOM, and the key
+inventory — each with its own PASS / FAIL / **PARTIAL** verdict. Run it once a month and write
+`docs/security/audit-<yyyy-mm>.md`.
+
+**The thing to know before adding to `docs/security/audit-baseline.json`:** a finding in it is
+silent, a finding not in it **fails**, and **an entry matching nothing also fails**. Every entry
+needs a reason long enough to disagree with and a date it comes back. Findings are keyed on
+rule + path + a hash of the matched value, never a line number, so a fixture that moves stays
+accepted and **a changed value re-fires**. Adding an entry is not the default response to a finding:
+nine licence findings were fixed instead, by allow-listing three permissive licences.
+
+**And the licence split is now enforced over every proprietary tree, not four packages.** EPIC-901
+found **102 files inside proprietary trees declaring Apache-2.0 in their own header** — 91 under
+`docs/`, 6 under `scripts/`, 2 under `apps/web`, 1 under `.githooks/` — while `README.md` and
+ADR-002 both say those trees are all rights reserved. REUSE's precedence is `closest`, so a file's
+own header beats the glob. 96 are corrected; **4 under `docs/decisions/` are Soroush's**, named one
+by one in `HEADER_EXEMPT` with a test that shrinks the list the moment one is fixed. If you add a
+file to `docs/`, `scripts/` or `infra/`, give it the **proprietary** header — `pnpm license-gate`
+fails otherwise, and it now sees untracked files too.
+
+**`docs/security/key-inventory.md` is read by a test.** It lists all 25 credential-bearing
+environment names and is checked against the tree in **both** directions. Add an environment
+variable whose name ends in `_KEY`, `_SECRET`, `_TOKEN`, `_PASSWORD` or `_DSN` and the audit fails
+until it has a row. **Last rotated is `never recorded` for every one of them.**
 
 **EPIC-072 merged on 2026-09-18 (`637a669`) and Stage 6 has begun.** The marketing site has the
 pages the nav promises: `/features`, `/delivery`, `/docs`, `/security`, `/changelog`, `/guides` and
@@ -34,14 +79,13 @@ checkout, no metering, and the roadmap marks its prices unvalidated), `/learn` (
 (EPIC-073 owns real content), **`/about`** and **`/careers`** — the last two need facts only Soroush
 has, and `/about`'s mockup names a second co-founder. Do not build them from the mockup.
 
-**What is next.** Stage 6's remaining rows are **EPIC-070** (Stripe — needs an account),
-**EPIC-071** (`deferred`, lawyer) and **EPIC-073** (depends on EPIC-035, which GATE 3 deferred). So
-the next buildable row is not in Stage 6: it is **Stage 7's EPIC-064** (a paper-prototype study,
-which needs two recruited people) or **EPIC-060**, the lesson engine, which depends on it. There is
-also unscheduled Stage 0 debt — **EPIC-006d**, staging and production sharing one R2 backup prefix,
-which is a real isolation defect and is scoped in the backlog. **Nothing in Stage 6 or 7 has an epic
-file**, so `pick-next-epic.mjs` would stop on the first `todo` row without one even if the gate cells
-were fixed.
+**What is next** is the table at the top of this page: nothing, without him. Stage 0's
+**EPIC-006d** — staging and production sharing one R2 backup prefix — is a real isolation defect,
+scoped in the backlog and marked `not scheduled`; it also needs changes on the box, which are one
+command, one yes. **Nothing in Stage 6 or 7 has an epic file**, so `pick-next-epic.mjs` would stop
+on the first `todo` row without one even if the gate cells were fixed — though a session in the
+advisor's chair writes the epic file itself (`docs/PROCESS.md`, 2026-09-15), as EPIC-040 through
+EPIC-901 all did.
 
 **`pick-next-epic.mjs` still stops on `▣ GATE 3`.** Both gates are decided — `GATE-3.md` Go on
 2026-09-16, `GATE-5.md` Go on 2026-09-17 — and every epic behind both has shipped. The picker reads
@@ -246,6 +290,7 @@ only its own epic's status cell.
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
 | **Stage 5b** | **done, 2026-09-18.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · 056 ✅ (the split, the holder named, the mirror real — **but nothing published**, report §8). |
 | **Stage 6** | **started.** 072 ✅ (the site's six pages and the claims registry; **five mockup pages deliberately refused**, report §8) · 070 Stripe (needs an account) · 071 `deferred` (lawyer) · 073 launch 2 (depends on 035, which GATE 3 deferred). No remaining row has an epic file. |
+| **Ongoing** | **901 ✅ (2026-09-19)** — the monthly dependency, licence and security audit exists and has run once: `pnpm audit-run`, five checks, next due October 2026. It also found and fixed 96 accidental Apache-2.0 headers inside proprietary trees. **900 (tech-debt sweep) is the only row left that needs nothing from Soroush**, minus its infra drill. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
 until the judge has run against a real model and the rule-6 question is answered.

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 41Prompts Inc.
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
+-->
+
 # Plan: EPIC-000 Repo scaffold (rev. 2026-09-04, after the specialist review)
 
 Supersedes the first pass of this plan. Re-read for this revision: CLAUDE.md, ADR-002 (revised), ADR-003

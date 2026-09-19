@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 41Prompts Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 /**
  * Assemble `41p` the way npm would install it, and print the path to its entry point (EPIC-053).

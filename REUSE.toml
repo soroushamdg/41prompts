@@ -49,6 +49,12 @@ path = [
   "tsconfig.depcruise.json",
   "turbo.json",
   ".github/**",
+  # EPIC-901, 2026-09-18: `.githooks/**` was covered by no glob at all. Its one file satisfied REUSE
+  # with an `SPDX-License-Identifier: Apache-2.0` header of its own — a grant on a git hook that
+  # does not ship in the public mirror and never was meant to. A tree with no annotation is
+  # compliant only for as long as every file in it remembers to carry a header, which is the
+  # arrangement this block exists to replace.
+  ".githooks/**",
   "apps/**",
   "docs/**",
   "infra/**",

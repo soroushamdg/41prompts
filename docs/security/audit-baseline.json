@@ -1,0 +1,238 @@
+{
+  "readMe": [
+    "The accepted findings of the monthly audit (EPIC-901). `node scripts/audit.mjs` reads this file.",
+    "A finding whose id is here is silent. A finding whose id is NOT here FAILS the run. And an entry",
+    "here that matches no current finding ALSO fails the run, because a stale exemption is how a check",
+    "quietly stops catching what it exists for.",
+    "",
+    "Every entry needs `why` in a sentence somebody can disagree with, and `reviewOn`. Past that date",
+    "the entry stops silencing and the run fails until a person looks again. That is the point: an",
+    "acceptance with no expiry is a decision nobody ever revisits.",
+    "",
+    "`acceptedBy` is who made the call. Everything dated 2026-09-18 was accepted by Claude Code in the",
+    "advisor's chair under docs/PROCESS.md's 2026-09-15 amendment, and every one of them is Soroush's",
+    "to reverse. docs/security/audit-2026-09.md has the reasoning at length; this file has the verdict.",
+    "",
+    "Adding an entry is not the default response to a finding. Nine licence findings were removed in",
+    "EPIC-901 by adding three permissive licences to scripts/license-gate.mjs's allow-list instead,",
+    "because a baseline entry is for something accepted DESPITE being a concern, and those were not."
+  ],
+  "accepted": [
+    {
+      "check": "npm-advisories",
+      "id": "GHSA-67mh-4wv8-2f99:esbuild",
+      "what": "esbuild 0.18.20, reached through packages/db > drizzle-kit > @esbuild-kit/esm-loader > @esbuild-kit/core-utils",
+      "why": "The advisory is that esbuild's DEV SERVER answers cross-origin requests. Nothing here starts an esbuild dev server: drizzle-kit uses it to transpile drizzle.config.ts and exits. The binary IS present in the production image, because apps/web/Dockerfile ships the whole pruned workspace so the entrypoint can run migrations -- so this is a supply-chain surface rather than a live vulnerability, and it is worth the quarter it has. The fix is upstream: @esbuild-kit/* are deprecated and drizzle-kit has to move off them.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2026-12-18"
+    },
+    {
+      "check": "npm-advisories",
+      "id": "GHSA-82fw-gwwq-j7x9:vitest",
+      "what": "vitest 3.2.7, a devDependency in ten manifests",
+      "why": "Path traversal through @vitest/mocker's redirect mock, exploitable while a test run is serving. The patched range starts at 4.1.11, so the fix is a MAJOR bump of the test runner across every package -- its own change, not a line in an audit (EPIC-901's Out of scope). December is chosen so the decision gets made rather than deferred again: by then vitest 4 is a routine upgrade.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2026-12-18"
+    },
+    {
+      "check": "npm-advisories",
+      "id": "GHSA-82fw-gwwq-j7x9:@vitest/mocker",
+      "what": "@vitest/mocker 3.2.7, the package the advisory above is actually about",
+      "why": "The same advisory, listed separately because pnpm names both packages. It is accepted and fixed by the same bump; keeping it as its own entry means a run cannot go quiet because one of the two dropped out of the tree.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2026-12-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/cli/src/commands/link.test.ts:2e5cd4094d20b97d",
+      "what": "const KEY = \"41p_test_0123456789abcdef0123456789abcdef\"",
+      "why": "A test fixture, read in full on 2026-09-18. The value is a literal hex ramp; no account has ever issued it. Changing the value re-fires, because the id carries a hash of the matched text.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/cli/src/commands/check.test.ts:7877ae5019c62909",
+      "what": "const KEY = \"41p_live_0123456789abcdef0123456789abcdef\"",
+      "why": "A test fixture, read in full on 2026-09-18. Same hex-ramp value as three of its siblings; the `live` prefix is part of the fixture, not a claim about an account.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/cli/src/commands/pull.test.ts:7877ae5019c62909",
+      "what": "const KEY = \"41p_live_0123456789abcdef0123456789abcdef\"",
+      "why": "A test fixture, read in full on 2026-09-18. The same value as check.test.ts; a separate entry because the id is per file, so moving the fixture to a shared module is a change this notices.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/cli/src/commands/run.test.ts:7877ae5019c62909",
+      "what": "const KEY = \"41p_live_0123456789abcdef0123456789abcdef\"",
+      "why": "A test fixture, read in full on 2026-09-18. `41p run` deliberately does not call a model (EPIC-053 report section 8), so this key is never sent anywhere even by the code under test.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/cli/src/main.test.ts:7877ae5019c62909",
+      "what": "const KEY = \"41p_live_0123456789abcdef0123456789abcdef\"",
+      "why": "A test fixture, read in full on 2026-09-18. The CLI's top-level test asserts that `forbiddenFetch` is never reached, so the suite fails if anything tries to USE this value rather than just hold it.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:apps/web/e2e/env.mjs:66a4a7653d4f2401",
+      "what": "MASTER_KEY_SECRET -- the sealed-box placeholder the Playwright config injects",
+      "why": "Published on purpose and documented as such in three places. packages/db/src/sealed-box.ts's masterKeysFrom REFUSES this exact value when DEPLOY_ENV is production, so pasting it into a deployment is a process that will not start rather than a database anyone can open. apps/web/e2e-env.test.ts pins this copy to the one in sealed-box.ts.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:apps/web/e2e/env.mjs:a258c0760295e673",
+      "what": "MASTER_KEY_PUBLIC -- the public half of the same placeholder pair",
+      "why": "The public half seals and never opens; it is not a secret at all. Same published-on-purpose placeholder as the row above, same production refusal.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/db/src/sealed-box.ts:66a4a7653d4f2401",
+      "what": "PLACEHOLDER_MASTER_SECRET -- the definition the two copies above are pinned to",
+      "why": "The source of the placeholder, with the reasoning in its own doc comment. Same hash as apps/web/e2e/env.mjs's copy, which is what the pinning test exists to keep true.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:apps/web/e2e/providers.spec.ts:732c97a99182a7fe",
+      "what": "const GOOD_KEY = \"sk-e2e-a-perfectly-plausible-key-0001\"",
+      "why": "A test fixture, read in full on 2026-09-18. It is plausible-shaped on purpose -- the spec beside it declares BAD_KEY for the rejection path -- and no provider issued it.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:apps/worker/src/runs/test-key.test.ts:52ae65594380e59d",
+      "what": "const KEY = \"sk-proj-AVeryRecognisableSecret00000\"",
+      "why": "A test fixture, read in full on 2026-09-18. The value says what it is.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:scripts/drive-epic-042.mjs:66a4a7653d4f2401",
+      "what": "KEY_ENCRYPTION_SECRET=<the placeholder>, in the drive script's own usage comment",
+      "why": "The same published placeholder as the three rows above -- identical hash, which is the check confirming it rather than a person asserting it. It is in a comment showing how to start the worker for a hand drive.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "gcp-api-key:packages/logger/src/scrub.test.ts:1c7db1e4b3314b22",
+      "what": "A synthetic Google-API-shaped key in the log scrubber's own test",
+      "why": "The test's entire purpose is proving the scrubber redacts a key of this shape, so the file has to contain one. Removing it would remove the test. Read in full on 2026-09-18, alongside the synthetic Anthropic, OpenAI and 41Prompts keys beside it.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "secrets",
+      "id": "generic-api-key:packages/db/src/provider-keys.test.ts:3959ce7a3898e32e",
+      "what": "An OPENAI_KEY fixture in the provider-key storage test",
+      "why": "A test fixture, read in full on 2026-09-18. gitleaks reports it at a line it no longer occupies, because the scan covers history and the file has been edited since -- which is exactly why this baseline is keyed on the value and the path and not on a line number.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-09-18"
+    },
+    {
+      "check": "licences",
+      "id": "@axe-core/playwright:MPL-2.0",
+      "what": "The accessibility test runner, a devDependency of apps/web",
+      "why": "MPL-2.0 is file-level copyleft: it obliges whoever MODIFIES a covered file and distributes it. We neither modify nor distribute axe -- it runs in the e2e suite and ships in nothing. EPIC-007 decision 4 already makes a private-package licence a warning rather than a block; this records the actual look EPIC-007's report asked for.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "axe-core:MPL-2.0",
+      "what": "The engine under @axe-core/playwright",
+      "why": "Same reasoning as the row above, and the same obligation, which we do not trigger.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "lightningcss:MPL-2.0",
+      "what": "Tailwind v4's CSS transformer, a build-time dependency of apps/web",
+      "why": "MPL-2.0, unmodified, used as a tool. Its OUTPUT is our CSS and MPL-2.0 does not reach it -- the licence covers the covered files, not what a program built with them produces.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "lightningcss-darwin-x64:MPL-2.0",
+      "what": "The prebuilt native binary for this machine's platform",
+      "why": "The same package as the row above. It is PLATFORM-SPECIFIC, so a run on Linux will report lightningcss-linux-x64 as new and this one as stale. That is the audit working, not a defect: the dependency set really is different there, and somebody should see that rather than have it normalised away.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "@img/sharp-libvips-darwin-x64:LGPL-3.0-or-later",
+      "what": "libvips, inside sharp, which Next.js uses to optimise images at build time",
+      "why": "The strongest licence in this list and still not an obligation we trigger: LGPL's relinking requirement bites on DISTRIBUTING a linked work, and this is a prebuilt binary invoked as a tool during a build whose output is images. We ship no binary containing it -- the Docker image installs it from npm under its own licence, unmodified, which is the arrangement LGPL is written for. Platform-specific, as above.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "@sentry/cli:FSL-1.1-MIT",
+      "what": "Sentry's uploader, used at build time to push source maps",
+      "why": "FSL is source-available with a competing-use restriction and an automatic conversion to MIT two years after each release. We are not building an error-tracking product, so the restriction does not describe anything we do. Worth the six months: FSL is a young licence and this is the only one in the tree that is not OSI-approved.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "@sentry/cli-darwin:FSL-1.1-MIT",
+      "what": "The same uploader's prebuilt binary for this platform",
+      "why": "Same reasoning, and platform-specific like the two rows above.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    },
+    {
+      "check": "licences",
+      "id": "caniuse-lite:CC-BY-4.0",
+      "what": "The browser-support database browserslist reads, pulled in by Next.js",
+      "why": "CC-BY-4.0 is a content licence, and this is content: a dataset, not code. Its obligation is attribution, which docs/security/ is not the place to discharge -- /legal/third-party-notices is, and EPIC-072's generator already lists every production dependency with its licence. Kept as an entry rather than allow-listed because CC-BY on a code dependency would be a real question and this gate should keep asking it.",
+      "acceptedBy": "Claude Code (advisor's chair, EPIC-901)",
+      "acceptedOn": "2026-09-18",
+      "reviewOn": "2027-03-18"
+    }
+  ]
+}
