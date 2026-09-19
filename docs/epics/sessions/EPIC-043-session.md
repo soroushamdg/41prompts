@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2026 41Prompts Inc.
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
 # EPIC-043 session — the BYO-key threat model, the key store, and the breach runbook

@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 41Prompts Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 //
 // Writes the golden artifact and Live marker fixtures that `frozen.test.ts` compares against.
 //

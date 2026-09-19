@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 41Prompts Inc.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 /**
  * EPIC-031a's checklist, read from the database rather than from a screen.

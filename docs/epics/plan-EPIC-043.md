@@ -1,6 +1,6 @@
 <!--
 SPDX-FileCopyrightText: 2026 41Prompts Inc.
-SPDX-License-Identifier: Apache-2.0
+SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
 # Plan — EPIC-043: the BYO-key threat model, the key store, and the breach runbook
