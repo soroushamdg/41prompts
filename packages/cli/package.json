@@ -13,7 +13,13 @@
   "bugs": {
     "url": "https://github.com/41prompts/41prompts/issues"
   },
-  "keywords": ["prompt", "llm", "prompt-management", "cli", "codegen"],
+  "keywords": [
+    "prompt",
+    "llm",
+    "prompt-management",
+    "cli",
+    "codegen"
+  ],
   "engines": {
     "node": ">=20"
   },
@@ -22,7 +28,12 @@
   },
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "files": ["dist", "LICENSE", "NOTICE", "README.md"],
+  "files": [
+    "dist",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true,
@@ -47,7 +58,7 @@
     "@41prompts/sdk": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^22.20.1",
+    "@types/node": "^22.20.4",
     "vitest": "^3.2.7"
   }
 }
