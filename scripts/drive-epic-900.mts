@@ -110,8 +110,17 @@ const record = (name: string, ok: boolean, detail: string) => {
   console.log(line);
 };
 
+/**
+ * The version actually installed for `apps/web`, read off disk.
+ *
+ * `apps/web/node_modules` and not the workspace root: pnpm hoists nothing by default, so a package
+ * `apps/web` depends on is only under `apps/web`, and reading the root would find nothing — or,
+ * worse, find some other workspace's copy at a different version and report it as the one that
+ * built the app.
+ */
 const versionOf = (pkg: string): string =>
-  (JSON.parse(readFileSync(join(ROOT, "node_modules", pkg, "package.json"), "utf-8")) as { version: string }).version;
+  (JSON.parse(readFileSync(join(ROOT, "apps", "web", "node_modules", pkg, "package.json"), "utf-8")) as { version: string })
+    .version;
 
 async function signIn(page: Page): Promise<void> {
   await page.goto(`${BASE}/sign-in?next=%2Fapp%2Fprojects`);
@@ -149,9 +158,13 @@ try {
     landing?.status() === 200 && html.includes(buildId),
     `BUILD_ID ${buildId} ${html.includes(buildId) ? "is" : "is NOT"} in the HTML — ${versions}`,
   );
+  // React and Next are the upgrades; better-auth is asserted at **exactly** 1.7.2 because holding
+  // it there is this epic's finding, and a drive that let 1.7.5 pass would be silent about it.
   record(
-    "the upgraded majors are the ones installed",
-    versionOf("react").startsWith("19.3.") && versionOf("next").startsWith("16.3.") && versionOf("better-auth").startsWith("1.7."),
+    "the dependency set under test is the upgraded one, with better-auth held at 1.7.2",
+    versionOf("react").startsWith("19.3.") &&
+      versionOf("next") === "16.3.5" &&
+      versionOf("better-auth") === "1.7.2",
     versions,
   );
   await page.screenshot({ path: join(SHOTS, "landing.png"), fullPage: false });
@@ -212,12 +225,22 @@ try {
     "Reply in JSON with the fields intent and confidence.",
     "Keep the answer under 80 words.",
   ].join("\n\n");
-  await page.getByRole("textbox").first().fill(prompt);
-  await page.getByRole("button", { name: /Decompile|Break it up|Analyse/i }).first().click();
-  const bloks = page.getByTestId("blok-card");
-  await bloks.first().waitFor({ state: "visible", timeout: 30_000 });
-  const blokCount = await bloks.count();
-  record("the decompiler turns a pasted prompt into bloks in the built app", blokCount >= 3, `${blokCount} bloks`);
+  // Selectors read off `apps/web/e2e/decompile.spec.ts` rather than invented: the first draft of
+  // this drive guessed a `blok-card` test id that does not exist, and timed out on it.
+  await page.getByLabel("Your prompt").fill(prompt);
+  await page.getByRole("button", { name: "Decompile" }).click();
+  await page.getByTestId("source-map").waitFor({ state: "visible", timeout: 30_000 });
+  const blokCount = await page.locator(".blok-card").count();
+  const findingCount = await page.locator(".finding").count();
+  record(
+    "the decompiler turns a pasted prompt into bloks in the built app",
+    blokCount >= 3,
+    `${blokCount} bloks`,
+  );
+  // `detect()` is the part that runs the 23 committed patterns this epic gave a test to, and the
+  // prompt above contains a scoped-precondition pair on purpose — the case `contradiction.ts`'s
+  // `SCOPED` guard exists for, in the file this epic edited.
+  record("and runs the detectors over it", findingCount >= 1, `${findingCount} findings`);
   await page.screenshot({ path: join(SHOTS, "decompile.png"), fullPage: false });
 
   // ── 5. A fresh account signs in and creates a project through the UI ───────────────────────────
