@@ -4,22 +4,30 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-18T20:12:40.631Z.
+Generated 2026-09-19T16:04:43.240Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `637a669eda19e2ad498c97014d391a6b86ada9ed` | this checkout |
+| `main` | `9b6ba3554d69187992b2cc2803d8f1be459556bf` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-198 commits · 1044 files changed, 122347 insertions(+), 1018 deletions(-)
+206 commits · 1061 files changed, 125278 insertions(+), 1021 deletions(-)
 
+- 9b6ba35 Merge EPIC-901: the monthly audit exists, and 96 files were licensed Apache-2.0 by accident
+- eb3a9a7 docs(epic-901): which gates the two docs-only commits answer to, and the one that is red in the tree
+- 53657bb docs(epic-901): the report, the session log, ten rulings, the handover and the backlog row
+- f7a5a09 feat(901): the drive — the built app still serves every public page after 96 header changes, 35/35
+- 901f676 feat(901): the monthly audit as one command, and a baseline that makes a green mean something
+- 73e3967 fix(901): 96 files in proprietary trees were licensed Apache-2.0 by accident, and the gate was looking at four packages
+- 7b8e0bf docs(epic-901): the epic file and the plan — five checks, and the thing none of them was looking for
+- 29dd9e9 docs: EPIC-072 is done, the handover, and RELEASE-DUE regenerated
 - 637a669 Merge EPIC-072: the marketing site says what the product does, and a test keeps it honest
 - d539ad6 docs(epic-072): the report, the session log, eight rulings — and the two things the drive changed
 - 5a8dffa fix(072): the two landing baselines the chrome moved, regenerated on Linux
