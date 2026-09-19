@@ -20,6 +20,7 @@
     "boundaries": "depcruise --config .dependency-cruiser.cjs packages/core/src packages/cli/src packages/sdk-ts/src apps/web/app apps/web/lib",
     "forbidden-words": "node scripts/forbidden-words.mjs",
     "binary-files": "node scripts/binary-files.mjs",
+    "audit-run": "node scripts/audit.mjs",
     "reuse-lint": "uvx --with charset-normalizer reuse lint",
     "license-gate": "node scripts/license-gate.mjs",
     "mirror-dry-run": "bash scripts/mirror-dry-run.sh",
