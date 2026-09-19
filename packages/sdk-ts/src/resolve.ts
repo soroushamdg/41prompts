@@ -53,7 +53,7 @@ export function unresolved(promptId: string, missing: readonly string[] = []): R
  * primitive is dropped with a warning rather than stringified — `[object Object]` inside somebody's
  * prompt is worse than an honest refusal.
  */
-export function toValues(vars: unknown, warn: (warning: Warning) => void): Map<string, string> {
+function toValues(vars: unknown, warn: (warning: Warning) => void): Map<string, string> {
   const values = new Map<string, string>();
   if (typeof vars !== "object" || vars === null) return values;
 

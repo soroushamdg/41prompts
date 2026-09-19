@@ -7,13 +7,17 @@ import {
   type VariableIssue,
   type VariableOccurrence,
 } from "@41prompts/core";
-import { promptForOwner, variablesForPrompt, type Db, type VariableRow } from "@41prompts/db";
+import { type VariableRow } from "@41prompts/db";
 import type { CanvasBlok } from "@/lib/canvas/queries";
 
 /**
- * Reads for the Variables tab. **Owner-scoped like everything else** — it resolves the prompt
- * through `promptForOwner` first and returns `undefined` when it does not, which the route turns
- * into 404 rather than 403.
+ * Reads for the Variables tab, built from rows a page has already read.
+ *
+ * **Nothing here talks to the database.** It used to: `variablesForOwner` resolved the prompt
+ * through `promptForOwner` and then read the rows itself, and both pages that show this tab had
+ * already read those rows for the canvas — so it was a second query nobody called. EPIC-900's
+ * dead-code gate found it named nowhere and it is gone; owner scoping lives where the reading
+ * does, in `lib/canvas/queries.ts`.
  */
 
 export interface VariablesView {
@@ -55,10 +59,4 @@ export function asDeclarations(rows: readonly VariableRow[]): VariableDeclaratio
     defaultValue: row.defaultValue,
     description: row.description,
   }));
-}
-
-export async function variablesForOwner(db: Db, promptId: string, owner: string) {
-  const prompt = await promptForOwner(db, promptId, owner);
-  if (prompt === undefined) return undefined;
-  return variablesForPrompt(db, promptId);
 }

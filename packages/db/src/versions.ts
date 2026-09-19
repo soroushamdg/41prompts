@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "./client";
-import { promptVersions, suiteChecks, suiteResults, suiteRuns } from "./schema";
+import { promptVersions, suiteResults, suiteRuns } from "./schema";
 
 /**
  * Versions: a prompt's blok set, frozen, and the history that makes two runs comparable (EPIC-040).
@@ -76,7 +76,7 @@ export function compiledHashOf(compiledText: string): string {
  * first save after this lands rewrites or mints rather than deduping against a key nobody recorded.
  * Wrong in the safe direction: an extra version, never a missing one.
  */
-export function snapshotHashOf(snapshot: unknown): string {
+function snapshotHashOf(snapshot: unknown): string {
   return createHash("sha256").update(JSON.stringify(snapshot) ?? "null").digest("hex");
 }
 
@@ -346,15 +346,6 @@ export async function passRateForVersions(
   }
 
   return out;
-}
-
-/** How many checks a version's most recent run had, for callers that need the denominator alone. */
-export async function checkCountForRun(db: Db, suiteRunId: string): Promise<number> {
-  const [row] = await db
-    .select({ n: sql<number>`count(*)::int` })
-    .from(suiteChecks)
-    .where(eq(suiteChecks.suiteRun, suiteRunId));
-  return row?.n ?? 0;
 }
 
 /** How long a note may be. Long enough for a sentence about why, short enough not to be a document. */

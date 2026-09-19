@@ -90,7 +90,7 @@ export function passRateWords(rate: VersionPassRate | undefined, running = false
 }
 
 /** The minute, in the shape the run history already uses. Times agree across the app or they confuse. */
-export function whenWords(at: Date): string {
+function whenWords(at: Date): string {
   return at.toISOString().slice(0, 16).replace("T", " ");
 }
 

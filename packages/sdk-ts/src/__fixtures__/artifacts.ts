@@ -26,7 +26,7 @@ import {
 
 export const PROMPT_ID = "pr_1a2b3c4d";
 
-export const TWO_VARIABLES: readonly ArtifactVariable[] = [
+const TWO_VARIABLES: readonly ArtifactVariable[] = [
   { name: "customer_name", defaultValue: null, description: "who the reply is to" },
   { name: "tone", defaultValue: "warm", description: null },
 ];

@@ -50,7 +50,8 @@ export const NOT_USER_VISIBLE: Readonly<Record<string, string>> = {
   "EPIC-011a-fixup": "a correction to EPIC-011a, shipped inside it",
   "EPIC-031a": "one deliberate first call to a real provider, to find out what broke",
   "EPIC-043": "the threat model behind stored provider keys; its findings are what EPIC-042 shipped",
-  "EPIC-057": "the threat model behind delivery; its findings are what the rate limit and the cache-directory refusal shipped"
+  "EPIC-057": "the threat model behind delivery; its findings are what the rate limit and the cache-directory refusal shipped",
+  "EPIC-901": "the monthly security and licence audit, and the licence headers of files nobody publishes"
 };
 
 export const CHANGELOG: readonly ChangelogEntry[] = [

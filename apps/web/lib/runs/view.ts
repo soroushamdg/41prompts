@@ -93,7 +93,7 @@ export function checkRows(checks: readonly SuiteCheckRow[], results: readonly Su
  * The internal identifiers never reach a screen; `CHECK_KIND_PHRASES` is the only bridge, and this
  * is the only place that crosses it.
  */
-export function phraseFor(kind: string | null): string {
+function phraseFor(kind: string | null): string {
   if (kind === null) return "no check could be named from these words";
   return CHECK_KIND_PHRASES[kind as CheckKind] ?? "no check could be named from these words";
 }

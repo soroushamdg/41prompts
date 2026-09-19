@@ -88,7 +88,7 @@ export const MAX_BLOK_CHARACTERS = readPositiveInt(BUDGET_ENV.maxBlokCharacters,
 /** Bloks one caller may have summarised by a model per window. */
 export const MODEL_SUMMARY_BUDGET = readPositiveInt(BUDGET_ENV.budgetPerWindow, 200);
 
-export const BUDGET_WINDOW_MS = readPositiveInt(BUDGET_ENV.windowMs, 60 * 60 * 1000);
+const BUDGET_WINDOW_MS = readPositiveInt(BUDGET_ENV.windowMs, 60 * 60 * 1000);
 
 export type AbuseVerdict =
   | { readonly allowed: true }

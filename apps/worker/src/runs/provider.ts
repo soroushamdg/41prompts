@@ -141,7 +141,7 @@ export function echoLastLineProvider(): Provider {
 /**
  * The token that steers the fake judge. It appears in no real model's output and in no real prompt.
  */
-export const FAKE_JUDGE_REFUSAL_TOKEN = "<<refuses>>";
+const FAKE_JUDGE_REFUSAL_TOKEN = "<<refuses>>";
 
 /**
  * Wrap a provider so that calls to the **judge model** are answered by a fake verdict.
@@ -161,7 +161,7 @@ export const FAKE_JUDGE_REFUSAL_TOKEN = "<<refuses>>";
  * Only judge calls are intercepted. Everything else falls through to the wrapped provider, so the
  * thing under test is whatever it would otherwise have been.
  */
-export function withFakeJudge(provider: Provider, enabled: boolean): Provider {
+function withFakeJudge(provider: Provider, enabled: boolean): Provider {
   if (!enabled) return provider;
   return {
     async complete(request) {

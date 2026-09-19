@@ -42,7 +42,7 @@ import { readArtifact } from "./verify.js";
 /** Conservative on purpose: a superset of the id format, and a subset of what a filename may be. */
 const SAFE_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
-export const DEFAULT_CACHE_DIR_NAME = "41prompts-sdk";
+const DEFAULT_CACHE_DIR_NAME = "41prompts-sdk";
 
 export function defaultCacheDir(): string {
   return join(tmpdir(), DEFAULT_CACHE_DIR_NAME);

@@ -241,6 +241,7 @@ const ciSteps = () => [
   { key: "turbo-boundaries", phase: "compliance.yml", label: "turbo boundaries", cmd: "pnpm exec turbo boundaries" },
   { key: "forbidden-words", phase: "compliance.yml", label: "pnpm forbidden-words", cmd: "pnpm forbidden-words" },
   { key: "binary-files", phase: "compliance.yml", label: "pnpm binary-files", cmd: "pnpm binary-files" },
+  { key: "dead-code", phase: "compliance.yml", label: "pnpm dead-code", cmd: "pnpm dead-code" },
   { key: "license-gate", phase: "compliance.yml", label: "license-gate --sbom", cmd: "node scripts/license-gate.mjs --sbom sbom" },
   { key: "mirror-dry-run", phase: "compliance.yml", label: "pnpm mirror-dry-run", cmd: "pnpm mirror-dry-run" },
 ];

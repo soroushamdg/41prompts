@@ -13,10 +13,10 @@ import stopwordsData from "./stopwords.json" with { type: "json" };
 
 export const MERGE_OVERLAP_THRESHOLD = 0.6;
 
-export const STOPWORDS: ReadonlySet<string> = new Set(stopwordsData);
+const STOPWORDS: ReadonlySet<string> = new Set(stopwordsData);
 
 /** Words this short carry no topic. The prototype's rule, kept as-is. */
-export const MIN_TOKEN_LENGTH = 3;
+const MIN_TOKEN_LENGTH = 3;
 
 /**
  * How many normalised tokens the smaller of two segments must have before token overlap is allowed

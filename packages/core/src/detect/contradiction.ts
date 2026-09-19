@@ -25,7 +25,7 @@ import type { Finding } from "./types.js";
 // blok (the antonym case EPIC-011a carried forward, where token overlap merges both halves into
 // one), and inside one range.
 
-export /**
+/**
  * A negation that is *scoped* by a condition is a precondition, not a contradiction.
  *
  * "Do not escalate billing questions until you have checked the FAQ" refines "Always escalate

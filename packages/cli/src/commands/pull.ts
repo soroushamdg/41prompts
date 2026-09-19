@@ -170,7 +170,7 @@ const hasLive = (prompt: LivePrompt): prompt is LivePromptWithBuild => prompt.li
  * reader sees. A CLI's variable names end up inside its own output strings, so the same rule reaches
  * here — which is how `packages/cli/src` joining the forbidden-word roots found three of these.
  */
-export function codegenRowFor(prompt: { id: string; name: string }, build: Artifact): CodegenPrompt {
+function codegenRowFor(prompt: { id: string; name: string }, build: Artifact): CodegenPrompt {
   const declaredBy = new Map(build.variables.map((variable) => [variable.name, variable]));
   const used = usedVariableNames(occurrencesInText(build.text, "build"));
   // Declared-but-unused names stay in the signature: they are part of the contract the artifact

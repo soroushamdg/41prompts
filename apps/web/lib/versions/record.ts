@@ -24,7 +24,7 @@ import { canvasForOwner } from "@/lib/canvas/queries";
  */
 
 /** Build the snapshot for a prompt as it stands, or `undefined` if it does not resolve for this owner. */
-export async function snapshotNow(
+async function snapshotNow(
   db: Db,
   promptId: string,
   owner: string,

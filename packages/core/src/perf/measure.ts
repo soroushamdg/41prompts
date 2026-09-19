@@ -65,7 +65,7 @@ export type Measure<T> = (input: T) => number;
  * run of the same input to survive the minimum, and any uniform slowdown scales both and cancels out
  * of the ratio.
  */
-export function fastestInterleaved<T>(
+function fastestInterleaved<T>(
   measure: Measure<T>,
   first: T,
   second: T,

@@ -19,6 +19,7 @@ ICP: an AI engineer at a company of 10–500 people who owns a production prompt
 - `packages/db`: Drizzle schema + migrations. Proprietary.
 - `packages/logger`: shared pino logger for `apps/web` and `apps/worker` — JSON to stdout, redaction, request/job id via `AsyncLocalStorage`. Proprietary.
 - `packages/cli`: `41p` (link, pull, check, run, decompile). Public.
+- `packages/cli-unscoped`: the `41p` npm name — a thin wrapper whose only dependency is `@41prompts/cli`. Public.
 - `packages/sdk-ts`: published as `@41prompts/sdk`. Runtime `resolve()`. Zero dependencies. Public.
 - `sdks/python`: `fortyone-prompts`, import `fortyone`. Zero dependencies. Public.
 - Postgres 16. Cloudflare R2. Vercel AI SDK for providers. Stripe, Resend, PostHog, Sentry.
@@ -34,7 +35,10 @@ pnpm typecheck
 pnpm lint           # eslint + dependency-cruiser boundaries
 pnpm db:generate    # drizzle migration from schema
 pnpm db:migrate
-pnpm e2e            # playwright, needs dev running
+pnpm e2e            # playwright; builds and starts its own server — kill any you started by hand
+pnpm compliance     # reuse, boundaries, forbidden words, binary files, dead code, licences, mirror
+pnpm audit-run      # EPIC-901's monthly security and licence audit
+pnpm gates:ci       # the only CI there is: clean checkout of a commit, every gate, in CI's order
 ```
 
 ## Rules
@@ -49,7 +53,7 @@ pnpm e2e            # playwright, needs dev running
 8. The SDK never blocks a call on the network and never throws. Resolve order: memory → disk → bundled → network. Telemetry is off by default.
 9. Publishing to Live is blocked when checks fail on the target model. "Publish anyway" requires a typed reason and is audited.
 10. Colour: green, red, amber mean pass, fail, drift. Nothing else may use them. Pass/fail is never shown by colour alone.
-11. Public packages (`core`, `cli`, `sdk-ts`, `sdks/python`) import only each other, Node builtins, or their own declared dependencies. Never `apps/*`, `packages/db`, `packages/ui`, `packages/logger`.
+11. Public packages (`core`, `cli`, `cli-unscoped`, `sdk-ts`, `sdks/python`) import only each other, Node builtins, or their own declared dependencies. Never `apps/*`, `packages/db`, `packages/ui`, `packages/logger`.
 12. Every interactive element works by keyboard and by touch; `prefers-reduced-motion` shows end states, never skips them.
 
 ## Vocabulary (ADR-003)
@@ -128,6 +132,9 @@ revision, 2026-09-04; full context and human setup steps in `infra/ACCESS.md`). 
   is not a review of that file, whatever it reported. `pnpm binary-files` fails the build when a
   tracked source file under `packages/` or `apps/` is binary; `.gitattributes` forces a textual diff
   so the mistake surfaces rather than hides.
+- **No exported value that nothing else names.** `pnpm dead-code` fails the build on one, and on an
+  `ALLOWED` entry that no longer describes one. A module's export list is a statement about what it
+  offers, and it stops being true a few symbols at a time.
 - This file is still accurate; update it in the same commit if a convention changed.
 - **The built page was loaded in a browser and looked right**, with a screenshot in the report.
   Not "the tests pass" — the page, served by `next start` from a real `next build`, rendered styled

@@ -65,7 +65,7 @@ export const LAST_UPDATED = "14 September 2026";
 export const SECURITY_LAST_UPDATED = "16 September 2026";
 
 /** Where a person writes to. One address, because two would be two things to keep working. */
-export const CONTACT_EMAIL = "privacy@41prompts.ai";
+const CONTACT_EMAIL = "privacy@41prompts.ai";
 
 /**
  * The retention table, built from the constants that enforce it.

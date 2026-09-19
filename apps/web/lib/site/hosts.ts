@@ -98,7 +98,7 @@ function normalise(value: string | undefined): string | undefined {
   return value.replace(/\/+$/, "");
 }
 
-export function hostPair(): HostPair | undefined {
+function hostPair(): HostPair | undefined {
   const publicOrigin = normalise(process.env.PUBLIC_SITE_URL);
   const appOrigin = normalise(process.env.BETTER_AUTH_URL);
   if (publicOrigin === undefined || appOrigin === undefined) return undefined;

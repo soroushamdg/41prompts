@@ -87,7 +87,7 @@ export const NAV_ALWAYS_LINKS: readonly NavLink[] = [{ id: "decompile", name: "D
 export const NAV_LINKS: readonly NavLink[] = [...NAV_SECTION_LINKS, ...NAV_ALWAYS_LINKS];
 
 /** Pages that exist and do what they say. */
-export const PRODUCT_LINKS: readonly SiteLink[] = [
+const PRODUCT_LINKS: readonly SiteLink[] = [
   { name: "Features", href: "/features" },
   { name: "Delivery", href: "/delivery" },
   { name: "Decompiler", href: "/decompile" },
@@ -95,13 +95,13 @@ export const PRODUCT_LINKS: readonly SiteLink[] = [
   { name: "Sign in", href: "/sign-in" }
 ];
 
-export const RESOURCE_LINKS: readonly SiteLink[] = [
+const RESOURCE_LINKS: readonly SiteLink[] = [
   { name: "Docs", href: "/docs" },
   { name: "Guides", href: "/guides" },
   { name: "Security", href: "/security" }
 ];
 
-export const LEGAL_LINKS: readonly SiteLink[] = [
+const LEGAL_LINKS: readonly SiteLink[] = [
   { name: "Terms", href: "/legal/terms" },
   { name: "Privacy", href: "/legal/privacy" },
   { name: "Security policy", href: "/legal/security" },
@@ -109,7 +109,7 @@ export const LEGAL_LINKS: readonly SiteLink[] = [
   { name: "Third-party notices", href: "/legal/third-party-notices" }
 ];
 
-export const ELSEWHERE_LINKS: readonly SiteLink[] = [{ name: "Contact", href: "/contact" }];
+const ELSEWHERE_LINKS: readonly SiteLink[] = [{ name: "Contact", href: "/contact" }];
 
 export const FOOTER_GROUPS: readonly SiteLinkGroup[] = [
   { heading: "Product", links: PRODUCT_LINKS },
