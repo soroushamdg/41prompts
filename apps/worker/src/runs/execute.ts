@@ -129,7 +129,7 @@ function hash(value: string): string {
  * characters per token is the widely used approximation; the `+ 1` stops an empty prompt reserving
  * nothing, which would let a zero-token call slip past a cap that is already full.
  */
-export function estimateTokens(text: string): number {
+function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4) + 1;
 }
 

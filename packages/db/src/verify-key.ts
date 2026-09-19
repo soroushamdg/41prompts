@@ -77,7 +77,7 @@ const PROBES: Readonly<Record<ProviderName, Probe>> = {
 };
 
 /** How long a probe may take. A person is waiting on this with a form open. */
-export const VERIFY_TIMEOUT_MS = 10_000;
+const VERIFY_TIMEOUT_MS = 10_000;
 
 /**
  * The words a person reads, per refusal, with the provider named.

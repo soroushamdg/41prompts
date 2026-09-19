@@ -112,7 +112,7 @@ export async function incrementRunBudget(db: Db, owner: string, amountCents: num
  * Clamped at zero: a release can never take `spentCents` negative, whatever it is handed. A
  * reconciliation bug should cost a user some headroom, not silently mint budget.
  */
-export async function releaseRunBudget(db: Db, owner: string, amountCents: number): Promise<RunBudget> {
+async function releaseRunBudget(db: Db, owner: string, amountCents: number): Promise<RunBudget> {
   if (amountCents < 0) {
     throw new Error("amountCents must not be negative");
   }

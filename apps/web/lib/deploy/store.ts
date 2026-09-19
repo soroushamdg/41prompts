@@ -103,7 +103,7 @@ export interface R2Config {
  * like they worked, against a credential that is not there. `infra/backup.sh` takes the same
  * position with its `: "${R2_ACCOUNT_ID:?…}"` guards.
  */
-export function r2ConfigFromEnv(env: Record<string, string | undefined> = process.env): R2Config | undefined {
+function r2ConfigFromEnv(env: Record<string, string | undefined> = process.env): R2Config | undefined {
   const accountId = env.R2_ACCOUNT_ID;
   const accessKeyId = env.R2_ACCESS_KEY_ID;
   const secretAccessKey = env.R2_SECRET_ACCESS_KEY;

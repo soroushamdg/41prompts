@@ -5,7 +5,7 @@ SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 # Handover
 
-Where things stand as of **2026-09-19, after EPIC-901**, for whoever picks this up — person or
+Where things stand as of **2026-09-19, after EPIC-900**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -32,8 +32,34 @@ against `docs/backlog.md` on 2026-09-19, not remembered:
 **That is the headline, and it is not a complaint.** The product is built: Stages 0–5b, plus
 EPIC-072's marketing site and EPIC-901's audit. What is left is money, a launch, a lawyer, and
 people — and `docs/AUTONOMOUS.md` says a row whose dependency is a person is skipped and said out
-loud, never half-built. **`EPIC-900` is the one row still buildable with nothing from him**: the
-tech-debt sweep, minus the infra drill, which needs the box.
+loud, never half-built. **`EPIC-900` was that one row and it merged on 2026-09-19**, minus the infra
+drill, which needs the box. There is now nothing left that does not need him.
+
+**EPIC-900 merged on 2026-09-19 and `pnpm dead-code` is now a gate.** It fails the build on an
+exported value that no other file in this repository names, and on an `ALLOWED` entry that no longer
+describes one. It runs in `pnpm compliance`, in `compliance.yml` and in `gates.mjs`'s CI list, and a
+test fails if those three ever disagree. **`ALLOWED` is empty** — all 43 findings were resolvable —
+and keeping it empty is worth something.
+
+**Two things to know before you argue with it.** Prose is not a use: a `.md` file naming a symbol,
+or a comment inside a `.ts` one, does not keep it alive. Both rules exist because the gate failed on
+itself twice — first the epic file describing the dead code hid it, then the gate's own header did.
+And it only checks **values**, never types; a type alias used once in its own file is not debt and
+there are 113 of them.
+
+**`better-auth` is pinned at `1.7.2` exact, deliberately.** 1.7.3 added a startup schema check our
+schema fails: `accounts.issuer` is `NOT NULL` and Better Auth never writes it. It is **not broken
+today** — a full magic-link sign-in produces 1 user row and 0 account rows, measured — and it becomes
+real the first day a second sign-in method exists. Upgrading needs a migration on an auth table.
+Do not loosen that pin without doing the migration.
+
+**`@types/node` is held at 22.x on purpose.** `engines` pins the runtime to Node 22, so 26.x would
+type APIs that are not there. It is not staleness and it should not be "fixed".
+
+**`app-icon.jpg` is untracked in the repository root, unlicensed, and fails `reuse lint`.** It makes
+`node scripts/gates.mjs ci` refuse to start, so the last two epics have both run it with
+`--allow-dirty`. Licence it and commit it, or delete it — a standing `--allow-dirty` is a flag that
+says "one file was not tested".
 
 **EPIC-901 merged on 2026-09-19 and the monthly audit exists.** `pnpm audit-run` is one command over
 five checks — `pnpm audit`, `pip-audit`, `gitleaks`, the licence gate and its SBOM, and the key

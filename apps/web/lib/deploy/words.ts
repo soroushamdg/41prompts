@@ -48,7 +48,7 @@ export function gateBody(report: GateReport) {
   };
 }
 
-export function buildRefusalPhrase(refusal: BuildRefusal): string {
+function buildRefusalPhrase(refusal: BuildRefusal): string {
   if (refusal.kind === "unreadable_snapshot") {
     return "That version's blok set cannot be read, so nothing was published.";
   }

@@ -30,7 +30,7 @@ export interface CanvasBlok extends Omit<BlokRow, "kind"> {
   kind: BlokKind;
 }
 
-export function isBlokKind(value: string): value is BlokKind {
+function isBlokKind(value: string): value is BlokKind {
   return (BLOK_KINDS as readonly string[]).includes(value);
 }
 
@@ -55,7 +55,7 @@ export async function listProjects(db: Db, owner: string) {
     .orderBy(asc(projects.createdAt));
 }
 
-export async function projectForOwner(db: Db, projectId: string, owner: string) {
+async function projectForOwner(db: Db, projectId: string, owner: string) {
   const [row] = await db
     .select({ id: projects.id, name: projects.name })
     .from(projects)

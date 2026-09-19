@@ -17,9 +17,16 @@ import { publishedArtifacts, publishEvents, projects, prompts } from "./schema";
  * is trusted.
  */
 
-/** `published` · `published_anyway` · `undone`. Never a fourth. */
-export const PUBLISH_EVENT_KINDS = ["published", "published_anyway", "undone"] as const;
-export type PublishEventKind = (typeof PUBLISH_EVENT_KINDS)[number];
+/**
+ * `published` · `published_anyway` · `undone`. Never a fourth.
+ *
+ * A union rather than a `const` array read back with `(typeof …)[number]`: nothing ever iterated
+ * the array, so it was a value that existed only to be a type — which is what EPIC-900's dead-code
+ * gate reported it as. `HISTORY_WORDS` in `apps/web/lib/deploy/view.ts` is a
+ * `Record<PublishEventKind, string>`, so a fourth kind still cannot be added without giving it a
+ * word, which is the property the array was there to protect.
+ */
+export type PublishEventKind = "published" | "published_anyway" | "undone";
 
 /**
  * How long a reason must be for "Publish anyway" and for an undo.

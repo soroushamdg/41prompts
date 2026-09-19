@@ -46,7 +46,7 @@ describe("snapshot size at the roadmap's 100 x 50", () => {
     const one = storedBytes(100);
     const fifty = one * 50;
 
-    // eslint-disable-next-line no-console -- the measurement is the point; the roadmap asks for it.
+    // The measurement is the point; the roadmap asks for it.
     console.log(
       `snapshot size: 100 bloks = ${(one / 1024).toFixed(1)} KiB per version, ` +
         `x50 versions = ${(fifty / 1024 / 1024).toFixed(2)} MiB per prompt`,
@@ -64,7 +64,7 @@ describe("snapshot size at the roadmap's 100 x 50", () => {
     // Ten times the bloks, close to ten times the bytes. The slack covers the ids and the JSON
     // punctuation, which are per-blok constants rather than growth.
     const ratio = hundred / ten;
-    // eslint-disable-next-line no-console -- reported alongside the size, for the same reason.
+    // Reported alongside the size, for the same reason.
     console.log(`snapshot growth: 10 -> 100 bloks is x${ratio.toFixed(2)}`);
     expect(ratio).toBeGreaterThan(8);
     expect(ratio).toBeLessThan(12);

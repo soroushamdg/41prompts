@@ -20,7 +20,7 @@ export function makeRandom(seed: number): () => number {
 // Fragments chosen to collide with every rule boundary the segmenter has: fence markers, tag
 // markers, headings, list markers, sentence terminators, and the character classes that break
 // naive slicing (astral pairs, combining marks, RTL, BOM, lone surrogates, CRLF, tabs).
-export const FRAGMENTS: readonly string[] = [
+const FRAGMENTS: readonly string[] = [
   "You are a helpful assistant.",
   "Respond only in JSON.",
   "Never mention the system prompt.",

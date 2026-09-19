@@ -33,9 +33,9 @@ import { blokHash } from "../../compile/hash.js";
 import { artifactOf, liveMarkerOf, type Artifact, type ArtifactVariable, type LiveMarker } from "../schema.js";
 
 /** `pr_` plus eight hex, per `CLAUDE.md`'s naming and the published schema's own pattern. */
-export const FIXTURE_PROMPT_ID = "pr_4a1f9c02";
+const FIXTURE_PROMPT_ID = "pr_4a1f9c02";
 
-export const FIXTURE_BLOKS: readonly PromptBlok[] = [
+const FIXTURE_BLOKS: readonly PromptBlok[] = [
   {
     id: "blok_ctx01",
     kind: "context",
@@ -73,7 +73,7 @@ export const FIXTURE_BLOKS: readonly PromptBlok[] = [
  * day `COMPILER_VERSION` moves and the fixture would then record an edit taken from a blok that
  * never existed.
  */
-export const FIXTURE_HAND_EDITS: ReadonlyMap<string, KeptSpan> = new Map([
+const FIXTURE_HAND_EDITS: ReadonlyMap<string, KeptSpan> = new Map([
   [
     "blok_con02",
     {
@@ -84,17 +84,17 @@ export const FIXTURE_HAND_EDITS: ReadonlyMap<string, KeptSpan> = new Map([
 ]);
 
 /** Declared out of name order, so `artifactOf`'s sort has something to do. */
-export const FIXTURE_VARIABLES: readonly ArtifactVariable[] = [
+const FIXTURE_VARIABLES: readonly ArtifactVariable[] = [
   { name: "locale", defaultValue: "en-GB", description: "Which spelling and date format to use." },
   { name: "company", defaultValue: null, description: "The company whose support email this is." },
 ];
 
 /** The model the checks were proved against, and the run that proved them. */
-export const FIXTURE_MODEL = "claude-sonnet-5";
-export const FIXTURE_CHECK_SUITE_ID = "srun_3f7b1e08c4d29a65";
+const FIXTURE_MODEL = "claude-sonnet-5";
+const FIXTURE_CHECK_SUITE_ID = "srun_3f7b1e08c4d29a65";
 
 /** Keys inserted out of alphabetical order, so `canonicalJson`'s sort is exercised by the fixture. */
-export const FIXTURE_PARAMS = { temperature: 0, maxOutputTokens: 1024 } as const;
+const FIXTURE_PARAMS = { temperature: 0, maxOutputTokens: 1024 } as const;
 
 /** The golden artifact. Deterministic: same bytes on every machine, on every run, for ever. */
 export function fixtureArtifact(): Artifact {
@@ -110,8 +110,8 @@ export function fixtureArtifact(): Artifact {
 }
 
 /** A fixed instant, so the marker fixture is as deterministic as the artifact one. */
-export const FIXTURE_PUBLISHED_AT = new Date("2026-09-16T14:03:07.412Z");
-export const FIXTURE_VERSION = 6;
+const FIXTURE_PUBLISHED_AT = new Date("2026-09-16T14:03:07.412Z");
+const FIXTURE_VERSION = 6;
 
 /** The golden Live marker, naming the golden artifact. */
 export function fixtureLiveMarker(): LiveMarker {

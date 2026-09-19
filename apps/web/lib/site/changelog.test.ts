@@ -63,6 +63,24 @@ describe("nothing that shipped is missing from it", () => {
   it("declares nothing invisible that it also lists", () => {
     for (const epic of Object.keys(NOT_USER_VISIBLE)) expect(CHANGELOG_EPICS).not.toContain(epic);
   });
+
+  it("declares nothing invisible that has not shipped", () => {
+    // The direction this file shipped one-way, found by EPIC-900 while fixing the red EPIC-901
+    // left here. `CHANGELOG_EPICS` has always been checked against `docs/epics/reports/`;
+    // `NOT_USER_VISIBLE` never was, so an id could sit here for an epic that does not exist —
+    // and would then silence that id for a reason nobody wrote down if it ever did.
+    //
+    // It is the same hole as a stale entry in `docs/security/audit-baseline.json` or in
+    // `scripts/dead-code.mjs`'s `ALLOWED`, and this repository has now closed it four times: an
+    // exemption is only ever allowed to describe something that is really there.
+    //
+    // The consequence is deliberate. An epic cannot declare itself invisible before it has a
+    // report, so the entry is written in the same commit as the report and not before it.
+    const shipped = new Set(shippedEpics());
+    for (const epic of Object.keys(NOT_USER_VISIBLE)) {
+      expect(shipped.has(epic), `${epic} is declared not user-visible and has no report`).toBe(true);
+    }
+  });
 });
 
 describe("the entries are well formed", () => {

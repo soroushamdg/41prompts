@@ -57,6 +57,10 @@ jobs:
       # when a tracked source file under packages/ or apps/ contains a NUL byte -- the defect that
       # hid packages/core/src/cluster/cluster.ts from two self-reviews.
       - run: pnpm binary-files
+      # An exported value nothing else in the repository names. EPIC-900 found 43 of them,
+      # three named nowhere at all. Nothing fails and nothing is slower -- a module's export list
+      # just stops being a statement of what that module offers, a few symbols at a time.
+      - run: pnpm dead-code
 
   license-gate:
     runs-on: ubuntu-latest

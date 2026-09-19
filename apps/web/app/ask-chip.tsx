@@ -41,7 +41,7 @@ interface Destination {
  * Exported so `ask-chip.test.tsx` can assert every one encodes rather than interpolates — a
  * question with an `&` in it must not become two parameters.
  */
-export const ASK_DESTINATIONS: readonly Destination[] = [
+const ASK_DESTINATIONS: readonly Destination[] = [
   { name: "Claude", url: (q) => `https://claude.ai/new?q=${encodeURIComponent(q)}` },
   { name: "ChatGPT", url: (q) => `https://chatgpt.com/?q=${encodeURIComponent(q)}` },
   { name: "Perplexity", url: (q) => `https://www.perplexity.ai/search?q=${encodeURIComponent(q)}` },
