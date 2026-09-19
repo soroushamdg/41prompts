@@ -4,22 +4,29 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-19T16:04:43.240Z.
+Generated 2026-09-19T18:51:17.049Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `9b6ba3554d69187992b2cc2803d8f1be459556bf` | this checkout |
+| `main` | `261a20bc72d51f68e804c7b40758c6be42f84c4d` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-206 commits · 1061 files changed, 125278 insertions(+), 1021 deletions(-)
+213 commits · 1076 files changed, 128263 insertions(+), 1953 deletions(-)
 
+- 261a20b Merge EPIC-900: the tech-debt sweep, and a gate so the next one is a second
+- cfcb47e docs(epic-900): the second gate run, on the commit that carries the report
+- 7f554b6 docs(epic-900): the report, the session log, ten rulings, the drive and the backlog row
+- 5dd04c9 chore(900): 20 dependencies moved, and the one that cannot
+- 7e39714 feat(900): the dead-code gate, and the 43 exports it found
+- 29cac72 docs(epic-900): the epic file and the plan — a sweep whose deliverable is the gate, not the sweep
+- 5680f33 docs: RELEASE-DUE regenerated at EPIC-901's merge — 206 commits ahead of production
 - 9b6ba35 Merge EPIC-901: the monthly audit exists, and 96 files were licensed Apache-2.0 by accident
 - eb3a9a7 docs(epic-901): which gates the two docs-only commits answer to, and the one that is red in the tree
 - 53657bb docs(epic-901): the report, the session log, ten rulings, the handover and the backlog row
