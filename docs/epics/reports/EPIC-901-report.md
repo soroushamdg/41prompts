@@ -301,6 +301,30 @@ footer. For this commit:
 And the standing three from `docs/PROCESS.md`'s "The local pipeline": no second machine builds this,
 no image is built, and nothing deploys. They wait for your next push.
 
+### 6.3 Which gates the docs-only commits answer to
+
+`gates.mjs ci` ran on `f7a5a095`. Two commits followed it and both are documentation — the epic
+file and plan (`7b8e0bf`) and this report, the session log, the ten rulings, the handover and the
+backlog row (`53657bb`). `docs/PROCESS.md`'s rule is not "never merge un-gated"; it is **ask what
+the gate would have checked**. For a docs commit in *this* repository the answer is not "nothing",
+because EPIC-901 itself just made `docs/**` something the licence gate reads:
+
+| gate | does it read these files? | result on `53657bb` |
+|---|---|---|
+| `pnpm license-gate` | **yes** — `docs/**` is one of the nine proprietary trees it now scans | PASS — boundary intact, 4 packages, 9 trees, 4 exemptions |
+| `reuse lint` | **yes** — every new `docs/` file needs a header | PASS — **1304/1304**, 0 invalid expressions |
+| `audit.test.ts` | **yes** — it reads `docs/security/audit-baseline.json` and the month's document | PASS — 31 tests with `license-gate-boundary.test.ts` |
+| `pnpm audit-run` | **yes** — same files | PASS — 5/5 |
+| `pnpm forbidden-words` | no — it scans `packages/ui/src`, `apps/web/app`, `apps/web/lib` | not applicable |
+| `pnpm binary-files` | no — `packages/` and `apps/` | not applicable |
+| `pnpm test` / `typecheck` / `e2e` / `mirror-dry-run` | no — no source, no public-tree path | not applicable |
+
+**One of those was red in the working tree and green on the commit**, which is worth writing down
+rather than glossing. `reuse lint` scans the working **directory**, not the index, so in this tree
+it fails — on `app-icon.jpg` alone, the untracked file from a concurrent session (§6.1). Proved
+rather than asserted: a fresh `git clone` of `53657bb` into a temp directory reports
+**1304 / 1304, compliant**. The file is in no commit of this branch.
+
 ## 7. New dependencies
 
 **None.** `gitleaks` and `uv`/`pip-audit` are developer tools invoked from `PATH`, not packages, and
