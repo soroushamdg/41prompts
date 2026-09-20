@@ -5,7 +5,7 @@ SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 # Handover
 
-Where things stand as of **2026-09-19, after EPIC-900**, for whoever picks this up — person or
+Where things stand as of **2026-09-19, after EPIC-032a**, for whoever picks this up — person or
 unattended run.
 One page on purpose. `docs/PROCESS.md` is how to work; this is what is true right now.
 
@@ -16,8 +16,24 @@ both environments take a minute and are the truth.
 
 ## Start here
 
-**There is no buildable product epic left. Every remaining row needs Soroush** — verified row by row
-against `docs/backlog.md` on 2026-09-19, not remembered:
+**EPIC-032a merged on 2026-09-19 — and it did not come from the backlog.** Soroush asked for it
+directly, in the middle of running the app by hand: *"sometimes it is more convenient to set inputs
+inside the platform if they are not much instead of uploading a csv."* It turned out to be the half
+of EPIC-032's own task line — *"Input sets from CSV **and manual rows**"* — that EPIC-032 had
+narrowed away in writing.
+
+**That is the pattern worth noticing, because the backlog is exhausted and he is not.** The picker
+still stops on `▣ GATE 3` and every row behind it still needs him; but a session that asks what he
+wants next can find real work that the backlog does not list. `docs/PROCESS.md`'s advisor-chair
+amendment is what lets a session write the epic file itself, and EPIC-032a is the precedent for
+doing it from a spoken request rather than from a row.
+
+**`docs/backlog.md` has no row for EPIC-032a and I did not add one.** It is on the never-touch list
+and the carve-out is the status cell of a row that already exists. The epic file, plan, report and
+session log are all on disk; whether the backlog gains a row is his.
+
+**There is no buildable product epic left *in the backlog*. Every remaining row needs Soroush** —
+verified row by row against `docs/backlog.md` on 2026-09-19, not remembered:
 
 | row | what it waits on |
 |---|---|
@@ -33,7 +49,34 @@ against `docs/backlog.md` on 2026-09-19, not remembered:
 EPIC-072's marketing site and EPIC-901's audit. What is left is money, a launch, a lawyer, and
 people — and `docs/AUTONOMOUS.md` says a row whose dependency is a person is skipped and said out
 loud, never half-built. **`EPIC-900` was that one row and it merged on 2026-09-19**, minus the infra
-drill, which needs the box. There is now nothing left that does not need him.
+drill, which needs the box. Nothing in the **backlog** is left that does not need him — which is
+not the same as no work being available; see EPIC-032a above.
+
+**What EPIC-032a settled, so it is not rediscovered:**
+
+1. **A `suite_run` does not snapshot the inputs it ran against.** It freezes `prompt_text` and
+   `prompt_hash` onto its own row but keeps `input_set` as a **foreign key**, and the run detail page
+   reads the rows live through `inputSetForPrompt`. So editing an input set in place would silently
+   rewrite what every finished run against it appears to have run against — no error, no symptom.
+   `editRefusalFor` in `apps/web/lib/runs/queries.ts` is the guard: a set with no runs is editable,
+   a set with runs is **duplicated** instead. If anyone ever adds a rows snapshot to `suite_runs`,
+   that function is what they delete.
+2. **An accessible name is computed from the DOM; CSS never reaches it.** A column header styled
+   `text-transform: uppercase` rendered a variable named `request` as `REQUEST` — two *different*
+   variables — while `getByRole("columnheader", { name: "request" })` passed the whole time. Only
+   the drive, reading `innerText` off the built app, saw it. Assert rendered text as well as the
+   announced name wherever a string is case-sensitive.
+3. **`"use server"` means every export in `actions.ts` is a server action**, so a plain helper cannot
+   live there. That is why the edit rule sits in `queries.ts` — and it is the better place, because
+   the rule now has tests instead of being reachable only through a browser. There is **no precedent
+   in this repository for mocking `requireSession`**, so action-level unit tests are not available.
+4. **`changelog.test.ts` fires on the commit that adds the report, not on the code.** Writing
+   `docs/epics/reports/EPIC-xxx-report.md` is what makes an epic "shipped", and the test then demands
+   a changelog row or a `NOT_USER_VISIBLE` entry. EPIC-032a's second gate run went red on exactly
+   this. **Budget for a third gate run** whenever an epic ships a visible surface, and prefer the row
+   to the exemption.
+5. **The by-hand grid needs no migration.** `input_sets.columns` and `.rows` were already `jsonb`
+   and `rowCount` is written at insert time, so `addInputSet` already took what a grid produces.
 
 **EPIC-900 merged on 2026-09-19 and `pnpm dead-code` is now a gate.** It fails the build on an
 exported value that no other file in this repository names, and on an `ALLOWED` entry that no longer
@@ -316,6 +359,7 @@ only its own epic's status cell.
 | **GATE 5** | **decided 2026-09-17** — `docs/decisions/GATE-5.md`. Technical reading, go to Stage 5b. Neither demand number was measured; both are zero. |
 | **Stage 5b** | **done, 2026-09-18.** 053 ✅ (`41p`) · 054 ✅ (`fortyone`) · 057 ✅ (the threat model, the `/v1` rate limit; its **external review hour did not happen** and is not ticked — report §8) · 056 ✅ (the split, the holder named, the mirror real — **but nothing published**, report §8). |
 | **Stage 6** | **started.** 072 ✅ (the site's six pages and the claims registry; **five mockup pages deliberately refused**, report §8) · 070 Stripe (needs an account) · 071 `deferred` (lawyer) · 073 launch 2 (depends on 035, which GATE 3 deferred). No remaining row has an epic file. |
+| **Stage 3 (reopened)** | **032a ✅ (2026-09-19)** — inputs typed into the Runs page, the half of EPIC-032's task line that had been narrowed away. Asked for directly, not picked from the backlog. |
 | **Ongoing** | **901 ✅ (2026-09-19)** — the monthly dependency, licence and security audit exists and has run once: `pnpm audit-run`, five checks, next due October 2026. It also found and fixed 96 accidental Apache-2.0 headers inside proprietary trees. **900 (tech-debt sweep) is the only row left that needs nothing from Soroush**, minus its infra drill. |
 
 **EPIC-035 (loud launch) is behind the gate and stays `todo`.** It is not `cut`. Soroush deferred it
@@ -359,12 +403,12 @@ the fallback labels itself `normalised: true`.
 
 ## Where the code is
 
-Measured 2026-09-18 with `git log --oneline origin/main..main`, not remembered:
+Measured 2026-09-19 with `git log --oneline origin/main..main`, not remembered:
 
 | | commit | |
 |---|---|---|
-| local `main` | `637a669` | EPIC-072, merged 2026-09-18 |
-| `origin/main` / staging | `da42eee` | **115 behind** — still EPIC-040's epic file and GATE 3's decision |
+| local `main` | `1727981` | EPIC-032a merged (`5535ecd`), RELEASE-DUE regenerated |
+| `origin/main` / staging | `da42eee` | **137 behind** — still EPIC-040's epic file and GATE 3's decision |
 | production | `af089c7` = `v0.5.0` | only a `v*` tag moves it |
 
 **So staging is not serving anything from EPIC-040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057,
@@ -376,8 +420,8 @@ Measured 2026-09-18 with `git log --oneline origin/main..main`, not remembered:
 did that first, and it is the cheap version of the hour EPIC-051 lost (lesson 17).
 
 **A release is due, and more so again.** `docs/AUTONOMOUS.md` stops the loop after every third
-completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057, 056 and 072 are
-**thirteen**. `RELEASE-DUE.md` was regenerated at EPIC-072's merge: **198 commits** ahead of
+completed epic, and 040, 041, 042, 043, 050, 051, 052, 055, 053, 054, 057, 056, 072, 901, 900 and
+032a are **sixteen**. `RELEASE-DUE.md` was regenerated at EPIC-032a's merge: **220 commits** ahead of
 production, which is still `af089c7` = `v0.5.0`. Nothing is tagged or pushed by an agent.
 
 ## Process, as it currently stands
