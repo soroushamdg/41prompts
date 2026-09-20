@@ -44,7 +44,7 @@ five more destinations to chrome designed to hold none of them.
 | Below 940px | grid collapses, rail stacks | `<details>` disclosure | A nine-item rail above every page. Server-rendered, so `ThemeToggle` stays the shell's only client component. |
 | Contextual groups | one | **two** | §4.1. |
 
-## 4. Five defects, all found by running things
+## 4. Six defects, all found by running things
 
 ### 4.1 The rail could strand you — twice, in two different places
 
@@ -123,6 +123,22 @@ and the criterion written to catch it very nearly passed by inspection.
 The layout now renders the link and owns its target — a page's own `<main>` is out of a layout's
 reach, so `{children}` is wrapped in `<div id="main" tabIndex={-1}>`.
 
+### 4.6 `gates.mjs ci` found what a local green could not: the changelog
+
+`pnpm test` was green locally and **failed on the clean checkout**:
+
+> `EPIC-023 shipped and the changelog does not mention it. Add a row, or add it to
+> NOT_USER_VISIBLE with the reason.`
+
+`lib/site/changelog.test.ts` walks `docs/epics/reports/` and fails on a report the public changelog
+does not name. It is right, and the mechanism is exactly `docs/PROCESS.md`'s *"local green is not CI
+green"*: **I ran `pnpm test` before writing the report**, so the working tree I tested did not have
+the file that makes the epic count as shipped. The commit did.
+
+Nothing about this is a false positive. A rail that puts every screen one click from the others is
+about as user-visible as this product gets, and `NOT_USER_VISIBLE` would have been the wrong door.
+Stage 2's row now carries it.
+
 ## 5. The one scope exception, taken deliberately
 
 The epic put "any page's body" out of scope. Ten pages rendered their own `.app-crumb`, and the top
@@ -161,7 +177,8 @@ now says better. `.app-state` stays where it says something the pill does not �
 - [x] Light and dark correct; reduced motion shows end states — `02`, `03-dark.png`,
       `05-reduced-motion.png`; the drive measures the rail's dark background at `rgb(20, 20, 20)`.
 - [x] `pnpm forbidden-words` — clean over six roots.
-- [ ] `node scripts/gates.mjs ci` — **§9.**
+- [x] `node scripts/gates.mjs ci` — 17 steps. First run **1 failed** (§4.6); green after the
+      changelog row. Its closing block is quoted in §9.2.
 
 ## 7. Gates
 
