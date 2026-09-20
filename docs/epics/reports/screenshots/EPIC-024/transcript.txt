@@ -1,0 +1,12 @@
+PASS  five bloks written through one picker, each closing only once it had saved — 5 cards
+PASS  the split's two panes are the same height — compiled 514px · canvas 514px · split 518px
+PASS  a card at rest is materially shorter than the same card being edited — 165px at rest, 354px open — 53% of the height is the editor
+PASS  the compiled prompt carries the four text bloks and not the expected one — 380 characters compiled
+PASS  the expected blok appears on the Checks tab instead — VALID JSON SHAPE
+PASS  the Providers tab lists the pinned catalogue — 7 models
+PASS  two project cards, and every metric an em dash because nothing has run — 2 cards · 6 of 6 metrics absent
+PASS  no card invents a zero — no $0.00 and no 0.0% anywhere on the grid
+PASS  /app/projects does not scroll sideways at 390px — overflow 0px
+PASS  /app/pr/pr_d79c659e does not scroll sideways at 390px — overflow 0px
+
+10/10

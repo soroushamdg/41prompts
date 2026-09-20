@@ -5,8 +5,15 @@ import { compiledView } from "@/lib/canvas/compiled-view";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { variablesViewFor } from "@/lib/variables/queries";
-import { variablesForPrompt } from "@41prompts/db";
+import {
+  PROVIDERS,
+  providerKeyMetadata,
+  variablesForPrompt,
+  type ProviderName
+} from "@41prompts/db";
+import { ChecksTab } from "./checks-tab";
 import { Editor } from "./editor";
+import { ProvidersTab } from "./providers-tab";
 import { VariablesTab } from "./variables-tab";
 import { Workbench } from "./workbench";
 
@@ -27,6 +34,13 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
   // ships, and they cannot if they are looking at two snapshots.
   const declarations = await variablesForPrompt(getDb(), promptId);
   const variables = variablesViewFor(found.bloks, declarations);
+
+  // Which providers this account can actually call. **Metadata only** — `apps/web` never opens an
+  // envelope (threat model row `043a`), and this needs nothing beyond whether a row exists.
+  const stored = await providerKeyMetadata(getDb(), session.user.id);
+  const keyed = Object.fromEntries(
+    PROVIDERS.map((provider) => [provider, stored.some((key) => key.provider === provider)])
+  ) as Record<ProviderName, boolean>;
 
   // EPIC-055 C14 put `Draft vN · Live vM` here; **EPIC-023 moved it into the top bar**, where it
   // is on every screen rather than only this one — and where Runs, Versions and Deploy, which are
@@ -76,6 +90,8 @@ export default async function PromptPage({ params }: { params: Promise<{ promptI
             compiledText={compiled.text}
           />
         }
+        checks={<ChecksTab checks={compiled.checks} />}
+        providers={<ProvidersTab keyed={keyed} />}
       />
     </main>
   );

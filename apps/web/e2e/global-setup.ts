@@ -48,13 +48,26 @@ export default async function globalSetup(): Promise<void> {
   const live = await db.select({ id: suiteRuns.id }).from(suiteRuns);
   const ids = live.map((row) => row.id);
 
+  // **`not in (…)` with one parameter per id, not `<> all(${ids})`.**
+  //
+  // Binding a JavaScript array into `all()` sends it as a single parameter, and Postgres asks that
+  // parameter to be an array literal. It is not one, so the statement fails with
+  // `malformed array literal: "srun_…"` — and it fails *only when there are live runs to keep*,
+  // which is why this stood since EPIC-031 without anybody seeing it: every clean run takes the
+  // `ids.length === 0` branch above. EPIC-024 hit it by interrupting a suite and leaving a run
+  // behind, which is exactly the state this function exists to clean up after.
+  //
+  // `sql.join` expands to one placeholder per id, which is the shape drizzle binds correctly.
   const removed = await db.execute(
     ids.length === 0
       ? sql`delete from pgboss.job where name = ${RUN_SUITE_QUEUE} and state in ('created', 'retry')`
       : sql`delete from pgboss.job
             where name = ${RUN_SUITE_QUEUE}
               and state in ('created', 'retry')
-              and (data ->> 'suiteRunId') <> all(${ids})`,
+              and (data ->> 'suiteRunId') not in (${sql.join(
+                ids.map((id) => sql`${id}`),
+                sql`, `,
+              )})`,
   );
 
   if (removed.rowCount !== null && removed.rowCount > 0) {

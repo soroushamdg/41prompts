@@ -23,14 +23,22 @@ cards, and driving the built app makes the gap plain:
 - **Two of four tabs ship.** `workbench.tsx` says so, and says why: *"Assertions is Stage 3 and
   Providers is Stage 4, and a disabled tab that does nothing is a worse promise than an absent
   one."* Both stages are `done`. The reason expired and nothing noticed.
-- **Blok kind colour has never shipped.** EPIC-003 deviation 1; reassigned to EPIC-020, which could
-  not take it; then to EPIC-021a/021b, which did not.
+**Two things this epic was written to build turned out to be built already**, found by reading the
+code before planning rather than after:
+
+- **Blok kind colour shipped in EPIC-021a** (decision 6). Six hues on `--color-kind-*`, resolved per
+  kind onto `--blok-kind`, painted *only* inside `:hover` / `:focus-visible` / `[data-selected]`,
+  deliberately drawn from blue/violet/magenta/clay and nowhere near green, red or amber, held to
+  3:1 against surface, with a test that fails if a card at rest paints one.
+  **`docs/design/README.md` is stale, not the code**: it still records the debt as passing to
+  EPIC-021a/021b as though neither had taken it. Correct that file as part of this epic.
+- **The drift banner already says the right words.** `span-state.tsx` has "edited by hand" and
+  "Update from blok"; `pnpm forbidden-words` would fail on "Reconcile" and does not.
 
 ## Goal
 
-The app's pages are laid out as the mockup lays them out — a project card grid, a two-pane editor of
-compact cards, four tabs — with blok kind colour finally shipped on a palette that does not collide
-with pass, fail or drift.
+The app's pages are laid out as the mockup lays them out: a project card grid, a two-pane editor of
+compact cards, and four tabs instead of two.
 
 ## Scope
 
@@ -54,12 +62,8 @@ with pass, fail or drift.
 4. **One `+ Add blok` with a kind picker**, replacing six `Add <kind>` buttons. The six kinds are
    `context | constraint | example | expected | image_ref | image_input`.
 
-5. **Blok kind colour, and the palette decision.** The mockup's `--kc` reuses `--pass` for
-   `expected` and `--warn` for `example`, which `CLAUDE.md` rule 10 forbids. Ship a five-kind
-   palette that avoids the three reserved hues, measured against WCAG AA in both themes with
-   `packages/ui/src/contrast.ts` — the same instrument that settled `--color-ink-3`. Colour appears
-   **only during interaction**, never persistently (`docs/design/README.md`), and never alone:
-   the kind tag's text is the accessible answer.
+5. **`docs/design/README.md`'s stale paragraph on blok kind colour**, corrected to record that
+   EPIC-021a shipped it and how. One paragraph; no code.
 
 6. **The Checks tab.** The mockup labels it `Assertions`; ADR-003 forbids that word in UI strings
    and `docs/design/README.md` already says build "checks". Lists the prompt's checks, each with its
@@ -68,9 +72,7 @@ with pass, fail or drift.
 7. **The Providers tab.** Which models this prompt runs against, from EPIC-042's seven pinned
    models, with a link to Settings → Providers for keys.
 
-8. **The drift banner, in ADR-003's words.** The mockup writes
-   *"Blok 4 edited by hand · compiler released this block · Reconcile"*. Build
-   *"Blok 4 edited by hand · the compiler released this span · **Update from blok**"*.
+8. **Nothing for the drift banner.** Already correct; see above.
 
 ## Out of scope
 
@@ -96,15 +98,12 @@ with pass, fail or drift.
 - [ ] Reorder, pin, edit and delete all still work by keyboard and by touch after the rework.
       Evidence: the existing `canvas.spec.ts` passing unchanged where it can, and named amendments
       where it cannot.
-- [ ] The kind palette passes WCAG AA in both themes, **measured**, with the numbers in the report.
-      No kind colour equals `--color-pass`, `--color-fail` or `--color-drift`. Evidence: a
-      `contrast.test.ts` case per kind per theme, and a test asserting the three-way inequality.
-- [ ] Kind is never conveyed by colour alone. Evidence: test name.
+- [ ] `docs/design/README.md` records that EPIC-021a shipped blok kind colour. Evidence: the diff.
 - [ ] The Checks tab lists every check with its owning blok, named by the eight plain phrases.
       Evidence: test name.
 - [ ] The Providers tab lists the pinned models. Evidence: test name.
-- [ ] The drift banner says "edited by hand" and "Update from blok". Evidence:
-      `pnpm forbidden-words` output and a test asserting the two strings.
+- [ ] The drift banner still says "edited by hand" and "Update from blok" after the rework.
+      Evidence: `pnpm forbidden-words` output and the existing compiled-pane spec.
 - [ ] No `/app` route scrolls sideways at 390px. Evidence: `overflow.ts` over every app route.
 - [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm dead-code` green per
       package; `node scripts/gates.mjs ci` green before merge.
@@ -121,12 +120,10 @@ the compiled pane — rather than reading a seeded one.
 
 - The mockup's CSS: `.projgrid`/`.proj` at lines 175–185, `.split`/`.pane`/`.panebar` at 187–196,
   `.compiled`/`.sp` at 198–206, `.canvas`/`.blok`/`.add` at 208–216, `.tabs` at 170–173.
-- **`--kc` is the trap.** Read `[data-k=…]` at mockup lines 24–31 before designing: `expected` is
-  `#0B5C2E`, which is `--pass` exactly, and `example` is `#8A5A00`, which is `--warn` exactly.
-  Copying them ships a rule violation that no test currently catches. Write the test that catches
-  it in the same commit as the palette.
-- The five kinds needing colour are `context`, `constraint`, `example`, `expected` and the two image
-  kinds. The mockup also draws `role`, `format`, `conditional`, `tone` and `instruction` — those are
+- **Do not copy `--kc`.** The palette is already shipped and correct; mockup lines 24–31 are the
+  trap it avoided — `expected` is `#0B5C2E`, which is `--pass` exactly, and `example` is `#8A5A00`,
+  which is `--warn` exactly. Leave `--color-kind-*` alone.
+- The mockup also draws `role`, `format`, `conditional`, `tone` and `instruction` — those are
   the **decompiler's** classifier labels, not blok kinds, and they belong to `/decompile`'s own
   palette. Do not conflate the two sets.
 - A blok stores the verbatim span (`CLAUDE.md` rule 3). Changing a card's chrome must not change a

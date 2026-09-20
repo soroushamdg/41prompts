@@ -95,14 +95,18 @@ test.describe("activation", () => {
     // The example arrived whole: one transaction, four bloks, nothing half-made.
     await expect(rows).toHaveCount(4);
     await expect(page.locator(".canvas-list")).toContainText(APOLOGY.slice(0, 24));
-    const texts = await rows.getByLabel("Blok text").all();
+    // **Scanned by what the cards say, not by what their fields hold** (EPIC-024). A compact card
+    // shows its text at rest and opens on selection, so a fresh page has no fields to read at all —
+    // and this is how a person finds the card anyway: by reading the canvas.
+    const summaries = await rows.allInnerTexts();
     let apologyIndex = -1;
-    for (const [index, field] of texts.entries()) {
-      if ((await field.inputValue()).includes("i'm sorry for the trouble")) apologyIndex = index;
+    for (const [index, text] of summaries.entries()) {
+      if (text.includes("i'm sorry for the trouble")) apologyIndex = index;
     }
     expect(apologyIndex).toBeGreaterThanOrEqual(0);
 
     const apology = rows.nth(apologyIndex);
+    await apology.getByRole("button", { name: /^Edit this blok/ }).click();
     await apology.getByLabel("Blok text").fill(FIXED);
     await expect(apology.locator(".blok-editor-state")).toHaveAttribute("data-state", "saved");
 

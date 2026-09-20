@@ -82,9 +82,9 @@ export function CompiledPane({
   }
 
   return (
-    <section className="compiled-pane" aria-label="Compiled prompt">
+    <section className="pane compiled-pane" aria-label="Compiled prompt">
       <div className="compiled-panebar">
-        <span>Compiled prompt</span>
+        <span className="pane-title">Compiled prompt</span>
         <span className="compiled-readonly">read-only</span>
         <Button
           size="sm"
@@ -98,6 +98,24 @@ export function CompiledPane({
         >
           {copied ? "Copied" : "Copy prompt"}
         </Button>
+        {/* **Characters, not tokens, and no cost — and the mockup says both.**
+            `1,284 tok · $0.0031/run` is drawn on this bar in the prototype, and neither number is
+            available honestly:
+
+            - There is no tokenizer in `packages/core`. The only estimator in the repository is
+              `apps/worker`'s `estimateTokens`, whose own comment calls it *"deliberately crude and
+              deliberately generous"* because it sizes a reservation that is released afterwards —
+              `length / 4`, which is wrong by a wide margin for code and for anything not English.
+              `apps/web` may not import it in any case (dependency-cruiser, CLAUDE.md rule 11).
+            - A per-run cost for a prompt that has never run is a prediction, not a measurement.
+              Where a real cost exists — a run that happened — the Runs page already shows it.
+
+            A character count is exact, costs nothing to compute, changes as you type, and answers
+            most of what the token figure was there for: whether this prompt is getting long.
+            `docs/design/README.md`: the prototypes specify the interface, not what is true. */}
+        <span className="pane-size">
+          {wholePrompt.length.toLocaleString("en-US")} characters
+        </span>
       </div>
 
       <pre className="compiled-text" data-testid="compiled-text">

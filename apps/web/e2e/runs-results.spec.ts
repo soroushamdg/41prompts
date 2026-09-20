@@ -173,10 +173,14 @@ test.describe("results by check", () => {
     }
 
     // And it is on the canvas, as a constraint.
+    //
+    // Read from the card, not from a field: EPIC-024 made a card compact, so a fresh page has no
+    // textarea open. The assertion is the stronger one either way — the new blok is *visible* on
+    // the canvas, which is what "it is on the canvas" was always trying to say.
     await page.goto(`/app/pr/${promptId}`);
-    await expect(page.locator(".canvas-list > li").last().getByLabel("Blok text")).toHaveValue(
-      'Never mention "sorry".'
-    );
+    const added = page.locator(".canvas-list > li").last();
+    await expect(added).toContainText('Never mention "sorry".');
+    await expect(added.getByText("Constraint")).toBeVisible();
   });
 
   test("says how many could not be checked and why, in its own sentence", async ({ page }) => {

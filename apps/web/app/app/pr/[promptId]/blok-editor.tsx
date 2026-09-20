@@ -42,10 +42,15 @@ export const BlokEditor = memo(function BlokEditor({
   promptId,
   blokId,
   initialText,
+  open,
+  onOpenChange,
 }: {
   promptId: string;
   blokId: string;
   initialText: string;
+  /** Whether the textarea is showing. Owned by the canvas, so only one card is open at a time. */
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }) {
   const [text, setText] = useState(initialText);
   const [state, setState] = useState<SaveState>("idle");
@@ -70,6 +75,35 @@ export const BlokEditor = memo(function BlokEditor({
     }, DEBOUNCE_MS);
   }
 
+  // **A card may only collapse when its text is on the server** (EPIC-024).
+  //
+  // Collapsing is a second way to take text off the screen, so it has to be at least as safe as
+  // the rule above. Safe means: saved, or never touched. While there are edits the server has not
+  // acknowledged — mid-debounce, mid-write, or after a refused write — the card stays open and
+  // says so.
+  //
+  // The failure mode is therefore "the card will not close", which is visible and recoverable,
+  // rather than "my paragraph is gone", which is neither. The decision lives here because this is
+  // what knows; the card asks and does not guess.
+  const settled = state === "saved" || (state === "idle" && text === initialText);
+
+  if (!open) {
+    return (
+      <div className="blok-editor blok-editor-closed">
+        {/* The summary is the blok's text, clamped. It is a button because opening the editor is
+            an action on this card, and it is the card's one tab stop. */}
+        <button type="button" className="blok-summary" onClick={() => onOpenChange(true)}>
+          <span className="sr-only">Edit this blok: </span>
+          {text.trim().length === 0 ? (
+            <span className="blok-summary-empty">Empty. Select to write it.</span>
+          ) : (
+            text
+          )}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="blok-editor">
       <label className="sr-only" htmlFor={`blok-${blokId}`}>
@@ -79,6 +113,7 @@ export const BlokEditor = memo(function BlokEditor({
         id={`blok-${blokId}`}
         value={text}
         rows={3}
+        autoFocus
         onChange={(event) => {
           setText(event.target.value);
           schedule(event.target.value);
@@ -91,6 +126,14 @@ export const BlokEditor = memo(function BlokEditor({
         {state === "saved" && "Saved"}
         {state === "failed" && "Not saved. Your text is still here; it will try again as you type."}
       </p>
+      <button
+        type="button"
+        className="blok-editor-done"
+        disabled={!settled}
+        onClick={() => onOpenChange(false)}
+      >
+        {settled ? "Done" : "Saving…"}
+      </button>
     </div>
   );
 });

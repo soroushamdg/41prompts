@@ -33,7 +33,12 @@ async function newPrompt(page: Page): Promise<string> {
 
 async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   const before = await page.locator(".canvas-list > li").count();
-  await page.getByRole("button", { name: `Add ${kind}` }).click();
+  // **The kind picker, since EPIC-024.** Six `Add <kind>` buttons became one `+ Add blok` menu.
+  // The item labels are unchanged on purpose — a menu item is a button with the same accessible
+  // name, so changing the wording would have been a rename across a dozen specs for no reader's
+  // benefit. What changed is that it has to be opened first.
+  await page.getByRole("button", { name: "+ Add blok" }).click();
+  await page.getByRole("menuitem", { name: `Add ${kind}` }).click();
   await expect(page.locator(".canvas-list > li")).toHaveCount(before + 1);
   await page.locator(".canvas-list > li").nth(before).getByLabel("Blok text").fill(text);
   await expect(

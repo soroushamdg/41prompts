@@ -3,181 +3,131 @@ SPDX-FileCopyrightText: 2026 41Prompts Inc.
 SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
-# EPIC-023: App shell — the rail and the top bar
+# EPIC-024: App page composition — the cards, the split, and the two missing tabs
 
-Stage: 2 · late entry, 2026-09-20 · Depends on: EPIC-021a, EPIC-042, EPIC-055 · Size: **M**
+Stage: 2 · late entry, 2026-09-20 · Depends on: EPIC-023 · Size: **M**
 
-**Written by Claude Code in the advisor's chair**, 2026-09-20, under `docs/PROCESS.md`'s amendment
-of 2026-09-15. Sequence and rationale in `docs/epics/plan-mockup-parity.md`.
+Sequence and rationale in `docs/epics/plan-mockup-parity.md`.
 
-## Why this row, and why it is first
+## Why this row
 
-`docs/design/41prompts-full-mockup.html` draws every signed-in screen inside a **216px left rail**
-and a **sticky top bar**. Neither exists. The word "rail" appears nowhere in `docs/roadmap.md`,
-`docs/backlog.md`, or any of the 44 epic files — **it was never in anyone's Scope.**
+Every app page works. Several are laid out as long forms where the mockup draws dense two-pane
+cards, and driving the built app makes the gap plain:
 
-`apps/web/app/app/layout.tsx` is explicit about the intent and about the miss:
+- **Projects** is a `<ul>` of links (`app/app/projects/page.tsx`). The mockup is a 1/2/3-column card
+  grid, each card carrying Pass, Runs and Cost.
+- **The Blok Editor** renders the compiled pane as a small box beside a canvas that runs 1,500px
+  down the page — every blok an always-open textarea with four buttons stacked underneath it,
+  outside the card. The mockup is one bordered `.split` card, two panes of equal height, with
+  compact blok cards: a kind tag, a summary line, a meta row, and a coloured left edge.
+- **Two of four tabs ship.** `workbench.tsx` says so, and says why: *"Assertions is Stage 3 and
+  Providers is Stage 4, and a disabled tab that does nothing is a worse promise than an absent
+  one."* Both stages are `done`. The reason expired and nothing noticed.
+**Two things this epic was written to build turned out to be built already**, found by reading the
+code before planning rather than after:
 
-> The mockup puts identity and account in **persistent chrome** — a left rail whose foot shows who
-> you are, with an "Account" group above it. […] A layout is the same shape at a fraction of the
-> cost, and it is where the rail goes when Stage 3 builds it.
-
-Stage 3 built runs, attribution, a judge and activation. It did not build the rail, because no
-criterion asked for one. Stages 4 and 5a then added Versions, Providers, Deploy, Connect and
-Settings — **five more destinations hung off a chrome designed to hold none of them.**
-
-What that costs today, measured by driving the built app: from `/app/pr/<id>` you reach Runs and
-Versions by two buttons in the page head, Deploy by a third, and **Connect not at all** — it lives
-under the *project*, and nothing on a prompt page links to it. Settings is reachable only from a
-word in the top strip. This is the `/app` dead end `PROCESS.md` already names, repeated at five
-times the size.
-
-It is first because **nothing depends on it and everything benefits**: EPIC-024 lays out pages
-inside it, and it is the single change that most moves the platform toward the mockup per unit of
-work.
+- **Blok kind colour shipped in EPIC-021a** (decision 6). Six hues on `--color-kind-*`, resolved per
+  kind onto `--blok-kind`, painted *only* inside `:hover` / `:focus-visible` / `[data-selected]`,
+  deliberately drawn from blue/violet/magenta/clay and nowhere near green, red or amber, held to
+  3:1 against surface, with a test that fails if a card at rest paints one.
+  **`docs/design/README.md` is stale, not the code**: it still records the debt as passing to
+  EPIC-021a/021b as though neither had taken it. Correct that file as part of this epic.
+- **The drift banner already says the right words.** `span-state.tsx` has "edited by hand" and
+  "Update from blok"; `pnpm forbidden-words` would fail on "Reconcile" and does not.
 
 ## Goal
 
-Every signed-in page renders inside the mockup's shell — a persistent left rail with grouped,
-icon-led navigation and a sticky top bar with breadcrumbs, version state and the primary action —
-so that every surface the product has built is reachable from every other one.
+The app's pages are laid out as the mockup lays them out: a project card grid, a two-pane editor of
+compact cards, and four tabs instead of two.
 
 ## Scope
 
-1. **`AppRail`**, rendered by `apps/web/app/app/layout.tsx`, replacing `.app-chrome`.
+1. **Projects as a card grid.** The mockup's `.projgrid` / `.proj`: name, sub-line
+   (`Draft v7 · Live v6 · 6 bloks`), and a metric row of Pass / Runs / Cost.
 
-   Three groups, exactly as the mockup lays them out, minus what does not exist:
+   **Every metric is derived or absent.** Pass rate is already derived (EPIC-040); runs count and
+   `costCents` are on `results`. A project with no runs shows `—`, never a zero dressed as a
+   measurement. `listProjects` gains the aggregate in one query, not N+1.
 
-   | Group | Items | Href |
-   |---|---|---|
-   | `WORKSPACE` | Projects | `/app/projects` |
-   | | Import | the decompiler, on the apex host via `appOrigin()`'s sibling |
-   | *(project name)* | Connect | `/app/p/<projectId>/connect` |
-   | *(prompt name)* | Blok Editor | `/app/pr/<promptId>` |
-   | | Runs | `/app/pr/<promptId>/runs` |
-   | | Versions | `/app/pr/<promptId>/versions` |
-   | | Deploy | `/app/pr/<promptId>/deploy` |
-   | `ACCOUNT` | Settings | `/app/settings/providers` |
-   | | Account | `/app/account` |
+2. **The Blok Editor as the mockup's `.split`.** One bordered card, two panes, `1.05fr 1fr` above
+   1000px and stacked below. Compiled pane keeps its `read-only` pill and gains the mockup's token
+   and cost readout — **derived from the real compiled string and the real price table, or absent.**
 
-   **The middle groups are contextual.** The mockup heads them with the prompt's name
-   (`REFUND CLASSIFIER`). They render only when a project or a prompt is in context, and the heading
-   is that record's name. On `/app/projects` and `/app/settings/*` there is no middle group.
+3. **Compact blok cards.** Kind tag, the blok's text, a meta row, a 5px coloured left edge. Editing
+   opens in place rather than every card being a live textarea. Move, pin and delete become controls
+   **within** the card's chrome, not four buttons below it. One tab stop per card with arrow keys
+   inside — `docs/design/README.md`'s accessibility correction, which the source map already honours
+   and the canvas does not.
 
-   **Lessons is not in the rail.** Stage 7 owns it; a rail item to a 404 is what EPIC-016 refused
-   for the site nav and the reasoning is identical.
+4. **One `+ Add blok` with a kind picker**, replacing six `Add <kind>` buttons. The six kinds are
+   `context | constraint | example | expected | image_ref | image_input`.
 
-2. **The icons, copied verbatim** from the mockup's rail (lines 1046–1060): four squares for
-   Projects, a down-arrow-into-tray for Import, three panes for Blok Editor, a check for Runs, a
-   clock for Versions, an up-arrow-onto-a-line for Deploy, a link for Connect, a cog for Settings.
-   `viewBox="0 0 24 24"`, `stroke:currentColor`, `fill:none`, `stroke-width:1.9`,
-   `stroke-linecap:square`, 15×15. `aria-hidden` — the label beside it is the accessible name.
+5. **`docs/design/README.md`'s stale paragraph on blok kind colour**, corrected to record that
+   EPIC-021a shipped it and how. One paragraph; no code.
 
-3. **The rail foot**: the mockup's `.railfoot` / `.who` / `.avat` — initials in a 26px bordered
-   square, the signed-in email, and **Sign out**, which is where it moves from `.app-chrome`.
+6. **The Checks tab.** The mockup labels it `Assertions`; ADR-003 forbids that word in UI strings
+   and `docs/design/README.md` already says build "checks". Lists the prompt's checks, each with its
+   owning blok and its plain-phrase kind — the eight names `CLAUDE.md` fixes.
 
-   **No plan and no quota.** The mockup's foot says `Pro · 4,120 runs left`. There are no plans
-   until EPIC-070 and no run budget is enforced. Render the email and nothing else.
+7. **The Providers tab.** Which models this prompt runs against, from EPIC-042's seven pinned
+   models, with a link to Settings → Providers for keys.
 
-4. **`AppTopBar`**, sticky, `z-index` beneath the consent banner:
-   - **Breadcrumbs** — `Refund classifier / **Blok Editor**`, the trail bold on the last segment,
-     each earlier segment a link. On `/app/projects` it is `**Projects**` alone.
-   - **The version pill**, when a prompt is in context: `Draft v7 · Live v6`, using
-     `versionName()` and `liveName()`, which already exist and already say this.
-   - **Theme** — the existing `ThemeToggle`.
-   - **Website** — a link to the apex origin.
-   - **The primary action**, when a prompt is in context: `Run suite` → the prompt's runs page.
-
-5. **A mobile answer the mockup does not have.** Below 940px the mockup's `.app` grid collapses to
-   one column, which stacks a nine-item rail above every page. Instead: the rail becomes a
-   `<details>` disclosure in the top bar, labelled `Menu`, holding the same list in the same order.
-   Server-rendered, no client JS — `ThemeToggle` stays the only client component in the shell.
-
-6. **`packages/ui/src/app-shell.css`**, with the mockup's rail and top-bar rules ported onto the
-   existing token set.
+8. **Nothing for the drift banner.** Already correct; see above.
 
 ## Out of scope
 
-- **Any page's body.** Projects stays a list, the editor stays as it is, nothing inside `<main>`
-  moves. EPIC-024 owns all of it. This epic must be reviewable as *chrome only*.
-- **Lessons**, in the rail or anywhere.
-- **An in-app Import page.** The rail links to the decompiler that exists. EPIC-025 is written and
-  unscheduled.
-- **Team and Billing settings.** Neither exists.
-- **Any new data.** The rail reads the names already loaded for breadcrumbs; it adds no query that a
-  page does not already make.
-- **Changing the public site's nav or footer.** EPIC-072 owns those.
+- **The rail and the top bar.** EPIC-023.
+- **The Runs results page.** It is already the closest page to the mockup — KPIs, both pivots, the
+  heatmap, the failure detail, "Create constraint from this failure". Do not touch it.
+- **Deploy's "Apps calling this prompt"** and **Connect's "apps resolving"**. No CDN.
+- **Connect's Python and Swift tabs.** Stage 5b shipped a Python SDK; a second language tab on the
+  Connect page is its own small row, not this one.
+- **Team and Billing settings tabs.**
+- **Any change to what gets compiled, stored or published.** This epic is layout and labels.
+  `docs/design/README.md`: where a prototype implies something about the bytes, decide it on its own
+  terms — and here, do not decide it at all.
 
 ## Acceptance criteria
 
-- [ ] The rail renders on every route under `/app`, with the correct group present or absent for
-      that route. Evidence: one Playwright spec asserting the group set on `/app/projects`,
-      `/app/p/<id>/connect`, `/app/pr/<id>`, `/app/settings/providers`.
-- [ ] The current item carries `aria-current="page"` and nothing else does. Evidence: test name.
-- [ ] **Every rail item is an `<a>`, not a `<button>`.** The mockup uses buttons; a control that
-      changes the URL is a link (EPIC-055's Settings ruling). Evidence: test asserting no
-      `<button>` inside the rail's `<nav>` except the disclosure's summary.
-- [ ] From a prompt page, Connect is reachable in one click. Evidence: the drive.
-- [ ] The version pill reads `Draft vN` and, when published, `Draft vN · Live vM`, in **neutral
-      ink**. No amber. Evidence: test name plus a screenshot.
-- [ ] Breadcrumbs name the real records, and each earlier segment navigates. Evidence: test name.
-- [ ] Sign out works from the rail foot on every `/app` route. Evidence: the drive.
-- [ ] **No route under `/app` scrolls sideways at 390px**, and the disclosure opens and closes by
-      keyboard. Evidence: the `overflow.ts` helper over every app route — the check EPIC-072 added
-      after the site nav put itself 185px past a 390px viewport.
-- [ ] Every rail item is a 44px touch target at 390px. Evidence: test name.
-- [ ] The skip link lands past the rail, not before it. Evidence: test name.
-- [ ] Light and dark both correct; `prefers-reduced-motion` shows end states. Evidence: two
-      screenshots.
-- [ ] `pnpm forbidden-words` passes. Evidence: command output.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm dead-code` green, each
-      reporting **every package**. Evidence: the tables, not the word "clean".
-- [ ] `node scripts/gates.mjs ci` green on the commit before merge, and its closing "what a green
-      here still does not cover" block read and quoted.
-- [ ] **The built app driven in a browser**, every `/app` route, screenshots in the report.
-      `scripts/drive-epic-023.mts`, watched in the IDE pane, `DRIVE_HEADLESS=1` still working.
+- [ ] Projects renders as a grid at 1, 2 and 3 columns across the mockup's breakpoints, and a
+      project with no runs shows `—` for all three metrics. Evidence: test names plus screenshots.
+- [ ] The project metrics come from **one** query, asserted. Evidence: test name.
+- [ ] The editor renders as one `.split` card with two panes of equal height at 1440px. Evidence:
+      screenshot.
+- [ ] A blok card is **one** tab stop, with arrow keys moving within it. Evidence: test name.
+- [ ] Reorder, pin, edit and delete all still work by keyboard and by touch after the rework.
+      Evidence: the existing `canvas.spec.ts` passing unchanged where it can, and named amendments
+      where it cannot.
+- [ ] `docs/design/README.md` records that EPIC-021a shipped blok kind colour. Evidence: the diff.
+- [ ] The Checks tab lists every check with its owning blok, named by the eight plain phrases.
+      Evidence: test name.
+- [ ] The Providers tab lists the pinned models. Evidence: test name.
+- [ ] The drift banner still says "edited by hand" and "Update from blok" after the rework.
+      Evidence: `pnpm forbidden-words` output and the existing compiled-pane spec.
+- [ ] No `/app` route scrolls sideways at 390px. Evidence: `overflow.ts` over every app route.
+- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm dead-code` green per
+      package; `node scripts/gates.mjs ci` green before merge.
+- [ ] The built app driven in a browser, screenshots in the report.
 - [ ] Report and session log written.
 
 ## Verification
 
-```
-docker run -d --rm --name 41p-e2e-postgres -p 55435:5432 \
-  -e POSTGRES_USER=41p -e POSTGRES_PASSWORD=41p -e POSTGRES_DB=41p postgres:16
-export DATABASE_URL=postgres://41p:41p@127.0.0.1:55435/41p && pnpm db:migrate
-pnpm test && pnpm typecheck && pnpm lint && pnpm compliance
-npx turbo run build --filter=@41prompts/web
-node -e 'import("./apps/web/e2e/env.mjs").then(m=>{for(const[k,v]of Object.entries(m.placeholders(3120)))console.log(`export ${k}=${JSON.stringify(v)}`)})' > /tmp/023.env
-set -a && . /tmp/023.env && set +a
-pnpm --filter @41prompts/web start --port 3120 &
-npx tsx scripts/drive-epic-023.mts
-node scripts/gates.mjs ci
-```
-
-Expected: every gate green with a per-package table; the drive reporting every `/app` route served
-with the rail present, the correct item marked current, and zero sideways overflow at 390px.
+As EPIC-023's block, with `scripts/drive-epic-024.mts`. The drive must **build a prompt from an
+empty canvas** — add one blok of each kind, reorder two, edit one by hand, and read the result in
+the compiled pane — rather than reading a seeded one.
 
 ## Notes for the implementer
 
-- **The mockup is the spec for layout and tokens, not for copy.** `pnpm forbidden-words` fails on
-  *block, assertion, drifted, Reconcile, enum, sha*. The rail's own labels are safe as drawn
-  (`Blok Editor`, `Runs`, `Versions`, `Deploy`, `Connect`, `Settings`) — the trap is the top bar,
-  where the mockup writes `v7 · unsaved` in amber. Build `Draft v7 · Live v6` in neutral ink:
-  `docs/design/README.md` says both halves of that in as many words.
-- The rail's CSS is at mockup lines 148–166 and the top bar at 168–173. Port them onto
-  `packages/ui`'s tokens; do not copy the hex values. `--color-ink-3` is nudged from the mockup's
-  for WCAG AA and the nudged value wins (`docs/design/README.md`).
-- `aria-current="page"`, not the mockup's `aria-current="true"`. `true` is not a valid value for a
-  link.
-- The contextual group heading is a **record's name, typed by a user**. It renders as text and must
-  not be trusted as markup anywhere.
-- `appOrigin()` in `lib/site/url.ts` is how the app host names the apex; the site nav already uses
-  it in the other direction and the comment there says why it is absolute.
-- Do not add a query. Breadcrumbs need a project name and a prompt name; `canvasForOwner` already
-  returns the prompt and its project id, and the project page already loads its own name. If a name
-  is genuinely not in hand for a route, say so in the report rather than adding a fetch to the
-  layout — a layout query runs on every navigation.
-- **Ask how the drive would demonstrate this before writing the drive** (HANDOVER lesson 36). For
-  this epic the demonstration is a single browser session that reaches all nine destinations without
-  typing a URL. If the drive cannot do that, the rail is not done.
-- If a criterion is impossible or contradicts `CLAUDE.md`, write
-  `docs/epics/BLOCKER-EPIC-023.md` and stop. Do not reinterpret silently.
+- The mockup's CSS: `.projgrid`/`.proj` at lines 175–185, `.split`/`.pane`/`.panebar` at 187–196,
+  `.compiled`/`.sp` at 198–206, `.canvas`/`.blok`/`.add` at 208–216, `.tabs` at 170–173.
+- **Do not copy `--kc`.** The palette is already shipped and correct; mockup lines 24–31 are the
+  trap it avoided — `expected` is `#0B5C2E`, which is `--pass` exactly, and `example` is `#8A5A00`,
+  which is `--warn` exactly. Leave `--color-kind-*` alone.
+- The mockup also draws `role`, `format`, `conditional`, `tone` and `instruction` — those are
+  the **decompiler's** classifier labels, not blok kinds, and they belong to `/decompile`'s own
+  palette. Do not conflate the two sets.
+- A blok stores the verbatim span (`CLAUDE.md` rule 3). Changing a card's chrome must not change a
+  single byte of what it holds; the compiled output before and after this epic is byte-identical,
+  and the report should say so with a hash.
+- `workbench.tsx`'s comment names the label trap for the third tab. Meet it before writing the
+  label rather than after.

@@ -1,7 +1,16 @@
 "use client";
 
 import { BLOK_KINDS, type BlokKind } from "@41prompts/core";
-import { BlokCard, BlokKindGlyph, Button, Tag } from "@41prompts/ui";
+import {
+  BlokCard,
+  BlokKindGlyph,
+  Button,
+  Dropdown,
+  DropdownContent,
+  DropdownItem,
+  DropdownTrigger,
+  Tag
+} from "@41prompts/ui";
 import { useCallback, useId, useRef, useState } from "react";
 import {
   addBlokAction,
@@ -66,6 +75,12 @@ export function Canvas({
   const [deleted, setDeleted] = useState<{ blok: CanvasBlok; at: number }[]>([]);
   const [announcement, setAnnouncement] = useState("");
   const [message, setMessage] = useState<string | undefined>();
+
+  // **One card open at a time.** The mockup's canvas is a column of summaries, and a canvas where
+  // every card is a live textarea is the thing this epic exists to undo — at sixty bloks it was
+  // also what made a reorder cost 157 ms (`blok-editor.tsx`). Opening one closes the last, so the
+  // pane's height stays the pane's height.
+  const [openBlok, setOpenBlok] = useState<string | undefined>();
   const instructionsId = useId();
   const busy = useRef(false);
 
@@ -81,6 +96,10 @@ export function Canvas({
       ...current,
       { id: result.id!, kind, text: "", rank: "", editedText: null, editedFromHash: null },
     ]);
+    // A blok you just added is empty, so the only useful next thing is writing it. It opens, and
+    // the textarea takes focus — which is also what makes `addBlok` in the e2e helpers keep
+    // working without a second click.
+    setOpenBlok(result.id);
     announce(`${KIND_NAME[kind]} blok added at position ${bloks.length + 1}.`);
   }
 
@@ -142,7 +161,17 @@ export function Canvas({
   }
 
   return (
-    <div className="canvas">
+    <div className="pane canvas">
+      {/* The pane's own bar, matching the compiled pane's across the split (mockup line 1117).
+          The count is the thing the mockup puts here and it is real — it is the list below. */}
+      <div className="canvas-panebar">
+        <span className="pane-title">Canvas</span>
+        <span className="pane-size">
+          {bloks.length === 1 ? "1 blok" : `${bloks.length} bloks`}
+        </span>
+      </div>
+
+      <div className="canvas-body">
       {/* Describes what is actually true. An earlier version said "focus a card and press the up
           and down arrow keys" — written before the card stopped being focusable to fix a
           nested-interactive violation, and left behind. A screenshot caught it. Instructions that
@@ -153,12 +182,29 @@ export function Canvas({
         and down arrow keys do the same thing.
       </p>
 
-      <div className="canvas-add" role="group" aria-label="Add a blok">
-        {BLOK_KINDS.map((kind) => (
-          <Button key={kind} size="sm" variant="ghost" onClick={() => void add(kind)}>
-            Add {KIND_NAME[kind].toLowerCase()}
-          </Button>
-        ))}
+      {/* **One control, six kinds** (EPIC-024), the mockup's `+ Add blok` (line 216).
+          Six buttons in a row was the honest first version and it read as six features; the kind
+          is a property of the blok you are about to write, not six different things you can do.
+
+          `Add <kind>` survives as each item's label, because `runs-helpers.ts`'s `addBlok` — and
+          every spec that leans on it — finds the control by that name, and a menu item is a
+          button with the same accessible name. Changing the wording would have been a rename
+          across a dozen specs for no reader's benefit. */}
+      <div className="canvas-add">
+        <Dropdown>
+          <DropdownTrigger asChild>
+            <Button size="sm" variant="ghost">
+              + Add blok
+            </Button>
+          </DropdownTrigger>
+          <DropdownContent>
+            {BLOK_KINDS.map((kind) => (
+              <DropdownItem key={kind} onSelect={() => void add(kind)}>
+                Add {KIND_NAME[kind].toLowerCase()}
+              </DropdownItem>
+            ))}
+          </DropdownContent>
+        </Dropdown>
       </div>
 
       {bloks.length === 0 ? (
@@ -192,7 +238,13 @@ export function Canvas({
                   </>
                 }
               >
-                <BlokEditor promptId={promptId} blokId={blok.id} initialText={blok.text} />
+                <BlokEditor
+                  promptId={promptId}
+                  blokId={blok.id}
+                  initialText={blok.text}
+                  open={openBlok === blok.id}
+                  onOpenChange={(next) => setOpenBlok(next ? blok.id : undefined)}
+                />
               </BlokCard>
 
               {/* The keyboard path, and it is the implementation rather than an accessory: these
@@ -263,6 +315,7 @@ export function Canvas({
       <p aria-live="polite" className="sr-only">
         {announcement}
       </p>
+      </div>
     </div>
   );
 }

@@ -15,7 +15,8 @@ import {
   type BlokRow,
   type Db,
 } from "@41prompts/db";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { metricsForProjects, type ProjectMetrics } from "./metrics";
 
 /**
  * Reads for the canvas routes. **Every one takes an owner**, and there is no variant that does not.
@@ -47,12 +48,46 @@ function asKind(value: string): BlokKind {
   return isBlokKind(value) ? value : "context";
 }
 
-export async function listProjects(db: Db, owner: string) {
-  return db
+export interface ProjectListItem {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  /** How many prompts live in it. The mockup's sub-line counts bloks; a project holds prompts. */
+  readonly prompts: number;
+  readonly metrics: ProjectMetrics;
+}
+
+/**
+ * The project list, with the three numbers the mockup puts on each card.
+ *
+ * **A fixed number of queries, whatever the project count**: this one, the prompt counts, and the
+ * three `metricsForProjects` makes. Never one per project — `metrics.test.ts` asserts that twelve
+ * cost what one costs, which is the property a card grid can quietly lose.
+ */
+export async function listProjects(db: Db, owner: string): Promise<ProjectListItem[]> {
+  const rows = await db
     .select({ id: projects.id, name: projects.name, slug: projects.slug })
     .from(projects)
     .where(and(eq(projects.owner, owner), isNull(projects.deletedAt)))
     .orderBy(asc(projects.createdAt));
+
+  if (rows.length === 0) return [];
+  const ids = rows.map((row) => row.id);
+
+  const counts = await db
+    .select({ projectId: prompts.project, n: sql<number>`count(*)::int` })
+    .from(prompts)
+    .where(and(inArray(prompts.project, ids), isNull(prompts.deletedAt)))
+    .groupBy(prompts.project);
+  const promptCount = new Map(counts.map((row) => [row.projectId, row.n]));
+
+  const metrics = await metricsForProjects(db, owner, ids);
+
+  return rows.map((row) => ({
+    ...row,
+    prompts: promptCount.get(row.id) ?? 0,
+    metrics: metrics.get(row.id) ?? {}
+  }));
 }
 
 async function projectForOwner(db: Db, projectId: string, owner: string) {

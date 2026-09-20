@@ -37,7 +37,12 @@ async function newPrompt(page: Page): Promise<string> {
 
 async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   const before = await page.locator(".canvas-list > li").count();
-  await page.getByRole("button", { name: `Add ${kind}` }).click();
+  // **The kind picker, since EPIC-024.** Six `Add <kind>` buttons became one `+ Add blok` menu.
+  // The item labels are unchanged on purpose — a menu item is a button with the same accessible
+  // name, so changing the wording would have been a rename across a dozen specs for no reader's
+  // benefit. What changed is that it has to be opened first.
+  await page.getByRole("button", { name: "+ Add blok" }).click();
+  await page.getByRole("menuitem", { name: `Add ${kind}` }).click();
   await expect(page.locator(".canvas-list > li")).toHaveCount(before + 1);
   await page.locator(".canvas-list > li").nth(before).getByLabel("Blok text").fill(text);
   await expect(
@@ -143,7 +148,14 @@ test.describe("the compiled pane", () => {
         await addBlok(page, "context", "AFTER.");
 
         // What the field holds after the browser has had it — the blok's text as stored.
-        const stored = await page.locator(".canvas-list > li").nth(1).getByLabel("Blok text").inputValue();
+        //
+        // **The card has to be opened first** (EPIC-024): a compact card shows a clamped summary
+        // at rest and only one card is open at a time, so adding "AFTER." closed this one. The
+        // field is still what gets read, and deliberately — the summary is `white-space: pre-line`
+        // and two lines deep, so it is not byte-exact and this test is entirely about bytes.
+        const card = page.locator(".canvas-list > li").nth(1);
+        await card.getByRole("button", { name: /^Edit this blok/ }).click();
+        const stored = await card.getByLabel("Blok text").inputValue();
 
         const span = page.locator(".compiled-span").nth(1);
         await span.click();
@@ -290,7 +302,8 @@ test.describe("the compiled pane", () => {
       await editSpanByHand(page, 1, "Reply in at most 60 words, and never hedge.");
 
       // Add an unrelated blok from the canvas, exactly as somebody would.
-      await page.getByRole("button", { name: "Add constraint" }).click();
+      await page.getByRole("button", { name: "+ Add blok" }).click();
+      await page.getByRole("menuitem", { name: "Add constraint" }).click();
       await expect(page.locator(".canvas-list > li")).toHaveCount(3);
       await page.reload();
 

@@ -3,6 +3,7 @@ import { listProjects } from "@/lib/canvas/queries";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
 import { CreateProject } from "./create-project";
+import { ProjectCard } from "./project-card";
 import { StartFromExample } from "./start-example";
 
 // Behind auth and on the app host (decision 10). Nothing under /app is indexable; `robots.ts`
@@ -29,11 +30,12 @@ export default async function ProjectsPage() {
           <StartFromExample />
         </>
       ) : (
-        <ul className="app-list">
+        /* The mockup's grid (lines 1088–1110): one column, two at 720px, three at 1120px. A list
+           of links was what Stage 2 needed; a card carrying Pass, Runs and Cost is what makes the
+           list worth scanning. */
+        <ul className="projgrid">
           {projects.map((project) => (
-            <li key={project.id}>
-              <a href={`/app/p/${project.id}`}>{project.name}</a>
-            </li>
+            <ProjectCard key={project.id} project={project} />
           ))}
         </ul>
       )}

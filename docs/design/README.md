@@ -76,9 +76,24 @@ on its own terms — then say so in the report, as EPIC-020's §6.2 does.
 **`--color-ink-3` (EPIC-003, accepted).** The mockup's literal values — light `#77736a` on `bg`/`surface`/
 `sunken`, dark `#807d76` on the same — fail WCAG AA: axe-core's `color-contrast` rule measured 4.03:1 and 4.485:1
 against the 4.5:1 bar on real rendered text (an unselected `Tab`, an `eyebrow` caption), not a subjective read.
-`packages/ui`'s nudged values win: `#6f6b62` (light) / `#817e77` (dark). Blok category colour staying unshipped
-(EPIC-003's deviation 1 — the mockup's `--kc` reuses `--pass`/`--warn` verbatim, conflicting with "green/red/amber
-mean pass/fail/drift and nothing else") is also accepted; That debt was assigned to EPIC-020, which
-could not take it: EPIC-020's scope puts "any UI, canvas, or compiled pane" explicitly out of scope,
-and it shipped 2026-09-12 without touching colour. **It passes to EPIC-021a/EPIC-021b**, which build
-the canvas the mapping would appear on.
+`packages/ui`'s nudged values win: `#6f6b62` (light) / `#817e77` (dark).
+
+**Blok category colour: shipped in EPIC-021a, decision 6.** This paragraph recorded a debt and was
+never updated when the debt was paid; EPIC-024 found it by reading the code before planning against
+it, having been written to build a thing that already existed.
+
+EPIC-003's deviation 1 was that the mockup's `--kc` reuses `--pass` and `--warn` verbatim —
+`[data-k=expected]` is `#0B5C2E`, which is `--pass` exactly, and `[data-k=example]` is `#8A5A00`,
+which is `--warn` — conflicting with "green, red and amber mean pass, fail and drift and nothing
+else". The debt was assigned to EPIC-020, which could not take it (its scope put "any UI, canvas, or
+compiled pane" explicitly out of scope), and passed to EPIC-021a/021b.
+
+**EPIC-021a took it.** `--color-kind-context|constraint|example|expected|image-ref|image-input` live
+in `packages/ui/src/tokens.css` in both themes, drawn from blue, violet, magenta and clay and
+nowhere near the three reserved hues, and held to 3:1 against surface because they mark a boundary
+rather than carry text. `recipes.css` resolves each onto `--blok-kind` and paints it **only** inside
+`:hover`, `:focus-visible` and `[data-selected]`, so a card at rest resolves the variable and paints
+nothing with it. It is never the only signal — the glyph and the kind's name as text are always
+there — and `blok-card.test.tsx` fails if a card at rest paints one.
+
+Do not copy `--kc`. The palette that exists is the one that is correct.
