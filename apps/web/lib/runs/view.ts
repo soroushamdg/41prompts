@@ -1,4 +1,5 @@
 import {
+  type ByHandProblem,
   CHECK_KIND_PHRASES,
   type CheckKind,
   type ColumnProblem,
@@ -373,6 +374,33 @@ export function columnProblemWords(problems: readonly ColumnProblem[]): string {
       `${quoteList(missing)} ${missing.length === 1 ? "is a variable" : "are variables"} this prompt requires, and the file has no column for ${missing.length === 1 ? "it" : "them"}.`
     );
   }
+  return `${parts.join(" ")} Nothing was saved.`;
+}
+
+/**
+ * A typed set that cannot be saved, in words (EPIC-032a).
+ *
+ * Separate from `csvProblemWords` because the two paths refuse different things and the person is
+ * looking at a different surface. Telling somebody who typed three rows that "that file" is wrong
+ * is the failure this separation exists to prevent.
+ *
+ * Every message ends the same way the upload path's does — **nothing was saved** — because the
+ * property both paths share is the one worth repeating: a refusal costs you nothing but the fix.
+ */
+export function byHandProblemWords(problems: readonly ByHandProblem[]): string {
+  const parts = problems.map((problem) => {
+    switch (problem.kind) {
+      case "no_rows":
+        return "There is nothing to save — every row is empty.";
+      case "too_many_rows":
+        return `That is ${problem.found} inputs, and the limit is ${problem.limit}.`;
+      case "ragged_row":
+        return `Row ${problem.row} has ${problem.found} ${problem.found === 1 ? "value" : "values"} where this prompt declares ${problem.expected}.`;
+      case "too_large":
+        return `That is about ${Math.round(problem.found / 1024)} KB of values, and the limit is ${Math.round(problem.limit / 1024)} KB.`;
+    }
+  });
+  // "no_rows" is the whole story when it fires, and `byHandProblems` returns it alone.
   return `${parts.join(" ")} Nothing was saved.`;
 }
 

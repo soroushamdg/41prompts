@@ -133,6 +133,62 @@ export async function addInputSet(
   return { ...row!, columns: row!.columns as string[] };
 }
 
+/**
+ * How many runs reference each of these input sets (EPIC-032a).
+ *
+ * **One query for the whole list, not one per row** — the same rule `resultCountsFor` below is
+ * shaped by, and the reason `runsPageFor` can render a page of sets without N+1.
+ *
+ * ## What the number decides
+ *
+ * Whether a set may be edited in place. A `suite_run` freezes its compiled prompt onto its own row
+ * but **not its inputs** — it keeps `input_set` as a foreign key and the detail page reads the rows
+ * live through `inputSetForPrompt`. So editing a set that has been run would change what a finished
+ * run appears to have run against, silently and with nothing to notice it. EPIC-032a decision 3:
+ * a set with no runs is editable, a set with runs is duplicated instead.
+ *
+ * Sets with no runs are **absent from the map rather than present as 0**, which is what `?? 0` at
+ * every call site is for. Returning a dense map would mean this function had to be told the full
+ * list twice — once to query and once to pad.
+ */
+export async function runCountsForInputSets(
+  db: Db,
+  inputSetIds: readonly string[],
+): Promise<Map<string, number>> {
+  if (inputSetIds.length === 0) return new Map();
+  const rows = await db
+    .select({ inputSet: suiteRuns.inputSet, n: sql<number>`count(*)::int` })
+    .from(suiteRuns)
+    .where(inArray(suiteRuns.inputSet, inputSetIds as string[]))
+    .groupBy(suiteRuns.inputSet);
+  return new Map(rows.map((row) => [row.inputSet, row.n]));
+}
+
+/**
+ * Replace a set's rows in place (EPIC-032a).
+ *
+ * **The caller has already established that no run references this set.** That check is not made
+ * here on purpose: this module's functions are scoped by prompt and owner, and a rule about what a
+ * *run* has done belongs with the action that knows why it matters — `apps/web/lib/runs/actions.ts`,
+ * where the refusal message is written. Putting it here would put half of decision 3 in a place with
+ * no way to say why.
+ *
+ * `columns` is not a parameter. The columns are the prompt's declared variables and the Variables
+ * tab is where those change; letting an edit rewrite them would let a set drift away from the
+ * prompt it belongs to without either surface noticing.
+ */
+export async function replaceInputSetRows(
+  db: Db,
+  promptId: string,
+  inputSetId: string,
+  next: { name: string; rows: readonly (readonly string[])[] },
+): Promise<void> {
+  await db
+    .update(inputSets)
+    .set({ name: next.name, rows: next.rows as string[][], rowCount: next.rows.length })
+    .where(and(eq(inputSets.id, inputSetId), eq(inputSets.prompt, promptId), isNull(inputSets.deletedAt)));
+}
+
 /** Soft delete: a removed set is still what some run in the history ran against. */
 export async function removeInputSet(db: Db, promptId: string, inputSetId: string): Promise<void> {
   await db
