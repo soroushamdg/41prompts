@@ -134,7 +134,7 @@ the only way it could have been found. It now steps aside while the grid is open
 | `pnpm lint` | **12 of 12 PASS** — eslint ×9, dependency-cruiser, turbo boundaries, forbidden words |
 | `pnpm dead-code` | PASS — 901 exports across 595 files, `ALLOWED` still empty |
 | `pnpm e2e` | **328 passed, 4 skipped, 0 failed** (7.5m) |
-| `node scripts/gates.mjs ci` | **17 of 17 steps PASS, 12m56s**, on `2b8e636` |
+| `node scripts/gates.mjs ci` | **17 of 17 steps PASS, 12m56s**, on `2b8e636` — then **RED on `b51f278`**, §7.2, then green again |
 
 ### 7.1 What that green does not cover, answered
 
@@ -150,6 +150,37 @@ The gate's closing block names three things. Taken in turn:
    elements and URLs, never on a duration.
 3. **`--allow-dirty: 1 uncommitted file`.** That is `app-icon.jpg`, still untracked, still yours
    (EPIC-900 §8). Every file of this epic was committed before the run.
+
+### 7.2 The second gate run was red, and it was right
+
+**`pnpm test` FAILED on `b51f278`** — the commit that added this report. The first run, on
+`2b8e636`, was green; the only thing between them was the drive commit and the documents.
+
+```
+FAIL lib/site/changelog.test.ts > nothing that shipped is missing from it
+     > EPIC-032a is either in the changelog or declared not user-visible
+AssertionError: EPIC-032a shipped and the changelog does not mention it.
+                Add a row, or add it to NOT_USER_VISIBLE with the reason.
+```
+
+**Writing the report is what made the test fire**, and that is the mechanism working exactly as
+designed. `changelog.test.ts` walks `docs/epics/reports/` in **both** directions: a changelog row
+must name an epic that has a report, and *an epic with a report must be named by a row* unless it is
+declared `NOT_USER_VISIBLE` with a reason. So the moment this epic became "shipped" by the only
+definition this repository has, the marketing site owed the reader a line about it.
+
+**Fixed by adding the row, not the exemption.** This epic ships a surface a reader can see, so
+`NOT_USER_VISIBLE` would have been a lie — and that list's own comment says it is "deliberately
+tedious to add to". EPIC-032a joins the Stage 3 row beside EPIC-032, and the row's body gains a
+sentence naming both ways inputs now arrive and why a used set is copied rather than changed.
+
+**Two things worth recording about the failure itself.** It could only appear on the *second* gate
+run, because the trigger was a documentation commit rather than a code one — which is the argument
+for running the gate on the commit that carries the report rather than on the last code commit, and
+is why EPIC-900 ran it twice. And it is the **fifth** time this project has been caught by a check
+that walks a relationship in both directions; EPIC-900's report §4 has the previous four.
+
+---
 
 ## 8. Tests added
 
@@ -174,7 +205,7 @@ The gate's closing block names three things. Taken in turn:
 | ✅ | **A8** no variables → explanation, no grid | e2e |
 | ✅ | **A9** keyboard and 44px touch | e2e Tab walk; drive at 390px — overflow 0px, control 44px |
 | ✅ | **A10** nothing says "test case" | §3 grep |
-| ✅ | **A11** `gates.mjs ci` green, closing block answered | §7, §7.1 |
+| ✅ | **A11** `gates.mjs ci` green, closing block answered | §7, §7.1 — and §7.2, the run that was red first |
 | ✅ | **A12** driven by hand against the built app | §10 — **19 of 19** |
 
 ## 10. The drive — 19 of 19, watched
