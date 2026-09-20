@@ -468,11 +468,21 @@
   width: 100%;
   font-size: 13px;
 }
+/*
+ * **No `text-transform: uppercase` here, unlike every other small header in this file.**
+ *
+ * These headers are not labels the product chose — they are the person's own variable names, and a
+ * variable name is case-sensitive. `{{request}}` and `{{REQUEST}}` are two different variables, so
+ * a header that renders one as the other is telling the reader something untrue about their own
+ * prompt. Found by the EPIC-032a drive, which read the rendered header back and got `REQUEST`.
+ *
+ * The monospace face is doing the work the capitals would have done: it says "this is an
+ * identifier" without altering it.
+ */
 .runs-grid th {
   text-align: left;
-  font-size: 11.5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-family: var(--font-mono);
   color: var(--color-ink-2);
   padding: var(--spacing-s1) var(--spacing-s2) var(--spacing-s1) 0;
   white-space: nowrap;

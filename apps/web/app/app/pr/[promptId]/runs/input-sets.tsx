@@ -175,7 +175,11 @@ export function InputSets({
       )}
 
       {sets.length === 0 ? (
-        canBind && (
+        canBind &&
+        // **Not while the grid is open.** Telling somebody to "add them by hand" underneath the
+        // grid they are typing into is noise, and it read that way the first time the drive's
+        // screenshot was looked at. The sentence is for a page with nothing on it.
+        editing?.kind !== "new" && (
           // EPIC-032a decision 5. Naming one of two mechanisms in the empty state teaches the wrong
           // one, and this sentence was the only place the product said how inputs get here.
           <p className="app-empty">

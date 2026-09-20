@@ -97,6 +97,18 @@ test.describe("inputs by hand", () => {
     await expect(page.getByRole("columnheader", { name: "request" })).toBeVisible();
     // One variable, one column — plus the actions header, which is not a variable.
     await expect(page.locator(".runs-grid thead th")).toHaveCount(2);
+
+    /*
+     * **The header is asserted as it is rendered, not only as it is announced.**
+     *
+     * A variable name is case-sensitive — `{{request}}` and `{{REQUEST}}` are two variables — so a
+     * header that displays one as the other tells the reader something untrue about their own
+     * prompt. The first version of this styling carried `text-transform: uppercase`, copied from
+     * the other small headers in `runs.css`, and **this assertion's `getByRole` sibling passed
+     * anyway**: an accessible name is computed from the DOM text, which CSS never touched. Only the
+     * drive, reading `innerText` off the built app, saw `REQUEST`.
+     */
+    await expect(page.locator(".runs-grid thead th").first()).toHaveText("request");
   });
 
   // ── A2 and A3 ─────────────────────────────────────────────────────────────────────────────
@@ -246,7 +258,7 @@ test.describe("inputs by hand", () => {
     await expect(page.getByTestId("cell-1-0")).toHaveValue("second");
   });
 
-  test("the empty state names both ways in, not only the file", async ({ page }) => {
+  test("the empty state names both ways in, and steps aside once the grid is open", async ({ page }) => {
     const promptId = await promptWithOneVariable(page);
     await page.goto(`/app/pr/${promptId}/runs`);
 
@@ -255,5 +267,11 @@ test.describe("inputs by hand", () => {
     const empty = page.getByRole("region", { name: "Inputs" }).locator(".app-empty");
     await expect(empty).toContainText("Upload a CSV");
     await expect(empty).toContainText("by hand");
+
+    // Open the grid and the sentence stops applying: it is for a page with nothing on it, and
+    // underneath a grid somebody is typing into it is noise.
+    await page.getByRole("button", { name: "add inputs by hand" }).click();
+    await expect(page.getByTestId("by-hand")).toBeVisible();
+    await expect(empty).toHaveCount(0);
   });
 });
