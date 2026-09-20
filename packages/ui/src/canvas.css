@@ -159,10 +159,11 @@
    span was compiled or edited — that is drift, and drift is the only thing amber means (rule 10).
    Every state also carries a word, so the colour is never the signal on its own. */
 
+/* **No border, no radius, no plate — `.split` carries all three** (EPIC-024). This was a card in
+   its own right when the editor was two cards side by side; inside the split it is a pane, and a
+   pane with its own rounded sunken box draws a second frame inside the first. */
 .compiled-pane {
-  border: var(--border-ink) solid var(--color-ink);
   background: var(--color-sunken);
-  border-radius: var(--radius-card);
   overflow: hidden;
 }
 .compiled-panebar {
@@ -286,8 +287,15 @@
   /* Without this a long compiled line makes the column wider than its share instead of scrolling
      inside it — the same failure `.app-shell-main` had on the other axis. */
   min-width: 0;
+  /* **No radius reset here, and that is the token contract rather than taste.** `tokens.css` has
+     one radius and says data surfaces are square — square meaning *unset*, not zeroed. The
+     contract test caught the zeroed version; the fix was to stop `.compiled-pane` claiming a
+     card's chrome at all, above, so there is nothing left to reset.
+
+     And then it caught this comment, because the rule greps the file and prose naming a value
+     reads as the value. EPIC-900 paid for that lesson twice with the dead-code gate and it is the
+     same lesson: a gate that reads text cannot tell an example from an instruction. */
   border: 0;
-  border-radius: 0;
   box-shadow: none;
 }
 

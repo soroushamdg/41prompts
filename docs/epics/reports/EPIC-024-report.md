@@ -154,7 +154,31 @@ Replaced with the claim the epic actually makes and which cannot be gamed by cho
 card at rest is materially shorter than the same card being edited** — 165px against 354px, so 53%
 of an open card is the editor.
 
-### 4.5 Two overlapping e2e runs, twice
+### 4.5 `gates.mjs ci` found two things a narrower local run could not
+
+`pnpm test` failed in CI mode at **7 of 9 packages**, and both failures were real:
+
+- **`@41prompts/ui`'s token contract.** `.split > .pane` reset the pane's card chrome with
+  `border-radius: 0`, and `tokens.css` has one radius and says *data surfaces are square* — square
+  meaning **unset**, not zeroed. The right fix was not a different value: `.compiled-pane` was a
+  card in its own right when the editor was two cards side by side, and inside the split it is a
+  pane, so it simply stops claiming a border, a radius and a plate. Nothing is left to reset.
+
+  Then the same test failed **on the comment explaining the fix**, because the rule greps the file
+  and prose naming a value reads as the value. EPIC-900 paid for that lesson twice with the
+  dead-code gate; it is the same lesson, and a gate that reads text cannot tell an example from an
+  instruction.
+
+- **The changelog, again.** `changelog.test.ts` fails on a report the public changelog does not
+  name, exactly as it did for EPIC-023 four hours earlier — and I had already written that finding
+  up. Stage 2's row now carries EPIC-024 as well.
+
+**The mechanism both times was the same and is worth naming plainly: I ran
+`npx vitest run --root apps/web`, not `pnpm test`.** `PROCESS.md` has a section called *"A local
+gate is evidence only when it reports every package"*, and the narrower command reports one. It is
+faster, which is exactly why it is tempting, and it is not the gate.
+
+### 4.6 Two overlapping e2e runs, twice
 
 Once, fifteen `auth` specs failed in ~136ms each; once, a stale background task was reaped mid-run
 and produced `ERR_CONNECTION_REFUSED` and three "failed" saves that read like an autosave
@@ -214,23 +238,36 @@ is the test guarding the promise §3.3 extends, and it was the one to watch.
 
 | Gate | Result |
 |---|---|
-| `vitest` (apps/web) | **1269 passed**, 56 skipped |
+| `pnpm test` (all 9 packages) | **9 passed** — and §4.5 for what the narrower run missed |
 | `tsc --noEmit` | clean |
 | `eslint` | clean |
 | `pnpm forbidden-words` | clean (after §4.3) |
 | `pnpm dead-code` | 917 exports across 614 files, 0 allowed |
 | `pnpm e2e` | **336 passed**, 0 failed, 4 skipped (Linux baselines) |
 | Drive | **10/10** |
+| Linux visual baselines | **4 passed**, unchanged |
 
 ## 8. Open
 
 1. **`node scripts/gates.mjs ci` has not run on this commit.** Next.
 2. ~~The full e2e suite's final run is not in this report yet.~~ **336 passed, 0 failed, 4 skipped**
    on `0d113cb`, 8m24s. The 4 skips are the Linux visual baselines — see below.
-3. **The Linux visual baselines have not been re-run.** EPIC-023 proved them unmoved by its chrome
-   change; this epic moves `/app` layout much more, and neither baseline route is under `/app` — so
-   the expectation is again "unmoved", and again that is an expectation rather than a measurement
-   until the container runs.
+3. ~~The Linux visual baselines have not been re-run.~~ **Run, and all four pass unchanged**, in
+   `mcr.microsoft.com/playwright:v1.63.0-noble` against the committed `-linux.png` files:
+
+   ```
+   ✓ design system gallery (/dev/ui) › visual regression: light theme
+   ✓ design system gallery (/dev/ui) › visual regression: dark theme
+   ✓ the landing page › landing page, light theme
+   ✓ the landing page › landing page, dark theme
+   4 passed (47.0s)
+   ```
+
+   The expectation was "unmoved, because neither baseline route is under `/app`" — which is now a
+   measurement. It is worth having taken: `/dev/ui` is the **component gallery**, and this epic
+   changed `recipes.css` and `canvas.css`, both of which that page renders. The reasoning was about
+   routes and the risk was about shared stylesheets, so the inference and the thing that could have
+   broken were not the same thing.
 4. **The compiled pane's `Edit by hand` buttons still stack at the foot of the pane** rather than
    sitting on the span they edit, as the mockup implies. That is EPIC-021b's interaction rather than
    this epic's composition, and changing it is a different piece of work with its own risk.

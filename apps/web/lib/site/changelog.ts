@@ -95,8 +95,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     id: "stage-2",
     stage: "Stage 2",
     heading: "The canvas and the compiled prompt",
-    body: "A prompt became a set of typed bloks you can add, edit, reorder and delete, compiled one blok at a time. The compiled pane links each span to its blok, and a span you edit by hand is released and marked. A left rail arrived later and put every one of a prompt's screens — the canvas, runs, versions, deploy and connect — one click from each other, with the draft and live version named on all of them.",
-    epics: ["EPIC-020", "EPIC-021a", "EPIC-021b", "EPIC-022", "EPIC-023"]
+    body: "A prompt became a set of typed bloks you can add, edit, reorder and delete, compiled one blok at a time. The compiled pane links each span to its blok, and a span you edit by hand is released and marked. A left rail arrived later and put every one of a prompt's screens — the canvas, runs, versions, deploy and connect — one click from each other, with the draft and live version named on all of them. Then the canvas became a column of cards that open when you select one, projects became a grid that says how each is doing, and the checks a prompt compiles to got a page of their own.",
+    epics: ["EPIC-020", "EPIC-021a", "EPIC-021b", "EPIC-022", "EPIC-023", "EPIC-024"]
   },
   {
     id: "stage-1",
