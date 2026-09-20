@@ -18,9 +18,6 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
   return (
     <main className="app-page">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href="/app/projects">Projects</a>
-        </p>
         <h1>{found.project.name}</h1>
         {/* EPIC-055. Connect is project-scoped — the generated file and the prompt table are about
             this project's rows — so this is the only place it can be reached from. A page nothing

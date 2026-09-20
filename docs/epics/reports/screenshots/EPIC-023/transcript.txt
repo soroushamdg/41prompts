@@ -1,0 +1,11 @@
+PASS  a fresh account reaches the workbench and the rail is on it — http://localhost:3120/app/projects
+PASS  nine destinations reached by clicking the rail, no URL typed — Runs → Versions → Deploy → Blok Editor → Connect → Prompts → Settings → Account → Projects
+PASS  the top bar carries Draft state on Runs, which never showed it before — pill "Draft v1"
+PASS  the rail shows the project and the prompt, outermost first — Workspace · Shell drive 2026-09-20 · Refund classifier · Account
+PASS  the rail is dark in dark mode — rail background rgb(20, 20, 20)
+PASS  nothing scrolls sideways at 390px — overflow 0px
+PASS  the desktop column is out of the document, so one rail is in the tree — app-shell-rail hidden
+PASS  the menu opens and holds the same rail — 10 items
+PASS  the current rail item is still marked under reduced motion — aria-current visible
+
+9/9

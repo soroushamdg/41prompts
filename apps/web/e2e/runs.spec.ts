@@ -119,7 +119,10 @@ test.describe("input sets", () => {
   test("the prompt page offers a way to reach the runs page", async ({ page }) => {
     const promptId = await promptWithOneVariable(page);
     await page.goto(`/app/pr/${promptId}`);
-    await page.getByRole("link", { name: "Run" }).click();
+    // Scoped to the page, and `exact`. EPIC-023 added two more ways to reach Runs — the rail's item
+    // and the top bar's `Run suite` — so a loose name now matches three links. What this test is
+    // about is the page offering one of its own, which is still true.
+    await page.getByRole("main").getByRole("link", { name: "Run", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/app/pr/${promptId}/runs$`));
   });
 

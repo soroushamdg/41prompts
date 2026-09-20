@@ -35,9 +35,6 @@ export default async function ApiKeysSettingsPage() {
   return (
     <main className="app-page app-page-wide">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href="/app/projects">Projects</a>
-        </p>
         <h1>API keys</h1>
         <p className="app-state">Settings</p>
       </header>

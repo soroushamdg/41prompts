@@ -1,0 +1,372 @@
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   The app shell: the mockup's left rail and sticky top bar (EPIC-023).
+
+   Ported from `docs/design/41prompts-full-mockup.html` lines 148–173 onto this package's tokens.
+   The mockup's literal hex values are **not** copied — `--color-ink-3` is nudged from the mockup's
+   for WCAG AA and the nudged value wins (`docs/design/README.md`), and every other colour here is
+   a token so that light and dark stay one design rather than two.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+}
+
+/* The mockup's breakpoint and its 216px column. Below it the rail column is removed from the
+   document entirely — `display: none`, not `visibility` and not off-screen — so the copy inside
+   the disclosure is the only one in the accessibility tree at small widths. */
+.app-shell-rail {
+  display: none;
+}
+
+/**
+ * **A block, and it has to be.** The first version was `display: flex; flex-direction: column`,
+ * which broke every page inside it in a way no assertion about the shell would ever have caught:
+ * `.app-page` centres itself with `margin: 0 auto`, and an auto margin on the cross axis of a flex
+ * column overrides `align-self: stretch` and sizes the item to its **content**. Measured at 1280px:
+ * `/app/projects` rendered its 860px container at 564px and `/app/account` at 302px, each centred
+ * on its own width, so the two pages no longer lined up.
+ *
+ * `auth.spec.ts`'s "the account page sits in the same container as the projects page" is what found
+ * it — a test written in EPIC-034 for a different regression, two epics before this rail existed.
+ *
+ * `position: sticky` on the bar works the same in a block container, so the flex bought nothing.
+ */
+.app-shell-main {
+  display: block;
+  /* Without this a wide child — the compiled pane, a results table — makes the grid column wider
+     than the viewport instead of scrolling inside itself. That is the failure that put the site nav
+     185px past a 390px viewport in EPIC-072, arriving by the other axis. */
+  min-width: 0;
+}
+
+@media (min-width: 940px) {
+  .app-shell {
+    grid-template-columns: 216px 1fr;
+  }
+  .app-shell-rail {
+    display: block;
+  }
+}
+
+/* The skip link is `position: absolute` and the grid is its containing block only if that block is
+   positioned. Without this it escapes to the viewport, which happens to look the same here — but a
+   containing block chosen by accident stops being the right one the moment anything above it gains
+   a transform. */
+.app-shell {
+  position: relative;
+}
+
+.app-shell-content {
+  /* The skip link's target. `:focus` on a `tabindex="-1"` wrapper must not draw a focus ring around
+     the whole page — the ring belongs to whatever the reader tabs to next. */
+  outline: none;
+}
+
+/* ── the rail ─────────────────────────────────────────────────────────────────────────────── */
+
+.app-rail {
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 100%;
+  padding: var(--spacing-s4) var(--spacing-s3);
+}
+
+.app-shell-rail .app-rail {
+  border-right: var(--border-hairline) solid var(--color-line);
+}
+
+.app-rail > .logo {
+  padding: 4px 6px 10px;
+}
+
+.app-rail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-rail-groupname {
+  color: var(--color-ink-3);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  margin: 0;
+  padding: var(--spacing-s4) var(--spacing-s2) var(--spacing-s2);
+  text-transform: uppercase;
+  /* A contextual heading is a record's name and can be any length. It ellipsises rather than
+     widening the 216px column, which is fixed. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-rail-link {
+  align-items: center;
+  border: var(--border-ink) solid transparent;
+  color: var(--color-ink-2);
+  display: flex;
+  font-size: 13.5px;
+  font-weight: 600;
+  gap: 9px;
+  /* Rule 12: every interactive element works by touch. The mockup's 8px padding gives a 32px row. */
+  min-height: 44px;
+  padding: 8px 10px;
+  text-decoration: none;
+  transition:
+    color 0.16s var(--ease-brand),
+    background 0.16s var(--ease-brand);
+}
+
+.app-rail-link:hover {
+  background: var(--color-sunken);
+  color: var(--color-ink);
+}
+
+/* The mockup's current state: ink border and the hard offset plate. Not a colour — `README.md`:
+   "Highlight is ink inversion, not a colour", and the rail's current item is its quietest form. */
+.app-rail-link[aria-current="page"] {
+  background: var(--color-surface);
+  border-color: var(--color-ink);
+  box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+  color: var(--color-ink);
+}
+
+.app-rail-link svg {
+  fill: none;
+  flex: none;
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: square;
+  stroke-width: 1.9;
+  width: 15px;
+}
+
+.app-rail-foot {
+  border-top: var(--border-hairline) solid var(--color-line);
+  margin-top: auto;
+  padding-top: var(--spacing-s3);
+}
+
+.app-rail-who {
+  align-items: center;
+  display: flex;
+  gap: 9px;
+  padding: 6px 4px;
+}
+
+.app-rail-avatar {
+  align-items: center;
+  border: var(--border-ink) solid var(--color-ink);
+  display: flex;
+  flex: none;
+  font-size: 10px;
+  font-weight: 900;
+  height: 26px;
+  justify-content: center;
+  width: 26px;
+}
+
+/* The email is the only elastic thing in the row, so it is the thing that gives. `min-width: 0` is
+   what lets a flex item shrink below its content width; without it the nowrap text sets an
+   unshrinkable floor and the 216px column stops being 216px. This is `.app-chrome-who`'s lesson
+   from BUG-069, kept. */
+.app-rail-email {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sign out is a form submit, because signing out is a state change and must not be a GET something
+   can prefetch. It should read as the rail items above it. */
+.app-rail-signout {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: left;
+  text-decoration: underline;
+  width: 100%;
+}
+
+.app-rail-signout:hover {
+  color: var(--color-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-rail-link {
+    transition: none;
+  }
+}
+
+/* ── the top bar ──────────────────────────────────────────────────────────────────────────── */
+
+.app-topbar {
+  align-items: center;
+  background: var(--color-surface);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  display: flex;
+  gap: var(--spacing-s3);
+  padding: 11px 18px;
+  position: sticky;
+  top: 0;
+  /* Below the consent banner, which is fixed and must stay above everything. */
+  z-index: 40;
+}
+
+.app-topbar-crumbs {
+  min-width: 0;
+}
+
+/* **`nowrap`, so the trail ellipsises instead of becoming a second row.** A sticky bar that grows
+   a line eats a phone's viewport on every screen at once, which is BUG-069's lesson in a new bar. */
+.app-topbar-crumbs ol {
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  font-size: 13.5px;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  min-width: 0;
+  padding: 0;
+}
+
+.app-topbar-crumbs li {
+  color: var(--color-ink-3);
+  max-width: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The separator is drawn, not typed: a `/` in the markup is a character a screen reader announces
+   between every segment. */
+.app-topbar-crumbs li + li::before {
+  content: "/";
+  padding: 0 var(--spacing-s2);
+}
+
+.app-topbar-crumbs a {
+  color: var(--color-ink-3);
+}
+
+.app-topbar-crumbs a:hover {
+  color: var(--color-ink);
+}
+
+.app-topbar-crumbs [aria-current="page"] {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.app-topbar-spacer {
+  flex: 1 1 auto;
+}
+
+.app-topbar-link,
+.app-topbar-action,
+.app-topbar .pill,
+.app-topbar .theme-toggle {
+  flex: 0 0 auto;
+}
+
+.app-topbar-link {
+  color: var(--color-ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-topbar-link:hover {
+  color: var(--color-ink);
+}
+
+/* Below 940px `Website` and the primary action drop out rather than wrapping the bar onto a second
+   row: the first is inside the disclosure and the second is on the page, and a two-row sticky bar
+   eats a phone's viewport.
+
+   **The pill stays at every width.** It was dropped here first, and that was wrong: the pages that
+   used to print `Draft` themselves no longer do, so hiding it would take Draft and Live state off
+   a phone entirely — on Runs, Versions and Deploy, which are the three screens where you most want
+   it. The crumb trail is what gives instead; it already ellipsises. */
+@media (max-width: 939px) {
+  .app-topbar-link,
+  .app-topbar-action {
+    display: none;
+  }
+
+  /* **Only the page you are on.** With the menu, the pill and the toggle all on a 390px row, a
+     two-segment trail is squeezed until both segments ellipsise — the drive's screenshot read
+     `Refund clas… / R…`, which names neither the prompt nor the page. One segment in full says
+     more than two in fragments, and the segment it drops is a link the menu carries anyway. */
+  .app-topbar-crumbs li:not(:last-child) {
+    display: none;
+  }
+  .app-topbar-crumbs li + li::before {
+    content: none;
+  }
+}
+
+/* ── the mobile disclosure ────────────────────────────────────────────────────────────────── */
+
+.app-shell-menu {
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.app-shell-menu summary {
+  align-items: center;
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  justify-content: center;
+  /* 44px, and `list-style: none` on both selectors because Safari needs the pseudo-element form. */
+  min-height: 44px;
+  min-width: 44px;
+  padding: 6px 11px;
+}
+
+.app-shell-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-shell-menu summary {
+  list-style: none;
+}
+
+.app-shell-menu-body {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  left: 0;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: absolute;
+  top: calc(100% + var(--spacing-s2));
+  /* Wider than the summary, narrower than a phone. `min()` keeps it inside a 390px viewport with
+     the bar's own 18px gutters accounted for. */
+  width: min(260px, calc(100vw - 36px));
+  z-index: 50;
+}
+
+@media (min-width: 940px) {
+  .app-shell-menu {
+    display: none;
+  }
+}

@@ -3,6 +3,7 @@
 @import "./base.css";
 @import "./recipes.css";
 @import "./decompile.css";
+@import "./app-shell.css";
 @import "./canvas.css";
 @import "./runs.css";
 @import "./versions.css";
