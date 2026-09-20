@@ -187,6 +187,25 @@ regression. Both were two Playwright runs sharing one server on port 3210.
 The tell was the same both times and is worth keeping: **failures too fast and too broad to be
 real**. A genuine regression in autosave does not also break sign-in.
 
+### 4.7 A run the gate refused to call a result
+
+Between the two green runs, one came back with `pnpm e2e` and `license-gate` red — and annotated
+every step after the first failure with **"the throwaway database is gone — this step is not a
+verdict on the code"**, closing with:
+
+> The throwaway database disappeared during this run, so this is NOT a result.
+
+Docker Desktop had restarted mid-run: every container read `Exited 21 minutes ago`. The cause was
+disk — **`.turbo/cache` had reached 43 GB**, leaving 15 GB free. Clearing it took the machine to
+57 GB and the next run was green on the same commit.
+
+Two things worth keeping. First, `PROCESS.md` says *"environmental" is a hypothesis, not a
+finding*, and this is what discharging that looks like: the gate detected the condition rather than
+somebody guessing it, the mechanism is named, the evidence is `df` before and after, and the fix is
+applied rather than assumed. Second, **the annotation is the feature.** Without it the honest
+reading of that output is two real regressions, and the tempting reading is "flaky, run it again" —
+which is the same sentence whether or not it is true.
+
 ## 5. The spec amendments, each named
 
 The epic said to name each amendment rather than quietly rewrite the files. Six:
@@ -230,7 +249,8 @@ is the test guarding the promise §3.3 extends, and it was the one to watch.
       and `compiled-pane.spec.ts` green, 22 of 22.
 - [x] No `/app` route scrolls sideways at 390px — the drive, two routes; `app-shell.spec.ts` sweeps
       nine.
-- [ ] `node scripts/gates.mjs ci` — §8.
+- [x] `node scripts/gates.mjs ci` — **17/17 green on `f48920b`**, 14m09s. First run failed two
+      steps (§4.5); a third run was **voided by the gate itself** (§4.7).
 - [x] The built app driven in a browser — **10/10**, `scripts/drive-epic-024.mts`, building a prompt
       from an empty canvas through the picker.
 
@@ -249,7 +269,7 @@ is the test guarding the promise §3.3 extends, and it was the one to watch.
 
 ## 8. Open
 
-1. **`node scripts/gates.mjs ci` has not run on this commit.** Next.
+1. ~~`node scripts/gates.mjs ci` has not run on this commit.~~ **17/17 green on `f48920b`.**
 2. ~~The full e2e suite's final run is not in this report yet.~~ **336 passed, 0 failed, 4 skipped**
    on `0d113cb`, 8m24s. The 4 skips are the Linux visual baselines — see below.
 3. ~~The Linux visual baselines have not been re-run.~~ **Run, and all four pass unchanged**, in
