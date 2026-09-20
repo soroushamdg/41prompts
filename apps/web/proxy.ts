@@ -12,6 +12,26 @@ export const config = {
 };
 
 /**
+ * The header the app shell reads its route context from (EPIC-023).
+ *
+ * **A Next.js layout is given the params of its own segment and no deeper.** `app/app/layout.tsx`
+ * sits at `/app`, so it never sees `[projectId]` or `[promptId]` — and the rail's middle group is
+ * headed with that record's name. This proxy already parses `pathname` on every `/app/*` request,
+ * so forwarding it is three lines here and removes the alternative, which was a second rail in a
+ * nested layout nested inside the first one.
+ *
+ * It is set **only** on `/app/*` and only once a session cookie is present. Nothing public reads
+ * it, and a client that sends its own `x-41p-path` has it overwritten rather than trusted.
+ */
+export const APP_PATH_HEADER = "x-41p-path";
+
+function withPath(request: NextRequest, pathname: string): Headers {
+  const headers = new Headers(request.headers);
+  headers.set(APP_PATH_HEADER, pathname);
+  return headers;
+}
+
+/**
  * Two jobs, in this order: put the request on the right host, then gate `/app/*`.
  *
  * **The host split first**, because a `/app` request arriving on the apex should be moved to `app.`
@@ -52,7 +72,7 @@ export function proxy(request: NextRequest) {
   // that were never going to have a session anyway.
   const sessionCookie = getSessionCookie(request, { cookiePrefix: sessionCookiePrefix() });
   if (sessionCookie) {
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: withPath(request, pathname) } });
   }
 
   const signInUrl = new URL("/sign-in", request.url);

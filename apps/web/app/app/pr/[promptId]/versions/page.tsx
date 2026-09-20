@@ -54,11 +54,7 @@ export default async function VersionsPage({
   return (
     <main className="app-page app-page-wide">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href={`/app/pr/${promptId}`}>{found.prompt.name}</a>
-        </p>
         <h1>Versions</h1>
-        <p className="app-state">Draft</p>
       </header>
 
       <VersionsView

@@ -30,9 +30,6 @@ export default async function PublishingSettingsPage() {
   return (
     <main className="app-page app-page-wide">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href="/app/projects">Projects</a>
-        </p>
         <h1>Publishing</h1>
         <p className="app-state">Settings</p>
       </header>

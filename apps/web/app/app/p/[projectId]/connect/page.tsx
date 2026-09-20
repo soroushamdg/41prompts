@@ -84,9 +84,6 @@ export default async function ConnectPage({ params }: { params: Promise<{ projec
   return (
     <main className="app-page app-page-wide">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href={`/app/p/${projectId}`}>{found.project.name}</a>
-        </p>
         <h1>Connect</h1>
         <p className="app-state">TypeScript</p>
       </header>

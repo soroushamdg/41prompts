@@ -71,7 +71,9 @@ test.describe("the Versions page", () => {
     const promptId = await newPrompt(page, "Linked");
     await addBlok(page, "context", "Answer the question.");
 
-    await page.getByRole("link", { name: "Versions" }).click();
+    // Scoped to the page. EPIC-023's rail is a second way there, which is more of what this test
+    // wants rather than less — but the claim here is that the *page* offers one, so it asks the page.
+    await page.getByRole("main").getByRole("link", { name: "Versions" }).click();
     await expect(page).toHaveURL(new RegExp(`/app/pr/${promptId}/versions$`));
     await expect(page.getByRole("heading", { name: "Versions", level: 1 })).toBeVisible();
   });

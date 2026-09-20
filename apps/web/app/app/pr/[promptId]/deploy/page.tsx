@@ -58,7 +58,7 @@ export default async function DeployPage({ params }: { params: Promise<{ promptI
   if (!preview.ok) {
     return (
       <main className="app-page app-page-wide">
-        <Head promptId={promptId} promptName={prompt.name} />
+        <Head promptId={promptId} />
         <section className="runs-panel" aria-label="This cannot be published">
           <h2>This cannot be published yet</h2>
           <p className="runs-note">{refusalWords(preview.refusal.kind)}</p>
@@ -71,7 +71,7 @@ export default async function DeployPage({ params }: { params: Promise<{ promptI
 
   return (
     <main className="app-page app-page-wide">
-      <Head promptId={promptId} promptName={prompt.name} />
+      <Head promptId={promptId} />
 
       <DeployView
         promptId={promptId}
@@ -119,14 +119,10 @@ export default async function DeployPage({ params }: { params: Promise<{ promptI
   );
 }
 
-function Head({ promptId, promptName }: { promptId: string; promptName: string }) {
+function Head({ promptId }: { promptId: string }) {
   return (
     <header className="app-pagehead">
-      <p className="app-crumb">
-        <a href={`/app/pr/${promptId}`}>{promptName}</a>
-      </p>
       <h1>Deploy</h1>
-      <p className="app-state">Draft</p>
       <span className="app-pagehead-actions">
         <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/versions`}>
           Versions

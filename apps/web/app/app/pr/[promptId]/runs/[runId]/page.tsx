@@ -127,9 +127,6 @@ export default async function RunPage({ params }: { params: Promise<{ promptId: 
   return (
     <main className="app-page">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href={`/app/pr/${promptId}/runs`}>Runs</a>
-        </p>
         {/* **Which run this is, not merely that it is one.** Every run detail page read `Run`,
             so a person with three runs of two input sets had the URL and nothing else to tell them
             apart — on a page whose whole argument is that it says honestly what happened. The

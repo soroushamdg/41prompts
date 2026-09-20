@@ -123,16 +123,38 @@ test.describe("auth", () => {
         await page.setViewportSize({ width, height: 800 });
         await page.goto("/app/projects");
         const measured = await page.evaluate(() => {
-          const chrome = document.querySelector(".app-chrome")!;
-          const items = [...chrome.children].filter((c) => !c.className.includes("spacer"));
+          // **`.app-topbar` since EPIC-023.** `.app-chrome` was the single horizontal strip the rail
+          // replaced. BUG-069's lesson is what survives the rename and is why this test does: a row
+          // of controls wraps before it shrinks, and the only way to know is to measure it at more
+          // than one width rather than look at it once.
+          const chrome = document.querySelector(".app-topbar")!;
+          // **Zero-size children are not items.** The spacer is a 0px flex filler, and below 940px
+          // `Website` and the primary action are `display: none` — all three report a rect of
+          // zeros, which is neither a row nor an overflow. Measured, after a first version counted
+          // the hidden `Website` link as a third row on a bar that was correctly one.
+          const items = [...chrome.children]
+            .map((c) => ({ element: c, rect: c.getBoundingClientRect() }))
+            .filter(({ rect }) => rect.width > 0 && rect.height > 0)
+            .map(({ element }) => element);
           const rects = items.map((c) => c.getBoundingClientRect());
+          // **Centre lines, not top edges.** The bar centres its items and they are different
+          // heights — a 44px `Menu` target beside a 20px crumb — so differing `top` values are what
+          // a correctly aligned single row looks like. Measured at 390px: tops 11, 23, 11; centres
+          // 33, 33, 33.
+          const tops = rects.map((r) => Math.round((r.top + r.bottom) / 2));
           return {
+            // **Rows, not pixels.** The threshold used to be `height < 48`, which worked while the
+            // chrome was a row of plain text links. EPIC-023's bar carries a 44px `Menu` target
+            // (rule 12), so a correct single row is now 67px tall and the old number failed it.
+            // What the test is actually about is whether anything wrapped, so it asks that: every
+            // item shares a top edge, or it does not.
+            rows: new Set(tops).size,
             height: chrome.getBoundingClientRect().height,
             gutter: document.documentElement.clientWidth - Math.max(...rects.map((r) => r.right)),
             overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           };
         });
-        expect(measured.height, `chrome wrapped at ${width}px`).toBeLessThan(48);
+        expect(measured.rows, `chrome wrapped at ${width}px (${measured.height}px tall)`).toBe(1);
         expect(measured.gutter, `no gutter at ${width}px`).toBeGreaterThanOrEqual(12);
         expect(measured.overflow, `horizontal scroll at ${width}px`).toBe(0);
       }

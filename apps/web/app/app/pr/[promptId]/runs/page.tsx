@@ -54,11 +54,7 @@ export default async function RunsPage({ params }: { params: Promise<{ promptId:
   return (
     <main className="app-page">
       <header className="app-pagehead">
-        <p className="app-crumb">
-          <a href={`/app/pr/${promptId}`}>{found.prompt.name}</a>
-        </p>
         <h1>Runs</h1>
-        <p className="app-state">Draft</p>
         <span className="app-pagehead-actions">
           <a className="btn btn-sm app-pagehead-action" href={`/app/pr/${promptId}/versions`}>
             Versions

@@ -220,17 +220,21 @@ test.describe("Deploy", () => {
     const promptId = await publishable(page, "Headed");
 
     await page.goto(`/app/pr/${promptId}`);
-    await expect(page.locator(".app-state")).toHaveText(/^Draft v\d+$/);
+    // **EPIC-023 moved this from the page into the top bar**, where it is on every one of the
+    // prompt's screens rather than only the canvas. Same two functions, same vocabulary; what
+    // changed is that Runs, Versions and Deploy now carry it too.
+    await expect(page.locator(".app-topbar .pill")).toHaveText(/^Draft v\d+$/);
 
     await page.getByRole("link", { name: "Publish…" }).click();
     await expect(page).toHaveURL(new RegExp(`/app/pr/${promptId}/deploy$`));
     await page.getByRole("button", { name: /^Publish Draft v\d+ to Live$/ }).click();
     await expect(page.locator(".deploy-env-live .deploy-env-version")).toHaveText("Live v1");
 
-    // Back on the canvas, the header now carries both, in one vocabulary.
+    // Back on the canvas, the bar now carries both, in one vocabulary. It is a pill rather than a
+    // link to Deploy, because the rail has a Deploy item on every screen and a link inside a status
+    // pill was the only way there before it did.
     await page.goto(`/app/pr/${promptId}`);
-    await expect(page.locator(".app-state")).toContainText("Draft v");
-    await expect(page.locator(".app-state").getByRole("link", { name: /^Live v\d+$/ })).toBeVisible();
+    await expect(page.locator(".app-topbar .pill")).toHaveText(/^Draft v\d+ · Live v\d+$/);
   });
 
   // ── C9 and C18 ─────────────────────────────────────────────────────────────────────────────────

@@ -29,9 +29,11 @@ async function projectWithPrompt(page: Page, name: string): Promise<{ projectId:
     page.getByRole("region", { name: "Declared variables" }).getByText("customer_name", { exact: true }),
   ).toBeVisible();
 
-  // `exact`, because the chrome's "Projects" link also matches a loose name and Playwright's strict
-  // mode then refuses — which is the right behaviour and was a bug in this helper, not in the page.
-  await page.getByRole("link", { name: "Project", exact: true }).click();
+  // **The rail, not a breadcrumb.** EPIC-023 removed the page's own `Project` crumb — the top bar
+  // renders the trail now — and gave the project group a `Prompts` item, which is what this walks.
+  // `exact`, because `Projects` in the Workspace group also matches a loose name and Playwright's
+  // strict mode then refuses, which is the right behaviour.
+  await page.locator(".app-shell-rail .app-rail").getByRole("link", { name: "Prompts", exact: true }).click();
   await expect(page).toHaveURL(/\/app\/p\/proj_[0-9a-f]{4}/);
   return { projectId: page.url().split("/app/p/")[1]!.split(/[/?#]/)[0]!, promptId };
 }
@@ -126,7 +128,9 @@ test.describe("Connect", () => {
       page.getByRole("region", { name: "Declared variables" }).getByText("order_id", { exact: true }),
     ).toBeVisible();
 
-    await page.getByRole("link", { name: "Project", exact: true }).click();
+    // The rail, since EPIC-023 removed the page's own `Project` crumb. The project group is on a
+    // prompt route too, because a prompt is inside a project.
+    await page.locator(".app-shell-rail .app-rail").getByRole("link", { name: "Prompts", exact: true }).click();
     const projectId = page.url().split("/app/p/")[1]!.split(/[/?#]/)[0]!;
     await page.goto(`/app/p/${projectId}/connect`);
 
@@ -183,9 +187,10 @@ test.describe("Connect", () => {
 
     // A page nothing links to is a page nobody finds (`PROCESS.md`, the `/app` dead end).
     await page.goto(`/app/p/${projectId}`);
-    // `exact`, because the prompt in this test is called "Narrow connect" and its link matches a
-    // loose name too.
-    await page.getByRole("link", { name: "Connect", exact: true }).click();
+    // Scoped to the page, and `exact`. The prompt in this test is called "Narrow connect" so a loose
+    // name matches its link too, and since EPIC-023 the rail carries a `Connect` of its own — which
+    // is more of what this test wants, but the claim here is that the *page* links to it.
+    await page.getByRole("main").getByRole("link", { name: "Connect", exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`/app/p/${projectId}/connect$`));
 
     await page.setViewportSize({ width: 390, height: 844 });
