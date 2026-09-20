@@ -6,6 +6,7 @@ import {
   heatmapRows,
   matrixRows,
   costSentence,
+  byHandProblemWords,
   csvProblemWords,
   evidenceSentence,
   highlightParts,
@@ -536,5 +537,51 @@ describe("matrixRows on a comparison that has not finished", () => {
     for (const state of ["queued", "running", "refused", "done"]) {
       expect(unfinished(state).status).toBeUndefined();
     }
+  });
+});
+
+describe("byHandProblemWords", () => {
+  it("names the limit and says nothing was saved", () => {
+    const words = byHandProblemWords([{ kind: "too_many_rows", found: 101, limit: 100 }]);
+    expect(words).toContain("101 inputs");
+    expect(words).toContain("the limit is 100");
+    expect(words).toContain("Nothing was saved.");
+  });
+
+  it("says what an empty grid is, without describing a file", () => {
+    const words = byHandProblemWords([{ kind: "no_rows" }]);
+    expect(words).toContain("every row is empty");
+    // The control on the whole reason this union is separate from `CsvProblem`: somebody who typed
+    // three rows must never be told something about "that file".
+    expect(words).not.toContain("file");
+  });
+
+  it("reports a ragged row by its 1-based position", () => {
+    expect(byHandProblemWords([{ kind: "ragged_row", row: 2, expected: 2, found: 1 }])).toContain("Row 2");
+  });
+
+  it("states a size in KB", () => {
+    const words = byHandProblemWords([{ kind: "too_large", found: 600 * 1024, limit: 512 * 1024 }]);
+    expect(words).toContain("600 KB");
+    expect(words).toContain("512 KB");
+  });
+
+  it("joins several problems into one message", () => {
+    const words = byHandProblemWords([
+      { kind: "too_many_rows", found: 2, limit: 1 },
+      { kind: "too_large", found: 8, limit: 3 },
+    ]);
+    expect(words).toContain("2 inputs");
+    expect(words).toContain("of values");
+  });
+
+  it("never describes a file, whatever the problem", () => {
+    const every = byHandProblemWords([
+      { kind: "too_many_rows", found: 101, limit: 100 },
+      { kind: "ragged_row", row: 1, expected: 2, found: 1 },
+      { kind: "too_large", found: 600 * 1024, limit: 512 * 1024 },
+    ]);
+    expect(every).not.toContain("file");
+    expect(every).not.toContain("CSV");
   });
 });

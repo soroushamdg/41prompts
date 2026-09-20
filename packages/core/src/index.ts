@@ -111,8 +111,9 @@ export type {
 export { parseCsv } from "./inputs/csv.js";
 export { bindVariables, serialiseRow } from "./inputs/bind.js";
 export { inputSetProblems } from "./inputs/input-set.js";
+export { byHandProblems, rowsFromGrid } from "./inputs/by-hand.js";
 export type { BindOutcome, BoundPrompt, UnboundPrompt } from "./inputs/bind.js";
-export type { ColumnProblem, CsvParse, CsvProblem } from "./inputs/types.js";
+export type { ByHandProblem, ColumnProblem, CsvParse, CsvProblem, GridLimits } from "./inputs/types.js";
 
 // The build artifact, **frozen at v1 by EPIC-050** and a public contract from that moment:
 // `docs/decisions/ADR-005-build-artifact.md` is the declaration, and `CLAUDE.md` puts

@@ -46,3 +46,27 @@ export type ColumnProblem =
   | { readonly kind: "no_variables_declared" }
   | { readonly kind: "unknown_column"; readonly name: string }
   | { readonly kind: "missing_required"; readonly name: string };
+
+/**
+ * Why a set typed into the product cannot be saved (EPIC-032a).
+ *
+ * Deliberately **not** shared with `CsvProblem`. The two paths refuse different things: a typed grid
+ * has no quoting to get wrong and no header to mis-name, and a file has no concept of "you have not
+ * typed anything yet". Folding them into one union would give every surface a set of cases it can
+ * never show, which is how a refusal message ends up describing a file to somebody who did not
+ * upload one.
+ */
+export type ByHandProblem =
+  /** Every row was empty, so there is nothing to run. Not an error the file path can have. */
+  | { readonly kind: "no_rows" }
+  | { readonly kind: "too_many_rows"; readonly found: number; readonly limit: number }
+  /** A row has a different number of cells from the derived columns — a defect in the caller. */
+  | { readonly kind: "ragged_row"; readonly row: number; readonly expected: number; readonly found: number }
+  | { readonly kind: "too_large"; readonly found: number; readonly limit: number };
+
+/** The two numbers `byHandProblems` measures against. `apps/web/lib/runs/limits.ts` owns the values. */
+export interface GridLimits {
+  readonly maxInputs: number;
+  /** Counted in UTF-16 code units across every cell — see `byHandProblems`. */
+  readonly maxCharacters: number;
+}

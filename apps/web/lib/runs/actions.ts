@@ -1,6 +1,6 @@
 "use server";
 
-import { inputSetProblems, parseCsv } from "@41prompts/core";
+import { byHandProblems, inputSetProblems, parseCsv, rowsFromGrid } from "@41prompts/core";
 import {
   addBlok,
   addInputSet,
@@ -8,10 +8,12 @@ import {
   DEFAULT_MODEL_FOR,
   DEFAULT_RUN_MODEL,
   inputSetForPrompt,
+  inputSetsForPrompt,
   newComparisonId,
   PROVIDER_TITLES,
   promptForOwner,
   removeInputSet,
+  replaceInputSetRows,
   RUN_PARAMS,
   setSuiteRunState,
   variablesForPrompt,
@@ -24,10 +26,10 @@ import { requireSession } from "@/lib/session";
 import { asDeclarations } from "@/lib/variables/queries";
 import { pinVersionForRun } from "@/lib/versions/record";
 import { keyedProvidersFor } from "@/lib/providers/queries";
-import { compiledNow } from "./queries";
+import { compiledNow, editRefusalFor } from "./queries";
 import { enqueueRun } from "./queue";
-import { MAX_INPUTS, MAX_UPLOAD_BYTES } from "./limits";
-import { columnProblemWords, csvProblemWords } from "./view";
+import { GRID_LIMITS, MAX_INPUTS, MAX_UPLOAD_BYTES } from "./limits";
+import { byHandProblemWords, columnProblemWords, csvProblemWords } from "./view";
 
 /**
  * Server actions for input sets and runs.
@@ -102,6 +104,147 @@ export async function uploadInputSetAction(promptId: string, form: FormData): Pr
   });
   revalidatePath(`/app/pr/${promptId}/runs`);
   return { ok: true };
+}
+
+/**
+ * How a typed set is named when the person leaves the name field alone.
+ *
+ * Not `inputs.csv`. The upload path takes the file's own name because the person chose it; there is
+ * no file here, and borrowing the file path's default would put `.csv` on something that never was
+ * one — a small lie that a later export would have to keep.
+ */
+function defaultSetName(existing: number): string {
+  return `Inputs ${existing + 1}`;
+}
+
+/**
+ * One set's rows, for the editor to open onto (EPIC-032a).
+ *
+ * **A listing deliberately does not carry them.** `input_sets.rowCount` exists precisely so the page
+ * can say "12 inputs" without reading the rows blob for every set on every render — the schema says
+ * so where the column is declared. Editing is the one moment the rows are actually needed, so they
+ * are fetched then, for one set, rather than carried by every page load that will never edit one.
+ */
+export async function inputSetRowsAction(
+  promptId: string,
+  inputSetId: string,
+): Promise<ActionResult & { rows?: string[][] }> {
+  const found = await owned(promptId);
+  if (found === undefined) return REFUSED;
+
+  const set = await inputSetForPrompt(found.db, promptId, inputSetId);
+  if (set === undefined) return REFUSED;
+  return { ok: true, rows: set.rows };
+}
+
+/**
+ * Save a set typed into the product (EPIC-032a).
+ *
+ * **The same four steps in the same order as every action in this file** — resolve the session,
+ * scope by owner, validate, write — and the same property as the upload path: every refusal happens
+ * before anything is stored (EPIC-032 decision 1).
+ *
+ * ## The columns are derived here, on the server
+ *
+ * They are the prompt's declared variables, read in this action from the database, and **nothing the
+ * client sends decides them** (decision 2). A grid cannot therefore produce `unknown_column` or
+ * `missing_required` — but `inputSetProblems` is still called, on the derived header, as the control
+ * that the two writers cannot diverge. If a future change lets a person name a column, that call is
+ * already the thing that refuses it.
+ */
+export async function addInputSetByHandAction(
+  promptId: string,
+  input: { name: string; rows: readonly (readonly string[])[] },
+): Promise<ActionResult> {
+  const found = await owned(promptId);
+  if (found === undefined) return REFUSED;
+
+  const declarations = await variablesForPrompt(found.db, promptId);
+  const columns = declarations.map((declaration) => declaration.name);
+
+  const problems = inputSetProblems(columns, asDeclarations(declarations));
+  if (problems.length > 0) return { ok: false, message: columnProblemWords(problems) };
+
+  const rows = rowsFromGrid(input.rows);
+  const gridProblems = byHandProblems(rows, columns, GRID_LIMITS);
+  if (gridProblems.length > 0) return { ok: false, message: byHandProblemWords(gridProblems) };
+
+  const existing = await inputSetsForPrompt(found.db, promptId);
+  const name = input.name.trim() === "" ? defaultSetName(existing.length) : input.name.trim();
+
+  await addInputSet(found.db, promptId, { name, columns, rows });
+  revalidatePath(`/app/pr/${promptId}/runs`);
+  return { ok: true };
+}
+
+/**
+ * Change a set that **nothing has run** (EPIC-032a decision 3).
+ *
+ * ## Why the refusal is here and not only on the surface
+ *
+ * A `suite_run` freezes its compiled prompt onto its own row and keeps its inputs as a foreign key,
+ * and the run detail page reads those rows live (`inputSetForPrompt`). Editing a set that has been
+ * run would change what a finished run appears to have run against — no error, no visible symptom,
+ * and a pass rate computed from rows that no longer exist.
+ *
+ * The surface hides the control; **this is the guarantee.** A disabled button is a courtesy to the
+ * person using the page, not a property of the system, and the property is what history depends on.
+ */
+export async function updateInputSetAction(
+  promptId: string,
+  inputSetId: string,
+  input: { name: string; rows: readonly (readonly string[])[] },
+): Promise<ActionResult> {
+  const found = await owned(promptId);
+  if (found === undefined) return REFUSED;
+
+  const set = await inputSetForPrompt(found.db, promptId, inputSetId);
+  if (set === undefined) return REFUSED;
+
+  // The rule, and its reasoning, live in `queries.ts` where a test can reach them. The surface
+  // hides the control; this is the guarantee.
+  const refusal = await editRefusalFor(found.db, inputSetId);
+  if (refusal !== undefined) return { ok: false, message: refusal };
+
+  const declarations = await variablesForPrompt(found.db, promptId);
+  const columns = declarations.map((declaration) => declaration.name);
+
+  const rows = rowsFromGrid(input.rows);
+  const gridProblems = byHandProblems(rows, columns, GRID_LIMITS);
+  if (gridProblems.length > 0) return { ok: false, message: byHandProblemWords(gridProblems) };
+
+  const name = input.name.trim() === "" ? set.name : input.name.trim();
+  await replaceInputSetRows(found.db, promptId, inputSetId, { name, rows });
+  revalidatePath(`/app/pr/${promptId}/runs`);
+  return { ok: true };
+}
+
+/**
+ * Copy a set, so the copy can be edited and the original stays what its runs ran against.
+ *
+ * The name is derived and **shown before it is saved** is the surface's job; what this guarantees is
+ * only that two sets are never distinguishable by their id alone (decision 4).
+ */
+export async function duplicateInputSetAction(
+  promptId: string,
+  inputSetId: string,
+): Promise<ActionResult & { id?: string }> {
+  const found = await owned(promptId);
+  if (found === undefined) return REFUSED;
+
+  const set = await inputSetForPrompt(found.db, promptId, inputSetId);
+  if (set === undefined) return REFUSED;
+
+  const created = await addInputSet(found.db, promptId, {
+    name: `${set.name} (copy)`,
+    // The original's columns, not the prompt's declarations as they are now: a copy that quietly
+    // re-shaped itself would not be a copy, and the edit that follows is where a person meets any
+    // disagreement with the Variables tab.
+    columns: set.columns,
+    rows: set.rows,
+  });
+  revalidatePath(`/app/pr/${promptId}/runs`);
+  return { ok: true, id: created.id };
 }
 
 /** Remove a set. Soft, because a run in the history ran against it. */

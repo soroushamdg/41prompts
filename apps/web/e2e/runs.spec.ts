@@ -128,10 +128,17 @@ test.describe("input sets", () => {
     await uploadCsv(page, promptId, "inputs.csv", "customer\nAda\n");
 
     // Rule 12: the whole of the page reachable without a mouse, in the order it reads.
+    //
+    // **EPIC-032a inserted a control here**, and this assertion is the reason that was noticed:
+    // "add inputs by hand" sits between the upload form and the list of sets, which is where it
+    // reads and therefore where it belongs in the tab order. The step below is the new control,
+    // not a workaround for it — a Tab walk that skipped it would stop describing the page.
     await page.getByLabel("CSV file").focus();
     await expect(page.getByLabel("CSV file")).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Upload" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "add inputs by hand" })).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Run inputs.csv" })).toBeFocused();
 

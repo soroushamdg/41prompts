@@ -430,3 +430,72 @@
     grid-column: 2;
   }
 }
+
+/* ── EPIC-032a: inputs typed in, instead of uploaded ─────────────────────────────────────────── */
+
+.runs-byhand {
+  display: grid;
+  gap: var(--spacing-s3);
+  margin-bottom: var(--spacing-s4);
+  padding: var(--spacing-s3);
+  border: 1.5px solid var(--color-line);
+  background: var(--color-surface);
+}
+.runs-byhand-name {
+  display: grid;
+  gap: var(--spacing-s1);
+  font-size: 12px;
+  color: var(--color-ink-2);
+  max-width: 22rem;
+}
+.runs-byhand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+}
+
+/*
+ * The grid scrolls sideways inside itself rather than widening the page.
+ *
+ * A prompt may declare more variables than fit a phone, and EPIC-072 spent an epic on a nav that was
+ * 185px wider than a 390px viewport and made every public page scroll sideways. A table that owns
+ * its own overflow cannot do that to the page around it.
+ */
+.runs-grid {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+/*
+ * **No `text-transform: uppercase` here, unlike every other small header in this file.**
+ *
+ * These headers are not labels the product chose — they are the person's own variable names, and a
+ * variable name is case-sensitive. `{{request}}` and `{{REQUEST}}` are two different variables, so
+ * a header that renders one as the other is telling the reader something untrue about their own
+ * prompt. Found by the EPIC-032a drive, which read the rendered header back and got `REQUEST`.
+ *
+ * The monospace face is doing the work the capitals would have done: it says "this is an
+ * identifier" without altering it.
+ */
+.runs-grid th {
+  text-align: left;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--color-ink-2);
+  padding: var(--spacing-s1) var(--spacing-s2) var(--spacing-s1) 0;
+  white-space: nowrap;
+}
+.runs-grid td {
+  padding: var(--spacing-s1) var(--spacing-s2) var(--spacing-s1) 0;
+  vertical-align: top;
+}
+.runs-grid td .field-input {
+  min-width: 12rem;
+}
+/* Rule 12: a touch target, not a 24px button wedged into a table cell. */
+.runs-grid td button {
+  min-height: 44px;
+  white-space: nowrap;
+}

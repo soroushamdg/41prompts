@@ -3,6 +3,7 @@ import {
   inputSetsForPrompt,
   outputForRun,
   promptForOwner,
+  runCountsForInputSets,
   suiteChecksFor,
   suiteResultsFor,
   suiteRunForOwner,
@@ -32,7 +33,17 @@ export async function runsPageFor(db: Db, promptId: string, owner: string) {
     suiteRunsForPrompt(db, promptId),
   ]);
 
-  return { prompt, inputSets, declarations, history };
+  // EPIC-032a decision 3. One query for the whole list, and the answer travels to the client as a
+  // prop: whether a set may be edited is a fact about the database, never something the grid works
+  // out for itself. A set with no runs is absent from the map, which is what `?? 0` is for.
+  const runCounts = await runCountsForInputSets(db, inputSets.map((set) => set.id));
+
+  return {
+    prompt,
+    inputSets: inputSets.map((set) => ({ ...set, runCount: runCounts.get(set.id) ?? 0 })),
+    declarations,
+    history,
+  };
 }
 
 /**
@@ -114,4 +125,27 @@ export async function comparisonDetailFor(db: Db, comparison: string, owner: str
  */
 export async function outputFor(db: Db, runId: string, owner: string): Promise<string | undefined> {
   return outputForRun(db, runId, owner);
+}
+
+/**
+ * Why a set may not be edited in place, or `undefined` when it may (EPIC-032a decision 3).
+ *
+ * ## Why this is here rather than inside the action
+ *
+ * `actions.ts` carries `"use server"`, so every export in it is a server action and a plain helper
+ * cannot live there. That is a good constraint here: this is the rule history depends on, and a
+ * rule with a test is worth more than a rule inside a function only a browser can reach.
+ *
+ * ## What it is protecting
+ *
+ * A `suite_run` freezes its compiled prompt and hash onto its own row, but keeps its inputs as a
+ * foreign key — `runDetailFor` reads them live through `inputSetForPrompt`. So editing a set that
+ * has been run changes what a finished run appears to have run against: the "By input" rows of a
+ * run from last week, and a pass rate computed over rows that no longer exist. Nothing errors and
+ * nothing looks wrong, which is why this is a refusal rather than a warning.
+ */
+export async function editRefusalFor(db: Db, inputSetId: string): Promise<string | undefined> {
+  const runCount = (await runCountsForInputSets(db, [inputSetId])).get(inputSetId) ?? 0;
+  if (runCount === 0) return undefined;
+  return `${runCount === 1 ? "A run has" : `${runCount} runs have`} already used these inputs, and changing them would change what ${runCount === 1 ? "it" : "they"} ran against. Duplicate the set and edit the copy instead.`;
 }

@@ -88,8 +88,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     id: "stage-3",
     stage: "Stage 3",
     heading: "Checks and runs",
-    body: "Expected bloks compile to checks rather than to text. Deterministic graders first, a judge pinned by version second, and every failure attributed to the blok that owns the span that caused it.",
-    epics: ["EPIC-030", "EPIC-031", "EPIC-032", "EPIC-033", "EPIC-034"]
+    body: "Expected bloks compile to checks rather than to text. Deterministic graders first, a judge pinned by version second, and every failure attributed to the blok that owns the span that caused it. Inputs arrive as a CSV or typed in by hand, and a set some run has already used is copied rather than changed, so what that run scored stays answerable.",
+    epics: ["EPIC-030", "EPIC-031", "EPIC-032", "EPIC-032a", "EPIC-033", "EPIC-034"]
   },
   {
     id: "stage-2",
