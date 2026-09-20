@@ -36,7 +36,11 @@ export function Editor({
   const live = pinned ?? linked;
 
   return (
-    <div className="compiled-layout">
+    /* **One card, two panes** — the mockup's `.split` (lines 187–196). It was two separate cards
+       side by side with a gap and `align-items: start`, which is why the compiled pane sat short
+       beside a canvas running fifteen hundred pixels down the page. The panes now share a border
+       and a height, and each scrolls inside itself rather than growing the document. */
+    <div className="split">
       <CompiledPane
         promptId={promptId}
         pieces={pieces}

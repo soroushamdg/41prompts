@@ -68,14 +68,36 @@ async function expectSaved(page: Page, index: number): Promise<void> {
   ).toHaveAttribute("data-state", "saved");
 }
 
+/**
+ * Open a card's editor, if it is not already the open one.
+ *
+ * **EPIC-024 made a card compact**: at rest it shows a two-line summary, and selecting it opens the
+ * textarea in place. One card is open at a time, so reaching any other blok's text means asking for
+ * it. The summary carries the same accessible name the card always had, prefixed so a screen reader
+ * says what activating it does.
+ */
+async function openBlok(page: Page, index: number): Promise<void> {
+  const card = page.locator(".canvas-list > li").nth(index);
+  if ((await card.getByLabel("Blok text").count()) === 0) {
+    await card.getByRole("button", { name: /^Edit this blok/ }).click();
+  }
+  await expect(card.getByLabel("Blok text")).toBeVisible();
+}
+
 async function setBlokText(page: Page, index: number, text: string): Promise<void> {
+  await openBlok(page, index);
   await page.locator(".canvas-list > li").nth(index).getByLabel("Blok text").fill(text);
   await expectSaved(page, index);
 }
 
 async function addBlok(page: Page, kind: string, text: string): Promise<void> {
   const before = await page.locator(".canvas-list > li").count();
-  await page.getByRole("button", { name: `Add ${kind}` }).click();
+  // **The kind picker, since EPIC-024.** Six `Add <kind>` buttons became one `+ Add blok` menu.
+  // The item labels are unchanged on purpose — a menu item is a button with the same accessible
+  // name, so changing the wording would have been a rename across a dozen specs for no reader's
+  // benefit. What changed is that it has to be opened first.
+  await page.getByRole("button", { name: "+ Add blok" }).click();
+  await page.getByRole("menuitem", { name: `Add ${kind}` }).click();
   await expect(page.locator(".canvas-list > li")).toHaveCount(before + 1);
   await setBlokText(page, before, text);
 }
@@ -131,9 +153,17 @@ test.describe("the blok canvas", () => {
 
       await page.reload();
 
-      const fields = await page.locator(".canvas-list > li").getByLabel("Blok text").all();
-      const values = await Promise.all(fields.map((field) => field.inputValue()));
-      expect(values).toEqual([
+      // **Read the summaries, not the textareas** (EPIC-024). A compact card shows its text at
+      // rest and opens on selection, so after a reload there are no fields to read — and asking
+      // the summaries is the better assertion anyway: it proves the order is *visible*, which is
+      // what somebody scanning the canvas actually gets, rather than what four open inputs hold.
+      const summaries = await page
+        .locator(".canvas-list > li")
+        .getByRole("button", { name: /^Edit this blok/ })
+        .allInnerTexts();
+      // The summary's accessible name begins with a visually-hidden "Edit this blok: ", which is
+      // what makes the control say aloud what activating it does. It is not part of the blok.
+      expect(summaries.map((text) => text.replace(/^Edit this blok:\s*/, "").trim())).toEqual([
         "Reply in at most 80 words.",
         "You route inbound support email, fast.",
         "Input: charged twice / Output: billing",
@@ -168,9 +198,18 @@ test.describe("the blok canvas", () => {
         await addBlok(page, "context", "Stored byte for byte:\ttabbed, 🚀, مرحبا");
 
         await page.reload();
+        // **The card is closed after a reload**, which is EPIC-024's compact canvas working: one
+        // card is open at a time and a fresh page has none. What the test is about is unchanged —
+        // the bytes survived — so it opens the card and asks.
+        await openBlok(page, 0);
         await expect(page.getByLabel("Blok text")).toHaveValue(
           "Stored byte for byte:\ttabbed, 🚀, مرحبا"
         );
+
+        // And the summary shows them too, without opening anything: a closed card is not a card
+        // whose text you have to take on trust.
+        await page.reload();
+        await expect(page.locator(".canvas-list > li").first()).toContainText("tabbed, 🚀, مرحبا");
       });
 
       /**
@@ -288,7 +327,8 @@ test.describe("the blok canvas", () => {
       // climbing steadily (29, 30, 33 … 51) and simply had not arrived. Awaiting each one is
       // deterministic rather than a widened bar, and it is also what a person does.
       for (let i = 0; i < 60; i++) {
-        await page.getByRole("button", { name: "Add context" }).click();
+        await page.getByRole("button", { name: "+ Add blok" }).click();
+        await page.getByRole("menuitem", { name: "Add context" }).click();
         await expect(page.locator(".canvas-list > li")).toHaveCount(i + 1);
       }
 

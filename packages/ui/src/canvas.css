@@ -96,11 +96,38 @@
 .canvas-list > li {
   margin-bottom: var(--spacing-s4);
 }
+/* **Attached to the card, not floating below it** (EPIC-024).
+   The mockup shows no controls at rest, and the tempting way to match that is to reveal them on
+   hover — which is a mouse-only affordance and fails rule 12. So they stay visible and stay real
+   buttons, and instead they stop reading as a separate block: the card loses its bottom corners,
+   this row tucks under its border and picks up the card's own edges.
+
+   They remain a *sibling* of the card rather than a child. The card is a `role="group"` whose
+   body is a textarea, and this is a second labelled group with its own arrow-key handler; nesting
+   one inside the other is the `nested-interactive` shape `blok-card.tsx` already refuses. */
+.canvas-list > li .blok-card {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
+}
+
 .canvas-card-controls {
+  align-items: center;
+  background: var(--color-sunken);
+  border: var(--border-ink) solid var(--color-ink);
+  border-top: 0;
+  border-bottom-left-radius: var(--radius-card);
+  border-bottom-right-radius: var(--radius-card);
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-s2);
-  margin-top: calc(-1 * var(--spacing-s1));
+  margin-bottom: 9px;
+  padding: var(--spacing-s2) 11px;
+}
+
+/* The buttons carry the card's chrome, so they do not need their own plate on top of it. */
+.canvas-card-controls .btn {
+  box-shadow: none;
 }
 .canvas-undo {
   display: flex;
@@ -132,10 +159,11 @@
    span was compiled or edited — that is drift, and drift is the only thing amber means (rule 10).
    Every state also carries a word, so the colour is never the signal on its own. */
 
+/* **No border, no radius, no plate — `.split` carries all three** (EPIC-024). This was a card in
+   its own right when the editor was two cards side by side; inside the split it is a pane, and a
+   pane with its own rounded sunken box draws a second frame inside the first. */
 .compiled-pane {
-  border: var(--border-ink) solid var(--color-ink);
   background: var(--color-sunken);
-  border-radius: var(--radius-card);
   overflow: hidden;
 }
 .compiled-panebar {
@@ -166,6 +194,18 @@
   color: inherit;
   padding: 1px 0;
   border-radius: var(--radius-card);
+  /* **A span is a `<button>`, and the UA stylesheet centres a button's text.** So every span in
+     the compiled pane rendered centred, which is a pane whose whole job is to show what the model
+     receives misrepresenting the first thing about it. Shipped in EPIC-021b and visible in its own
+     screenshots; found here by looking at the built page rather than at the CSS, because nothing
+     in this file set `text-align` and walking the tree *upward* from `.compiled-text` found
+     `start` at every level — the culprit was one node down.
+
+     `inherit`, not `left`, so a right-to-left prompt still reads correctly. */
+  text-align: inherit;
+  /* Same family: a button is `inline-block` and does not wrap like the text it sits in. */
+  white-space: inherit;
+  font: inherit;
 }
 .compiled-span[data-linked="true"] {
   background: var(--color-ink);
@@ -217,16 +257,103 @@
   color: var(--color-ink);
 }
 
-.compiled-layout {
+/* ── the split: one card, two panes (EPIC-024) ───────────────────────────────────────────────
+   The mockup's `.split` / `.pane`, lines 187–196. It was two separate bordered cards in a grid
+   with a gap and `align-items: start`, which let the compiled pane sit short beside a canvas
+   fifteen hundred pixels tall. One border now encloses both, they share a height, and each
+   scrolls inside itself rather than growing the document.
+
+   Stacked below 1000px, side by side above it, at the mockup's own 1.05fr/1fr — the compiled
+   prompt is the thing being read, so it gets the wider column. */
+.split {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
   display: grid;
-  gap: var(--spacing-s5);
+  grid-template-columns: 1fr;
+  overflow: hidden;
 }
-/* Side by side above md, stacked below (decision 9, following EPIC-013). */
-@media (min-width: 900px) {
-  .compiled-layout {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
+
+@media (min-width: 1000px) {
+  .split {
+    grid-template-columns: 1.05fr 1fr;
   }
+}
+
+.split > .pane {
+  display: flex;
+  flex-direction: column;
+  /* Without this a long compiled line makes the column wider than its share instead of scrolling
+     inside it — the same failure `.app-shell-main` had on the other axis. */
+  min-width: 0;
+  /* **No radius reset here, and that is the token contract rather than taste.** `tokens.css` has
+     one radius and says data surfaces are square — square meaning *unset*, not zeroed. The
+     contract test caught the zeroed version; the fix was to stop `.compiled-pane` claiming a
+     card's chrome at all, above, so there is nothing left to reset.
+
+     And then it caught this comment, because the rule greps the file and prose naming a value
+     reads as the value. EPIC-900 paid for that lesson twice with the dead-code gate and it is the
+     same lesson: a gate that reads text cannot tell an example from an instruction. */
+  border: 0;
+  box-shadow: none;
+}
+
+.split > .pane + .pane {
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+
+@media (min-width: 1000px) {
+  .split > .pane + .pane {
+    border-top: 0;
+    border-left: var(--border-hairline) solid var(--color-line);
+  }
+}
+
+/* The mockup gives each pane a 480px body that scrolls inside itself. That is what stops a long
+   prompt or a fifty-blok canvas from turning the whole page into a scroll — and it is what makes
+   the two panes the same height, which is the thing that looked wrong before. */
+.split .compiled-text,
+.split .canvas-body {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.split .canvas-body {
+  padding: var(--spacing-s3);
+}
+
+.split .compiled-panebar,
+.split .canvas-panebar {
+  flex: none;
+}
+
+/* The pane's own header row: a caption, the state, and whatever the pane can do. */
+.canvas-panebar {
+  align-items: center;
+  background: var(--color-surface);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  gap: var(--spacing-s2);
+  padding: var(--spacing-s2) var(--spacing-s3);
+}
+
+.pane-title {
+  color: var(--color-ink-3);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The compiled prompt's size, in characters. **Not tokens** — see `compiled-pane.tsx`. */
+.pane-size {
+  color: var(--color-ink-3);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  margin-left: auto;
 }
 
 /* Touch targets in the compiled pane, the same answer `decompile.css` gives its source map: a span
@@ -378,3 +505,176 @@
   word-break: break-word;
 }
 
+
+/* ── the compact blok card (EPIC-024) ─────────────────────────────────────────────────────────
+   The mockup's canvas is a column of summaries (lines 208–216), not a column of textareas. A card
+   at rest shows its kind, its text and its position; selecting it opens the editor in place.
+
+   This is why the split's two panes can be the same height at all: six always-open textareas made
+   the canvas fifteen hundred pixels tall beside a compiled pane of two hundred. */
+
+.blok-editor-closed {
+  display: block;
+}
+
+/* The summary **is** the card's tab stop — one per card, which is
+   `docs/design/README.md`'s accessibility correction and what the source map already does. */
+.blok-summary {
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-size: 13.5px;
+  padding: 0;
+  text-align: left;
+  width: 100%;
+
+  /* Two lines, then an ellipsis. A summary that grows with its blok is not a summary. */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  /* Newlines inside a blok are real (`compiled-view`), but a two-line clamp cannot show them and
+     a card that renders one as a break wastes its whole second line on nothing. */
+  white-space: pre-line;
+}
+
+.blok-summary:focus-visible {
+  outline: var(--border-ink) solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* An empty blok says what to do about it rather than rendering as a blank card. */
+.blok-summary-empty {
+  color: var(--color-ink-3);
+  font-style: italic;
+}
+
+/* `Done` closes the editor, and it is disabled until the text is on the server — the rule
+   `blok-editor.tsx` carries. A disabled control that says "Saving…" is the honest version of
+   refusing to close. */
+.blok-editor-done {
+  appearance: none;
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  color: var(--color-ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: var(--spacing-s2);
+  min-height: 44px;
+  padding: 6px 11px;
+}
+
+.blok-editor-done:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ── the Checks and Providers tabs (EPIC-024) ─────────────────────────────────────────────── */
+
+.checks-tab-lede,
+.providers-tab-lede {
+  color: var(--color-ink-2);
+  font-size: 13.5px;
+  margin: 0 0 var(--spacing-s4);
+  max-width: 62ch;
+}
+
+.checks-list {
+  display: grid;
+  gap: var(--spacing-s2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.checks-item {
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-line);
+  border-radius: var(--radius-card);
+  padding: var(--spacing-s3);
+}
+
+.checks-item-kind {
+  color: var(--color-ink-3);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  margin: 0 0 4px;
+  text-transform: uppercase;
+}
+
+/* A kind that cannot honestly be named is a statement, not a gap — so it reads as one rather than
+   as a missing label. `checks-tab.tsx` carries why there is no ninth kind to fall back on. */
+.checks-item-unnamed {
+  font-style: italic;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* The blok's verbatim text (rule 3), so its own line breaks are its own. */
+.checks-item-text {
+  font-size: 13.5px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.providers-group {
+  border-top: var(--border-hairline) solid var(--color-line-2);
+  padding: var(--spacing-s3) 0;
+}
+
+.providers-group-name {
+  align-items: baseline;
+  display: flex;
+  font-size: 14px;
+  gap: var(--spacing-s3);
+  margin: 0 0 var(--spacing-s2);
+  text-transform: capitalize;
+}
+
+.providers-group-state {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.providers-models {
+  display: grid;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.providers-models li {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+}
+
+.providers-model-name {
+  font-size: 13.5px;
+}
+
+/* The pinned id, shown rather than hidden: the id is the thing that is pinned (rule 7). */
+.providers-model-id {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.providers-tab-foot {
+  border-top: var(--border-hairline) solid var(--color-line-2);
+  font-size: 13px;
+  margin: var(--spacing-s4) 0 0;
+  padding-top: var(--spacing-s3);
+}

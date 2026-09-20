@@ -158,7 +158,8 @@ try {
   await page.getByRole("button", { name: "Create prompt" }).click();
   await page.waitForURL(/\/app\/pr\//, { timeout: 20_000 });
 
-  await page.getByRole("button", { name: "Add context" }).click();
+  await page.getByRole("button", { name: "+ Add blok" }).click();
+  await page.getByRole("menuitem", { name: "Add context" }).click();
   await page.locator(".canvas-list > li").first().getByLabel("Blok text")
     .fill("You are a support operations assistant. You classify inbound refund requests.");
   await page.locator(".canvas-list > li").first().locator(".blok-editor-state")

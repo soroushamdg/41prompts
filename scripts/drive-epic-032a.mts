@@ -145,7 +145,8 @@ try {
 
   async function addBlok(kind: string, text: string): Promise<void> {
     const before = await page.locator(".canvas-list > li").count();
-    await page.getByRole("button", { name: `Add ${kind}` }).click();
+    await page.getByRole("button", { name: "+ Add blok" }).click();
+    await page.getByRole("menuitem", { name: `Add ${kind}` }).click();
     await page.locator(".canvas-list > li").nth(before).getByLabel("Blok text").fill(text);
     await page
       .locator(".canvas-list > li")

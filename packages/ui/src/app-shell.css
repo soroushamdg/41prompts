@@ -370,3 +370,127 @@
     display: none;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   The project grid (EPIC-024), from the mockup's `.projgrid` / `.proj`, lines 175–185.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.projgrid {
+  display: grid;
+  gap: var(--spacing-s4);
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: var(--spacing-s5) 0 0;
+  padding: 0;
+}
+
+@media (min-width: 720px) {
+  .projgrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1120px) {
+  .projgrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.proj {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-s4);
+  transition:
+    transform 0.15s var(--ease-brand),
+    box-shadow 0.15s var(--ease-brand);
+}
+
+/* `:focus-within`, not only `:hover`. The card's target is its heading link, so a keyboard reader
+   tabbing to it must get the same lift a pointer gets — otherwise the affordance is mouse-only,
+   which is the shape rule 12 exists to catch. */
+.proj:hover,
+.proj:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-offset-lg) var(--shadow-offset-lg) 0 var(--color-plate);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proj {
+    transition: none;
+  }
+  .proj:hover,
+  .proj:focus-within {
+    transform: none;
+  }
+}
+
+.proj-name {
+  font-size: 16px;
+  margin: 0;
+}
+
+/* The link fills the card's width so the pointer target is the whole line, not the word. */
+.proj-name a {
+  display: block;
+  text-decoration: none;
+}
+.proj-name a:hover {
+  text-decoration: underline;
+}
+
+.proj-sub {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+  margin: 2px 0 0;
+}
+
+.proj-metrics {
+  border-top: var(--border-hairline) solid var(--color-line-2);
+  display: flex;
+  gap: var(--spacing-s4);
+  margin-top: auto;
+  padding-top: var(--spacing-s3);
+}
+
+.proj-metric {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.proj-metric-key {
+  color: var(--color-ink-3);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.proj-metric-value {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+/* `—` and "not graded" are answers, not absences, so they are legible rather than faint — but they
+   are not the figure, so they do not wear the figure's weight. */
+.proj-metric-none {
+  color: var(--color-ink-3);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Rule 10: the tint follows the figure and never replaces it. A reader who cannot see the colour
+   reads the same number in the same place. */
+.proj-metric-value [data-tone="pass"] {
+  color: var(--color-pass);
+}
+.proj-metric-value [data-tone="drift"] {
+  color: var(--color-warn);
+}
+.proj-metric-value [data-tone="fail"] {
+  color: var(--color-fail);
+}
