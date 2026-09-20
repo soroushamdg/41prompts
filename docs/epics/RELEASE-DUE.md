@@ -4,22 +4,29 @@ Written by `scripts/run-epics.sh` after three completed epics. **The loop has st
 waiting for you.** Nothing here has been tagged and nothing will be: cutting the release is
 yours.
 
-Generated 2026-09-19T18:51:17.049Z.
+Generated 2026-09-20T01:30:41.509Z.
 
 ## Where the two environments are
 
 | | commit | source |
 |---|---|---|
 | production | `af089c7cf680174d166b87fe79e0f2314625d1b0` (env=production) | https://app.41prompts.ai/healthz |
-| `main` | `261a20bc72d51f68e804c7b40758c6be42f84c4d` | this checkout |
+| `main` | `5535ecd8eea3e24cb83ead66daf96fd87fc14c0d` | this checkout |
 | newest tag | v0.5.0 | `git describe --tags` |
 
 Diff base: production's live commit (from https://app.41prompts.ai/healthz).
 
 ## What a `v0.6.0` tag would carry
 
-213 commits · 1076 files changed, 128263 insertions(+), 1953 deletions(-)
+220 commits · 1097 files changed, 130550 insertions(+), 1953 deletions(-)
 
+- 5535ecd Merge EPIC-032a: inputs typed in, and the rule that keeps a finished run finished
+- df8e592 fix(032a): the changelog owed the reader a row, and the gate said so
+- b51f278 docs(epic-032a): the report, the session log, and eight rulings
+- cca8c7c feat(032a): the drive — 19/19 against the built app, and the two things it changed
+- 2b8e636 feat(032a): inputs typed in, and the rule that keeps a finished run finished
+- a0bf564 docs(epic-032a): the epic file and the plan — and the finding that shapes both
+- 49318af docs: RELEASE-DUE regenerated at EPIC-900's merge — 213 commits ahead of production
 - 261a20b Merge EPIC-900: the tech-debt sweep, and a gate so the next one is a second
 - cfcb47e docs(epic-900): the second gate run, on the commit that carries the report
 - 7f554b6 docs(epic-900): the report, the session log, ten rulings, the drive and the backlog row
