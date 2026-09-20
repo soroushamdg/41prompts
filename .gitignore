@@ -44,3 +44,13 @@ docs/epics/.run-outcome.json
 # header (so `reuse lint` would fail on it), and an epic commit running `git add -A` will otherwise
 # sweep it up — which is exactly what happened once, on 2026-09-16.
 PROMPT_CONTINUE
+
+# Soroush's working icon file, kept in the repository root while it is being chosen.
+# Same reasoning as PROMPT_CONTINUE above: it carries no SPDX header, so `reuse lint` fails on it,
+# and `license-gate.mjs` scans untracked-but-not-ignored files too. Left untracked and unignored it
+# made `node scripts/gates.mjs ci` refuse to start, so EPIC-901, EPIC-900 and EPIC-032a all ran the
+# gate with `--allow-dirty` — a flag that quietly means "one file was not tested".
+#
+# **Ignoring it is not the same as deciding about it.** If this icon becomes a real asset it needs a
+# home under a package, a licence header or a REUSE.toml entry, and this line removed.
+app-icon.jpg
