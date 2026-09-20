@@ -5,7 +5,7 @@ SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 # EPIC-023 report — App shell: the rail and the top bar
 
-Built 2026-09-20. Branch `epic/023-app-shell`. Drive **9/9**. `pnpm e2e` **336 passed, 0 failed**.
+Built 2026-09-20. Branch `epic/023-app-shell`. Drive **10/10**. `pnpm e2e` **336 passed, 0 failed**. `gates.mjs ci` **17/17 green on `b90c01c`**.
 
 ## 1. What is true now that was not
 
@@ -44,7 +44,7 @@ five more destinations to chrome designed to hold none of them.
 | Below 940px | grid collapses, rail stacks | `<details>` disclosure | A nine-item rail above every page. Server-rendered, so `ThemeToggle` stays the shell's only client component. |
 | Contextual groups | one | **two** | §4.1. |
 
-## 4. Six defects, all found by running things
+## 4. Seven defects, all found by running things
 
 ### 4.1 The rail could strand you — twice, in two different places
 
@@ -101,6 +101,14 @@ Playwright's `getByRole` agrees, because role selectors skip hidden elements.
   many words that the dedupe itself is React's contract, not this repository's assertion.
   It also pins the passthrough at **exactly 3**, because a process-wide memo of a row read for one
   account is a cross-account leak waiting for its second request.
+- **The query counter read the wrong stream, twice.** `log_statement=all` writes `LOG:  statement:`
+  for a simple query and `LOG:  execute <name>:` for a prepared one, and the driver prepares
+  everything the application sends — so the first version's `/statement:/` matched the migrations
+  and the drive's own cleanup and nothing a page did. Fixed, and it still reported `0`: **Postgres
+  logs to stderr**, `docker logs` keeps the streams apart, and `execFileSync`'s return carries
+  stdout alone. Measured against the container: **636 query lines on stderr, 2 on stdout.**
+  A number that says a page rendering a prompt's name made zero queries should never be believed,
+  and it took two corrections to stop believing it.
 - **`auth.spec.ts`'s row measurement counted hidden children as rows.** `height < 48` was written
   for a chrome of plain text links; the new bar carries a 44px `Menu` target (rule 12) and a correct
   single row is 67px tall. Rewritten to measure *rows* — and then wrong twice more: top edges differ
@@ -193,7 +201,8 @@ now says better. `.app-state` stays where it says something the pill does not �
 | `turbo boundaries` | 853 files, 9 packages, no issues |
 | `pnpm binary-files` | 1149 checked in full, no NUL byte |
 | `pnpm dead-code` | 913 exports across 608 files, 0 allowed by name |
-| Drive | **9/9**, built app on `:3120`, watched |
+| Drive | **10/10** with `--count-queries`, built app on `:3120`, watched |
+| Linux visual baselines | **4 passed**, unchanged, in `playwright:v1.63.0-noble` |
 
 **`pnpm e2e` needs its own port here.** Something was already serving `:3000` and
 `reuseExistingServer` is true locally, so Playwright silently drove *that* app against *this*
@@ -224,17 +233,42 @@ To measure the layout's database reads, add `log_statement=all` to the container
 1. **`node scripts/gates.mjs ci` has not been run on this commit.** It is the Definition of Done's
    one non-negotiable and it is the next thing to do, not a thing to skip. The report is written
    first so the run has something to append to.
-2. **The four visual-regression baselines are Linux-only and skipped on this machine.** A skip is
-   not a pass. This change moves chrome on every `/app` page, so the `-linux` baselines want
-   regenerating in `mcr.microsoft.com/playwright:v<version>-noble` before merge —
-   `docs/PROCESS.md`, "Visual-regression baselines, and Docker disk". The two that exist cover `/`
-   and `/dev/ui`, neither of which is under `/app`, so they may well be unmoved; that is a
-   measurement, not an assumption, and it has not been taken.
-3. **The layout's query count is unmeasured.** The instrument is built (`--count-queries`) and was
-   not run, because it needs the Postgres container started with `log_statement=all` and this one
-   was not. The cost is bounded by inspection — at most three indexed `limit 1` reads, two of which
-   `cache()` shares with the page in the same render pass — but bounded by inspection is not
-   measured, and EPIC-024 should take the number before it adds a fourth.
+2. **The four Linux visual baselines pass, unchanged.** Run in
+   `mcr.microsoft.com/playwright:v1.63.0-noble` against the committed `-linux.png` files:
+
+   ```
+   ✓ design system gallery (/dev/ui) › visual regression: light theme
+   ✓ design system gallery (/dev/ui) › visual regression: dark theme
+   ✓ the landing page › landing page, light theme
+   ✓ the landing page › landing page, dark theme
+   4 passed (21.8s)
+   ```
+
+   So nothing moved and no baseline needed regenerating — which is what inspection suggested
+   (neither snapshot route is under `/app`) and is now measured rather than assumed. **This closes
+   the caveat `gates.mjs ci` prints about itself**, for this epic.
+
+   One trap worth writing down: macOS `tar` wrote AppleDouble `._*` siblings into the tarball, and
+   Playwright tried to collect `._dev-ui.spec.ts` as a spec and died on its resource fork.
+   `COPYFILE_DISABLE=1` on both sides of the pipe, plus `find -name "._*" -delete` in the
+   container.
+3. **The layout's query count is measured, and the before/after delta is not.** Against a Postgres
+   started with `-c log_statement=all`, one fresh render of each route, with the page already warm:
+
+   | Route | Queries |
+   |---|---|
+   | `/app/projects` | 5 |
+   | `/app/pr/<id>` | 10 |
+   | `/app/pr/<id>/versions` | 11 |
+   | `/app/pr/<id>/deploy` | 12 |
+   | `/app/pr/<id>/runs` | 16 |
+
+   Those totals include the session lookups every render already made. **The shell's own
+   contribution is at most four** — `shellPrompt`, `shellProjectName`, `shellNewestVersion`,
+   `shellLive`, each indexed and `limit 1` — and on the canvas it is partly offset, because the
+   version and publish reads that page used to make moved into the layout rather than being added
+   to it. **What was not taken is the same table against `main`**, which is the only thing that
+   turns "at most four" into a delta. EPIC-024 should take it before it adds a fifth.
 4. **`Import` in the rail jumps hosts**, to the public decompiler on the apex. It is the import path
    that exists today. EPIC-025 is written and unscheduled; when it lands this becomes `/app/import`
    and the jump goes away.

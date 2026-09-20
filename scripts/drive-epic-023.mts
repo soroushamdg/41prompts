@@ -91,12 +91,27 @@ const record = (name: string, ok: boolean, detail: string) => {
   console.log(line);
 };
 
-/** Statements Postgres has logged, for the one measurement a unit test cannot make. */
-async function statementCount(): Promise<number> {
+/**
+ * Queries Postgres has logged, for the one measurement a unit test cannot make.
+ *
+ * **Both forms, and the first version counted only one of them.** `log_statement=all` writes
+ * `LOG:  statement:` for a simple query and `LOG:  execute <name>:` for a prepared one — and the
+ * driver prepares everything the application sends, so grepping `statement:` matched the
+ * migrations and the drive's own cleanup and **nothing the page did**. It reported `0` for a page
+ * render, which is the kind of number that should never be believed: a page that renders a
+ * prompt's name made at least one.
+ */
+async function queryCount(): Promise<number> {
   if (!COUNT_QUERIES) return 0;
-  const { execFileSync } = await import("node:child_process");
-  const out = execFileSync("docker", ["logs", "41p-e2e-postgres"], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] });
-  return (out.match(/statement:/g) ?? []).length;
+  const { spawnSync } = await import("node:child_process");
+  const container = process.env.DRIVE_PG_CONTAINER ?? "41p-e2e-postgres";
+  const result = spawnSync("docker", ["logs", container], { encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 });
+  // **Both streams, and the second version of this read only one.** Postgres writes its log to
+  // **stderr**, `docker logs` keeps the two streams apart, and `execFileSync` returns stdout alone
+  // — so the count was of the two lines Postgres happens to put on stdout and reported `0` for a
+  // page render. Measured against the container: 636 query lines on stderr, 2 on stdout.
+  const out = `${result.stdout ?? ""}${result.stderr ?? ""}`;
+  return (out.match(/LOG: {2}(?:statement:|execute )/g) ?? []).length;
 }
 
 async function signIn(page: Page): Promise<void> {
@@ -192,10 +207,10 @@ try {
   await page.waitForURL(/\/app\/pr\//, { timeout: 15_000 });
   pane(page.url());
 
-  const before = await statementCount();
+  const before = await queryCount();
   await rail("Runs").click();
   await page.waitForURL(/\/runs$/, { timeout: 15_000 });
-  const after = await statementCount();
+  const after = await queryCount();
 
   const pill = (await page.locator(".app-topbar .pill").textContent()) ?? "";
   record(
@@ -213,7 +228,7 @@ try {
     headings.join(" · "),
   );
   if (COUNT_QUERIES) {
-    record("statements Postgres logged for one page render", true, `${after - before} (measured, not asserted)`);
+    record("queries Postgres logged for one page render", true, `${after - before} (measured, not asserted)`);
   }
   await page.screenshot({ path: join(SHOTS, "02-runs-with-shell.png"), fullPage: false });
 
