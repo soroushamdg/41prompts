@@ -596,15 +596,17 @@ test.describe("the home page's illustrative sections", () => {
     const before = await span.evaluate((el) => el.getAnimations().length);
     expect(before).toBe(1);
 
-    // Let it get well past the start, then restart it and read the clock again.
-    await page.waitForTimeout(2_200);
-    const advanced = await span.evaluate((el) => Number(el.getAnimations()[0]?.currentTime ?? 0));
-    expect(advanced).toBeGreaterThan(500);
+    // Let the walk finish, which is when somebody actually reaches for `Replay`. **Not a comparison
+    // of two clock readings**: the last pair's animation ends about three seconds in, so "the second
+    // number is smaller" is a race against how long the assertions above took. What is asserted is
+    // what the control claims — after the click there is a walk again, and it is at its beginning.
+    await page.waitForTimeout(3_200);
 
     await page.getByRole("button", { name: "Replay" }).click();
     await expect
-      .poll(async () => span.evaluate((el) => Number(el.getAnimations()[0]?.currentTime ?? 1e9)), { timeout: 3_000 })
-      .toBeLessThan(advanced);
+      .poll(async () => span.evaluate((el) => Number(el.getAnimations()[0]?.currentTime ?? -1)), { timeout: 3_000 })
+      .toBeLessThan(500);
+    expect(await span.evaluate((el) => el.getAnimations().length)).toBe(1);
   });
 
   test.describe("prefers-reduced-motion shows the end of each animation", () => {
