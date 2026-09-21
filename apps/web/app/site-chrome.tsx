@@ -1,12 +1,7 @@
 import { LogoMark, ThemeToggle } from "@41prompts/ui";
 import { headers } from "next/headers";
 import { getAuth } from "@/lib/auth";
-import {
-  FOOTER_GROUPS,
-  NAV_ALWAYS_LINKS,
-  NAV_SECTION_LINKS,
-  type SiteNavCurrent
-} from "@/lib/site/links";
+import { FOOTER_GROUPS, NAV_SECTION_LINKS, type SiteNavCurrent } from "@/lib/site/links";
 import { appOrigin } from "@/lib/site/url";
 
 /**
@@ -14,12 +9,26 @@ import { appOrigin } from "@/lib/site/url";
  *
  * **EPIC-016 left the nav nearly empty and said why**: the mockup's Product · Features · Delivery ·
  * Pricing · Learn · Docs row named pages that did not exist, and a nav link to a 404 is worse than
- * no nav. **EPIC-072 fills in the four that now exist** — Features, Delivery, Docs, Decompiler — and
- * leaves Pricing and Learn out for the original reason: there is still nothing to sell and there are
- * still no lessons. `lib/site/links.ts` holds the table and carries the argument.
+ * no nav. **EPIC-072 filled in the four that now exist** and left Pricing and Learn out for the
+ * original reason: there is still nothing to sell and there are still no lessons.
+ * `lib/site/links.ts` holds the table and carries the argument.
  *
- * The "Start free" button stays gone. Sign in is a small link, sign up is not promoted, and the only
- * action the home page pushes is the ask bar.
+ * ## The right-hand controls, EPIC-016d
+ *
+ * **"Start free" arrives, and that reverses EPIC-016 decision 2** — *"sign up is not promoted, and
+ * the only action the home page pushes is the ask bar"*. Soroush's parity instruction of 2026-09-20
+ * is newer than that decision and the mockup draws the button; `landing.spec.ts`'s
+ * above-the-fold assertion moved with it rather than being deleted, and says so.
+ *
+ * **It renders only when signed out.** The mockup shows it unconditionally because a prototype has
+ * no sessions. Offering "Start free" to somebody who already has an account is an invitation to
+ * make a second one, and two primary buttons competing for one person is not what the mockup draws
+ * either — so a signed-in reader gets "Go to dashboard" in its place.
+ *
+ * **Sign in and Go to dashboard are bordered buttons now**, `.btn .btn-sm`, which is what the
+ * mockup draws and which is also what stops the primary from standing alone on the row. They are
+ * still `<a>` elements: they navigate, so they are links wearing a button's clothes, the same trade
+ * the closing band's `.cta-band-link` already makes.
  */
 /**
  * Whether this visitor is signed in, read on the server.
@@ -67,9 +76,10 @@ export function SiteNav({ current, signedIn }: SiteNavProps) {
         <div className="site-nav-inner">
           <LogoMark href="/" size="20px" />
           <span className="site-nav-spacer" />
-          {/* Collapses below 900px, as the mockup's own `.navlinks` does. The footer carries all
-            three at every width, so nothing becomes unreachable — see `lib/site/links.ts`, which has
-            the measurement that settled it. */}
+          {/* Collapses below 900px, as the mockup's own `.navlinks` does. The footer carries every
+            one of them at every width, so nothing becomes unreachable — see `lib/site/links.ts`,
+            which has the measurement that settled it and the reason `Decompiler` joined this group
+            in EPIC-016d. */}
           <span className="site-nav-links">
             {NAV_SECTION_LINKS.map((link) => (
               <a
@@ -82,28 +92,23 @@ export function SiteNav({ current, signedIn }: SiteNavProps) {
               </a>
             ))}
           </span>
-          {NAV_ALWAYS_LINKS.map((link) => (
-            <a
-              key={link.href}
-              className="site-nav-link"
-              href={link.href}
-              aria-current={link.id === current ? "page" : undefined}
-            >
-              {link.name}
-            </a>
-          ))}
+          <ThemeToggle />
           {/* Absolute, and to the other host: `/app` on the apex would only 301 there anyway, and a
             link that visibly goes where it says is worth more than a tidy relative href. */}
           {signedIn ? (
-            <a className="site-nav-link" href={`${appOrigin()}/app`} data-testid="nav-dashboard">
+            <a className="btn btn-sm" href={`${appOrigin()}/app`} data-testid="nav-dashboard">
               Go to dashboard
             </a>
           ) : (
-            <a className="site-nav-link" href={`${appOrigin()}/sign-in`} data-testid="nav-sign-in">
-              Sign in
-            </a>
+            <>
+              <a className="btn btn-sm" href={`${appOrigin()}/sign-in`} data-testid="nav-sign-in">
+                Sign in
+              </a>
+              <a className="btn btn-sm btn-pri" href={`${appOrigin()}/sign-up`} data-testid="nav-start-free">
+                Start free
+              </a>
+            </>
           )}
-          <ThemeToggle />
         </div>
       </nav>
     </>

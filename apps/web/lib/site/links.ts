@@ -8,11 +8,12 @@ import publicRoutes from "./public-routes.json";
  * this and asserts each internal path has a route; the e2e suite walks the rendered footer and
  * asserts each one answers 200.
  *
- * **The nav filled in with EPIC-072.** EPIC-016 left it nearly empty and said why: the mockup's
- * Product · Features · Delivery · Pricing · Learn · Docs row named pages that did not exist, and a
- * nav link to a 404 is worse than no nav. Four of those six exist now. **Pricing and Learn still do
- * not** — pricing needs EPIC-070 and there is no plan to sell, lessons are Stage 7 — so they are
- * still absent rather than stubbed, for the same reason as before.
+ * **The nav filled in with EPIC-072, and took the mockup's shape in EPIC-016d.** EPIC-016 left it
+ * nearly empty and said why: the mockup's Product · Features · Delivery · Pricing · Learn · Docs row
+ * named pages that did not exist, and a nav link to a 404 is worse than no nav. Four of those six
+ * exist now, and `Product` — which points at the home page and therefore cannot 404 — joined them.
+ * **Pricing and Learn still do not** — pricing needs EPIC-070 and there is no plan to sell, lessons
+ * are Stage 7 — so they are still absent rather than stubbed, for the same reason as before.
  *
  * **There is still no GitHub link.** `github.com/41prompts/41prompts` is the URL `packages/core`'s
  * manifest and `REUSE.toml` publish, and EPIC-056's report §8 records that the repository has not
@@ -59,7 +60,7 @@ export interface NavLink extends SiteLink {
  * `@media (min-width: 900px) { .navlinks { display: flex } }` — and the prototype is the spec for
  * the interface, so this is its decision rather than a new one.
  *
- * It was also the only answer that survived measurement. With all four links inline the nav is
+ * It was also the only answer that survived measurement. With all of them inline the nav is
  * **185px wider than a 390px viewport**, and because the nav is on every page that made *every*
  * public page scroll sideways — including `/` and `/legal/privacy`, whose bodies this epic never
  * touched. One defect, seven failing tests, two of them in suites belonging to other epics. Wrapping
@@ -68,23 +69,30 @@ export interface NavLink extends SiteLink {
  * Nothing becomes unreachable: the footer carries every one of these at every width.
  */
 export const NAV_SECTION_LINKS: readonly NavLink[] = [
+  // `Product` points at the home page, so its `id` is `home` — a nav entry's `id` names the page it
+  // marks, never the word on it, which is the distinction the type's own comment above was written
+  // for.
+  { id: "home", name: "Product", href: "/" },
   { id: "features", name: "Features", href: "/features" },
   { id: "delivery", name: "Delivery", href: "/delivery" },
-  { id: "docs", name: "Docs", href: "/docs" }
+  { id: "docs", name: "Docs", href: "/docs" },
+  // **`Decompiler` moved in here in EPIC-016d**, out of a second group that kept it visible at every
+  // width. EPIC-072 put it there because EPIC-016's `landing.spec.ts` asserted a 44px `Decompiler`
+  // link at 390px and because it is the one page a phone reader can use without an account.
+  //
+  // What changed is what stands beside it. The nav now carries `Sign in` **and** `Start free`, and
+  // five controls plus a logo do not fit on one row at 375px — which is the exact defect
+  // (BUG-069) that put `.site-nav-links` behind a 900px breakpoint in the first place. Below that
+  // width the mockup's nav is the logo, Theme, Sign in and Start free, and now so is ours.
+  //
+  // Nothing becomes unreachable: the footer carries `Decompiler` at every width, in the Product
+  // group, and the home page's own closing band links to it in a 44px button that the same spec
+  // still measures.
+  { id: "decompile", name: "Decompiler", href: "/decompile" }
 ];
 
-/**
- * The links that stay at every width, beside Sign in and the theme toggle.
- *
- * **Decompiler is here rather than above, and that is load-bearing.** EPIC-016's
- * `landing.spec.ts` asserts a 44px `Decompiler` link in the nav *at 390px*; it is also the one page
- * a phone reader is most likely to want, since it needs no account. The mockup keeps it out of
- * `.navlinks` for the same reason.
- */
-export const NAV_ALWAYS_LINKS: readonly NavLink[] = [{ id: "decompile", name: "Decompiler", href: "/decompile" }];
-
 /** Everything in the nav, for the tests and the walk. */
-export const NAV_LINKS: readonly NavLink[] = [...NAV_SECTION_LINKS, ...NAV_ALWAYS_LINKS];
+export const NAV_LINKS: readonly NavLink[] = NAV_SECTION_LINKS;
 
 /** Pages that exist and do what they say. */
 const PRODUCT_LINKS: readonly SiteLink[] = [

@@ -64,17 +64,31 @@ test.describe("the landing page", () => {
       });
     }
 
-    test("is the only call to action above the fold", async ({ page }) => {
+    /**
+     * **The promoted actions above the fold, and EPIC-016d changed the set.**
+     *
+     * EPIC-016 decision 2 was *"sign up is not promoted, and the only action the home page pushes is
+     * the ask bar"*, and this assertion was its guard: exactly one `.btn-pri` above the fold, and it
+     * is the paste box's submit.
+     *
+     * **Soroush's parity instruction of 2026-09-20 is newer**, and the mockup's nav draws a
+     * `Start free` primary. So there are two now, and the test is updated rather than deleted:
+     * what it exists to catch is a *third* one arriving without anybody deciding it, and an exact
+     * list still catches that. The paste box is still the page's own action and is still the only
+     * promoted thing in the hero itself.
+     *
+     * `See the workbench` is deliberately **not** in this list. It is the mockup's second hero CTA
+     * and it is a secondary `.btn`, which is what keeps one primary in the hero.
+     */
+    test("promotes exactly the two actions that were decided, and no third", async ({ page }) => {
       await page.setViewportSize(LAPTOP);
       await page.goto("/");
 
-      // Decision 2. "Sign in" is a small nav link and is allowed; what must not be up here is a
-      // second promoted action competing with the paste.
       const promoted = await page.locator(".btn-pri").evaluateAll((els, fold) =>
         els.filter((el) => el.getBoundingClientRect().top < fold).map((el) => el.textContent?.trim() ?? ""),
         LAPTOP.height
       );
-      expect(promoted).toEqual(["See what nothing checks"]);
+      expect(promoted).toEqual(["Start free", "See what nothing checks"]);
     });
   });
 
@@ -234,6 +248,7 @@ test.describe("the landing page", () => {
         );
       }
       expect(reached.some((r) => r.startsWith("a:") && r.includes("Decompiler"))).toBe(true);
+      expect(reached.some((r) => r.startsWith("a:") && r.includes("Start free"))).toBe(true);
       expect(reached.some((r) => r.startsWith("textarea"))).toBe(true);
       expect(reached.some((r) => r.includes("See what nothing checks"))).toBe(true);
     });
@@ -262,8 +277,12 @@ test.describe("the landing page", () => {
       const nav = page.getByRole("navigation", { name: "Main" });
       const targets = [
         page.getByRole("button", { name: "See what nothing checks" }),
-        nav.getByRole("link", { name: "Decompiler" }),
+        // `Decompiler` is **not** here any more: EPIC-016d moved it into `.site-nav-links`, which
+        // collapses below 900px, so at 375px it is not rendered to be measured. It is still one tap
+        // away — the footer carries it and the closing band's `Open the decompiler` is in this very
+        // list — and `lib/site/links.ts` carries the reason it moved.
         nav.getByRole("link", { name: "Sign in" }),
+        nav.getByRole("link", { name: "Start free" }),
         nav.getByRole("button", { name: "Theme" }),
         page.getByRole("link", { name: "Open the decompiler" }),
         page.locator(".site-foot a").first(),
