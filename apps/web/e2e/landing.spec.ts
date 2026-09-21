@@ -406,6 +406,18 @@ test.describe("the landing page", () => {
         await page.setViewportSize(LAPTOP);
         await page.goto("/");
         if (theme === "dark") await setTheme(page, "dark");
+        // **Stop the ask bar's placeholder rotating, by doing what a reader does.** It cycles five
+        // questions every 3.4s (EPIC-016d, the mockup's), so a baseline that captured whichever one
+        // the interval had reached would be flaky by construction. Focusing the field stops the
+        // rotation for good *and* settles it back on the first question — which is what every
+        // reader sees on arrival, so this is not hiding the page's real state, it is pinning it.
+        // `ask-bar.tsx` carries the argument; the behaviour itself is asserted below.
+        await page.getByLabel("Ask anything about 41Prompts").focus();
+        await page.locator("h1").click();
+        await expect(page.getByLabel("Ask anything about 41Prompts")).toHaveAttribute(
+          "placeholder",
+          "What is a blok?"
+        );
         // The logo morph is running; park it at rest so the baseline is not a random frame.
         await page.waitForTimeout(1_800);
         await expect(page).toHaveScreenshot(`landing-${theme}.png`, { fullPage: true, maxDiffPixelRatio: 0.01 });
@@ -774,6 +786,75 @@ test.describe("the home page's illustrative sections", () => {
         await expect(panel.locator(".rot-fig")).toBeVisible();
       });
     }
+  });
+
+  /**
+   * The hero's Ask-AI bar (EPIC-016d), and the three behaviours its unit test cannot reach.
+   *
+   * `apps/web` runs vitest in the `node` environment, so `ask-bar.test.tsx` asserts the markup and
+   * the destinations and stops there. Enter, the rotation and what stops it need a browser, and
+   * this is the browser.
+   */
+  test.describe("the Ask-AI bar", () => {
+    const FIELD = "Ask anything about 41Prompts";
+
+    test("hands a typed question to the sheet, from the keyboard alone", async ({ page }) => {
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await field.fill("What happens when a check fails on one model and passes on another?");
+      await field.press("Enter");
+
+      // The sheet opens showing exactly what will be sent — `ask-chip.tsx`'s whole promise, now
+      // reached through a second trigger.
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        "What happens when a check fails on one model and passes on another?"
+      );
+    });
+
+    test("offers a question of its own when nothing was typed", async ({ page }) => {
+      await page.goto("/");
+      await page.locator(".askai-go").click();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        "What is 41Prompts and who is it for?"
+      );
+    });
+
+    test("rotates its placeholder, and stops for good once the field is focused", async ({ page }) => {
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+
+      // A condition, not a duration: it must simply stop being the first one. The interval is
+      // 3400ms and the timeout is generous, so a slow machine is not a failure.
+      await expect
+        .poll(async () => field.getAttribute("placeholder"), { timeout: 12_000 })
+        .not.toBe("What is a blok?");
+
+      // WCAG 2.2.2 wants a mechanism to stop content that auto-updates. Focusing the field is it,
+      // and it settles back on the first question rather than freezing mid-cycle.
+      await field.focus();
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+      await page.locator("h1").click();
+      await page.waitForTimeout(4_000);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+    });
+
+    test("does not rotate at all under prefers-reduced-motion", async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await page.waitForTimeout(4_000);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+    });
+
+    test("offers the mockup's four suggestions, each opening the sheet with its own question", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("button", { name: "What is a blok?" }).click();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        /why break one prompt into pieces/
+      );
+    });
   });
 
   test("Replay restarts the shot's walk", async ({ page }) => {

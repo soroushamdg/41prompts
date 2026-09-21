@@ -94,7 +94,19 @@ export function ProductShot() {
           </div>
           <div className="shot-split">
             <div className="shot-pane">
-              <p className="shot-panetitle">Compiled prompt</p>
+              {/* The mockup's pane bar (C1 of `plan-landing-parity.md`): a title, a `read-only`
+                  pill, and a token count. **Every figure in it is inside this section's
+                  `<Example>`**, which is what makes it sample data rather than a claim — see
+                  `example-surface.tsx`. The token count is the mockup's literal and is the one
+                  number here that is not derived: `packages/core` has no tokenizer, the only
+                  estimator in the repository calls itself "deliberately crude" in its own comment,
+                  and `apps/web` may not import it (rule 11). A figure in a picture of a screen is
+                  a figure in a picture of a screen. */}
+              <div className="shot-panebar">
+                <p className="shot-panetitle">Compiled prompt</p>
+                <span className="pill shot-pill">read-only</span>
+                <span className="shot-panemeta mono">1,284 tok</span>
+              </div>
               <pre className="shot-compiled">
                 {SHOT_SPANS.map((span, index) => (
                   // The blank line is outside the span on purpose: a highlight that covered it
@@ -109,7 +121,22 @@ export function ProductShot() {
               </pre>
             </div>
             <div className="shot-pane">
-              <p className="shot-panetitle">Canvas</p>
+              <div className="shot-panebar">
+                <p className="shot-panetitle">Canvas</p>
+                {/* Both counts are **derived**, from the two arrays that render the cards and the
+                    run demo's rows. The mockup's literals are 6 and 6 and its canvas draws six
+                    cards; ours draws five, and a picture that prints a count contradicting the
+                    things beside it is a picture that lies about itself. `SHOT_BLOKS.length` and
+                    `RUN_ROWS.length` cannot drift from what is on screen. */}
+                <span className="shot-panemeta mono">{SHOT_BLOKS.length} bloks</span>
+                {/* **A `<span>`, not a `<button>`.** This is a picture of a control; a button
+                    nobody can press is a promise to a keyboard reader that this page cannot keep,
+                    which is the rule the rotator's `BlokCard as="div"` already follows.
+
+                    **`checks`, not the mockup's word.** ADR-003 forbids the other one in UI
+                    strings and `pnpm forbidden-words` fails the build on it. */}
+                <span className="btn btn-sm shot-run">Run {RUN_ROWS.length} checks</span>
+              </div>
               <ul className="shot-bloks">
                 {SHOT_BLOKS.map((blok, index) => (
                   <li

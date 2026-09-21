@@ -71,10 +71,18 @@
     padding: var(--spacing-s8) 0 var(--spacing-s7);
   }
 }
-/* The headline is the page. It sets its own scale rather than inheriting `h1` so the three
-   sentences stay three readable beats at 375px instead of one grey block. */
+/* The mockup's `.hero .kick`. */
+.hero .eyebrow {
+  margin-bottom: var(--spacing-s4);
+}
+/* The headline is the page. It sets its own scale rather than inheriting `h1` so it stays readable
+   beats at 375px instead of one grey block.
+
+   **`16ch` is the mockup's**, and it arrived with the mockup's headline in EPIC-016d. EPIC-016's
+   sentence was three clauses and 66 characters, which needed `20ch` to break into three lines;
+   "Stop guessing which prompt works." is 33 and wants the tighter measure the mockup draws. */
 .hero h1 {
-  max-width: 20ch;
+  max-width: 16ch;
   font-size: clamp(28px, 6.4vw, 54px);
   line-height: 1.04;
 }
@@ -151,9 +159,119 @@
   color: var(--color-ink-3);
   min-width: 0;
 }
+/* The mockup's `No credit card` pill, which it draws in the hero's CTA row. The paste box stands
+   where that row does, so the pill stands in its foot — beside the note that is already the
+   sentence about what this costs you. `.pill-dot` inherits ink: the mockup paints it `--pass`, and
+   green means pass. */
+.askbar-pill {
+  flex: none;
+}
+.askbar-pill .pill-dot {
+  background: var(--color-ink-3);
+}
 .askbar-foot .btn {
   margin-left: auto;
   min-height: 46px;
+}
+
+/* ───────────────────── the hero's second call to action ───────────────────── */
+
+.hero-cta {
+  display: flex;
+  gap: var(--spacing-s3);
+  margin-top: var(--spacing-s5);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hero-cta .btn {
+  min-height: 46px;
+}
+
+/* ──────────────────────────── the Ask-AI bar ──────────────────────────── */
+
+/* The mockup's `.askbar`, under a different name because `.askbar` here is the paste box — which
+   predates it and is the page's own action. Ported rule for rule: a bordered prefix, a flush
+   field, and a solid `Ask →` against the ink. */
+.askai {
+  display: flex;
+  align-items: stretch;
+  margin-top: var(--spacing-s6);
+  max-width: 640px;
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  transition:
+    box-shadow 0.18s var(--ease-brand),
+    transform 0.18s var(--ease-brand);
+}
+.askai:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-offset-lg) var(--shadow-offset-lg) 0 var(--color-plate);
+}
+@media (prefers-reduced-motion: reduce) {
+  .askai {
+    transition: none;
+  }
+}
+.askai-prefix {
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0 var(--spacing-s3);
+  border-right: var(--border-ink) solid var(--color-ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.askai-field {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 15px;
+  padding: 13px 12px;
+  outline: none;
+}
+.askai-field::placeholder {
+  color: var(--color-ink-3);
+}
+/* 46px rather than 44 exactly: EPIC-013 shipped a 43.99998px rect by sitting on the line. */
+.askai-go {
+  flex: none;
+  min-height: 46px;
+  padding: 0 var(--spacing-s4);
+  border: 0;
+  border-left: var(--border-ink) solid var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* The four suggestion chips under the bar. The mockup draws them smaller and quieter than the
+   chips beside a section heading, so this narrows `.ask-chiprow` rather than replacing it. */
+.asksugg {
+  margin-top: var(--spacing-s3);
+  max-width: 640px;
+  gap: 6px;
+}
+.asksugg .ask-chip {
+  min-height: 44px;
+  padding: 0 var(--spacing-s3);
+  border: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  font-size: 12.5px;
+}
+.asksugg .ask-chip:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
 }
 
 /* ──────────────────────────── three steps ──────────────────────────── */
@@ -1063,13 +1181,47 @@ a.logo {
   }
 }
 
+/* The mockup's `.panebar`: the pane's name, then whatever that pane has to say about itself,
+   pushed apart. Everything in it is inside the shot's own `<Example>`. */
+.shot-panebar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-s2);
+}
 .shot-panetitle {
   color: var(--color-ink-3);
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  margin: 0 0 var(--spacing-s2);
+  margin: 0;
   text-transform: uppercase;
+}
+.shot-pill {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+.shot-panemeta {
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+/* The mockup puts its `grow` in two different places: before the token count on the compiled pane,
+   and after the blok count on the canvas pane. `:last-child` is that, without a second class —
+   a meta with nothing after it takes the free space, a meta followed by the run control does not. */
+.shot-panemeta:last-child {
+  margin-left: auto;
+}
+/* A picture of a control, so it is a `<span>` and the cursor says so. */
+.shot-run {
+  flex: none;
+  margin-left: auto;
+  cursor: default;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.shot-run:hover {
+  transform: none;
 }
 
 .shot-compiled {

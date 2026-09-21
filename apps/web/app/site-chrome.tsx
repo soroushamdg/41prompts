@@ -127,10 +127,13 @@ export function SiteFooter() {
         <div className="site-foot-grid">
           <div>
             <LogoMark href="/" size="18px" />
-            {/* Not a category phrase. The hero dropped "the workbench for the prompt layer" and it survived
-                here, where it was the footer's only sentence and said nothing about what the product
-                does. */}
-            <p className="site-foot-blurb">Paste a prompt. See what nothing checks.</p>
+            {/* The mockup's, restored in EPIC-016d. EPIC-016 replaced it because the hero had
+                dropped "the workbench for the prompt layer" and a category phrase standing alone in
+                a footer says nothing about what the product does. The hero carries it again as its
+                eyebrow, so the footer's line reads as the second half of a sentence the page has
+                already started — and "Made in Montréal" is the part that was never the mockup's
+                invention: it is where the servers are, which `/legal/privacy` also says. */}
+            <p className="site-foot-blurb">The workbench for the prompt layer. Made in Montréal.</p>
           </div>
           {FOOTER_GROUPS.map((group) => (
             <div key={group.heading}>
