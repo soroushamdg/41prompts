@@ -211,6 +211,7 @@ const EXPLAINED_NUMBERS: Readonly<Record<string, string>> = {
   "7": "seven pinned models, and the number of epics in a changelog row",
   "8": "the eight check kinds — CHECK_KINDS in packages/core, exhaustiveness-guarded",
   "10": "the ten-second fix 41p check describes, and the number of epics in a changelog row",
+  "11": "the number of epics in a changelog row — Stage 1, which EPIC-016b joined",
   "30": "DECOMPILE_RETENTION_DAYS, enforced by the purge job",
   "41": "the product's name",
   "180": "RUN_COUNT_RETENTION_DAYS, enforced by the purge job",
