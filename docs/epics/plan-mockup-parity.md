@@ -58,6 +58,12 @@ Stage 3 and Providers is Stage 4"*, and both stages are `done`. Same dropped han
 | 5 | **EPIC-070** Stripe and the pricing page | M | 072b | Three tiers, checkout, portal, webhooks, quotas. The per-seat price stops being a denied claim because it becomes an enforced one. |
 | — | **EPIC-025** In-app Import *(proposed, not scheduled)* | M | 023 | The decompiler has a home inside the product, with the mockup's findings panel and "Create project from bloks". |
 
+**Where the programme is, 2026-09-21.** Rows 1 to 3 are **done**: EPIC-023, EPIC-024 and
+EPIC-016b are each merged into local `main` with a report in `docs/epics/reports/` and
+`node scripts/gates.mjs ci` green on the commit before the merge. **EPIC-072b is next**, and its
+epic file is `docs/epics/EPIC-072b-about-and-careers.md`. Nothing is pushed, so every one of those
+merges is on local `main` only and no deployed URL reflects any of them.
+
 `EPIC-025` is written but deliberately **unscheduled**: it is the one mockup app screen that is a
 genuine new surface rather than chrome, and it should be decided after 023 and 024 land, when the
 shell it hangs off exists. `/learn` and the in-app Lessons screen stay out; Stage 7 owns them.
