@@ -3,46 +3,64 @@ SPDX-FileCopyrightText: 2026 41Prompts Inc.
 SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
-# No epic is in progress
+# No epic is in progress — EPIC-016d is planned and waiting on four answers
 
-Last updated 2026-09-21, at the end of EPIC-016c.
+**Do not start building until Soroush has answered the four questions below.** Three of them decide
+whether the site publishes something about the company that is not true; the fourth decides whether
+a rule in `CLAUDE.md` changes. None of them is mine to assume, and "make it match the mockup" is not
+an answer to any of them.
 
-**`CLAUDE.md` says "the current epic is always `docs/epics/CURRENT.md`", so when there is no current
-epic this file has to say that** rather than hold a stale copy of a finished one. A new session that
-reads a completed epic here has been handed work that is already merged, and the only thing standing
-between it and re-implementing that work is noticing the report.
+## Where the work is
 
-**And a stale copy is not hypothetical.** This session began with this file naming EPIC-072b as
-next, while the newest commit on `main` carried EPIC-016c — scoped, planned, unbuilt. The sequence
-had to be read out of `git log` rather than out of the file whose whole job is to say it. Whoever
-writes the next epic file: copy it here in the same commit.
+Read **`docs/epics/plan-landing-parity.md`** first. It is the whole of this: twenty-three
+differences between the mockup's home page and the built one, counted by rendering both at 1440px
+and comparing element by element, plus the epics that close them.
 
-## What just finished
+**`docs/backlog.md` does not know the mockup-parity programme exists** — `CLAUDE.md` reserves that
+file for Soroush. `docs/epics/plan-mockup-parity.md` is the sequence and supersedes the backlog for
+what comes next. `PROMPT_CONTINUE` says to pick the next epic from the backlog; for this programme,
+pick it from there.
 
-**EPIC-016c — the rotator, as the mockup draws it.** Merged into local `main` as `144faff` on
-2026-09-21, with `node scripts/gates.mjs ci` green on `9bdbfe3`.
+## What is already merged into local `main`
 
-- Epic file: `docs/epics/EPIC-016c-rotator-parity.md`
-- Plan: `docs/epics/plan-EPIC-016c.md`
-- Report: `docs/epics/reports/EPIC-016c-report.md` — **read §2 before writing another absence
-  assertion anywhere on this site.** The rule-10 colour guard had been passing without checking
-  anything, on four routes, since EPIC-016; §11 carries four open items.
-- Session log: `docs/epics/sessions/EPIC-016c-session.md`
-- Drive: `scripts/drive-epic-016c.mts`, 18/18, screenshots in
-  `docs/epics/reports/screenshots/EPIC-016c/`
+EPIC-023 (app shell), EPIC-024 (page composition), EPIC-016b (the home page in full), EPIC-016c
+(the rotator). All four `gates.mjs ci` green. `origin/main` is behind local `main`; nothing is
+pushed, so no staging URL is evidence about any of it.
 
-## What is next
+## The state of the landing page, as of 2026-09-21
 
-**EPIC-072b — About and Careers, honest.** Its file already exists:
-`docs/epics/EPIC-072b-about-and-careers.md`. Copy it here at step 1 of `docs/AUTONOMOUS.md`'s loop.
+Structurally it is the mockup's: product shot, run demo, failure attribution, provider comparison,
+five-tab rotator, proof band. **Colour tokens are identical** — both pages measure
+`rgb(239, 237, 230)` on `body`, and every palette token matches except `--color-ink-3`, nudged for
+WCAG AA and recorded in `docs/design/README.md`.
 
-**Take the next row from `docs/epics/plan-mockup-parity.md`, not from `docs/backlog.md`.** The
-mockup-parity programme is not in the backlog — `CLAUDE.md` reserves that file for Soroush — so the
-plan is the sequence, and it records which of its rows are done. Rows 1 to 3 (EPIC-023, EPIC-024,
-EPIC-016b) are finished, EPIC-016c is a follow-on to row 3, and EPIC-072b is row 4.
+Twenty-three differences remain. Nineteen are plain work.
 
-## State of the tree
+## The four questions
 
-`origin/main` is **30 commits behind** local `main`. Nothing is pushed and nothing deploys, so no
-staging or production URL is evidence about any of this work — `CLAUDE.md`, "Nothing is pushed".
-`docs/epics/RELEASE-DUE.md` has been waiting since 2026-09-20; cutting it is Soroush's.
+1. **The trust row** — the mockup names NORTHWIND, OAKLINE, MERIDIAN AI, CASTELL and BLUEPRINT as
+   customers. They are invented. Real names, those five as an approved placeholder, or leave it out?
+2. **The three counters** — *1,240,000 prompts decompiled*, *38% contain a contradiction*, *4s
+   median rollback*. All three are fabricated. Real numbers, approved placeholders, or the three
+   true sentences that stand there now?
+3. **The hero headline** — restoring the mockup's *"Stop guessing which prompt works."* reverses
+   **Soroush's own decision of 2026-09-11**. `page.test.tsx` pins the current sentence with a note
+   saying it changes only because he replaced it.
+4. **Blok kind colour** — the mockup's palette collides with `CLAUDE.md` rule 10 *literally*:
+   `[data-k=expected]` is `#0B5C2E`, which is `--color-pass` exactly, and `[data-k=example]` is
+   `#8A5A00`, which is `--color-warn`. **Recommended: make EPIC-021a's existing six-hue palette
+   persistent** — blue/violet/magenta/clay, already measured to 3:1, already shipped as
+   interaction-only. That gives the mockup's look with no collision. Copying `--kc`'s literal values
+   needs rule 10 amended across the whole product.
+
+## What to do once they are answered
+
+`plan-landing-parity.md` has the epic breakdown. **EPIC-016d is the one to write first**: it closes
+fifteen of the twenty-three and depends on nothing that does not exist. Five of the remaining
+differences are links to pages that do not exist yet — `/pricing` (EPIC-070), `/about` and
+`/careers` (EPIC-072b), `/blog` (EPIC-073), `/learn` and nine lessons (Stage 7) — so full parity is
+two epics for the page itself and seven more for what it links to.
+
+One thing flagged and deliberately not decided: the built nav carries a **`Decompiler`** link the
+mockup does not. Strict parity removes it; it is the only link to the product's one public tool. It
+stays unless Soroush says otherwise.
