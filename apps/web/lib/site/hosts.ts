@@ -43,6 +43,13 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/docs",
   "/security",
   "/changelog",
+  // EPIC-072b's two, and `hosts.test.ts` is what found they were missing — not staging, not the
+  // e2e walk, not the sitemap. Both were already served correctly, because everything outside
+  // `APP_PATHS` is marketing by default; what was missing was the classification, which is the
+  // thing this list exists to make explicit. The guard fired within a minute of the pages being
+  // written, which is the argument for having written it out rather than deriving it.
+  "/about",
+  "/careers",
   "/legal",
   "/contact",
   "/waitlist",

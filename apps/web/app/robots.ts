@@ -24,6 +24,10 @@ export const dynamic = "force-dynamic";
  * key, and `/v1/blob` serves immutable JSON documents. None of it is a destination for a search
  * result, and a crawler that never fetches it is a crawler not spending our request budget on 401s.
  *
+ * **`/about` and `/careers` joined in EPIC-072b**, for the same reason as the five below and with
+ * the same effect on a crawler: none. They are listed because this list is read as a statement of
+ * what the site is.
+ *
  * **The five EPIC-072 pages join the allow list.** `Allow: /` already covers them, so this changes
  * nothing a crawler does — it keeps the list readable as a statement of what the site is, which is
  * the only reason the list is enumerated at all. `routes-agree.test.ts` fails if an indexed route is
@@ -39,7 +43,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/decompile", "/features", "/delivery", "/docs", "/security", "/changelog", "/guides/", "/legal/", "/llms.txt"],
+        allow: ["/", "/decompile", "/features", "/delivery", "/docs", "/security", "/changelog", "/guides/", "/about", "/careers", "/legal/", "/llms.txt"],
         disallow: ["/d/", "/app", "/api/", "/v1/", "/sign-in", "/sign-up", "/contact", "/dev/", "/waitlist/"]
       }
     ],

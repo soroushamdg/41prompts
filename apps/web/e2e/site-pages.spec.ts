@@ -77,8 +77,12 @@ test.describe("the chrome goes where it says", () => {
   });
 
   test("a route nobody built is a 404, so the two walks above mean something", async ({ request }) => {
+    // `/pricing` is the real case: EPIC-070 builds it, and until then it is not there.
     expect((await request.get("/pricing")).status()).toBe(404);
-    expect((await request.get("/careers")).status()).toBe(404);
+    // **`/careers` was the other half of this control until EPIC-072b built it.** Replacing it with
+    // another route somebody intends to build would put this control back on the same clock —
+    // `/blog`, `/learn` and `/about` were all "nobody built it" once. This one is on no roadmap.
+    expect((await request.get("/not-a-route-this-site-has")).status()).toBe(404);
   });
 
   test("the current page marks itself in the nav", async ({ page }) => {
@@ -124,7 +128,20 @@ test.describe("with motion turned off", () => {
 });
 
 test.describe("the new pages are accessible and fit a phone", () => {
-  const NEW_ROUTES = ["/features", "/delivery", "/docs", "/security", "/changelog", "/guides", "/legal/third-party-notices"];
+  // EPIC-072b added the last two. EPIC-072's four found defects are the checklist for any new public
+  // page — the nav's width at 390px, absence from `sitemap.xml`, a missing skip link, and the
+  // footer's fourth group wrapping — and only the last was visible in a screenshot.
+  const NEW_ROUTES = [
+    "/features",
+    "/delivery",
+    "/docs",
+    "/security",
+    "/changelog",
+    "/guides",
+    "/legal/third-party-notices",
+    "/about",
+    "/careers"
+  ];
 
   for (const route of NEW_ROUTES) {
     test(`${route} has no axe violations`, async ({ page }) => {

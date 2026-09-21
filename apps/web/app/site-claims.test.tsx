@@ -30,6 +30,11 @@ const { default: Security } = await import("./security/page.js");
 const { default: Changelog } = await import("./changelog/page.js");
 const { default: Guides } = await import("./guides/page.js");
 const { default: Notices } = await import("./legal/third-party-notices/page.js");
+// EPIC-072b. The two pages whose subject is the company rather than the product — they are under
+// every guard in this file, because a guard that covers seven pages out of nine is one somebody
+// routes around by accident. `company-pages.test.tsx` carries what is specific to them.
+const { default: About } = await import("./about/page.js");
+const { default: Careers } = await import("./careers/page.js");
 
 /**
  * The rendered text of a page, with the markup and the code samples removed.
@@ -77,7 +82,9 @@ const PAGES: readonly (readonly [string, ReactElement])[] = [
   ["/security", <Security key="s" />],
   ["/changelog", <Changelog key="c" />],
   ["/guides", <Guides key="g" />],
-  ["/legal/third-party-notices", <Notices key="n" />]
+  ["/legal/third-party-notices", <Notices key="n" />],
+  ["/about", <About key="a" />],
+  ["/careers", <Careers key="r" />]
 ];
 
 const RENDERED = new Map(PAGES.map(([route, element]) => [route, textOf(element)] as const));
@@ -218,7 +225,7 @@ const EXPLAINED_NUMBERS: Readonly<Record<string, string>> = {
   "41": "the product's name",
   "180": "RUN_COUNT_RETENTION_DAYS, enforced by the purge job",
   "365": "RUN_PAYLOAD_RETENTION_DAYS, enforced by the purge job",
-  "2026": "the year in the footer's © line",
+  "2026": "the year in the footer's © line, and the year /about dates the company to — this repository's first commit, 2134832, is 2026-09-03",
   "2.0": "the version in Apache-2.0, a licence identifier"
 };
 

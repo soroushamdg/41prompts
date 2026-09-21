@@ -117,13 +117,30 @@ const LEGAL_LINKS: readonly SiteLink[] = [
   { name: "Third-party notices", href: "/legal/third-party-notices" }
 ];
 
-const ELSEWHERE_LINKS: readonly SiteLink[] = [{ name: "Contact", href: "/contact" }];
+/**
+ * The mockup's fourth footer group, which arrived with the two pages that made it worth having.
+ *
+ * **It is the `Elsewhere` group renamed, not a fifth group**, and that is a measurement rather than
+ * a preference: `.site-foot-grid` is `1.6fr repeat(4, 1fr)` above 940px, so the footer has room for
+ * the blurb and exactly four headings. EPIC-072 already found the fourth one wrapping. `Elsewhere`
+ * had one member — `Contact` — and the mockup draws it inside `Company`, so the rename costs
+ * nothing and the two new pages land where the mockup puts them.
+ *
+ * **`Security` stays in `Resources`.** The mockup lists it here, but ours is a page about how the
+ * product handles keys, traffic and data — a resource a reader evaluating the product reads, not a
+ * fact about the company. Moving it would also duplicate an href, which `links.test.ts` refuses.
+ */
+const COMPANY_LINKS: readonly SiteLink[] = [
+  { name: "About", href: "/about" },
+  { name: "Careers", href: "/careers" },
+  { name: "Contact", href: "/contact" }
+];
 
 export const FOOTER_GROUPS: readonly SiteLinkGroup[] = [
   { heading: "Product", links: PRODUCT_LINKS },
   { heading: "Resources", links: RESOURCE_LINKS },
   { heading: "Legal", links: LEGAL_LINKS },
-  { heading: "Elsewhere", links: ELSEWHERE_LINKS }
+  { heading: "Company", links: COMPANY_LINKS }
 ];
 
 export const ALL_FOOTER_LINKS: readonly SiteLink[] = FOOTER_GROUPS.flatMap((group) => group.links);

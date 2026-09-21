@@ -14,7 +14,15 @@ import { SiteFooter, SiteNavWithSession } from "./site-chrome";
  */
 
 export interface SitePageProps {
-  readonly current: SiteNavCurrent;
+  /**
+   * The nav entry to mark, when this page has one.
+   *
+   * **Optional since EPIC-072b**, which built the first two pages that use this shell and are not
+   * in the nav. `SiteNav` has always taken `current?` and marks nothing when it is absent, which is
+   * the right answer for a page reached from the footer: marking a nav entry a reader did not click
+   * is a lie about where they are.
+   */
+  readonly current?: SiteNavCurrent;
   /** The small uppercase word above the heading. The mockup calls it an eyebrow. */
   readonly eyebrow: string;
   readonly heading: string;
