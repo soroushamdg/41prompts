@@ -74,7 +74,12 @@ export function SiteNav({ current, signedIn }: SiteNavProps) {
       </a>
       <nav className="site-nav" aria-label="Main">
         <div className="site-nav-inner">
-          <LogoMark href="/" size="20px" />
+          {/* **No `size` here, deliberately.** `LogoMark` writes `size` as an inline `--logo-size`,
+              which no stylesheet can answer — so a nav that wants a smaller mark on a phone cannot
+              ask for one. Left unset, the length comes from `.site-nav .logo` in `landing.css`,
+              which sets it per breakpoint: 17px below 560, 20px above, the size it has always
+              rendered at on a laptop. */}
+          <LogoMark href="/" />
           <span className="site-nav-spacer" />
           {/* Collapses below 900px, as the mockup's own `.navlinks` does. The footer carries every
             one of them at every width, so nothing becomes unreachable — see `lib/site/links.ts`,

@@ -26,15 +26,59 @@
 .site-nav-inner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-s2);
-  padding: var(--spacing-s3) var(--spacing-s4);
+  /* **Measured, not chosen.** EPIC-016d put three bordered controls on this row — Theme, Sign in,
+     Start free — where there were two links and a button, and at 375px the row came to 386px
+     against 375 available. Every number below 560px is the smallest one that fits **320px**, which
+     is narrower than any viewport the suite drives and is the point: the assertion is at 375, and a
+     row that only just fits the width somebody tests is a row that overflows the next phone.
+     The full measurement is in EPIC-016d's report. */
+  gap: 6px;
+  padding: var(--spacing-s3);
   max-width: 1240px;
   margin: 0 auto;
+  /* **Wrapping is the failure mode, not scrolling.** At 375px this row fits with 36px to spare
+     (measured); below about 340px it does not, and the two ways to lose are a second row or a page
+     that scrolls sideways. BUG-069 rejected wrapping when it happened at 390px with four links —
+     that was a nav that wrapped on a phone anybody owns. This one cannot wrap above 340px, and
+     below it a taller nav is a great deal better than a marketing page you have to scroll
+     horizontally to read. */
+  flex-wrap: wrap;
+}
+@media (min-width: 560px) {
+  .site-nav-inner {
+    flex-wrap: nowrap;
+  }
+}
+/* The controls keep their natural width. `white-space: nowrap` stops the word breaking; without
+   this the box shrinks under it instead and the word is clipped, which is the same defect wearing
+   a different shape — measured at 320px, where "Start free" was squeezed from 73px to 63px. */
+.site-nav .btn,
+.site-nav .logo {
+  flex: none;
+}
+/* Narrower than the default `.btn-sm`, and only inside the nav. A button's padding is how far its
+   edge sits from its word; 9px still leaves the word room and the 46px floor below is what makes
+   the target big enough to hit. */
+.site-nav .btn-sm {
+  padding: 6px 9px;
+}
+/* The wordmark scales from one length, so one declaration shrinks the whole mark — and at 122px
+   it was the single widest thing on the row. `site-chrome.tsx` passes `LogoMark` no `size` for
+   exactly this: `size` is written as an inline custom property and an inline property cannot be
+   answered by a media query. */
+.site-nav .logo {
+  --logo-size: 17px;
 }
 @media (min-width: 560px) {
   .site-nav-inner {
     gap: var(--spacing-s4);
     padding: var(--spacing-s3) var(--spacing-s5);
+  }
+  .site-nav .btn-sm {
+    padding: 6px 11px;
+  }
+  .site-nav .logo {
+    --logo-size: 20px;
   }
 }
 .site-nav-spacer {
@@ -346,6 +390,14 @@
 .cta-band-link,
 .site-nav .btn {
   min-height: 46px;
+}
+/* **`nowrap`, for the reason `.site-nav-link` already carries it.** At 375px "Sign in" broke across
+   two lines inside its own button — the button was 59px wide and its word needed 66 — which made it
+   52px tall against the 46px of everything beside it and put the nav on two visual rows. EPIC-016
+   fixed exactly this for the plain links and `.btn` did not inherit it, because until EPIC-016d
+   nothing in this nav was a button with a two-word name. */
+.site-nav .btn {
+  white-space: nowrap;
 }
 
 /* ─────────────────────────────── footer ─────────────────────────────── */

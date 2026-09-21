@@ -270,9 +270,23 @@ test.describe("the landing page", () => {
       // Staging showed "Sign in" broken across two lines at 375px with the theme button against the
       // edge. Four items, one line, no horizontal scroll, at the narrowest size the epic names.
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE_WIDTH);
-      const navRows = await page
-        .locator(".site-nav-inner > *")
-        .evaluateAll((els) => new Set(els.filter((el) => el.getBoundingClientRect().width > 0).map((el) => Math.round(el.getBoundingClientRect().top))).size);
+      // **`height > 0` as well as `width > 0`, added in EPIC-016d.** `.site-nav-spacer` is a
+      // zero-height `flex: 1` span, so whenever the row has slack its rect is a 0px box sitting at
+      // the row's vertical centre — a `top` no real control shares, read here as a second row. It
+      // was invisible only because the nav used to be wide enough that the spacer had no width at
+      // 375px; at 390px and above this test would have failed on a nav that was perfectly fine.
+      // A thing with no height is not a row.
+      const navRows = await page.locator(".site-nav-inner > *").evaluateAll(
+        (els) =>
+          new Set(
+            els
+              .filter((el) => {
+                const rect = el.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+              })
+              .map((el) => Math.round(el.getBoundingClientRect().top))
+          ).size
+      );
       expect(navRows, "the nav wrapped onto more than one row").toBe(1);
       const nav = page.getByRole("navigation", { name: "Main" });
       const targets = [
