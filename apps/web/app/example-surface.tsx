@@ -38,10 +38,14 @@ import type { ReactNode } from "react";
  * An illustration with a caption is what `<figure>` and `<figcaption>` are for, so a screen reader
  * gets the same "this is an example of X" the eye does. `what` is that sentence and is required —
  * a marker reading only "Example" tells somebody it is not real without telling them what it is.
+ *
+ * `data-example="true"` sat on this element until EPIC-016c and was read by nothing — EPIC-016b's
+ * report §8 item 2. `withoutExamples` matches on the class, and a second way to say the same thing
+ * is a second thing that can drift.
  */
 export function Example({ what, children }: { what: string; children: ReactNode }) {
   return (
-    <figure className="example" data-example="true">
+    <figure className="example">
       <figcaption className="example-caption">
         <span className="example-mark">Example</span>
         <span className="example-what">{what}</span>

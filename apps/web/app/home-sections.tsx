@@ -1,3 +1,4 @@
+import { Badge, BlokCard, Meter, StatusIcon, Tag } from "@41prompts/ui";
 import { Fragment, type CSSProperties } from "react";
 import { claim } from "@/lib/site/claims";
 import { AskChip, AskChipRow } from "./ask-chip";
@@ -302,44 +303,179 @@ export function ProviderComparison() {
  * Five tabs, and the fifth is **Deliver**.
  *
  * The mockup's fifth is "Learn", teasing nine in-product lessons. There are none, Stage 7 owns
- * them, and `lessons?` is on `claims.test.ts`'s denylist — so the word is not shipped. What the
+ * them, and `lessons?` is on `not-true-yet.ts`'s denylist — so the word is not shipped. What the
  * product actually does at that point in the loop is deliver the published prompt to the running
  * application, which is two shipped SDKs, so that is what the tab says.
  *
- * **Every sentence in a panel is a registry claim.** The headings are structural — they assert
- * nothing a reader could hold us to — and the panels carry no example data, so nothing here needs
- * an `Example` marker and nothing here is exempt from the numbers rule.
+ * ## The illustrations are the product's own components (EPIC-016c)
+ *
+ * EPIC-016b shipped heading-and-paragraph panels; the mockup gives each of the five a small picture
+ * of the product at that step. These are that picture, and **none of them is drawn** — every one is
+ * assembled from `@41prompts/ui`: `BlokCard`, `Badge`, `Meter`, the deploy gate's own row classes.
+ * A drawing goes stale silently the first time a component changes shape; an illustration made of
+ * the component cannot.
+ *
+ * **Each is two elements**, which is the mockup's own count and is load-bearing rather than
+ * stylistic: `.rot .tab-panel` carries a `min-height` so the page does not jump as tabs advance,
+ * and five illustrations of freely different heights is exactly what that number defends against.
+ *
+ * **Each is inside an `<Example>`**, and that is not decoration either. These carry figures —
+ * `40/40`, `0.94`, `81.7%` — and `page.test.tsx`'s numbers rule reads the page with its marked
+ * examples removed, so an unmarked figure fails the build. Only one panel is visible at a time, so
+ * only one marker is ever on screen.
+ *
+ * **The headings are the mockup's**, verbatim, wherever ADR-003 permits them. Deliver's is ours
+ * because the mockup's fifth panel is about something that does not exist.
  */
 const CAPABILITIES: readonly RotatorItem[] = [
   {
     value: "import",
     text: "Import",
     heading: "Paste what you already have",
-    lines: [claim("decompiler"), claim("diagnostics")]
+    lines: [claim("decompiler"), claim("diagnostics")],
+    illustration: (
+      <Example what="a pasted prompt, split into bloks">
+        <div className="rot-fig">
+          {/* Both cards are `as="div"`: a blok in the canvas is a control, a blok in a picture of
+              the canvas is not, and a button nobody can press is a promise to a keyboard reader
+              that this page cannot keep. */}
+          <BlokCard
+            as="div"
+            kind="constraint"
+            className="pop"
+            style={step(0)}
+            kindTag={
+              <>
+                <Tag>Constraint</Tag>
+                <Badge status="neutral">3 fragments</Badge>
+              </>
+            }
+          >
+            Output shape: JSON only, no text outside it
+          </BlokCard>
+          <BlokCard
+            as="div"
+            kind="constraint"
+            className="pop"
+            style={step(1)}
+            kindTag={
+              <>
+                <Tag>Constraint</Tag>
+                <Badge status="fail">conflict</Badge>
+              </>
+            }
+          >
+            Rule: no markdown in the response
+          </BlokCard>
+        </div>
+      </Example>
+    )
   },
   {
     value: "compose",
     text: "Compose",
     heading: "Build it out of parts",
-    lines: [claim("blok-canvas"), claim("per-blok-compilation")]
+    lines: [claim("blok-canvas"), claim("per-blok-compilation")],
+    illustration: (
+      <Example what="two of the bloks that prompt is built from">
+        <div className="rot-fig">
+          {/* `data-k="role"` and `data-k="format"` in the mockup are the **decompiler's**
+              classifier labels, not blok kinds. The six real kinds are in `CLAUDE.md`. */}
+          <BlokCard as="div" kind="context" className="pop" style={step(0)} kindTag={<Tag>Context</Tag>}>
+            Support ops assistant; classifies refund requests.
+          </BlokCard>
+          <BlokCard as="div" kind="example" className="pop" style={step(1)} kindTag={<Tag>Example</Tag>}>
+            Charged twice for March -&gt; duplicate, 0.94
+          </BlokCard>
+        </div>
+      </Example>
+    )
   },
   {
     value: "test",
     text: "Test",
-    heading: "Say what it has to do, then check that it does",
-    lines: [claim("expected-bloks-are-checks"), claim("judge-pinned")]
+    heading: "Test it on every model",
+    lines: [claim("expected-bloks-are-checks"), claim("every-run-recorded")],
+    illustration: (
+      <Example what="the same checks on three models">
+        <div className="rot-fig">
+          <div className="rot-fig-badges pop" style={step(0)}>
+            {/* `Badge` always renders its glyph beside the word, so pass and fail are never carried
+                by the hue alone (rule 10) — and every badge here also carries its own count. */}
+            <Badge status="pass">GPT 40/40</Badge>
+            <Badge status="pass">Claude 40/40</Badge>
+            <Badge status="fail">Gemini 22/40</Badge>
+          </div>
+          <div className="rot-fig-meter pop" style={step(1)}>
+            <span className="mono">Gemini 55%</span>
+            <Meter value={55} status="fail" description="Gemini passed 22 of 40 checks" />
+          </div>
+        </div>
+      </Example>
+    )
   },
   {
     value: "publish",
     text: "Publish",
     heading: "Ship it without shipping code",
-    lines: [claim("publish-is-a-release"), claim("gate-four-rows")]
+    lines: [claim("publish-is-a-release"), claim("gate-four-rows")],
+    illustration: (
+      <Example what="the publish gate, with one row stopping it">
+        <div className="rot-fig">
+          {/* The gate's own rows, class for class with `/app/pr/[id]/deploy`. The mockup's first
+              row says "Assertions on Claude"; ADR-003's word is **check**. */}
+          <ul className="deploy-rows">
+            <li className="deploy-row deploy-row-fail pop" style={step(0)}>
+              <span className="deploy-row-icon">
+                <StatusIcon status="fail" />
+              </span>
+              <span className="deploy-row-what">
+                <b>Checks on Claude</b>
+                <span className="deploy-row-says">81.7% of checks passed</span>
+                <span className="deploy-row-cost">
+                  <span className="deploy-row-verdict">Stopped</span>
+                  {" · "}
+                  publish blocked
+                </span>
+              </span>
+            </li>
+            <li className="deploy-row deploy-row-pass pop" style={step(1)}>
+              <span className="deploy-row-icon">
+                <StatusIcon status="pass" />
+              </span>
+              <span className="deploy-row-what">
+                <b>Inputs compatible with shipped apps</b>
+                <span className="deploy-row-says">Every variable the Live version declares is still declared</span>
+              </span>
+            </li>
+          </ul>
+        </div>
+      </Example>
+    )
   },
   {
     value: "deliver",
     text: "Deliver",
     heading: "Your application reads it at runtime",
-    lines: [claim("resolve-never-waits"), claim("picks-up-in-thirty-seconds")]
+    lines: [claim("resolve-never-waits"), claim("picks-up-in-thirty-seconds")],
+    illustration: (
+      <Example what="an application resolving the published prompt">
+        <div className="rot-fig">
+          {/* The mockup's fifth panel illustrates lessons, which do not exist. This is what the
+              product does at that step instead — and the line is `@41prompts/sdk`'s **real** call,
+              copied from its README rather than invented: the module-level `resolve`, a `pr_` id
+              with eight hex digits (`CLAUDE.md`, Naming), and the `{ status, text }` it answers
+              with. An illustration of an API that does not exist is worse than no illustration. */}
+          <pre className="rot-fig-code pop" style={step(0)}>
+            {`const { status, text } = resolve("pr_1a2b3c4d", { customer_name: "Ada" });`}
+          </pre>
+          <div className="rot-fig-answer pop" style={step(1)}>
+            <Badge status="neutral">Live v7</Badge>
+            <span className="mono">answered from memory, without a network call</span>
+          </div>
+        </div>
+      </Example>
+    )
   }
 ];
 
