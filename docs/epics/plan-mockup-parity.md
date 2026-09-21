@@ -64,6 +64,14 @@ EPIC-016b are each merged into local `main` with a report in `docs/epics/reports
 epic file is `docs/epics/EPIC-072b-about-and-careers.md`. Nothing is pushed, so every one of those
 merges is on local `main` only and no deployed URL reflects any of them.
 
+**One follow-on sits between rows 3 and 4: EPIC-016c**, merged as `144faff`. It is not a row of its
+own in the table below because it adds nothing to the sequence — it is EPIC-016b's rotator brought
+the rest of the way to the mockup, on Soroush's ruling of 2026-09-21 that the build should match the
+prototype where the prototype is not wrong. Report: `docs/epics/reports/EPIC-016c-report.md`. It
+also found and fixed a rule-10 guard that had been passing without checking anything on four routes
+since EPIC-016, which is §2 of that report and is worth reading before writing another absence
+assertion anywhere on this site.
+
 `EPIC-025` is written but deliberately **unscheduled**: it is the one mockup app screen that is a
 genuine new surface rather than chrome, and it should be decided after 023 and 024 land, when the
 shell it hangs off exists. `/learn` and the in-app Lessons screen stay out; Stage 7 owns them.
