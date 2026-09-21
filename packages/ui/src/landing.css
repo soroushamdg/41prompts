@@ -773,7 +773,12 @@ a.logo {
 
 .site-two {
   display: grid;
-  grid-template-columns: 1fr;
+  /* `minmax(0, 1fr)` and not `1fr`, in **both** templates. A bare `1fr` is `minmax(auto, 1fr)`,
+     whose minimum is the track's min-content — so one `.data-table` with its 480px `min-width`
+     inside a column makes the column 480px wide and the whole page scroll sideways at 390px.
+     EPIC-016b put the provider comparison here and found it; the two-column template below always
+     had the right form. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-s6);
   align-items: start;
 }
@@ -1173,4 +1178,297 @@ a.logo {
 .home-failing-meta {
   color: var(--color-ink-3);
   font-size: 11.5px;
+}
+
+/* ── the product shot: the walk, and the hover link ────────────────────────────────────────────
+
+   The mockup wires both of these with JavaScript — an IntersectionObserver that steps through the
+   spans, and a `mouseenter` handler per element. Neither needs to be. The walk is one animation
+   with a delay computed from `--i`, and the link is `:has()`, which every browser this project
+   supports has had for two years. The whole thing costs no hydration; `shot-replay.tsx` is the one
+   piece that cannot be CSS, because restarting an animation is not a state CSS can be asked for.
+
+   **The resting style is the end state.** `shot-hl` returns each pair to rest, so reduced motion
+   showing nothing moving is the finished picture and not a skipped one. */
+
+.shot [data-b] {
+  --i: 0;
+}
+
+.shot-span {
+  border-radius: var(--radius-card);
+  padding: 1px 2px;
+  margin: 0 -2px;
+}
+
+.shot-playing [data-b] {
+  animation: shot-hl 900ms var(--ease-brand) calc(400ms + var(--i) * 420ms) 1;
+}
+
+@keyframes shot-hl {
+  0%,
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+  25%,
+  70% {
+    background: var(--color-sunken);
+    box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+  }
+}
+
+/* One rule per pair, because a CSS attribute selector cannot carry a value from one side of the
+   document to the other. Four pairs: the Expected blok has no span, which is the point it is
+   making. */
+.shot:has([data-b="b1"]:hover) [data-b="b1"],
+.shot:has([data-b="b2"]:hover) [data-b="b2"],
+.shot:has([data-b="b3"]:hover) [data-b="b3"],
+.shot:has([data-b="b4"]:hover) [data-b="b4"] {
+  background: var(--color-sunken);
+  border-color: var(--color-ink);
+}
+
+.shot-blok-note {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.shot-foot {
+  align-items: center;
+  border-top: var(--border-hairline) solid var(--color-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  justify-content: space-between;
+  padding: 4px var(--spacing-s3);
+}
+
+.shot-foot-note {
+  color: var(--color-ink-3);
+  font-size: 12px;
+  margin: 0;
+}
+
+.shot-replay {
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 var(--spacing-s4);
+}
+
+.shot-replay:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+/* ── the run demo: rows land, meters fill ──────────────────────────────────────────────────────
+
+   `backwards` is the whole trick. The animation's `from` is the state before it lands, so during
+   its delay the row shows that; afterwards it shows the style it already had. Nothing has to be
+   put back, and switching the animation off leaves a landed row and a full meter. */
+
+.run-demo tbody tr {
+  --i: 0;
+  animation: row-in 520ms var(--ease-brand) calc(var(--i) * 150ms) backwards;
+}
+
+/**
+ * **It moves and it does not fade**, and that is not a taste call.
+ *
+ * The first version animated `opacity` from 0 as well, and axe's colour-contrast rule failed the
+ * dark theme on the fourth row: it sampled the page mid-animation, where a part-faded figure
+ * genuinely is under 4.5:1. The text reaching full contrast a moment later does not make the
+ * measurement wrong, and a gate that depends on when it happens to look is worse than no gate. A
+ * row that slides into place has the same effect and is never low-contrast at any frame.
+ */
+@keyframes row-in {
+  from {
+    transform: translateY(10px);
+  }
+}
+
+.run-demo .meter-fill {
+  animation: meter-go 900ms var(--ease-brand) calc(260ms + var(--i) * 150ms) backwards;
+}
+
+@keyframes meter-go {
+  from {
+    width: 0;
+  }
+}
+
+/* ── the capability rotator ────────────────────────────────────────────────────────────────────
+
+   `Tabs` renders the tablist and then one visible panel; the hidden ones are `display: none` and
+   are therefore not grid items, so this is always a two-cell grid whichever tab is selected. */
+
+.rot {
+  margin-top: var(--spacing-s6);
+}
+
+.rot-tabs {
+  display: grid;
+  gap: var(--spacing-s5);
+  /* `minmax(0, …)` for the reason spelled out on `.site-two`: the tab strip scrolls sideways on a
+     phone, and a track sized to its min-content would widen the page instead. */
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 940px) {
+  .rot-tabs {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+/* The shared strip runs across and rules itself off underneath; this one runs down. */
+.rot .tabs-list {
+  border-bottom: 0;
+  flex-direction: row;
+  overflow-x: auto;
+}
+@media (min-width: 940px) {
+  .rot .tabs-list {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+}
+
+.rot .tab {
+  border-bottom: 0;
+  min-height: 44px;
+  padding: 0 var(--spacing-s4);
+  position: relative;
+  text-align: left;
+}
+@media (min-width: 940px) {
+  .rot .tab {
+    border-left: 3px solid transparent;
+    justify-content: flex-start;
+  }
+}
+
+.rot .tab[aria-selected="true"] {
+  background: var(--color-sunken);
+  color: var(--color-ink);
+}
+@media (min-width: 940px) {
+  .rot .tab[aria-selected="true"] {
+    border-left-color: var(--color-ink);
+  }
+}
+
+/* The sweep. Full width at rest, which is where a five-second sweep ends — so a stopped rotator
+   and a reduced-motion rotator both show a finished indicator rather than an empty one. */
+.rot-sweep {
+  background: var(--color-ink);
+  bottom: 0;
+  height: 3px;
+  left: 0;
+  position: absolute;
+  width: 0;
+}
+
+.rot .tab[aria-selected="true"] .rot-sweep {
+  width: 100%;
+}
+
+.rot[data-cycling="true"] .tab[aria-selected="true"] .rot-sweep {
+  animation: rot-sweep 5s linear forwards;
+}
+
+@keyframes rot-sweep {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.rot .tab-panel {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  min-height: 240px;
+}
+
+.rot-body {
+  padding: var(--spacing-s5);
+}
+
+.rot-body h3 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--spacing-s3);
+}
+
+.rot-body p {
+  color: var(--color-ink-2);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-s3);
+  max-width: 62ch;
+}
+
+.rot-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── what stands where the mockup's counters stood ────────────────────────────────────────────── */
+
+.home-proof-list {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: var(--spacing-s6) 0 0;
+  padding: 0;
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 940px) {
+  .home-proof-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.home-proof-list li {
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: var(--spacing-s5);
+}
+@media (min-width: 940px) {
+  .home-proof-list li {
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .home-proof-list li:last-child {
+    border-right: 0;
+  }
+}
+
+/* ── reduced motion: the end of each of these, never a skipped frame ───────────────────────────
+
+   `docs/design/README.md`: reduced motion collapses every animation to its end state. Each of the
+   four below was written so that its end state is the element's ordinary resting style, which is
+   why this block is four `animation: none` declarations and not four sets of overrides. The one
+   thing that is removed rather than stilled is `Replay`, because it would replay nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .shot-playing [data-b],
+  .run-demo tbody tr,
+  .run-demo .meter-fill,
+  .rot[data-cycling="true"] .tab[aria-selected="true"] .rot-sweep {
+    animation: none;
+  }
+
+  /* The note stays: it says what the picture shows, which matters more when nothing moves. */
+  .shot-replay {
+    display: none;
+  }
 }

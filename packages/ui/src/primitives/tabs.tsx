@@ -16,12 +16,25 @@ export interface TabsProps {
   /** Accessible name for the tablist — there is no visible heading for it in the mockup. */
   name: string;
   className?: string;
+  /**
+   * Which way the list runs. Default `horizontal`, which is every tab strip inside the app.
+   *
+   * **It changes the keys, not only the attribute.** The ARIA tabs pattern binds the arrow keys to
+   * the axis the list is drawn on: a strip down the left-hand side moves on Up and Down, and a
+   * reader pressing Right on it expects nothing to happen. `aria-orientation` alone would tell a
+   * screen reader one thing and the keyboard another. EPIC-016b's home-page rotator is the first
+   * vertical one.
+   */
+  orientation?: "horizontal" | "vertical";
 }
 
 /** Full ARIA tabs pattern (README correction): one tab stop for the whole tablist, arrow keys move
  * focus and selection inside it, Home/End jump to the ends. */
-export function Tabs({ items, value, onValueChange, name, className }: TabsProps) {
+export function Tabs({ items, value, onValueChange, name, className, orientation = "horizontal" }: TabsProps) {
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const vertical = orientation === "vertical";
+  const nextKey = vertical ? "ArrowDown" : "ArrowRight";
+  const previousKey = vertical ? "ArrowUp" : "ArrowLeft";
 
   function focusAndSelect(index: number) {
     const wrapped = (index + items.length) % items.length;
@@ -34,11 +47,11 @@ export function Tabs({ items, value, onValueChange, name, className }: TabsProps
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const currentIndex = items.findIndex((item) => item.value === value);
     switch (event.key) {
-      case "ArrowRight":
+      case nextKey:
         event.preventDefault();
         focusAndSelect(currentIndex + 1);
         break;
-      case "ArrowLeft":
+      case previousKey:
         event.preventDefault();
         focusAndSelect(currentIndex - 1);
         break;
@@ -57,7 +70,13 @@ export function Tabs({ items, value, onValueChange, name, className }: TabsProps
 
   return (
     <div className={className}>
-      <div role="tablist" aria-label={name} className="tabs-list" onKeyDown={onKeyDown}>
+      <div
+        role="tablist"
+        aria-label={name}
+        aria-orientation={vertical ? "vertical" : undefined}
+        className="tabs-list"
+        onKeyDown={onKeyDown}
+      >
         {items.map((item, index) => {
           const selected = item.value === value;
           return (

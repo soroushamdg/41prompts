@@ -1,7 +1,7 @@
 import { Button, logoMorphScript, Textarea } from "@41prompts/ui";
 import type { Metadata } from "next";
 import { kilobytes, MAX_INPUT_BYTES } from "@/lib/decompile/limits";
-import { Attribution, ProductShot, ProviderComparison, RunDemo } from "./home-sections";
+import { Attribution, CapabilityLoop, HomeProof, ProductShot, ProviderComparison, RunDemo } from "./home-sections";
 import { SiteFooter, SiteNavWithSession } from "./site-chrome";
 import { startDecompile } from "./start-actions";
 
@@ -25,8 +25,16 @@ export const metadata: Metadata = {
  * **The ask bar is the only action above the fold.** Sign in is a small nav link; sign up is not
  * promoted anywhere, because there is nothing to sign up for until Stage 2.
  *
- * Server-rendered throughout. The only client component is the theme toggle, and the only script is
- * the logo morph — inline, a few hundred bytes, no hydration (decision 10).
+ * Server-rendered throughout, and **every section below the fold is a server component**. The only
+ * script the page ever needed was the logo morph — inline, a few hundred bytes, no hydration
+ * (decision 10) — and the theme toggle.
+ *
+ * **EPIC-016b added three client components and the report says what each cost.** The capability
+ * rotator advances on a timer, `Replay` restarts a CSS animation, and the Ask-AI chips open a
+ * dialog; nothing else on this page hydrates, and the shot's walk, the run demo's rows and meters
+ * and the rotator's sweep are all keyframes whose resting style is their end state. The Lighthouse
+ * number either side of that is in `docs/epics/reports/EPIC-016b-report.md`, because a page that
+ * hydrates is a different page from the one EPIC-016 shipped.
  */
 export default function HomePage() {
   return (
@@ -102,6 +110,8 @@ export default function HomePage() {
         <RunDemo />
         <Attribution />
         <ProviderComparison />
+        <CapabilityLoop />
+        <HomeProof />
 
         <section className="cta-band">
           <div className="site-wrap">
