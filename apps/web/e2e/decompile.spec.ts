@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { reservedColourOffenders } from "./reserved-colour";
 
 /**
  * `/decompile` end to end.
@@ -289,21 +290,14 @@ test.describe("/decompile", () => {
       await expect(page.locator(".blok-card-meta").first()).toContainText("summarised by rule");
     });
 
+    /** Through `reserved-colour.ts` since EPIC-016c — the copy that stood here compared a hex
+     *  token against a computed `rgb(…)` and could not match. No exemption: nothing on this route
+     *  is a marked example. */
     test("uses no pass, fail or drift colour anywhere on the route", async ({ page }) => {
       await decompile(page, MESSY);
-      const offenders = await page.evaluate(() => {
-        const reserved = ["--color-pass", "--color-fail", "--color-warn"];
-        const styles = getComputedStyle(document.documentElement);
-        const values = reserved.flatMap((token) => [styles.getPropertyValue(token).trim(), styles.getPropertyValue(`${token}-soft`).trim()]).filter(Boolean);
-        const bad: string[] = [];
-        for (const el of document.querySelectorAll<HTMLElement>(".decompile *, .decompile")) {
-          const computed = getComputedStyle(el);
-          for (const property of ["color", "backgroundColor", "borderTopColor", "borderBottomColor"] as const) {
-            const used = computed[property];
-            if (values.some((value) => value && used === value)) bad.push(`${el.className}:${property}=${used}`);
-          }
-        }
-        return bad;
+      const offenders = await page.evaluate(reservedColourOffenders, {
+        selector: ".decompile, .decompile *",
+        properties: ["color", "backgroundColor", "borderTopColor", "borderBottomColor"]
       });
       expect(offenders).toEqual([]);
     });

@@ -1390,12 +1390,29 @@ a.logo {
   }
 }
 
+/**
+ * `min-height` is why the page does not jump as the rotator advances, and the number is **measured,
+ * not chosen** — 240px was set against heading-and-paragraph panels and EPIC-016c gave every panel
+ * an illustration, which put the shortest at 306px and left the floor clamping nothing at all.
+ *
+ * Measured on the built app, 2026-09-21: at 1440px the five panels are 306, 351, 399, 404 and
+ * 406px, so 410 removes the jump entirely. At 390px they are 388 to 541 — a 153px spread, because
+ * the same words wrap onto different numbers of lines — and **no floor is set there**. Two reasons:
+ * a 541px floor would leave a third of the card empty at 900px, where the same content is short;
+ * and in the narrow layout the tab strip sits *above* the panel, so a height change moves only what
+ * is below a reader who is looking at the panel. The desktop spread is reported in EPIC-016c's
+ * report beside this, rather than being a number only this comment knows.
+ */
 .rot .tab-panel {
   background: var(--color-surface);
   border: var(--border-ink) solid var(--color-ink);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
-  min-height: 240px;
+}
+@media (min-width: 940px) {
+  .rot .tab-panel {
+    min-height: 410px;
+  }
 }
 
 .rot-body {
@@ -1418,6 +1435,105 @@ a.logo {
 
 .rot-body p:last-child {
   margin-bottom: 0;
+}
+
+/* ── the panel's illustration (EPIC-016c) ───────────────────────────────────────────────────────
+
+   The mockup gives each panel a small picture of the product. `home-sections.tsx` builds all five
+   out of `@41prompts/ui`'s own components, so almost nothing is needed here: what follows is
+   layout, one animation, and two places where a component built for a control has to stop behaving
+   like one inside a picture of itself. */
+
+.rot-fig {
+  margin-top: var(--spacing-s4);
+}
+
+/* `.blok-card` is a control everywhere else: it has a pointer cursor and it lifts on hover. In an
+   illustration it is neither — `as="div"` already took away the button, and this takes away the
+   affordance that would otherwise promise something to a mouse. */
+.rot-fig .blok-card {
+  cursor: default;
+  margin-bottom: var(--spacing-s3);
+}
+.rot-fig .blok-card:last-child {
+  margin-bottom: 0;
+}
+.rot-fig .blok-card:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.rot-fig-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+}
+
+.rot-fig-meter {
+  align-items: center;
+  display: flex;
+  gap: var(--spacing-s3);
+  margin-top: var(--spacing-s4);
+}
+
+/* The figure first, the bar after it: rule 10 — pass and fail are never carried by the hue alone,
+   and here the count is the signal the bar follows. */
+.rot-fig-meter .mono {
+  font-size: 12.5px;
+  font-weight: 700;
+  flex: none;
+}
+/* Capped, not stretched. A bar that runs the full width of the card reads as a progress indicator
+   for the page rather than as one figure inside a picture of a suite result — which is what it is,
+   and what the mockup draws it as. Measured by looking at the first drive's screenshot. */
+.rot-fig-meter .meter-track {
+  flex: 1 1 auto;
+  max-width: 220px;
+  /* `minmax(0, …)`'s reason, one level down: a track with a min-content floor widens the panel,
+     and the panel widens the page. */
+  min-width: 0;
+}
+
+.rot-fig .deploy-rows {
+  border: var(--border-hairline) solid var(--color-line);
+}
+
+.rot-fig-code {
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  font-size: 12.5px;
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--spacing-s3) var(--spacing-s4);
+}
+
+.rot-fig-answer {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  margin-top: var(--spacing-s3);
+}
+.rot-fig-answer .mono {
+  color: var(--color-ink-3);
+  font-size: 12px;
+}
+
+/* The mockup stages a panel's contents in at 90ms per item as the panel paints. `Tabs` hides the
+   unselected panels with `hidden`, and an element coming back from `display: none` restarts its
+   animations — so this replays every time a tab is chosen, with no JavaScript and no key churn.
+
+   **Transform only, never opacity**, for the reason `row-in` above records: a fade begins at a
+   contrast nobody can read, and a thing that slides into place has the same effect while being
+   legible at every frame. The resting style is the end state; the keyframe supplies the `from`. */
+.rot-fig .pop {
+  animation: rot-pop 320ms var(--ease-brand) calc(var(--i, 0) * 90ms) backwards;
+}
+
+@keyframes rot-pop {
+  from {
+    transform: translateY(8px);
+  }
 }
 
 /* ── what stands where the mockup's counters stood ────────────────────────────────────────────── */
@@ -1463,6 +1579,7 @@ a.logo {
   .shot-playing [data-b],
   .run-demo tbody tr,
   .run-demo .meter-fill,
+  .rot-fig .pop,
   .rot[data-cycling="true"] .tab[aria-selected="true"] .rot-sweep {
     animation: none;
   }

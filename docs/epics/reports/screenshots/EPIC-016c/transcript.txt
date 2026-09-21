@@ -1,0 +1,20 @@
+PASS  the rotator advances on its own through at least two tabs, untouched — Import → Compose → Test
+PASS  clicking a tab selects it — Publish, chosen by hand
+PASS  and it waits while the reader is still on it — six and a half seconds later, still Publish, because focus has not left the tab
+PASS  the cycle comes back once the pointer and focus have left — the mockup's restart — Publish → Deliver, with nothing touched after the blur
+PASS  the timer does not run while the rotator is off screen — parked on Deliver, scrolled away for seven seconds, came back to Deliver
+PASS  a reader who has not scrolled to it yet still finds it on Import — eleven seconds on the page without going near the rotator — more than two cycles
+PASS  the Import panel shows a picture of the product, marked as an example — 2 elements · "EXAMPLE a pasted prompt, split into bloks" · 410px tall
+PASS  the Compose panel shows a picture of the product, marked as an example — 2 elements · "EXAMPLE two of the bloks that prompt is built from" · 410px tall
+PASS  the Test panel shows a picture of the product, marked as an example — 2 elements · "EXAMPLE the same checks on three models" · 410px tall
+PASS  the Publish panel shows a picture of the product, marked as an example — 2 elements · "EXAMPLE the publish gate, with one row stopping it" · 410px tall
+PASS  the Deliver panel shows a picture of the product, marked as an example — 2 elements · "EXAMPLE an application resolving the published prompt" · 410px tall
+PASS  the page does not jump as the rotator advances — Import 410px · Compose 410px · Test 410px · Publish 410px · Deliver 410px — min-height 410px, measured against the tallest
+PASS  pass and fail are painted inside the marked example, where they mean pass and fail — 47 painted elements inside figure.example, from 6 reserved tokens read
+PASS  and nowhere outside one — the narrowed guard, seen rather than asserted — rule 10 holds on the rest of the page
+PASS  the page does not scroll sideways at 390px — overflow 0px
+PASS  and no panel grows a horizontal scrollbar of its own at 390px — five panels, none of them wider than the card
+PASS  under reduced motion every panel is complete and in place, never absent — five panels, nothing animating, nothing offset, nothing at opacity 0
+PASS  and the sweep shows the END of its five seconds, not width zero — 99% of the tab — the mockup renders this at 0% and is wrong (docs/design/README.md)
+
+18/18

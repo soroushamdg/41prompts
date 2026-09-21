@@ -217,7 +217,7 @@ describe("nothing on this page is a claim we cannot back", () => {
    */
   it("would fail if one surface lost its Example marker", () => {
     const unmarked = html
-      .replace('<figure class="example" data-example="true">', "<div>")
+      .replace('<figure class="example">', "<div>")
       .replace("</figure>", "</div>");
     const unexplained = numbersIn(flatten(withoutExamples(unmarked))).filter(
       (number) => !EXPLAINED_NUMBERS.has(number)
@@ -258,14 +258,23 @@ describe("nothing on this page is a claim we cannot back", () => {
  * the Ask-AI chips. Each of these is a thing the epic says is on the page; none of them is a thing
  * the two mechanical guards above would notice going missing.
  */
-describe("the mockup's home page (EPIC-016b)", () => {
+describe("the mockup's home page (EPIC-016b, and its rotator EPIC-016c)", () => {
   /** The caption of every marked surface. Each is required, and `what` is what makes the marker
-   *  say more than "this is not real". */
+   *  say more than "this is not real".
+   *
+   *  **Nine, not four, since EPIC-016c**: each of the rotator's five panels gained an illustration,
+   *  and `Tabs` renders all five panels into the markup — four hidden, one shown — so all five
+   *  markers are in the HTML this file reads even though only one is ever on screen. */
   const SURFACES = [
     "a prompt open in the editor",
     "one suite, graded across three models",
     "one model's output, and the check it failed",
-    "the same suite on three providers"
+    "the same suite on three providers",
+    "a pasted prompt, split into bloks",
+    "two of the bloks that prompt is built from",
+    "the same checks on three models",
+    "the publish gate, with one row stopping it",
+    "an application resolving the published prompt"
   ] as const;
 
   it.each(SURFACES)("marks '%s' as an example", (what) => {
@@ -312,6 +321,64 @@ describe("the mockup's home page (EPIC-016b)", () => {
       expect("Learn by breaking things").toMatch(/\bLearn\b/i);
     });
 
+    /**
+     * EPIC-016c: the mockup's own headings, back verbatim.
+     *
+     * EPIC-016b rewrote the third one — "Say what it has to do, then check that it does" — and in
+     * doing so took it away from what its panel is about. The mockup's sits over three model
+     * badges, which is now what this panel shows.
+     *
+     * The fifth is deliberately **not** the mockup's: "Learn by breaking things" teases nine
+     * lessons that do not exist, so Deliver has a heading of its own and the test below pins it
+     * alongside the four that were ported.
+     */
+    it.each([
+      ["Paste what you already have", "the mockup's, verbatim"],
+      ["Build it out of parts", "the mockup's, verbatim"],
+      ["Test it on every model", "the mockup's, verbatim — restored in EPIC-016c"],
+      ["Ship it without shipping code", "the mockup's, verbatim"],
+      ["Your application reads it at runtime", "ours; the mockup's fifth panel is about lessons"]
+    ])("heads a panel with '%s' (%s)", (heading) => {
+      expect(text).toContain(heading);
+    });
+
+    it("no longer carries the heading EPIC-016b wrote over the model badges", () => {
+      expect(text).not.toContain("Say what it has to do");
+    });
+
+    /**
+     * The illustrations, as the elements they are made of rather than as a screenshot.
+     *
+     * Each panel is **two elements** — the mockup's count, and the thing `.rot .tab-panel`'s
+     * `min-height` is defending. A panel that quietly becomes a third picture of a canvas is the
+     * one way this section grows without anybody deciding to grow it, so the count is asserted.
+     */
+    it("gives all five panels an illustration, and none of them more than two elements", () => {
+      const figures = html.match(/<div class="rot-fig">([\s\S]*?)<\/figure>/g) ?? [];
+      expect(figures).toHaveLength(5);
+      for (const figure of figures) {
+        expect((figure.match(/class="[^"]*\bpop\b/g) ?? []).length, figure.slice(0, 80)).toBe(2);
+      }
+    });
+
+    it("builds the cards out of the six real blok kinds, never the decompiler's classifier labels", () => {
+      // `docs/epics/plan-mockup-parity.md`: the mockup's `data-k="format"` and `data-k="role"` are
+      // the decompiler's labels for what it *found*, not kinds a blok can have.
+      const kinds = [...html.matchAll(/class="blok-card[^"]*"[^>]*data-kind="([a-z_]+)"/g)].map((m) => m[1]);
+      expect(kinds.length).toBeGreaterThan(0);
+      for (const kind of kinds) {
+        expect(["context", "constraint", "example", "expected", "image_ref", "image_input"]).toContain(kind);
+      }
+    });
+
+    it("says check where the mockup says the other word", () => {
+      // The mockup's Publish panel row reads "Assertions on Claude". ADR-003's word is `check`, and
+      // `pnpm forbidden-words` fails the build on the other one — this names the specific string so
+      // the failure reads as "the mockup's copy came through" rather than as a grep hit.
+      expect(text).toContain("Checks on Claude");
+      expect(text).not.toMatch(/\bassertions?\b/i);
+    });
+
     it("builds every panel out of the claims registry", () => {
       for (const id of [
         "decompiler",
@@ -319,7 +386,9 @@ describe("the mockup's home page (EPIC-016b)", () => {
         "blok-canvas",
         "per-blok-compilation",
         "expected-bloks-are-checks",
-        "judge-pinned",
+        // EPIC-016c: `judge-pinned` moved out in favour of the sentence the mockup's own paragraph
+        // for this panel makes — cost and latency captured on every run.
+        "every-run-recorded",
         "publish-is-a-release",
         "gate-four-rows",
         "resolve-never-waits",

@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { reservedColourOffenders } from "./reserved-colour";
 
 const ARTICLE = "/guides/what-your-prompt-does-not-check";
 
@@ -102,21 +103,15 @@ test.describe("the companion article", () => {
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 
+  /** Through `reserved-colour.ts` since EPIC-016c. The copy that stood here compared a hex token
+   *  against a computed `rgb(…)` and could not match, so it had been passing without checking
+   *  anything; that file carries the account and the positive control. No exemption here — this
+   *  page has no marked examples on it. */
   test("uses no pass, fail or drift colour", async ({ page }) => {
     await page.goto(ARTICLE);
-    const offenders = await page.evaluate(() => {
-      const styles = getComputedStyle(document.documentElement);
-      const values = ["--color-pass", "--color-fail", "--color-warn"]
-        .flatMap((t) => [styles.getPropertyValue(t).trim(), styles.getPropertyValue(`${t}-soft`).trim()])
-        .filter(Boolean);
-      const bad: string[] = [];
-      for (const el of document.querySelectorAll<HTMLElement>("body *")) {
-        const computed = getComputedStyle(el);
-        for (const property of ["color", "backgroundColor", "borderLeftColor"] as const) {
-          if (values.some((v) => v && computed[property] === v)) bad.push(`${el.className}:${property}`);
-        }
-      }
-      return bad;
+    const offenders = await page.evaluate(reservedColourOffenders, {
+      selector: "body *",
+      properties: ["color", "backgroundColor", "borderLeftColor"]
     });
     expect(offenders).toEqual([]);
   });
