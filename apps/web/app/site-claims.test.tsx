@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { ALL_CLAIMS } from "@/lib/site/claims";
 import { NOTICE_PACKAGES, noticeGroups } from "@/lib/site/third-party-notices";
+import { Example, withoutExamples } from "./example-surface";
 
 /**
  * EPIC-072's Review line, applied to the rendered pages rather than to the registry alone.
@@ -39,8 +40,17 @@ const { default: Notices } = await import("./legal/third-party-notices/page.js")
  * registry *and* the number guard reported an unexplained `27` on four pages. Two different
  * failures, one missing decode, and both of them looked like defects in the pages.
  */
-function textOf(element: ReactElement): string {
-  return renderToStaticMarkup(element)
+/**
+ * `withoutExamples` is applied to the **numbers** rule alone, and the reason is the one already
+ * written below for `<pre>`: a figure inside a picture of the product is part of the picture, not a
+ * claim about the product. `example-surface.tsx` carries the full argument and owns the function,
+ * because `page.test.tsx` needs the same one and two copies is two answers.
+ *
+ * **Not applied to the denylist.** A number inside an illustration is sample data; `SOC 2` inside
+ * an illustration is still a claim. There is a control for each direction below.
+ */
+function textOf(element: ReactElement, strip: (markup: string) => string = (m) => m): string {
+  return strip(renderToStaticMarkup(element))
     .replace(/<script[\s\S]*?<\/script>/g, " ")
     .replace(/<pre[\s\S]*?<\/pre>/g, " ")
     // The notices page's package list is 423 generated identifiers, not prose. EPIC-072's drive
@@ -71,6 +81,11 @@ const PAGES: readonly (readonly [string, ReactElement])[] = [
 ];
 
 const RENDERED = new Map(PAGES.map(([route, element]) => [route, textOf(element)] as const));
+
+/** The same pages with marked examples removed — what the numbers rule reads. */
+const RENDERED_WITHOUT_EXAMPLES = new Map(
+  PAGES.map(([route, element]) => [route, textOf(element, withoutExamples)] as const)
+);
 
 describe("every page renders", () => {
   it.each([...RENDERED.keys()])("%s produces text", (route) => {
@@ -210,7 +225,7 @@ function numbersIn(text: string): string[] {
 }
 
 describe("every number on every page is a fact about the product", () => {
-  for (const [route, text] of RENDERED) {
+  for (const [route, text] of RENDERED_WITHOUT_EXAMPLES) {
     if (route === "/legal/third-party-notices") continue;
     it(`${route} shows only explained numbers`, () => {
       for (const number of numbersIn(text)) {
@@ -224,6 +239,52 @@ describe("every number on every page is a fact about the product", () => {
 
   it("would fail on a number nobody explained", () => {
     expect(EXPLAINED_NUMBERS["1200"]).toBeUndefined();
+  });
+
+  /**
+   * **The example exclusion, proved in both directions** (EPIC-016b).
+   *
+   * `withoutExamples` is the one thing in this file that makes a rule *weaker*, and a weakening
+   * nobody exercises is a hole. The three cases below are the whole of its contract:
+   *
+   * 1. a figure inside a marked example is not a number this rule reads;
+   * 2. the same figure outside one **is**, so the marker is the mechanism rather than a nicety;
+   * 3. the denylist still reads inside examples, because a compliance claim in an illustration is
+   *    still a claim.
+   *
+   * Written as three assertions over one synthetic element rather than over a real page, so they
+   * keep meaning something on the day no page happens to carry an example.
+   */
+  describe("marked examples", () => {
+    const withExample = (
+      <div key="x">
+        <p>Prose with no figures in it at all.</p>
+        <Example what="a suite running">
+          <p>Claude 37/40 · Gemini 22/40 · SOC 2 underway</p>
+        </Example>
+      </div>
+    );
+
+    it("does not read a number inside one", () => {
+      expect(numbersIn(textOf(withExample, withoutExamples))).toEqual([]);
+    });
+
+    it("does read the same number when it is not inside one", () => {
+      // The positive control. Without it, a `withoutExamples` that silently stopped matching —
+      // a renamed class, a changed tag — would leave every test here green and every figure
+      // unchecked.
+      const unmarked = (
+        <div key="u">
+          <p>Claude 37/40 · Gemini 22/40</p>
+        </div>
+      );
+      expect(numbersIn(textOf(unmarked, withoutExamples))).toContain("37");
+    });
+
+    it("still reads a denylisted phrase inside one", () => {
+      // A figure in an illustration is sample data. `SOC 2` in an illustration is a claim.
+      expect(textOf(withExample)).toMatch(/\bSOC\s*2\b/i);
+    });
   });
 
   it("explains every number it lists, rather than listing bare digits", () => {

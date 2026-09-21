@@ -1,6 +1,7 @@
 import { Button, logoMorphScript, Textarea } from "@41prompts/ui";
 import type { Metadata } from "next";
 import { kilobytes, MAX_INPUT_BYTES } from "@/lib/decompile/limits";
+import { Attribution, ProductShot, ProviderComparison, RunDemo } from "./home-sections";
 import { SiteFooter, SiteNavWithSession } from "./site-chrome";
 import { startDecompile } from "./start-actions";
 
@@ -67,6 +68,8 @@ export default function HomePage() {
           </div>
         </section>
 
+        <ProductShot />
+
         <div className="site-wrap">
           <ol className="strip">
             <li className="strip-step">
@@ -95,6 +98,10 @@ export default function HomePage() {
             </li>
           </ol>
         </div>
+
+        <RunDemo />
+        <Attribution />
+        <ProviderComparison />
 
         <section className="cta-band">
           <div className="site-wrap">

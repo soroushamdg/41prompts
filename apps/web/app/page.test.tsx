@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { withoutExamples } from "./example-surface";
 
 /**
  * The nav reads the session on the server, which makes it an async component that
@@ -16,12 +17,30 @@ vi.mock("@/app/site-chrome", async (importOriginal) => {
 const { default: Page } = await import("./page.js");
 
 const html = renderToStaticMarkup(Page());
-const text = html
-  .replace(/<script[\s\S]*?<\/script>/g, " ")
-  .replace(/<[^>]+>/g, " ")
-  .replace(/&[a-z]+;/g, " ")
-  .replace(/\s+/g, " ")
-  .trim();
+
+function flatten(markup: string): string {
+  return markup
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&[a-z]+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const text = flatten(html);
+
+/**
+ * The same page with marked examples removed — what the numbers rule reads (EPIC-016b).
+ *
+ * The home page carries pictures of the product, and a figure inside one is part of the picture
+ * rather than a claim about it. `example-surface.tsx` owns both the component and this function and
+ * carries the argument; `site-claims.test.tsx` applies the identical rule to the other six pages.
+ *
+ * **Every other guard in this file still reads the full text**, including the social-proof patterns
+ * below. A number in an illustration is sample data; a testimonial in an illustration is a
+ * testimonial.
+ */
+const textWithoutExamples = flatten(withoutExamples(html));
 
 describe("/", () => {
   it("leads with the failure, not the tool", () => {
@@ -145,9 +164,34 @@ describe("nothing on this page is a claim we cannot back", () => {
       ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"],
       ["2026", "the year in the footer's © line, which EPIC-056 added once there was a company to name"]
     ]);
-    const numbers = text.match(/\d[\d.,]*/g) ?? [];
+    const numbers = textWithoutExamples.match(/\d[\d.,]*/g) ?? [];
     for (const number of numbers) {
       expect(allowed.has(number), `unexplained number "${number}" on the landing page`).toBe(true);
     }
+  });
+
+  /**
+   * **The example exclusion has to be doing something**, or the rule above is reading a page it
+   * thinks it has filtered and has not.
+   *
+   * This is the positive control for `withoutExamples` on *this* page specifically: the home page
+   * carries marked examples, so stripping them must change the text. The day it does not, either
+   * the examples are gone — in which case somebody should notice — or the stripper has stopped
+   * matching and every figure on the page is unchecked.
+   *
+   * `site-claims.test.tsx` proves the function's behaviour in both directions on a synthetic
+   * element. This proves it is wired to the real page.
+   */
+  it("actually strips the marked examples it claims to", () => {
+    expect(html).toContain('class="example"');
+    expect(textWithoutExamples.length).toBeLessThan(text.length);
+  });
+
+  /**
+   * And the other half: a marked example is not a way to smuggle social proof onto the page. The
+   * patterns above read the **full** text, so this asserts the projection they read is the full one.
+   */
+  it("keeps every other guard reading the whole page", () => {
+    expect(text).toContain("Example");
   });
 });

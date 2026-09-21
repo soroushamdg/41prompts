@@ -3,131 +3,145 @@ SPDX-FileCopyrightText: 2026 41Prompts Inc.
 SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
-# EPIC-024: App page composition — the cards, the split, and the two missing tabs
+# EPIC-016b: The home page, in full
 
-Stage: 2 · late entry, 2026-09-20 · Depends on: EPIC-023 · Size: **M**
+Stage: 1 · late entry, 2026-09-20 · Depends on: EPIC-072 · Size: **M**
 
 Sequence and rationale in `docs/epics/plan-mockup-parity.md`.
 
 ## Why this row
 
-Every app page works. Several are laid out as long forms where the mockup draws dense two-pane
-cards, and driving the built app makes the gap plain:
+The mockup's home page has twelve sections. The built one has five, and **that is exactly what it
+was told to have.** EPIC-016's Scope reads *"Nav, hero, three-step strip, CTA and footer"*, and its
+Out of scope reads *"Testimonials, logos, counters, any social proof."* EPIC-072 then wrote, in its
+own Out of scope: *"Changing the home page beyond its nav and footer. EPIC-016 owns it."*
 
-- **Projects** is a `<ul>` of links (`app/app/projects/page.tsx`). The mockup is a 1/2/3-column card
-  grid, each card carrying Pass, Runs and Cost.
-- **The Blok Editor** renders the compiled pane as a small box beside a canvas that runs 1,500px
-  down the page — every blok an always-open textarea with four buttons stacked underneath it,
-  outside the card. The mockup is one bordered `.split` card, two panes of equal height, with
-  compact blok cards: a kind tag, a summary line, a meta row, and a coloured left edge.
-- **Two of four tabs ship.** `workbench.tsx` says so, and says why: *"Assertions is Stage 3 and
-  Providers is Stage 4, and a disabled tab that does nothing is a worse promise than an absent
-  one."* Both stages are `done`. The reason expired and nothing noticed.
-**Two things this epic was written to build turned out to be built already**, found by reading the
-code before planning rather than after:
+So **no epic has ever owned building the mockup's home page.** Not a build failure — a gap between
+two epics, each of which correctly stayed inside its own line.
 
-- **Blok kind colour shipped in EPIC-021a** (decision 6). Six hues on `--color-kind-*`, resolved per
-  kind onto `--blok-kind`, painted *only* inside `:hover` / `:focus-visible` / `[data-selected]`,
-  deliberately drawn from blue/violet/magenta/clay and nowhere near green, red or amber, held to
-  3:1 against surface, with a test that fails if a card at rest paints one.
-  **`docs/design/README.md` is stale, not the code**: it still records the debt as passing to
-  EPIC-021a/021b as though neither had taken it. Correct that file as part of this epic.
-- **The drift banner already says the right words.** `span-state.tsx` has "edited by hand" and
-  "Update from blok"; `pnpm forbidden-words` would fail on "Reconcile" and does not.
+What EPIC-016 was protecting against is still right and does not go away: *"Do not write copy that
+promises anything Stage 1 cannot do."* When it was written, the editor did not exist. It does now,
+and so do runs, attribution, versions, publishing and two SDKs — `/features` lists twenty-one
+shipped capabilities, each citing the epic that shipped it. **The home page is the only page that
+still describes the Stage 1 product.**
+
+## The ruling this epic is built on
+
+Soroush, 2026-09-20, asked which way to take the mockup's fabricated proof and chose:
+
+> **Build the sections with obviously-labelled example data.**
+
+That is the whole design constraint. The mockup's product shot, run table, attribution card and
+rotator are *illustrations of an interface*, and an illustration labelled as one is honest. They
+are built, and each carries a visible marker saying so.
+
+Two things on the mockup's home page cannot be rescued that way and are **out of scope** below: the
+trust-logo row, whose entire function is to assert that named companies are customers; and the
+per-figure proof counters, for the same reason at one remove — a counter labelled "example" has no
+rhetorical content left. See Out of scope for what replaces them.
 
 ## Goal
 
-The app's pages are laid out as the mockup lays them out: a project card grid, a two-pane editor of
-compact cards, and four tabs instead of two.
+The home page is the mockup's home page: the product shot, the run demo, failure attribution, the
+capability rotator, the provider comparison and the closing call — every illustrative surface
+visibly marked as an example, and every factual sentence in the claims registry citing the epic
+that shipped it.
 
 ## Scope
 
-1. **Projects as a card grid.** The mockup's `.projgrid` / `.proj`: name, sub-line
-   (`Draft v7 · Live v6 · 6 bloks`), and a metric row of Pass / Runs / Cost.
+1. **Keep the hero exactly as it is.** The paste box is the product's actual first action and is
+   better than the mockup's Ask-AI bar for that job. EPIC-016 drafted five headlines and shipped
+   one; that work is not reopened.
 
-   **Every metric is derived or absent.** Pass rate is already derived (EPIC-040); runs count and
-   `costCents` are on `results`. A project with no runs shows `—`, never a zero dressed as a
-   measurement. `listProjects` gains the aggregate in one query, not N+1.
+2. **The product shot** — the mockup's `.shot`: a browser chrome bar, then the compiled pane beside
+   the canvas, with the hover-linked span↔blok animation and a `Replay` control. Marked `Example`.
 
-2. **The Blok Editor as the mockup's `.split`.** One bordered card, two panes, `1.05fr 1fr` above
-   1000px and stacked below. Compiled pane keeps its `read-only` pill and gains the mockup's token
-   and cost readout — **derived from the real compiled string and the real price table, or absent.**
+3. **"Watch it run"** — the results table with rows landing in sequence, meters filling, and the
+   failing row flashing. Marked `Example`.
 
-3. **Compact blok cards.** Kind tag, the blok's text, a meta row, a 5px coloured left edge. Editing
-   opens in place rather than every card being a live textarea. Move, pin and delete become controls
-   **within** the card's chrome, not four buttons below it. One tab stop per card with arrow keys
-   inside — `docs/design/README.md`'s accessibility correction, which the source map already honours
-   and the canvas does not.
+4. **Failure attribution** — the JSON output with the offending key highlighted, resolving to the
+   expected blok card that owns it. This is the product's core argument and the mockup gives it two
+   sections; one is enough.
 
-4. **One `+ Add blok` with a kind picker**, replacing six `Add <kind>` buttons. The six kinds are
-   `context | constraint | example | expected | image_ref | image_input`.
+5. **The capability rotator** — five tabs (Import, Compose, Test, Publish, Learn), auto-cycling at
+   5s with the sweep indicator, clicking a tab stopping and restarting the cycle. **"Learn" becomes
+   "Deliver"**: there are no lessons and the word is denylisted.
 
-5. **`docs/design/README.md`'s stale paragraph on blok kind colour**, corrected to record that
-   EPIC-021a shipped it and how. One paragraph; no code.
+6. **The provider comparison** — the mockup's second two-column section. Marked `Example`.
 
-6. **The Checks tab.** The mockup labels it `Assertions`; ADR-003 forbids that word in UI strings
-   and `docs/design/README.md` already says build "checks". Lists the prompt's checks, each with its
-   owning blok and its plain-phrase kind — the eight names `CLAUDE.md` fixes.
+7. **Ask-AI chips** lower on the page, through the existing `lib/landing/handoff.ts`, as
+   `/features` already does.
 
-7. **The Providers tab.** Which models this prompt runs against, from EPIC-042's seven pinned
-   models, with a link to Settings → Providers for keys.
+8. **Motion, to `docs/design/README.md`'s correction**: `prefers-reduced-motion` shows **end
+   states**, never skips them. The mockup gets this wrong for the hero and the logo; the build gets
+   it right.
 
-8. **Nothing for the drift banner.** Already correct; see above.
+9. **Every factual sentence into `claims.ts`**, each naming its epic and an evidence path. Marker
+   text and example data are not claims and do not belong there.
 
 ## Out of scope
 
-- **The rail and the top bar.** EPIC-023.
-- **The Runs results page.** It is already the closest page to the mockup — KPIs, both pivots, the
-  heatmap, the failure detail, "Create constraint from this failure". Do not touch it.
-- **Deploy's "Apps calling this prompt"** and **Connect's "apps resolving"**. No CDN.
-- **Connect's Python and Swift tabs.** Stage 5b shipped a Python SDK; a second language tab on the
-  Connect page is its own small row, not this one.
-- **Team and Billing settings tabs.**
-- **Any change to what gets compiled, stored or published.** This epic is layout and labels.
-  `docs/design/README.md`: where a prototype implies something about the bytes, decide it on its own
-  terms — and here, do not decide it at all.
+- **The trust-logo row.** NORTHWIND, OAKLINE, MERIDIAN AI, CASTELL, BLUEPRINT are invented. A row of
+  fake customer logos is the one element on this page that labelling cannot save, and
+  `claims.test.ts` denylists `trusted by` / `used by` for exactly this.
+- **The three proof counters** — *1,240,000 prompts decompiled*, *38% contain a contradiction*,
+  *4s to roll back*. All three are invented, and a counter's whole function is to assert a real
+  measurement. **Replaced by three true statements that need no number**, drawn from the claims
+  registry. If Soroush would rather have the counters with an `Example` marker, that is a one-line
+  change to this section and the epic should take it — but the recommendation is on the record.
+- **The lessons teaser.** No lessons; `lessons?` is denylisted.
+- **`/pricing`, `/learn`, `/about`, `/blog`, `/careers`.** EPIC-072b and EPIC-070 take three of
+  them; Stage 7 and EPIC-073 keep the other two.
+- **Any change to `/decompile`** or to the nav and footer.
 
 ## Acceptance criteria
 
-- [ ] Projects renders as a grid at 1, 2 and 3 columns across the mockup's breakpoints, and a
-      project with no runs shows `—` for all three metrics. Evidence: test names plus screenshots.
-- [ ] The project metrics come from **one** query, asserted. Evidence: test name.
-- [ ] The editor renders as one `.split` card with two panes of equal height at 1440px. Evidence:
-      screenshot.
-- [ ] A blok card is **one** tab stop, with arrow keys moving within it. Evidence: test name.
-- [ ] Reorder, pin, edit and delete all still work by keyboard and by touch after the rework.
-      Evidence: the existing `canvas.spec.ts` passing unchanged where it can, and named amendments
-      where it cannot.
-- [ ] `docs/design/README.md` records that EPIC-021a shipped blok kind colour. Evidence: the diff.
-- [ ] The Checks tab lists every check with its owning blok, named by the eight plain phrases.
-      Evidence: test name.
-- [ ] The Providers tab lists the pinned models. Evidence: test name.
-- [ ] The drift banner still says "edited by hand" and "Update from blok" after the rework.
-      Evidence: `pnpm forbidden-words` output and the existing compiled-pane spec.
-- [ ] No `/app` route scrolls sideways at 390px. Evidence: `overflow.ts` over every app route.
-- [ ] `pnpm test`, `pnpm typecheck`, `pnpm lint`, `pnpm compliance`, `pnpm dead-code` green per
-      package; `node scripts/gates.mjs ci` green before merge.
-- [ ] The built app driven in a browser, screenshots in the report.
+- [ ] Every illustrative surface carries a visible `Example` marker that is in the accessibility
+      tree, not a decorative caption. Evidence: a test asserting the marker for each of the four,
+      and a control that fails if a marker is removed.
+- [ ] No sentence on the page matches any `NOT_TRUE_YET` pattern. Evidence: `claims.test.ts` green,
+      **and** a new case running the denylist over the home page's rendered text, not only over the
+      registry.
+- [ ] Every factual sentence is in `claims.ts` with an epic that has a report and an evidence path
+      that exists. Evidence: the existing claims tests.
+- [ ] Under `prefers-reduced-motion`, the shot, the run demo, the rotator and the counters render in
+      their **end state** — the rotator on a panel, the meters filled, the rows landed. Evidence:
+      one screenshot per surface plus test names.
+- [ ] The rotator advances on a timer, stops on click, and every tab is reachable and operable by
+      keyboard as a real ARIA tablist. Evidence: test names.
+- [ ] The page does not scroll sideways at 390px and every control is a 44px target. Evidence:
+      `overflow.ts` plus a test.
+- [ ] Lighthouse on the built page: performance ≥90, accessibility 100, best practices ≥95, SEO 100.
+      Evidence: `scripts/lighthouse-site.mjs` output. EPIC-072 measured 17 routes with a lowest
+      score of 94; this page must not be the one that drops it.
+- [ ] Axe clean in both themes. Evidence: the run.
+- [ ] Visual-regression baselines regenerated **on Linux**, in
+      `mcr.microsoft.com/playwright:v<version>-noble`. A `-darwin` baseline is not a baseline.
+- [ ] `pnpm forbidden-words` passes over every string on the page.
+- [ ] All gates green per package; `node scripts/gates.mjs ci` green before merge.
+- [ ] The built page loaded in a browser at 1440px and 390px, both themes, screenshots in the
+      report.
 - [ ] Report and session log written.
 
 ## Verification
 
-As EPIC-023's block, with `scripts/drive-epic-024.mts`. The drive must **build a prompt from an
-empty canvas** — add one blok of each kind, reorder two, edit one by hand, and read the result in
-the compiled pane — rather than reading a seeded one.
+As EPIC-023's block, with `scripts/drive-epic-016b.mts` driving the **built** home page: replay the
+shot, click through all five rotator tabs, open an Ask-AI chip, then reload with reduced motion
+forced and screenshot every surface's end state.
 
 ## Notes for the implementer
 
-- The mockup's CSS: `.projgrid`/`.proj` at lines 175–185, `.split`/`.pane`/`.panebar` at 187–196,
-  `.compiled`/`.sp` at 198–206, `.canvas`/`.blok`/`.add` at 208–216, `.tabs` at 170–173.
-- **Do not copy `--kc`.** The palette is already shipped and correct; mockup lines 24–31 are the
-  trap it avoided — `expected` is `#0B5C2E`, which is `--pass` exactly, and `example` is `#8A5A00`,
-  which is `--warn` exactly. Leave `--color-kind-*` alone.
-- The mockup also draws `role`, `format`, `conditional`, `tone` and `instruction` — those are
-  the **decompiler's** classifier labels, not blok kinds, and they belong to `/decompile`'s own
-  palette. Do not conflate the two sets.
-- A blok stores the verbatim span (`CLAUDE.md` rule 3). Changing a card's chrome must not change a
-  single byte of what it holds; the compiled output before and after this epic is byte-identical,
-  and the report should say so with a hash.
-- `workbench.tsx`'s comment names the label trap for the third tab. Meet it before writing the
-  label rather than after.
+- The mockup's home page is lines 380–520 (markup) and its motion is lines 1600–1720 (five
+  self-contained IIFEs: scroll reveals, the hero sequence, the run demo, the counters, the rotator).
+  The motion is good and can be ported nearly as written — but it is inline script in a static file,
+  and this codebase server-renders with `ThemeToggle` as the only client component. Decide where the
+  motion lives and **say so in the report**; a page that hydrates four widgets is a different page
+  from the one EPIC-016 shipped and the Lighthouse number will say so.
+- The `Example` marker is the whole ruling. Make it a shared component so all four surfaces carry
+  the same one, and write the control test that fails when it is removed — EPIC-072's lesson was
+  that an absence assertion needs a positive control or it silently stops asserting.
+- `lib/site/claims.ts` is the registry and `lib/site/claims.test.ts` is the guard. Read both before
+  writing a sentence. A claim is *a sentence a reader could hold us to*; headings and link text are
+  ordinary JSX.
+- The rotator's fifth tab is "Learn" in the mockup. Do not ship that word.
+- If a criterion is impossible, write `docs/epics/BLOCKER-EPIC-016b.md` and stop.

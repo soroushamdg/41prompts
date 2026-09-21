@@ -961,3 +961,216 @@ a.logo {
 .site-row-key {
   overflow-wrap: anywhere;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   The home page's illustrative sections (EPIC-016b).
+
+   The mockup draws these as though they were the product; they are pictures of it, and the
+   `Example` marker says so in the accessibility tree as well as on screen. `example-surface.tsx`
+   carries why that marker is a mechanism rather than a caption.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.example {
+  margin: 0;
+}
+
+/* The caption is above the figure, not below it: somebody should know this is an illustration
+   before they read the numbers in it, not after. */
+.example-caption {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-bottom: var(--spacing-s2);
+}
+
+.example-mark {
+  border: var(--border-hairline) solid var(--color-ink-3);
+  color: var(--color-ink-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.example-what {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+}
+
+/* ── the product shot ──────────────────────────────────────────────────────────────────────── */
+
+.shot {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset-xl) var(--shadow-offset-xl) 0 var(--color-plate);
+  overflow: hidden;
+}
+
+.shot-bar {
+  align-items: center;
+  background: var(--color-sunken);
+  border-bottom: var(--border-ink) solid var(--color-ink);
+  display: flex;
+  gap: var(--spacing-s2);
+  padding: 8px 12px;
+}
+
+.shot-dots {
+  display: flex;
+  gap: 5px;
+}
+.shot-dots i {
+  border: var(--border-hairline) solid var(--color-ink);
+  display: block;
+  height: 9px;
+  width: 9px;
+}
+
+.shot-url {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.shot-split {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .shot-split {
+    grid-template-columns: 1.05fr 1fr;
+  }
+}
+
+.shot-pane {
+  min-width: 0;
+  padding: var(--spacing-s3);
+}
+.shot-pane + .shot-pane {
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 900px) {
+  .shot-pane + .shot-pane {
+    border-left: var(--border-hairline) solid var(--color-line);
+    border-top: 0;
+  }
+}
+
+.shot-panetitle {
+  color: var(--color-ink-3);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0 0 var(--spacing-s2);
+  text-transform: uppercase;
+}
+
+.shot-compiled {
+  background: var(--color-sunken);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--spacing-s3);
+  white-space: pre-wrap;
+}
+
+.shot-bloks {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shot-blok {
+  border: var(--border-hairline) solid var(--color-line);
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.shot-blok .tag {
+  justify-self: start;
+}
+
+.shot-blok-text {
+  font-size: 13px;
+}
+
+/* ── the run demo, and the provider comparison ─────────────────────────────────────────────── */
+
+.run-demo-rate {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* The bar is decoration under the figure, never instead of it (rule 10). */
+.run-demo .meter-track {
+  display: block;
+  margin-top: 3px;
+  min-width: 70px;
+}
+
+.data-table tbody tr[data-worst="true"] td:first-child {
+  font-weight: 700;
+}
+
+/* ── attribution ───────────────────────────────────────────────────────────────────────────── */
+
+.home-h2 {
+  font-size: clamp(24px, 3.4vw, 34px);
+  letter-spacing: -0.035em;
+  margin: var(--spacing-s3) 0 var(--spacing-s4);
+}
+
+.home-bullets {
+  display: grid;
+  gap: var(--spacing-s3);
+  list-style: none;
+  margin: var(--spacing-s5) 0 0;
+  padding: 0;
+}
+
+.home-bullets li {
+  border-top: var(--border-hairline) solid var(--color-line-2);
+  color: var(--color-ink-2);
+  font-size: 13.5px;
+  padding-top: var(--spacing-s3);
+}
+
+.home-output {
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--spacing-s3);
+  white-space: pre-wrap;
+}
+
+.home-failing-check {
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  display: grid;
+  gap: var(--spacing-s2);
+  justify-items: start;
+  margin-top: var(--spacing-s4);
+  padding: var(--spacing-s3);
+}
+
+.home-failing-check p {
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.home-failing-meta {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
