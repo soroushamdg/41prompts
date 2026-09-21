@@ -60,16 +60,41 @@ export const CONTRAST_PAIRS: ContrastPair[] = [
   { fg: "warn", bg: "surface", minRatio: 4.5, note: "Table cell-drift text on a card" },
   { fg: "focus", bg: "surface", minRatio: 3.0, note: "focus ring against a card (UI-component boundary)" },
   { fg: "focus", bg: "bg", minRatio: 3.0, note: "focus ring against the page background (UI-component boundary)" },
-  // Blok category colour (EPIC-021a decision 6). It appears only during interaction, and only ever
-  // as a rail and a glyph — a UI-component boundary, never text — so the 3:1 tier applies. Checked
-  // against `surface` because that is the card it sits on, and against `bg` because the canvas's
-  // own ground shows through at the card's edge.
-  { fg: "kindContext", bg: "surface", minRatio: 3.0, note: "context rail on a card" },
-  { fg: "kindConstraint", bg: "surface", minRatio: 3.0, note: "constraint rail on a card" },
-  { fg: "kindExample", bg: "surface", minRatio: 3.0, note: "example rail on a card" },
-  { fg: "kindExpected", bg: "surface", minRatio: 3.0, note: "expected rail on a card" },
-  { fg: "kindImageRef", bg: "surface", minRatio: 3.0, note: "image_ref rail on a card" },
-  { fg: "kindImageInput", bg: "surface", minRatio: 3.0, note: "image_input rail on a card" },
+  // ── Blok category colour ────────────────────────────────────────────────────────────────────
+  //
+  // **Raised from 3:1 to 4.5:1 in EPIC-016d, and widened from one ground to three**, because the
+  // thing being checked changed. EPIC-021a's version painted a rail and a glyph, during interaction
+  // only — a UI-component boundary, which is the 3:1 tier. Soroush's answer of 2026-09-21 makes the
+  // colour persistent and puts it on the **kind tag's text**, and text is 4.5:1 with no relaxation
+  // for a 9.5px uppercase label.
+  //
+  // The widening is the same correction one step out: a kinded card is rendered on `surface` in the
+  // canvas, on `bg` where the page's own ground shows at its edge, and on `sunken` inside the
+  // decompiler's panes. One ground was never the whole set; it was the only one the old, weaker
+  // rule needed.
+  //
+  // **Measured before it was written, not after.** The worst of the eighteen is
+  // `kindContext` on `bg` at 5.97:1, and no value moved to make that true — the palette EPIC-021a
+  // picked for a 3:1 job happens to clear the 4.5:1 one everywhere. If a future hue does not, this
+  // fails rather than the tier being lowered back.
+  { fg: "kindContext", bg: "surface", minRatio: 4.5, note: "context rail and kind tag on a card" },
+  { fg: "kindConstraint", bg: "surface", minRatio: 4.5, note: "constraint rail and kind tag on a card" },
+  { fg: "kindExample", bg: "surface", minRatio: 4.5, note: "example rail and kind tag on a card" },
+  { fg: "kindExpected", bg: "surface", minRatio: 4.5, note: "expected rail and kind tag on a card" },
+  { fg: "kindImageRef", bg: "surface", minRatio: 4.5, note: "image_ref rail and kind tag on a card" },
+  { fg: "kindImageInput", bg: "surface", minRatio: 4.5, note: "image_input rail and kind tag on a card" },
+  { fg: "kindContext", bg: "bg", minRatio: 4.5, note: "context rail against the page ground" },
+  { fg: "kindConstraint", bg: "bg", minRatio: 4.5, note: "constraint rail against the page ground" },
+  { fg: "kindExample", bg: "bg", minRatio: 4.5, note: "example rail against the page ground" },
+  { fg: "kindExpected", bg: "bg", minRatio: 4.5, note: "expected rail against the page ground" },
+  { fg: "kindImageRef", bg: "bg", minRatio: 4.5, note: "image_ref rail against the page ground" },
+  { fg: "kindImageInput", bg: "bg", minRatio: 4.5, note: "image_input rail against the page ground" },
+  { fg: "kindContext", bg: "sunken", minRatio: 4.5, note: "context rail on a sunken pane" },
+  { fg: "kindConstraint", bg: "sunken", minRatio: 4.5, note: "constraint rail on a sunken pane" },
+  { fg: "kindExample", bg: "sunken", minRatio: 4.5, note: "example rail on a sunken pane" },
+  { fg: "kindExpected", bg: "sunken", minRatio: 4.5, note: "expected rail on a sunken pane" },
+  { fg: "kindImageRef", bg: "sunken", minRatio: 4.5, note: "image_ref rail on a sunken pane" },
+  { fg: "kindImageInput", bg: "sunken", minRatio: 4.5, note: "image_input rail on a sunken pane" },
 ];
 
 export interface ContrastResult extends ContrastPair {
