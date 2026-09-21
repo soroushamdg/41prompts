@@ -1276,6 +1276,31 @@ a.logo {
   transform: none;
 }
 
+/* The shot's canvas cards carry the kind rail, exactly as `.blok-card` does — the mockup's
+   `.blok::before`, same 5px, same 9px inset. The six hues are resolved once in `recipes.css` from
+   `data-kind`; this only says where to paint them. `.shot-blok` is not a `BlokCard`: it is a
+   picture of one, with no control inside it, which is why it has its own rules rather than the
+   component's. */
+.shot-blok[data-kind] {
+  position: relative;
+}
+.shot-blok[data-kind]::before {
+  content: "";
+  position: absolute;
+  /* Out by the card's own border, so the rail covers it rather than sitting beside it — the
+     mockup's `left: -2px` against its 2px border. This card's border is the hairline, so the
+     offset is the hairline; writing `-2px` here would overhang by half a pixel on every card. */
+  left: calc(var(--border-hairline) * -1);
+  top: 9px;
+  bottom: 9px;
+  width: 5px;
+  background: var(--blok-kind);
+}
+.shot-blok[data-kind] .tag {
+  border-color: var(--blok-kind);
+  color: var(--blok-kind);
+}
+
 .shot-compiled {
   background: var(--color-sunken);
   font-family: var(--font-mono);

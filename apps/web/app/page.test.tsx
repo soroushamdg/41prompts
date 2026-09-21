@@ -508,6 +508,22 @@ describe("the mockup's home page (EPIC-016b, and its rotator EPIC-016c)", () => 
     expect(html).toMatch(/<span class="btn btn-sm shot-run">Run \d+ checks<\/span>/);
   });
 
+  /**
+   * The shot's cards carry the kind rail too (C2).
+   *
+   * They are not `BlokCard`s — they are a picture of one, with no control inside — so they get the
+   * attribute rather than the component. `recipes.css` resolves `--blok-kind` from `data-kind` on
+   * any element, and `landing.css` says where to paint it; without the attribute here the most
+   * visible instance of persistent kind colour on this page would simply be ink.
+   */
+  it("gives every card in the shot its kind, so the rail and the tag can be coloured", () => {
+    const kinds = [...html.matchAll(/class="shot-blok"[^>]*data-kind="([a-z_]+)"/g)].map((m) => m[1]);
+    expect(kinds.length, "no shot card declares a kind").toBe(5);
+    for (const kind of kinds) {
+      expect(["context", "constraint", "example", "expected", "image_ref", "image_input"]).toContain(kind);
+    }
+  });
+
   it("says checks where the mockup says the other word, on the shot too", () => {
     // `pnpm forbidden-words` fails the build on it; this names the string so a failure reads as
     // "the mockup's copy came through" rather than as a grep hit.

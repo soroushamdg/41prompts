@@ -217,12 +217,17 @@
 
    **A card with no `data-kind` is untouched**, which is what keeps `/dev/ui`'s committed visual
    baselines still: the gallery renders `BlokCard` without a kind and always has. */
-.blok-card[data-kind="context"] { --blok-kind: var(--color-kind-context); }
-.blok-card[data-kind="constraint"] { --blok-kind: var(--color-kind-constraint); }
-.blok-card[data-kind="example"] { --blok-kind: var(--color-kind-example); }
-.blok-card[data-kind="expected"] { --blok-kind: var(--color-kind-expected); }
-.blok-card[data-kind="image_ref"] { --blok-kind: var(--color-kind-image-ref); }
-.blok-card[data-kind="image_input"] { --blok-kind: var(--color-kind-image-input); }
+/* **The mapping is not scoped to `.blok-card`, and the painting rules below are.** Resolving a
+   custom property paints nothing — it is inert until something reads it — so any element that says
+   what kind it is can have the answer, and every rule that actually uses it names its own element.
+   That split is what lets the home page's product shot draw the same rail (`landing.css`,
+   `.shot-blok`) without a second copy of these six lines going stale beside them. */
+[data-kind="context"] { --blok-kind: var(--color-kind-context); }
+[data-kind="constraint"] { --blok-kind: var(--color-kind-constraint); }
+[data-kind="example"] { --blok-kind: var(--color-kind-example); }
+[data-kind="expected"] { --blok-kind: var(--color-kind-expected); }
+[data-kind="image_ref"] { --blok-kind: var(--color-kind-image-ref); }
+[data-kind="image_input"] { --blok-kind: var(--color-kind-image-input); }
 
 .blok-card[data-kind]::before {
   content: "";

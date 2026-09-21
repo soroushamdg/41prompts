@@ -143,6 +143,10 @@ export function ProductShot() {
                     key={blok.id}
                     className="shot-blok"
                     data-b={blok.id}
+                    // The same attribute `BlokCard` writes, so the same rail and the same coloured
+                    // kind tag reach the shot — which is where the mockup draws them most visibly.
+                    // `SHOT_BLOKS`'s `kind` is the word on the tag; the attribute is the kind.
+                    data-kind={blok.kind.toLowerCase()}
                     style={step(index)}
                   >
                     <span className="tag">{blok.kind}</span>
