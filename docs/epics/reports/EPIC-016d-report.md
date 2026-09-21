@@ -280,7 +280,55 @@ nobody another.
 
 ## 10. The gate, and what a green here does not cover
 
-_(filled in below when the run completes)_
+`node scripts/gates.mjs ci` on **`ab6e5f6`** — clean `git clone` of that commit, frozen lockfile,
+cold turbo cache, no inherited environment, its own throwaway Postgres.
+
+```
+checkout      git clone + checkout ab6e5f6f    PASS  0m01s
+ci.yml        pnpm install --frozen-lockfile   PASS  0m08s
+              pnpm lint                        PASS  0m27s
+              pnpm typecheck                   PASS  1m09s
+              pnpm db:migrate                  PASS  0m02s
+              pnpm test                        PASS  1m12s
+              playwright install chromium      PASS  0m01s
+              pnpm e2e                         PASS  9m20s   4 test(s) skipped on darwin
+              uv run pytest -q (sdks/python)   PASS  0m28s
+compliance    reuse lint                       PASS  0m04s
+              pnpm boundaries                  PASS  0m05s
+              turbo boundaries                 PASS  0m01s
+              pnpm forbidden-words             PASS  0m01s
+              pnpm binary-files                PASS  0m01s
+              pnpm dead-code                   PASS  0m01s
+              license-gate --sbom              PASS  0m02s
+              pnpm mirror-dry-run              PASS  1m12s
+17 step(s), all passed, 14m17s wall
+```
+
+The mode prints two caveats every time, and `docs/PROCESS.md` says they are part of the result
+rather than a footer. Both are read rather than repeated:
+
+1. **"The runner is Linux and this is darwin: the four visual-regression baselines skip here."**
+   **Closed for this epic, and more than usual.** The two `/` baselines were regenerated inside
+   `mcr.microsoft.com/playwright:v1.63.0-noble` and all four compared clean there — and then the
+   **whole suite** was run in the same container, twice, 370 passed with nothing skipped. This epic
+   was the one most exposed to that caveat: it moves the nav, the hero, the shot and every blok
+   card's rail.
+2. **"The runner is slower than this machine."** Not closed, and not closeable locally. This epic
+   adds three timing-sensitive e2e tests — the placeholder rotation is 3400ms and one assertion
+   waits out more than one tick. They are written to wait on a **condition** (`expect.poll` against
+   the attribute, 12s budget against a 3.4s interval) rather than on a duration, which is the
+   mitigation `docs/PROCESS.md` names for CI #209. A 2-core runner under load is still the one thing
+   this machine cannot reproduce.
+
+And the standing one, which `CLAUDE.md` states rather than the gate: **nothing is pushed**, so no
+second machine builds this, no image is built, and Coolify, Traefik and a real database are
+untested. They wait for Soroush's next push.
+
+**One thing the gate could not tick and nor can anything else: `docs/backlog.md` has no row for
+this epic.** The mockup-parity programme is sequenced in `docs/epics/plan-mockup-parity.md` and
+`docs/epics/plan-landing-parity.md`, because `CLAUDE.md` reserves the backlog for Soroush. Step 8
+of `docs/AUTONOMOUS.md`'s loop — tick the epic's own status cell — has nothing to tick, which is
+stated here rather than silently skipped. EPIC-023, 024, 016b and 016c are in the same position.
 
 ## 11. Open questions
 
