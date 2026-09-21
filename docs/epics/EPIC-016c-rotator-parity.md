@@ -31,7 +31,17 @@ simply does not do:
    what it has to do, then check that it does"* sits over nothing and pairs with claims about
    judging. The mockup's own pairing is more coherent and is restored.
 
-## The one thing this epic cannot do without a ruling
+## The one thing this epic cannot do without a ruling — **ruled, 2026-09-21**
+
+> **Soroush, 2026-09-21: narrow the guard.** The illustrations paint `--pass` and `--fail` as the
+> mockup does, and `landing.spec.ts`'s guard becomes *no reserved colour outside a marked example*,
+> with its positive control in the same commit. Scope 5 below is therefore built in full, not in its
+> ink variant. The question as it was put is kept below, because the argument is what makes the
+> narrowing readable to whoever finds it next.
+>
+> **What the narrowing then found.** The guard had never matched anything: it compared a hex token
+> against a computed `rgb(…)`, on four routes, since EPIC-016. That is written up in
+> `apps/web/e2e/reserved-colour.ts` and in the report's §4.
 
 **The mockup's third and fourth panels use `--pass` and `--fail` directly** — `badge p`, `badge f`,
 `<i style="background:var(--fail)">`, a `.gate no` row. `landing.spec.ts` has forbidden all three
