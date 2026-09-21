@@ -1,5 +1,8 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+import { NOT_TRUE_YET, NOT_TRUE_YET_CONTROLS } from "@/lib/site/not-true-yet";
+import { claim } from "@/lib/site/claims";
+import { withoutExamples } from "./example-surface";
 
 /**
  * The nav reads the session on the server, which makes it an async component that
@@ -16,12 +19,49 @@ vi.mock("@/app/site-chrome", async (importOriginal) => {
 const { default: Page } = await import("./page.js");
 
 const html = renderToStaticMarkup(Page());
-const text = html
-  .replace(/<script[\s\S]*?<\/script>/g, " ")
-  .replace(/<[^>]+>/g, " ")
-  .replace(/&[a-z]+;/g, " ")
-  .replace(/\s+/g, " ")
-  .trim();
+
+/**
+ * **Entities are decoded, not blanked** — the same correction `site-claims.test.tsx` carries, made
+ * here in EPIC-016b when the first sentence containing an apostrophe reached this page.
+ *
+ * `&[a-z]+;` leaves React's numeric entities alone, and React writes every apostrophe as `&#x27;`.
+ * Two things go wrong at once, and both of them look like defects in the page rather than in this
+ * function: the number rule reports an unexplained `27`, and every denylist pattern with an
+ * apostrophe in it stops matching, because the text it is scanning says `prompt&#x27;s`.
+ *
+ * `site-claims.test.tsx` hit exactly this on four pages and fixed it there. This file was written
+ * first, had no apostrophe on its page, and kept the bug for six epics — which is the argument for
+ * the control below rather than for trusting that it is now right.
+ */
+function flatten(markup: string): string {
+  return markup
+    .replace(/<script[\s\S]*?<\/script>/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&[a-z]+;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+const text = flatten(html);
+
+/**
+ * The same page with marked examples removed — what the numbers rule reads (EPIC-016b).
+ *
+ * The home page carries pictures of the product, and a figure inside one is part of the picture
+ * rather than a claim about it. `example-surface.tsx` owns both the component and this function and
+ * carries the argument; `site-claims.test.tsx` applies the identical rule to the other six pages.
+ *
+ * **Every other guard in this file still reads the full text**, including the social-proof patterns
+ * below. A number in an illustration is sample data; a testimonial in an illustration is a
+ * testimonial.
+ */
+const textWithoutExamples = flatten(withoutExamples(html));
 
 describe("/", () => {
   it("leads with the failure, not the tool", () => {
@@ -84,6 +124,32 @@ describe("/", () => {
 const CUSTOMER_COUNT =
   /\b\d[\d,.]*\s*(?:\+|k\b|m\b)?\s*\b(?:companies|teams|engineers|developers|users|customers|prompts)/i;
 
+/**
+ * Every number on the page, justified.
+ *
+ * A counter is the easiest lie to add and the hardest to notice in review, because it looks like
+ * data. So the rule here is inverted: a digit that appears on this page has to be listed here with
+ * a reason, or the test fails and somebody has to say what it is.
+ *
+ * Module scope rather than inside the test, because EPIC-016b's mutation control below has to read
+ * the same list — a second copy would be a control that could pass against a list the rule does not
+ * use.
+ */
+const EXPLAINED_NUMBERS = new Map([
+  ["01", "step number in the three-step strip"],
+  ["02", "step number"],
+  ["03", "step number"],
+  ["41", "the product's name"],
+  ["100", "the input cap in KB — MAX_INPUT_BYTES, enforced in code"],
+  ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"],
+  ["2026", "the year in the footer's © line, which EPIC-056 added once there was a company to name"]
+]);
+
+/** A trailing full stop or comma is punctuation, not part of the number. */
+function numbersIn(value: string): string[] {
+  return (value.match(/\d[\d.,]*/g) ?? []).map((token) => token.replace(/[.,]+$/, ""));
+}
+
 describe("nothing on this page is a claim we cannot back", () => {
   it.each([
     ["trusted by", /trusted by/i],
@@ -136,18 +202,165 @@ describe("nothing on this page is a claim we cannot back", () => {
    * with a reason, or the test fails and somebody has to say what it is.
    */
   it("shows only numbers that are facts about the product", () => {
-    const allowed = new Map([
-      ["01", "step number in the three-step strip"],
-      ["02", "step number"],
-      ["03", "step number"],
-      ["41", "the product's name"],
-      ["100", "the input cap in KB — MAX_INPUT_BYTES, enforced in code"],
-      ["30", "the shared-link retention window in days — DECOMPILE_RETENTION_DAYS, enforced by the purge job"],
-      ["2026", "the year in the footer's © line, which EPIC-056 added once there was a company to name"]
-    ]);
-    const numbers = text.match(/\d[\d.,]*/g) ?? [];
-    for (const number of numbers) {
-      expect(allowed.has(number), `unexplained number "${number}" on the landing page`).toBe(true);
+    for (const number of numbersIn(textWithoutExamples)) {
+      expect(EXPLAINED_NUMBERS.has(number), `unexplained number "${number}" on the landing page`).toBe(true);
     }
+  });
+
+  /**
+   * **The marker earning its keep**, as a mutation rather than as a claim about one.
+   *
+   * The rule above reads the page with its marked examples removed, which is only safe because an
+   * *unmarked* figure fails it. This takes the marker off the first surface — exactly what deleting
+   * its `<Example>` wrapper would do to the markup — and asserts the rule then fires. Without this,
+   * the exclusion above is an exemption nobody has ever seen bite.
+   */
+  it("would fail if one surface lost its Example marker", () => {
+    const unmarked = html
+      .replace('<figure class="example" data-example="true">', "<div>")
+      .replace("</figure>", "</div>");
+    const unexplained = numbersIn(flatten(withoutExamples(unmarked))).filter(
+      (number) => !EXPLAINED_NUMBERS.has(number)
+    );
+    expect(unexplained.length, "removing a marker left every figure still explained").toBeGreaterThan(0);
+  });
+
+  /**
+   * **The example exclusion has to be doing something**, or the rule above is reading a page it
+   * thinks it has filtered and has not.
+   *
+   * This is the positive control for `withoutExamples` on *this* page specifically: the home page
+   * carries marked examples, so stripping them must change the text. The day it does not, either
+   * the examples are gone — in which case somebody should notice — or the stripper has stopped
+   * matching and every figure on the page is unchecked.
+   *
+   * `site-claims.test.tsx` proves the function's behaviour in both directions on a synthetic
+   * element. This proves it is wired to the real page.
+   */
+  it("actually strips the marked examples it claims to", () => {
+    expect(html).toContain('class="example"');
+    expect(textWithoutExamples.length).toBeLessThan(text.length);
+  });
+
+  /**
+   * And the other half: a marked example is not a way to smuggle social proof onto the page. The
+   * patterns above read the **full** text, so this asserts the projection they read is the full one.
+   */
+  it("keeps every other guard reading the whole page", () => {
+    expect(text).toContain("Example");
+  });
+});
+
+/**
+ * EPIC-016b: the mockup's home page, section by section.
+ *
+ * Four illustrative surfaces, a rotator, three sentences where three invented counters stood, and
+ * the Ask-AI chips. Each of these is a thing the epic says is on the page; none of them is a thing
+ * the two mechanical guards above would notice going missing.
+ */
+describe("the mockup's home page (EPIC-016b)", () => {
+  /** The caption of every marked surface. Each is required, and `what` is what makes the marker
+   *  say more than "this is not real". */
+  const SURFACES = [
+    "a prompt open in the editor",
+    "one suite, graded across three models",
+    "one model's output, and the check it failed",
+    "the same suite on three providers"
+  ] as const;
+
+  it.each(SURFACES)("marks '%s' as an example", (what) => {
+    expect(text).toContain(what);
+  });
+
+  it("marks each of them with a figure and a real caption, not a decorative word", () => {
+    // `<figure>`/`<figcaption>` is what puts "Example, <what>" in the accessibility tree next to
+    // the thing it describes. A styled `<span>` would look identical and announce nothing.
+    expect(html.match(/<figure class="example"/g) ?? []).toHaveLength(SURFACES.length);
+    expect(html.match(/example-caption/g) ?? []).toHaveLength(SURFACES.length);
+    expect(html.match(/class="example-mark">Example</g) ?? []).toHaveLength(SURFACES.length);
+  });
+
+  it("decodes entities rather than blanking them", () => {
+    // The control for `flatten`'s decode. `one model's output` is on the page and is the reason
+    // this was found: without the decode it reads as `one model&#x27;s output` and reports a 27.
+    expect(flatten("<p>a prompt&#x27;s checks &amp; nothing else</p>")).toBe("a prompt's checks & nothing else");
+    expect(text).toContain("one model's output");
+  });
+
+  describe("the capability rotator", () => {
+    it("is a real ARIA tablist, running down the page", () => {
+      // `docs/design/README.md`: the prototypes put `aria-selected` on plain buttons. A tablist
+      // with no tabs in it tells a screen reader there is something here and then hands it nothing.
+      expect(html).toContain('role="tablist"');
+      expect(html).toContain('aria-orientation="vertical"');
+      expect(html.match(/role="tab"/g) ?? []).toHaveLength(5);
+      expect(html.match(/role="tabpanel"/g) ?? []).toHaveLength(5);
+      expect(html.match(/aria-selected="true"/g) ?? []).toHaveLength(1);
+      expect(html.match(/aria-controls="panel-/g) ?? []).toHaveLength(5);
+    });
+
+    it.each(["Import", "Compose", "Test", "Publish", "Deliver"])("carries the %s tab", (word) => {
+      expect(text).toContain(word);
+    });
+
+    it("does not ship the mockup's fifth word", () => {
+      // "Learn" teases nine in-product lessons that do not exist, and `lessons?` is denylisted.
+      expect(text).not.toMatch(/\bLearn\b/i);
+    });
+
+    it("would still catch the word if it came back", () => {
+      expect("Learn by breaking things").toMatch(/\bLearn\b/i);
+    });
+
+    it("builds every panel out of the claims registry", () => {
+      for (const id of [
+        "decompiler",
+        "diagnostics",
+        "blok-canvas",
+        "per-blok-compilation",
+        "expected-bloks-are-checks",
+        "judge-pinned",
+        "publish-is-a-release",
+        "gate-four-rows",
+        "resolve-never-waits",
+        "picks-up-in-thirty-seconds"
+      ]) {
+        expect(text, `the rotator dropped ${id}`).toContain(claim(id));
+      }
+    });
+  });
+
+  it("answers the mockup's three counters with three sentences from the registry", () => {
+    // 1,240,000 decompiled / 38% contain a contradiction / 4s to roll back. All three invented; a
+    // counter marked "example" has nothing left, so each is answered by a property instead.
+    for (const id of ["decompiler-no-account", "rules-without-checks", "undo"]) {
+      expect(text, `the proof row dropped ${id}`).toContain(claim(id));
+    }
+  });
+
+  it("offers the Ask-AI chips, and shows the question each one will send", () => {
+    expect(html.match(/class="ask-chip"/g) ?? []).toHaveLength(3);
+    expect(text).toContain("Why does it matter which line failed?");
+    expect(text).toContain("Why compare models this way?");
+    expect(text).toContain("What would this catch in CI?");
+  });
+
+  it("gives the shot a Replay that is a button, not a link", () => {
+    expect(html).toMatch(/<button[^>]*class="shot-replay"[^>]*>Replay<\/button>/);
+  });
+
+  /**
+   * The registry denylist, over the **rendered page** rather than over the registry.
+   *
+   * `claims.test.ts` proves no entry in `claims.ts` matches one of these. That says nothing about a
+   * heading, a caption or the word on a tab, none of which goes through the registry — and this
+   * epic added eleven of those. `not-true-yet.ts` is the one list both read.
+   */
+  it.each(NOT_TRUE_YET)("says nothing about %s", (_name, pattern) => {
+    expect(text).not.toMatch(pattern);
+  });
+
+  it.each(NOT_TRUE_YET_CONTROLS)("would still catch %s", (mockupSentence, pattern) => {
+    expect(mockupSentence).toMatch(pattern);
   });
 });

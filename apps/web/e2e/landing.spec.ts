@@ -501,3 +501,199 @@ test.describe("the landing nav follows the session", () => {
     }
   });
 });
+
+/**
+ * EPIC-016b: the home page's illustrative sections, the rotator, and what reduced motion shows.
+ *
+ * `page.test.tsx` reads the server's markup, which is where the `Example` markers, the ARIA and the
+ * copy are settled. What it cannot see is the half of this epic that only exists in a browser: an
+ * animation that runs, a timer that advances, a sweep that finishes, and the same page with
+ * `prefers-reduced-motion` on.
+ *
+ * **Every reduced-motion assertion is about the end state, not about stillness.** A page that
+ * rendered its rows invisible and then refused to animate them would pass "nothing moved" and be
+ * broken. So each one asserts the finished value — the row opaque, the meter at its width, the
+ * sweep full, the rotator on a panel — *and* that nothing is animating.
+ */
+test.describe("the home page's illustrative sections", () => {
+  const PHONE_390 = { width: 390, height: 844 };
+
+  test("marks every illustrative surface as an example, in the accessibility tree", async ({ page }) => {
+    await page.goto("/");
+    // `<figure>` + `<figcaption>`, so "Example, <what>" is announced with the thing it describes
+    // rather than being a styled word beside it.
+    const figures = page.locator("figure.example");
+    await expect(figures).toHaveCount(4);
+    for (const what of [
+      "a prompt open in the editor",
+      "one suite, graded across three models",
+      "one model's output, and the check it failed",
+      "the same suite on three providers"
+    ]) {
+      await expect(page.locator("figure.example figcaption", { hasText: what })).toHaveCount(1);
+    }
+  });
+
+  test.describe("the capability rotator", () => {
+    test("advances on its own, and stops when the reader picks a tab", async ({ page }) => {
+      await page.goto("/");
+      const tabs = page.getByRole("tab");
+      await expect(tabs).toHaveCount(5);
+      await expect(page.getByRole("tab", { name: "Import" })).toHaveAttribute("aria-selected", "true");
+
+      // One cycle is 5s. Give it a cycle and a bit rather than polling, because what is being
+      // asserted is that the timer exists at all.
+      await expect
+        .poll(async () => page.getByRole("tab", { name: "Import" }).getAttribute("aria-selected"), { timeout: 9_000 })
+        .toBe("false");
+
+      // Now take it over. The criterion is "stops on click": a strip that carried on would take
+      // the panel away from somebody five seconds after they chose it.
+      await page.getByRole("tab", { name: "Publish" }).click();
+      await expect(page.getByRole("tab", { name: "Publish" })).toHaveAttribute("aria-selected", "true");
+      await page.waitForTimeout(7_000);
+      await expect(page.getByRole("tab", { name: "Publish" })).toHaveAttribute("aria-selected", "true");
+    });
+
+    test("is a vertical tablist the keyboard can work", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto("/");
+      // Take it over first, so the timer cannot move the selection underneath the assertions.
+      await page.getByRole("tab", { name: "Import" }).click();
+      const list = page.getByRole("tablist", { name: "What the platform does" });
+      await expect(list).toHaveAttribute("aria-orientation", "vertical");
+
+      // One tab stop for the whole list: the four unselected tabs are not in the tab order.
+      await expect(page.locator('[role="tab"][tabindex="0"]')).toHaveCount(1);
+
+      await page.keyboard.press("ArrowDown");
+      await expect(page.getByRole("tab", { name: "Compose" })).toBeFocused();
+      await expect(page.getByRole("tab", { name: "Compose" })).toHaveAttribute("aria-selected", "true");
+
+      await page.keyboard.press("End");
+      await expect(page.getByRole("tab", { name: "Deliver" })).toBeFocused();
+      await expect(page.getByRole("tabpanel")).toContainText("Your application reads it at runtime");
+
+      await page.keyboard.press("Home");
+      await expect(page.getByRole("tab", { name: "Import" })).toBeFocused();
+
+      // The mockup's fifth tab. There are no lessons, and `lessons?` is denylisted.
+      await expect(page.getByRole("tab", { name: "Learn" })).toHaveCount(0);
+    });
+
+    test("shows exactly one panel, and it is the selected tab's", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("tab", { name: "Test" }).click();
+      await expect(page.getByRole("tabpanel")).toHaveCount(1);
+      await expect(page.getByRole("tabpanel")).toContainText("Say what it has to do");
+    });
+  });
+
+  test("Replay restarts the shot's walk", async ({ page }) => {
+    await page.goto("/");
+    const span = page.locator('.shot .shot-span[data-b="b4"]');
+    // The walk is a CSS animation the server renders already running, so there is one to read.
+    const before = await span.evaluate((el) => el.getAnimations().length);
+    expect(before).toBe(1);
+
+    // Let the walk finish, which is when somebody actually reaches for `Replay`. **Not a comparison
+    // of two clock readings**: the last pair's animation ends about three seconds in, so "the second
+    // number is smaller" is a race against how long the assertions above took. What is asserted is
+    // what the control claims — after the click there is a walk again, and it is at its beginning.
+    await page.waitForTimeout(3_200);
+
+    await page.getByRole("button", { name: "Replay" }).click();
+    await expect
+      .poll(async () => span.evaluate((el) => Number(el.getAnimations()[0]?.currentTime ?? -1)), { timeout: 3_000 })
+      .toBeLessThan(500);
+    expect(await span.evaluate((el) => el.getAnimations().length)).toBe(1);
+  });
+
+  test.describe("prefers-reduced-motion shows the end of each animation", () => {
+    test.use({ reducedMotion: "reduce" });
+
+    test("the rows are landed, the meters are full, and nothing is animating", async ({ page }) => {
+      await page.goto("/");
+      const rows = page.locator(".run-demo tbody tr");
+      await expect(rows).toHaveCount(5);
+
+      const state = await page.locator(".run-demo").evaluate((table) => {
+        const rowEls = [...table.querySelectorAll("tbody tr")];
+        return {
+          animations: rowEls.reduce((n, row) => n + row.getAnimations().length, 0),
+          meterAnimations: [...table.querySelectorAll(".meter-fill")].reduce((n, m) => n + m.getAnimations().length, 0),
+          // Landed means "no offset left", which is the end of `row-in`. Opacity is not part of
+          // that animation — `landing.css` says why it must not be.
+          transforms: rowEls.map((row) => getComputedStyle(row).transform),
+          // The first row's check passed everything, so its meter fills its track.
+          firstMeter: Math.round(
+            (table.querySelector(".meter-fill")?.getBoundingClientRect().width ?? 0) * 100 /
+              Math.max(1, table.querySelector(".meter-track")?.getBoundingClientRect().width ?? 1)
+          )
+        };
+      });
+      expect(state.animations, "a row was still animating under reduced motion").toBe(0);
+      expect(state.meterAnimations, "a meter was still animating under reduced motion").toBe(0);
+      expect(new Set(state.transforms), "a row was left offset under reduced motion").toEqual(new Set(["none"]));
+      // Landed, not skipped: the meter is at its value, not at zero.
+      expect(state.firstMeter).toBeGreaterThanOrEqual(95);
+    });
+
+    test("the shot is at rest and the walk is off", async ({ page }) => {
+      await page.goto("/");
+      const running = await page
+        .locator(".shot")
+        .evaluate((shot) => [...shot.querySelectorAll("[data-b]")].reduce((n, el) => n + el.getAnimations().length, 0));
+      expect(running).toBe(0);
+      // Both panes are complete; the picture is finished, it simply did not move to get there.
+      await expect(page.locator(".shot .shot-span")).toHaveCount(4);
+      await expect(page.locator(".shot .shot-blok")).toHaveCount(5);
+      // A Replay that replays nothing is worse than no Replay.
+      await expect(page.getByRole("button", { name: "Replay" })).toHaveCount(0);
+    });
+
+    test("the rotator sits on a panel with its indicator finished, and does not advance", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto("/");
+      const selected = page.locator('[role="tab"][aria-selected="true"]');
+      await expect(selected).toHaveCount(1);
+      await expect(page.getByRole("tabpanel")).toBeVisible();
+
+      const sweep = await selected.evaluate((tab) => {
+        const mark = tab.querySelector(".rot-sweep");
+        return {
+          animations: mark?.getAnimations().length ?? -1,
+          ratio: Math.round(
+            ((mark?.getBoundingClientRect().width ?? 0) / Math.max(1, tab.getBoundingClientRect().width)) * 100
+          )
+        };
+      });
+      expect(sweep.animations, "the sweep was animating under reduced motion").toBe(0);
+      // Its end state is a finished sweep, which is also what a stopped rotator shows.
+      expect(sweep.ratio).toBeGreaterThanOrEqual(99);
+
+      await page.waitForTimeout(7_000);
+      await expect(page.getByRole("tab", { name: "Import" })).toHaveAttribute("aria-selected", "true");
+    });
+  });
+
+  test("does not scroll sideways at 390px, and every new control clears 44px", async ({ page }) => {
+    await page.setViewportSize(PHONE_390);
+    await page.goto("/");
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE_390.width);
+
+    for (const locator of [
+      page.getByRole("button", { name: "Replay" }),
+      page.getByRole("tab", { name: "Import" }),
+      page.getByRole("tab", { name: "Deliver" }),
+      page.getByRole("button", { name: "Why does it matter which line failed?" })
+    ]) {
+      const box = await locator.boundingBox();
+      expect(box, "element must be laid out").not.toBeNull();
+      expect(
+        box!.height,
+        `${await locator.evaluate((el) => el.className)} is under the 44px minimum`
+      ).toBeGreaterThanOrEqual(44);
+    }
+  });
+});

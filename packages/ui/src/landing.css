@@ -773,7 +773,12 @@ a.logo {
 
 .site-two {
   display: grid;
-  grid-template-columns: 1fr;
+  /* `minmax(0, 1fr)` and not `1fr`, in **both** templates. A bare `1fr` is `minmax(auto, 1fr)`,
+     whose minimum is the track's min-content — so one `.data-table` with its 480px `min-width`
+     inside a column makes the column 480px wide and the whole page scroll sideways at 390px.
+     EPIC-016b put the provider comparison here and found it; the two-column template below always
+     had the right form. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-s6);
   align-items: start;
 }
@@ -960,4 +965,510 @@ a.logo {
 .site-row-body .legal-list li,
 .site-row-key {
   overflow-wrap: anywhere;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════
+   The home page's illustrative sections (EPIC-016b).
+
+   The mockup draws these as though they were the product; they are pictures of it, and the
+   `Example` marker says so in the accessibility tree as well as on screen. `example-surface.tsx`
+   carries why that marker is a mechanism rather than a caption.
+   ══════════════════════════════════════════════════════════════════════════════════════════════ */
+
+.example {
+  margin: 0;
+}
+
+/* The caption is above the figure, not below it: somebody should know this is an illustration
+   before they read the numbers in it, not after. */
+.example-caption {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s2);
+  margin-bottom: var(--spacing-s2);
+}
+
+.example-mark {
+  border: var(--border-hairline) solid var(--color-ink-3);
+  color: var(--color-ink-2);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.example-what {
+  color: var(--color-ink-3);
+  font-size: 12.5px;
+}
+
+/* ── the product shot ──────────────────────────────────────────────────────────────────────── */
+
+.shot {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset-xl) var(--shadow-offset-xl) 0 var(--color-plate);
+  overflow: hidden;
+}
+
+.shot-bar {
+  align-items: center;
+  background: var(--color-sunken);
+  border-bottom: var(--border-ink) solid var(--color-ink);
+  display: flex;
+  gap: var(--spacing-s2);
+  padding: 8px 12px;
+}
+
+.shot-dots {
+  display: flex;
+  gap: 5px;
+}
+.shot-dots i {
+  border: var(--border-hairline) solid var(--color-ink);
+  display: block;
+  height: 9px;
+  width: 9px;
+}
+
+.shot-url {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.shot-split {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .shot-split {
+    grid-template-columns: 1.05fr 1fr;
+  }
+}
+
+.shot-pane {
+  min-width: 0;
+  padding: var(--spacing-s3);
+}
+.shot-pane + .shot-pane {
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 900px) {
+  .shot-pane + .shot-pane {
+    border-left: var(--border-hairline) solid var(--color-line);
+    border-top: 0;
+  }
+}
+
+.shot-panetitle {
+  color: var(--color-ink-3);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0 0 var(--spacing-s2);
+  text-transform: uppercase;
+}
+
+.shot-compiled {
+  background: var(--color-sunken);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--spacing-s3);
+  white-space: pre-wrap;
+}
+
+.shot-bloks {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.shot-blok {
+  border: var(--border-hairline) solid var(--color-line);
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.shot-blok .tag {
+  justify-self: start;
+}
+
+.shot-blok-text {
+  font-size: 13px;
+}
+
+/* ── the run demo, and the provider comparison ─────────────────────────────────────────────── */
+
+.run-demo-rate {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* The bar is decoration under the figure, never instead of it (rule 10). */
+.run-demo .meter-track {
+  display: block;
+  margin-top: 3px;
+  min-width: 70px;
+}
+
+.data-table tbody tr[data-worst="true"] td:first-child {
+  font-weight: 700;
+}
+
+/* ── attribution ───────────────────────────────────────────────────────────────────────────── */
+
+.home-h2 {
+  font-size: clamp(24px, 3.4vw, 34px);
+  letter-spacing: -0.035em;
+  margin: var(--spacing-s3) 0 var(--spacing-s4);
+}
+
+.home-bullets {
+  display: grid;
+  gap: var(--spacing-s3);
+  list-style: none;
+  margin: var(--spacing-s5) 0 0;
+  padding: 0;
+}
+
+.home-bullets li {
+  border-top: var(--border-hairline) solid var(--color-line-2);
+  color: var(--color-ink-2);
+  font-size: 13.5px;
+  padding-top: var(--spacing-s3);
+}
+
+.home-output {
+  background: var(--color-sunken);
+  border: var(--border-hairline) solid var(--color-line);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--spacing-s3);
+  white-space: pre-wrap;
+}
+
+.home-failing-check {
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  display: grid;
+  gap: var(--spacing-s2);
+  justify-items: start;
+  margin-top: var(--spacing-s4);
+  padding: var(--spacing-s3);
+}
+
+.home-failing-check p {
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.home-failing-meta {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+/* ── the product shot: the walk, and the hover link ────────────────────────────────────────────
+
+   The mockup wires both of these with JavaScript — an IntersectionObserver that steps through the
+   spans, and a `mouseenter` handler per element. Neither needs to be. The walk is one animation
+   with a delay computed from `--i`, and the link is `:has()`, which every browser this project
+   supports has had for two years. The whole thing costs no hydration; `shot-replay.tsx` is the one
+   piece that cannot be CSS, because restarting an animation is not a state CSS can be asked for.
+
+   **The resting style is the end state.** `shot-hl` returns each pair to rest, so reduced motion
+   showing nothing moving is the finished picture and not a skipped one. */
+
+.shot [data-b] {
+  --i: 0;
+}
+
+.shot-span {
+  border-radius: var(--radius-card);
+  padding: 1px 2px;
+  margin: 0 -2px;
+}
+
+.shot-playing [data-b] {
+  animation: shot-hl 900ms var(--ease-brand) calc(400ms + var(--i) * 420ms) 1;
+}
+
+@keyframes shot-hl {
+  0%,
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+  25%,
+  70% {
+    background: var(--color-sunken);
+    box-shadow: var(--shadow-offset-sm) var(--shadow-offset-sm) 0 var(--color-plate);
+  }
+}
+
+/* One rule per pair, because a CSS attribute selector cannot carry a value from one side of the
+   document to the other. Four pairs: the Expected blok has no span, which is the point it is
+   making. */
+.shot:has([data-b="b1"]:hover) [data-b="b1"],
+.shot:has([data-b="b2"]:hover) [data-b="b2"],
+.shot:has([data-b="b3"]:hover) [data-b="b3"],
+.shot:has([data-b="b4"]:hover) [data-b="b4"] {
+  background: var(--color-sunken);
+  border-color: var(--color-ink);
+}
+
+.shot-blok-note {
+  color: var(--color-ink-3);
+  font-size: 11.5px;
+}
+
+.shot-foot {
+  align-items: center;
+  border-top: var(--border-hairline) solid var(--color-line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
+  justify-content: space-between;
+  padding: 4px var(--spacing-s3);
+}
+
+.shot-foot-note {
+  color: var(--color-ink-3);
+  font-size: 12px;
+  margin: 0;
+}
+
+.shot-replay {
+  background: var(--color-surface);
+  border: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  min-height: 44px;
+  padding: 0 var(--spacing-s4);
+}
+
+.shot-replay:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+/* ── the run demo: rows land, meters fill ──────────────────────────────────────────────────────
+
+   `backwards` is the whole trick. The animation's `from` is the state before it lands, so during
+   its delay the row shows that; afterwards it shows the style it already had. Nothing has to be
+   put back, and switching the animation off leaves a landed row and a full meter. */
+
+.run-demo tbody tr {
+  --i: 0;
+  animation: row-in 520ms var(--ease-brand) calc(var(--i) * 150ms) backwards;
+}
+
+/**
+ * **It moves and it does not fade**, and that is not a taste call.
+ *
+ * The first version animated `opacity` from 0 as well, and axe's colour-contrast rule failed the
+ * dark theme on the fourth row: it sampled the page mid-animation, where a part-faded figure
+ * genuinely is under 4.5:1. The text reaching full contrast a moment later does not make the
+ * measurement wrong, and a gate that depends on when it happens to look is worse than no gate. A
+ * row that slides into place has the same effect and is never low-contrast at any frame.
+ */
+@keyframes row-in {
+  from {
+    transform: translateY(10px);
+  }
+}
+
+.run-demo .meter-fill {
+  animation: meter-go 900ms var(--ease-brand) calc(260ms + var(--i) * 150ms) backwards;
+}
+
+@keyframes meter-go {
+  from {
+    width: 0;
+  }
+}
+
+/* ── the capability rotator ────────────────────────────────────────────────────────────────────
+
+   `Tabs` renders the tablist and then one visible panel; the hidden ones are `display: none` and
+   are therefore not grid items, so this is always a two-cell grid whichever tab is selected. */
+
+.rot {
+  margin-top: var(--spacing-s6);
+}
+
+.rot-tabs {
+  display: grid;
+  gap: var(--spacing-s5);
+  /* `minmax(0, …)` for the reason spelled out on `.site-two`: the tab strip scrolls sideways on a
+     phone, and a track sized to its min-content would widen the page instead. */
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 940px) {
+  .rot-tabs {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+/* The shared strip runs across and rules itself off underneath; this one runs down. */
+.rot .tabs-list {
+  border-bottom: 0;
+  flex-direction: row;
+  overflow-x: auto;
+}
+@media (min-width: 940px) {
+  .rot .tabs-list {
+    flex-direction: column;
+    overflow-x: visible;
+  }
+}
+
+.rot .tab {
+  border-bottom: 0;
+  min-height: 44px;
+  padding: 0 var(--spacing-s4);
+  position: relative;
+  text-align: left;
+}
+@media (min-width: 940px) {
+  .rot .tab {
+    border-left: 3px solid transparent;
+    justify-content: flex-start;
+  }
+}
+
+.rot .tab[aria-selected="true"] {
+  background: var(--color-sunken);
+  color: var(--color-ink);
+}
+@media (min-width: 940px) {
+  .rot .tab[aria-selected="true"] {
+    border-left-color: var(--color-ink);
+  }
+}
+
+/* The sweep. Full width at rest, which is where a five-second sweep ends — so a stopped rotator
+   and a reduced-motion rotator both show a finished indicator rather than an empty one. */
+.rot-sweep {
+  background: var(--color-ink);
+  bottom: 0;
+  height: 3px;
+  left: 0;
+  position: absolute;
+  width: 0;
+}
+
+.rot .tab[aria-selected="true"] .rot-sweep {
+  width: 100%;
+}
+
+.rot[data-cycling="true"] .tab[aria-selected="true"] .rot-sweep {
+  animation: rot-sweep 5s linear forwards;
+}
+
+@keyframes rot-sweep {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.rot .tab-panel {
+  background: var(--color-surface);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  min-height: 240px;
+}
+
+.rot-body {
+  padding: var(--spacing-s5);
+}
+
+.rot-body h3 {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--spacing-s3);
+}
+
+.rot-body p {
+  color: var(--color-ink-2);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-s3);
+  max-width: 62ch;
+}
+
+.rot-body p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── what stands where the mockup's counters stood ────────────────────────────────────────────── */
+
+.home-proof-list {
+  display: grid;
+  gap: 0;
+  grid-template-columns: 1fr;
+  list-style: none;
+  margin: var(--spacing-s6) 0 0;
+  padding: 0;
+  border-top: var(--border-hairline) solid var(--color-line);
+}
+@media (min-width: 940px) {
+  .home-proof-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.home-proof-list li {
+  border-bottom: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  font-size: 14px;
+  line-height: 1.6;
+  padding: var(--spacing-s5);
+}
+@media (min-width: 940px) {
+  .home-proof-list li {
+    border-right: var(--border-hairline) solid var(--color-line);
+  }
+  .home-proof-list li:last-child {
+    border-right: 0;
+  }
+}
+
+/* ── reduced motion: the end of each of these, never a skipped frame ───────────────────────────
+
+   `docs/design/README.md`: reduced motion collapses every animation to its end state. Each of the
+   four below was written so that its end state is the element's ordinary resting style, which is
+   why this block is four `animation: none` declarations and not four sets of overrides. The one
+   thing that is removed rather than stilled is `Replay`, because it would replay nothing. */
+@media (prefers-reduced-motion: reduce) {
+  .shot-playing [data-b],
+  .run-demo tbody tr,
+  .run-demo .meter-fill,
+  .rot[data-cycling="true"] .tab[aria-selected="true"] .rot-sweep {
+    animation: none;
+  }
+
+  /* The note stays: it says what the picture shows, which matters more when nothing moves. */
+  .shot-replay {
+    display: none;
+  }
 }

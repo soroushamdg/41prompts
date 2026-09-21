@@ -2,6 +2,9 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_CLAIMS, CLAIMS, claim, type Claim } from "./claims";
+// The denylist moved to its own module in EPIC-016b so the home page could read the same one —
+// `not-true-yet.ts` carries the argument.
+import { NOT_TRUE_YET, NOT_TRUE_YET_CONTROLS } from "./not-true-yet";
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..", "..");
 
@@ -49,28 +52,6 @@ describe("every claim points at code a reader can check", () => {
   });
 });
 
-/**
- * The things `docs/design/41prompts-full-mockup.html` says and the product does not do.
- *
- * Each pattern was read off the mockup, not imagined: SOC 2 Type I "underway"; nine lessons; a
- * shared blok library; SSO/SAML; roles and an audit trail; retention "per project"; per-seat
- * prices; a second co-founder; three open positions. The mockup is the spec for the interface
- * (`docs/design/README.md`) and not for what is true about the company.
- */
-const NOT_TRUE_YET: readonly (readonly [string, RegExp])[] = [
-  ["a compliance certification", /\bSOC\s*2\b|\bISO\s*27001\b|\bHIPAA\b|\bFedRAMP\b/i],
-  ["lessons", /\blessons?\b/i],
-  ["a per-seat price", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i],
-  ["single sign-on", /\bSSO\b|\bSAML\b|\bSCIM\b/i],
-  ["roles or an audit trail", /\brole-based\b|\baudit (?:trail|log)\b/i],
-  ["a shared library", /\bshared blok library\b/i],
-  ["per-project retention control", /\b(?:retention|retained|kept|redacted|dropped)\b[^.]*\bper project\b/i],
-  ["a team", /\bco-founders?\b|\bour team\b|\bwe are hiring\b/i],
-  ["a customer count", /\b\d[\d,.]*\s*(?:\+|k\b|m\b)?\s*\b(?:companies|teams|engineers|developers|users|customers)\b/i],
-  ["an award", /\b#1\b|\baward\b|\bbest[- ]in[- ]class\b|\bmarket[- ]leading\b/i],
-  ["a trust badge", /\btrusted by\b|\bused by\b|\bloved by\b/i]
-];
-
 describe("no claim asserts something that is not built", () => {
   const everything = ALL_CLAIMS.map((entry) => entry.text).join("\n");
 
@@ -83,17 +64,7 @@ describe("no claim asserts something that is not built", () => {
    * sentences. If a pattern is ever narrowed until it matches nothing, one of these stops matching
    * and this fails first.
    */
-  it.each([
-    ["SOC 2 in progress. Type I underway.", /\bSOC\s*2\b/i],
-    ["Nine lessons. All of them run in the product.", /\blessons?\b/i],
-    ["$29 per seat / month", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i],
-    ["SSO / SAML", /\bSSO\b|\bSAML\b/i],
-    ["Roles and audit log", /\baudit (?:trail|log)\b/i],
-    ["Shared blok library", /\bshared blok library\b/i],
-    ["Run payloads can be kept, redacted or dropped per project.", /\b(?:retention|retained|kept|redacted|dropped)\b[^.]*\bper project\b/i],
-    ["Co-founder. Engineering.", /\bco-founders?\b/i],
-    ["Trusted by 1,200 teams", /\btrusted by\b/i]
-  ])("would still catch %s", (mockupSentence, pattern) => {
+  it.each(NOT_TRUE_YET_CONTROLS)("would still catch %s", (mockupSentence, pattern) => {
     expect(mockupSentence).toMatch(pattern);
   });
 
