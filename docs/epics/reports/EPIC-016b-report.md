@@ -223,7 +223,43 @@ node scripts/gates.mjs ci   — see §6.1
 
 ### 6.1 `node scripts/gates.mjs ci`
 
-<!-- GATE RESULT -->
+**Green on `2378347`, the commit that carries this report. 17 steps, all passed, 13m19s.**
+
+```
+  checkout      git clone + checkout 2378347d       PASS   0m01s
+  ci.yml        pnpm install --frozen-lockfile      PASS   0m09s
+                pnpm lint                           PASS   0m29s
+                pnpm typecheck                      PASS   1m19s
+                pnpm db:migrate                     PASS   0m03s
+                pnpm test                           PASS   1m10s
+                playwright install chromium         PASS   0m01s
+                pnpm e2e                            PASS   8m06s   4 test(s) skipped on darwin
+                uv run pytest -q (sdks/python)      PASS   0m28s
+  compliance    reuse lint                          PASS   0m04s
+                pnpm boundaries                     PASS   0m06s
+                turbo boundaries                    PASS   0m01s
+                pnpm forbidden-words                PASS   0m01s
+                pnpm binary-files                   PASS   0m01s
+                pnpm dead-code                      PASS   0m01s
+                license-gate --sbom                 PASS   0m02s
+                pnpm mirror-dry-run                 PASS   1m14s
+```
+
+**The run's closing block is part of the result, and one half of it is closed for this epic.** It
+prints two things a green here does not cover:
+
+1. *"the four visual-regression baselines are `-linux.png` and their specs skip here."* **Closed.**
+   Criterion 9: all four were run on Linux this session, in
+   `mcr.microsoft.com/playwright:v1.63.0-noble`, against the baselines this branch commits — two
+   regenerated because this epic rebuilt the page they photograph, two unchanged.
+2. *"the runner is slower than this machine; a test that only fails under load passes here."*
+   **Open, as always.** Worth naming here because this epic added time-dependent assertions: the
+   rotator's five-second cycle and `Replay`. Both are written as what the behaviour claims rather
+   than as two clock readings, for exactly that reason (§4.5), and the rotator's waits are 6.5s
+   against a 5s cycle.
+
+And the standing one, which is not the gate's to print: nothing is pushed, so GitHub Actions never
+sees this commit. **This run is not a rehearsal for a gate that follows it. It is the gate.**
 
 ## 7. The drive
 
