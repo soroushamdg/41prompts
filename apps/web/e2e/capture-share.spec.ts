@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { reservedColourOffenders } from "./reserved-colour";
 
 /**
  * Sharing, opening, removing and the waitlist.
@@ -267,19 +268,11 @@ test.describe("the shared page meets the same bar", () => {
     await decompile(page, PROMPT);
     const url = await share(page);
     await page.goto(url);
-    const offenders = await page.evaluate(() => {
-      const styles = getComputedStyle(document.documentElement);
-      const reserved = ["--color-pass", "--color-fail", "--color-warn"]
-        .flatMap((token) => [styles.getPropertyValue(token).trim(), styles.getPropertyValue(`${token}-soft`).trim()])
-        .filter(Boolean);
-      const bad: string[] = [];
-      for (const el of document.querySelectorAll<HTMLElement>(".decompile, .decompile *")) {
-        const computed = getComputedStyle(el);
-        for (const property of ["color", "backgroundColor", "borderTopColor"] as const) {
-          if (reserved.includes(computed[property])) bad.push(`${el.className}:${property}`);
-        }
-      }
-      return bad;
+    // Through `reserved-colour.ts` since EPIC-016c — the copy that stood here compared a hex token
+    // against a computed `rgb(…)` and could not match.
+    const offenders = await page.evaluate(reservedColourOffenders, {
+      selector: ".decompile, .decompile *",
+      properties: ["color", "backgroundColor", "borderTopColor"]
     });
     expect(offenders).toEqual([]);
   });
