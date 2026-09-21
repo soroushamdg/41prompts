@@ -44,14 +44,10 @@
      horizontally to read. */
   flex-wrap: wrap;
 }
-@media (min-width: 560px) {
-  .site-nav-inner {
-    flex-wrap: nowrap;
-  }
-}
-/* The controls keep their natural width. `white-space: nowrap` stops the word breaking; without
-   this the box shrinks under it instead and the word is clipped, which is the same defect wearing
-   a different shape — measured at 320px, where "Start free" was squeezed from 73px to 63px. */
+/* **The pair to `white-space: nowrap` below, and neither works without the other.** `nowrap` stops
+   the word breaking; `flex: none` stops the *box* shrinking under it, which would clip the word
+   instead — the same defect wearing a different shape. Measured at 320px, where "Start free" was
+   squeezed from its natural 73px to 63px. */
 .site-nav .btn,
 .site-nav .logo {
   flex: none;
@@ -73,6 +69,9 @@
   .site-nav-inner {
     gap: var(--spacing-s4);
     padding: var(--spacing-s3) var(--spacing-s5);
+    /* Above 560px the row has room to spare at every width, so nothing can wrap and the guard is
+       removed rather than left standing as a thing that might one day fire unnoticed. */
+    flex-wrap: nowrap;
   }
   .site-nav .btn-sm {
     padding: 6px 11px;
