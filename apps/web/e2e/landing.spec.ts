@@ -3,6 +3,7 @@ import { join } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { INDEXED_ROUTES, NOT_INDEXED_ROUTES } from "../lib/site/links";
+import { reservedColourOffenders } from "./reserved-colour";
 
 async function setTheme(page: Page, theme: "light" | "dark") {
   await page.evaluate((value) => document.documentElement.setAttribute("data-theme", value), theme);
@@ -277,24 +278,78 @@ test.describe("the landing page", () => {
       }
     });
 
-    test("uses no pass, fail or drift colour anywhere on the page", async ({ page }) => {
+    /**
+     * Reserved colour on the home page, narrowed in EPIC-016c from *nowhere* to *nowhere outside a
+     * marked example* — **Soroush's ruling, 2026-09-21**, and the headline decision of that epic.
+     *
+     * ## Why the guard was broader than the rule, and why that stopped being right
+     *
+     * `CLAUDE.md` rule 10: green, red and amber mean pass, fail and drift, and nothing else may use
+     * them. That is a rule about **meaning**. This guard read "nothing else may use them" as "this
+     * page may not use them", which was the same thing for as long as the home page carried no
+     * product data — EPIC-016 shipped a nav, a hero, a three-step strip and a footer, none of which
+     * has a verdict in it.
+     *
+     * EPIC-016c ends that. Two of the rotator's five panels are pictures of a suite result and of
+     * the publish gate, where green and red mean **exactly** pass and fail. Painting them in ink
+     * would not be obeying rule 10; it would be showing a verdict in a colour the product does not
+     * use for verdicts, on the page whose job is to show a reader what the product looks like.
+     *
+     * ## What still holds
+     *
+     * - **Outside a marked example, nothing changes.** The chrome, the copy, the headings, the run
+     *   demo's meters and the three-step strip are held to no reserved hue exactly as before, and
+     *   `reserved-colour.spec.ts` is the positive control that proves it rather than promising it.
+     * - **Colour is never the only signal.** Every badge in those two panels renders `StatusIcon`
+     *   beside its word and carries its own count; both gate rows carry a glyph and the word
+     *   "Stopped". That is rule 10's second sentence and it is not what was narrowed.
+     * - **A marked example is not a loophole for anything else.** `page.test.tsx`'s denylist —
+     *   `SOC 2`, `trusted by`, a customer count — still reads the full page, examples included.
+     *
+     * ## And the guard was not working at all
+     *
+     * It compared a hex token against a computed `rgb(…)` and could never match. It had been
+     * vacuously passing since EPIC-016, here and on three other routes. `reserved-colour.ts` has
+     * the whole account; this test now calls that one implementation.
+     */
+    test("uses no pass, fail or drift colour outside a marked example", async ({ page }) => {
       await page.goto("/");
-      const offenders = await page.evaluate(() => {
-        const reserved = ["--color-pass", "--color-fail", "--color-warn"];
-        const styles = getComputedStyle(document.documentElement);
-        const values = reserved
-          .flatMap((token) => [styles.getPropertyValue(token).trim(), styles.getPropertyValue(`${token}-soft`).trim()])
-          .filter(Boolean);
-        const bad: string[] = [];
-        for (const el of document.querySelectorAll<HTMLElement>("body *")) {
-          const computed = getComputedStyle(el);
-          for (const property of ["color", "backgroundColor", "borderTopColor", "borderBottomColor"] as const) {
-            if (values.some((value) => value && computed[property] === value)) bad.push(`${el.className}:${property}`);
-          }
-        }
-        return bad;
+      const offenders = await page.evaluate(reservedColourOffenders, {
+        selector: "body *",
+        properties: ["color", "backgroundColor", "borderTopColor", "borderBottomColor"],
+        exempt: "figure.example"
       });
       expect(offenders).toEqual([]);
+    });
+
+    /**
+     * And the exemption has to be reaching something, or the narrowing above is a change that does
+     * nothing and the two panels were never painted.
+     *
+     * This asserts the hue **is** there, inside a marked example, where the mockup puts it — so the
+     * day somebody tidies those badges back to ink, this fails rather than the page quietly losing
+     * the thing the ruling was about.
+     */
+    test("does paint pass and fail inside the rotator's marked examples", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("tab", { name: "Test" }).click();
+      const found = await page.evaluate(() => {
+        const probe = document.createElement("span");
+        document.body.append(probe);
+        const normalise = (declared: string) => {
+          probe.style.color = declared;
+          return getComputedStyle(probe).color;
+        };
+        const styles = getComputedStyle(document.documentElement);
+        const pass = normalise(styles.getPropertyValue("--color-pass").trim());
+        const fail = normalise(styles.getPropertyValue("--color-fail").trim());
+        probe.remove();
+        const inExamples = [...document.querySelectorAll<HTMLElement>("figure.example *")];
+        const colours = new Set(inExamples.map((el) => getComputedStyle(el).color));
+        return { pass: colours.has(pass), fail: colours.has(fail) };
+      });
+      expect(found.pass, "nothing inside a marked example is painted --color-pass").toBe(true);
+      expect(found.fail, "nothing inside a marked example is painted --color-fail").toBe(true);
     });
   });
 
@@ -523,36 +578,123 @@ test.describe("the home page's illustrative sections", () => {
     // `<figure>` + `<figcaption>`, so "Example, <what>" is announced with the thing it describes
     // rather than being a styled word beside it.
     const figures = page.locator("figure.example");
-    await expect(figures).toHaveCount(4);
+    // Nine since EPIC-016c: four on the page itself, and one inside each of the rotator's five
+    // panels. `Tabs` keeps all five panels in the DOM and hides four, so the count is nine while
+    // what a reader can see at any moment is five.
+    await expect(figures).toHaveCount(9);
     for (const what of [
       "a prompt open in the editor",
       "one suite, graded across three models",
       "one model's output, and the check it failed",
-      "the same suite on three providers"
+      "the same suite on three providers",
+      "a pasted prompt, split into bloks",
+      "two of the bloks that prompt is built from",
+      "the same checks on three models",
+      "the publish gate, with one row stopping it",
+      "an application resolving the published prompt"
     ]) {
       await expect(page.locator("figure.example figcaption", { hasText: what })).toHaveCount(1);
     }
   });
 
   test.describe("the capability rotator", () => {
-    test("advances on its own, and stops when the reader picks a tab", async ({ page }) => {
+    /**
+     * The rotator has to be **on screen** for any of these, since EPIC-016c gated the timer on an
+     * `IntersectionObserver`. Scrolling to it is therefore not setup noise — it is half of what
+     * each of these tests is about, and a test that forgot it would sit on Import forever and
+     * report a broken timer.
+     */
+    async function scrollToRotator(page: import("@playwright/test").Page) {
+      await page.getByRole("tablist", { name: "What the platform does" }).scrollIntoViewIfNeeded();
+      // The pointer starts at (0, 0) in a fresh context, which is nowhere near the rotator — but
+      // `scrollIntoViewIfNeeded` can leave it hovering after the scroll moves the element under it.
+      await page.mouse.move(0, 0);
+    }
+
+    test("advances on its own, and keeps advancing after the reader picks a tab", async ({ page }) => {
       await page.goto("/");
       const tabs = page.getByRole("tab");
       await expect(tabs).toHaveCount(5);
       await expect(page.getByRole("tab", { name: "Import" })).toHaveAttribute("aria-selected", "true");
+      await scrollToRotator(page);
 
-      // One cycle is 5s. Give it a cycle and a bit rather than polling, because what is being
+      // One cycle is 5s. Give it a cycle and a bit rather than polling fast, because what is being
       // asserted is that the timer exists at all.
       await expect
         .poll(async () => page.getByRole("tab", { name: "Import" }).getAttribute("aria-selected"), { timeout: 9_000 })
         .toBe("false");
 
-      // Now take it over. The criterion is "stops on click": a strip that carried on would take
-      // the panel away from somebody five seconds after they chose it.
+      // EPIC-016c, Soroush's ruling of 2026-09-21: the mockup restarts the cycle on a click and so
+      // does this. Clicking leaves focus on the tab, which *pauses* it — so the assertion is that
+      // the cycle comes back once focus and the pointer have left, which is the behaviour a reader
+      // actually experiences.
       await page.getByRole("tab", { name: "Publish" }).click();
       await expect(page.getByRole("tab", { name: "Publish" })).toHaveAttribute("aria-selected", "true");
+      await page.waitForTimeout(6_000);
+      await expect(
+        page.getByRole("tab", { name: "Publish" }),
+        "focus was still on the tab, so the cycle should have stayed put"
+      ).toHaveAttribute("aria-selected", "true");
+
+      // Blurred in place, **not** by clicking something else: `click()` scrolls its target into
+      // view, and clicking the hero would scroll the rotator off screen — where the visibility gate
+      // correctly stops the timer, so the test would be measuring the gate and calling it the
+      // restart. Found by writing it the obvious way first and watching it fail.
+      await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+      await page.mouse.move(0, 0);
+      await expect
+        .poll(async () => page.getByRole("tab", { name: "Publish" }).getAttribute("aria-selected"), { timeout: 9_000 })
+        .toBe("false");
+    });
+
+    test("pauses while the pointer is on it, and resumes when it leaves", async ({ page }) => {
+      await page.goto("/");
+      await scrollToRotator(page);
+      const selected = page.locator('[role="tab"][aria-selected="true"]');
+      const word = async () => (await selected.textContent()) ?? "";
+
+      await page.getByRole("tablist", { name: "What the platform does" }).hover();
+      const held = await word();
+      // Longer than a cycle. WCAG 2.2.2 wants a way to stop content that updates by itself, and
+      // hovering is it — a panel must not be taken away from somebody who is reading it.
       await page.waitForTimeout(7_000);
-      await expect(page.getByRole("tab", { name: "Publish" })).toHaveAttribute("aria-selected", "true");
+      expect(await word(), "the rotator advanced while the pointer was on it").toBe(held);
+
+      await page.mouse.move(0, 0);
+      await expect.poll(word, { timeout: 9_000 }).not.toBe(held);
+    });
+
+    /**
+     * The visibility gate, which is the departure EPIC-016b's report did not even record.
+     *
+     * Without it a reader who scrolls slowly down a twelve-section page arrives at a rotator that
+     * has been advancing for nobody and is three panels in. The assertion is written as the reader
+     * experiences it — scroll away, wait out more than a cycle, come back, and the selection has
+     * not moved — rather than by reading the observer back out of the component.
+     */
+    test("does not advance while it is off screen", async ({ page }) => {
+      await page.goto("/");
+      await scrollToRotator(page);
+      const selected = page.locator('[role="tab"][aria-selected="true"]');
+      const word = async () => (await selected.textContent()) ?? "";
+
+      // Prove the timer is alive here, so that "it did not move" below cannot be a dead rotator.
+      const first = await word();
+      await expect.poll(word, { timeout: 9_000 }).not.toBe(first);
+
+      const parked = await word();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.mouse.move(0, 0);
+      await page.waitForTimeout(7_000);
+      await scrollToRotator(page);
+      expect(await word(), "the timer ran while the rotator was off screen").toBe(parked);
+    });
+
+    test("a reader who has not scrolled to it yet finds it on Import", async ({ page }) => {
+      await page.goto("/");
+      // The rotator is far below the fold. Wait out more than two cycles without going near it.
+      await page.waitForTimeout(11_000);
+      await expect(page.getByRole("tab", { name: "Import" })).toHaveAttribute("aria-selected", "true");
     });
 
     test("is a vertical tablist the keyboard can work", async ({ page }) => {
@@ -585,8 +727,34 @@ test.describe("the home page's illustrative sections", () => {
       await page.goto("/");
       await page.getByRole("tab", { name: "Test" }).click();
       await expect(page.getByRole("tabpanel")).toHaveCount(1);
-      await expect(page.getByRole("tabpanel")).toContainText("Say what it has to do");
+      // The mockup's heading, restored in EPIC-016c — and it sits over the three model badges the
+      // mockup drew under it, which is the pairing EPIC-016b's rewrite broke.
+      await expect(page.getByRole("tabpanel")).toContainText("Test it on every model");
     });
+
+    /**
+     * Each panel's illustration, as a reader meets it: one at a time, each marked, each showing
+     * the product rather than describing it.
+     *
+     * The count is per panel rather than over the page, because "nine figures exist" is already
+     * asserted above and says nothing about *which* panel is missing one.
+     */
+    for (const [tab, what] of [
+      ["Import", "a pasted prompt, split into bloks"],
+      ["Compose", "two of the bloks that prompt is built from"],
+      ["Test", "the same checks on three models"],
+      ["Publish", "the publish gate, with one row stopping it"],
+      ["Deliver", "an application resolving the published prompt"]
+    ] as const) {
+      test(`the ${tab} panel shows an illustration, marked as one`, async ({ page }) => {
+        await page.goto("/");
+        await page.getByRole("tab", { name: tab }).click();
+        const panel = page.getByRole("tabpanel");
+        await expect(panel.locator("figure.example")).toHaveCount(1);
+        await expect(panel.locator("figcaption")).toContainText(what);
+        await expect(panel.locator(".rot-fig")).toBeVisible();
+      });
+    }
   });
 
   test("Replay restarts the shot's walk", async ({ page }) => {
@@ -675,12 +843,51 @@ test.describe("the home page's illustrative sections", () => {
       await page.waitForTimeout(7_000);
       await expect(page.getByRole("tab", { name: "Import" })).toHaveAttribute("aria-selected", "true");
     });
+
+    /**
+     * The panel's illustration under reduced motion: **complete and in place**, not absent.
+     *
+     * `docs/design/README.md` corrects the mockup on exactly this — its own reduced-motion rule is
+     * `animation: none` over a `width: 0` base, which shows nothing. Ours staggers with a transform
+     * whose resting value is the end state, so switching the animation off leaves the finished
+     * picture. Each of the three assertions below is one way that could go wrong: still animating,
+     * left offset, or faded out.
+     */
+    test("every panel's illustration is finished and in place, with nothing animating", async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto("/");
+      for (const tab of ["Import", "Compose", "Test", "Publish", "Deliver"] as const) {
+        await page.getByRole("tab", { name: tab }).click();
+        const state = await page.getByRole("tabpanel").evaluate((panel) => {
+          const items = [...panel.querySelectorAll<HTMLElement>(".rot-fig .pop")];
+          return {
+            count: items.length,
+            animations: items.reduce((n, el) => n + el.getAnimations().length, 0),
+            transforms: items.map((el) => getComputedStyle(el).transform),
+            opacities: items.map((el) => Number(getComputedStyle(el).opacity))
+          };
+        });
+        expect(state.count, `${tab} lost its illustration`).toBe(2);
+        expect(state.animations, `${tab} was still animating under reduced motion`).toBe(0);
+        expect(new Set(state.transforms), `${tab} was left offset under reduced motion`).toEqual(new Set(["none"]));
+        expect(Math.min(...state.opacities), `${tab} was left faded under reduced motion`).toBe(1);
+      }
+    });
   });
 
   test("does not scroll sideways at 390px, and every new control clears 44px", async ({ page }) => {
     await page.setViewportSize(PHONE_390);
     await page.goto("/");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE_390.width);
+
+    // And the panel itself, per panel. EPIC-016b's own defect was a grid track that made the page
+    // scroll sideways; five illustrations inside a fixed-width card is the same trap one level in,
+    // and a page-level `scrollWidth` check passes happily while a card scrolls on its own.
+    for (const tab of ["Import", "Compose", "Test", "Publish", "Deliver"] as const) {
+      await page.getByRole("tab", { name: tab }).click();
+      const overflow = await page.getByRole("tabpanel").evaluate((panel) => panel.scrollWidth - panel.clientWidth);
+      expect(overflow, `the ${tab} panel scrolls sideways at 390px`).toBeLessThanOrEqual(0);
+    }
 
     for (const locator of [
       page.getByRole("button", { name: "Replay" }),
