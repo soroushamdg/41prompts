@@ -102,8 +102,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     id: "stage-1",
     stage: "Stage 1",
     heading: "The decompiler, in public",
-    body: "Paste a prompt and get it back as named bloks mapped to your own text, with repetition, contradiction, untestable wording and rules nothing checks called out. No account, and nothing stored unless you ask for a link. The home page later grew to show the product itself — a prompt open in the editor, a suite graded across three models, and a failure resolving to the blok that owns it — with every illustration marked as one. Each step of the loop then got a picture of the screen it happens on, and the strip that walks through them waits while you read and stops while it is off screen.",
-    epics: ["EPIC-010", "EPIC-011a", "EPIC-011b", "EPIC-012a", "EPIC-012b", "EPIC-013", "EPIC-014", "EPIC-015", "EPIC-016", "EPIC-016b", "EPIC-016c", "EPIC-017"]
+    body: "Paste a prompt and get it back as named bloks mapped to your own text, with repetition, contradiction, untestable wording and rules nothing checks called out. No account, and nothing stored unless you ask for a link. The home page later grew to show the product itself — a prompt open in the editor, a suite graded across three models, and a failure resolving to the blok that owns it — with every illustration marked as one. Each step of the loop then got a picture of the screen it happens on, and the strip that walks through them waits while you read and stops while it is off screen. The nav now carries every page that exists, a question about the product can be handed to whichever assistant you already use, and every blok — on this page, in the decompiler and on the canvas — shows what kind it is by colour as well as by name.",
+    epics: ["EPIC-010", "EPIC-011a", "EPIC-011b", "EPIC-012a", "EPIC-012b", "EPIC-013", "EPIC-014", "EPIC-015", "EPIC-016", "EPIC-016b", "EPIC-016c", "EPIC-016d", "EPIC-017"]
   },
   {
     id: "stage-0",

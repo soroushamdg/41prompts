@@ -26,15 +26,58 @@
 .site-nav-inner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-s2);
-  padding: var(--spacing-s3) var(--spacing-s4);
+  /* **Measured, not chosen.** EPIC-016d put three bordered controls on this row — Theme, Sign in,
+     Start free — where there were two links and a button, and at 375px the row came to 386px
+     against 375 available. Every number below 560px is the smallest one that fits **320px**, which
+     is narrower than any viewport the suite drives and is the point: the assertion is at 375, and a
+     row that only just fits the width somebody tests is a row that overflows the next phone.
+     The full measurement is in EPIC-016d's report. */
+  gap: 6px;
+  padding: var(--spacing-s3);
   max-width: 1240px;
   margin: 0 auto;
+  /* **Wrapping is the failure mode, not scrolling.** At 375px this row fits with 36px to spare
+     (measured); below about 340px it does not, and the two ways to lose are a second row or a page
+     that scrolls sideways. BUG-069 rejected wrapping when it happened at 390px with four links —
+     that was a nav that wrapped on a phone anybody owns. This one cannot wrap above 340px, and
+     below it a taller nav is a great deal better than a marketing page you have to scroll
+     horizontally to read. */
+  flex-wrap: wrap;
+}
+/* **The pair to `white-space: nowrap` below, and neither works without the other.** `nowrap` stops
+   the word breaking; `flex: none` stops the *box* shrinking under it, which would clip the word
+   instead — the same defect wearing a different shape. Measured at 320px, where "Start free" was
+   squeezed from its natural 73px to 63px. */
+.site-nav .btn,
+.site-nav .logo {
+  flex: none;
+}
+/* Narrower than the default `.btn-sm`, and only inside the nav. A button's padding is how far its
+   edge sits from its word; 9px still leaves the word room and the 46px floor below is what makes
+   the target big enough to hit. */
+.site-nav .btn-sm {
+  padding: 6px 9px;
+}
+/* The wordmark scales from one length, so one declaration shrinks the whole mark — and at 122px
+   it was the single widest thing on the row. `site-chrome.tsx` passes `LogoMark` no `size` for
+   exactly this: `size` is written as an inline custom property and an inline property cannot be
+   answered by a media query. */
+.site-nav .logo {
+  --logo-size: 17px;
 }
 @media (min-width: 560px) {
   .site-nav-inner {
     gap: var(--spacing-s4);
     padding: var(--spacing-s3) var(--spacing-s5);
+    /* Above 560px the row has room to spare at every width, so nothing can wrap and the guard is
+       removed rather than left standing as a thing that might one day fire unnoticed. */
+    flex-wrap: nowrap;
+  }
+  .site-nav .btn-sm {
+    padding: 6px 11px;
+  }
+  .site-nav .logo {
+    --logo-size: 20px;
   }
 }
 .site-nav-spacer {
@@ -71,10 +114,18 @@
     padding: var(--spacing-s8) 0 var(--spacing-s7);
   }
 }
-/* The headline is the page. It sets its own scale rather than inheriting `h1` so the three
-   sentences stay three readable beats at 375px instead of one grey block. */
+/* The mockup's `.hero .kick`. */
+.hero .eyebrow {
+  margin-bottom: var(--spacing-s4);
+}
+/* The headline is the page. It sets its own scale rather than inheriting `h1` so it stays readable
+   beats at 375px instead of one grey block.
+
+   **`16ch` is the mockup's**, and it arrived with the mockup's headline in EPIC-016d. EPIC-016's
+   sentence was three clauses and 66 characters, which needed `20ch` to break into three lines;
+   "Stop guessing which prompt works." is 33 and wants the tighter measure the mockup draws. */
 .hero h1 {
-  max-width: 20ch;
+  max-width: 16ch;
   font-size: clamp(28px, 6.4vw, 54px);
   line-height: 1.04;
 }
@@ -151,9 +202,119 @@
   color: var(--color-ink-3);
   min-width: 0;
 }
+/* The mockup's `No credit card` pill, which it draws in the hero's CTA row. The paste box stands
+   where that row does, so the pill stands in its foot — beside the note that is already the
+   sentence about what this costs you. `.pill-dot` inherits ink: the mockup paints it `--pass`, and
+   green means pass. */
+.askbar-pill {
+  flex: none;
+}
+.askbar-pill .pill-dot {
+  background: var(--color-ink-3);
+}
 .askbar-foot .btn {
   margin-left: auto;
   min-height: 46px;
+}
+
+/* ───────────────────── the hero's second call to action ───────────────────── */
+
+.hero-cta {
+  display: flex;
+  gap: var(--spacing-s3);
+  margin-top: var(--spacing-s5);
+  flex-wrap: wrap;
+  align-items: center;
+}
+.hero-cta .btn {
+  min-height: 46px;
+}
+
+/* ──────────────────────────── the Ask-AI bar ──────────────────────────── */
+
+/* The mockup's `.askbar`, under a different name because `.askbar` here is the paste box — which
+   predates it and is the page's own action. Ported rule for rule: a bordered prefix, a flush
+   field, and a solid `Ask →` against the ink. */
+.askai {
+  display: flex;
+  align-items: stretch;
+  margin-top: var(--spacing-s6);
+  max-width: 640px;
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+  transition:
+    box-shadow 0.18s var(--ease-brand),
+    transform 0.18s var(--ease-brand);
+}
+.askai:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-offset-lg) var(--shadow-offset-lg) 0 var(--color-plate);
+}
+@media (prefers-reduced-motion: reduce) {
+  .askai {
+    transition: none;
+  }
+}
+.askai-prefix {
+  display: grid;
+  place-items: center;
+  flex: none;
+  padding: 0 var(--spacing-s3);
+  border-right: var(--border-ink) solid var(--color-ink);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.askai-field {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 15px;
+  padding: 13px 12px;
+  outline: none;
+}
+.askai-field::placeholder {
+  color: var(--color-ink-3);
+}
+/* 46px rather than 44 exactly: EPIC-013 shipped a 43.99998px rect by sitting on the line. */
+.askai-go {
+  flex: none;
+  min-height: 46px;
+  padding: 0 var(--spacing-s4);
+  border: 0;
+  border-left: var(--border-ink) solid var(--color-ink);
+  background: var(--color-ink);
+  color: var(--color-bg);
+  font: inherit;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+/* The four suggestion chips under the bar. The mockup draws them smaller and quieter than the
+   chips beside a section heading, so this narrows `.ask-chiprow` rather than replacing it. */
+.asksugg {
+  margin-top: var(--spacing-s3);
+  max-width: 640px;
+  gap: 6px;
+}
+.asksugg .ask-chip {
+  min-height: 44px;
+  padding: 0 var(--spacing-s3);
+  border: var(--border-hairline) solid var(--color-line);
+  color: var(--color-ink-2);
+  font-size: 12.5px;
+}
+.asksugg .ask-chip:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
 }
 
 /* ──────────────────────────── three steps ──────────────────────────── */
@@ -228,6 +389,14 @@
 .cta-band-link,
 .site-nav .btn {
   min-height: 46px;
+}
+/* **`nowrap`, for the reason `.site-nav-link` already carries it.** At 375px "Sign in" broke across
+   two lines inside its own button — the button was 59px wide and its word needed 66 — which made it
+   52px tall against the 46px of everything beside it and put the nav on two visual rows. EPIC-016
+   fixed exactly this for the plain links and `.btn` did not inherit it, because until EPIC-016d
+   nothing in this nav was a button with a two-word name. */
+.site-nav .btn {
+  white-space: nowrap;
 }
 
 /* ─────────────────────────────── footer ─────────────────────────────── */
@@ -1063,13 +1232,72 @@ a.logo {
   }
 }
 
+/* The mockup's `.panebar`: the pane's name, then whatever that pane has to say about itself,
+   pushed apart. Everything in it is inside the shot's own `<Example>`. */
+.shot-panebar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-s2);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-s2);
+}
 .shot-panetitle {
   color: var(--color-ink-3);
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.12em;
-  margin: 0 0 var(--spacing-s2);
+  margin: 0;
   text-transform: uppercase;
+}
+.shot-pill {
+  font-size: 10px;
+  padding: 2px 8px;
+}
+.shot-panemeta {
+  font-size: 11px;
+  color: var(--color-ink-3);
+}
+/* The mockup puts its `grow` in two different places: before the token count on the compiled pane,
+   and after the blok count on the canvas pane. `:last-child` is that, without a second class —
+   a meta with nothing after it takes the free space, a meta followed by the run control does not. */
+.shot-panemeta:last-child {
+  margin-left: auto;
+}
+/* A picture of a control, so it is a `<span>` and the cursor says so. */
+.shot-run {
+  flex: none;
+  margin-left: auto;
+  cursor: default;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+.shot-run:hover {
+  transform: none;
+}
+
+/* The shot's canvas cards carry the kind rail, exactly as `.blok-card` does — the mockup's
+   `.blok::before`, same 5px, same 9px inset. The six hues are resolved once in `recipes.css` from
+   `data-kind`; this only says where to paint them. `.shot-blok` is not a `BlokCard`: it is a
+   picture of one, with no control inside it, which is why it has its own rules rather than the
+   component's. */
+.shot-blok[data-kind] {
+  position: relative;
+}
+.shot-blok[data-kind]::before {
+  content: "";
+  position: absolute;
+  /* Out by the card's own border, so the rail covers it rather than sitting beside it — the
+     mockup's `left: -2px` against its 2px border. This card's border is the hairline, so the
+     offset is the hairline; writing `-2px` here would overhang by half a pixel on every card. */
+  left: calc(var(--border-hairline) * -1);
+  top: 9px;
+  bottom: 9px;
+  width: 5px;
+  background: var(--blok-kind);
+}
+.shot-blok[data-kind] .tag {
+  border-color: var(--blok-kind);
+  color: var(--blok-kind);
 }
 
 .shot-compiled {

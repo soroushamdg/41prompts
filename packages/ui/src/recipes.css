@@ -125,8 +125,9 @@
   line-height: 1;
 }
 
-/* ── tag: blok-kind label. Ink-only — no per-kind colour (see plan-EPIC-003.md's deviation note);
-   kind is conveyed by the text alone. ── */
+/* ── tag: the blok kind's name.
+   Ink by default; inside a card that declares a kind it takes that kind's colour, persistently —
+   EPIC-016d, Soroush's answer of 2026-09-21. The rule is below, beside the rail it matches. ── */
 .tag {
   display: inline-flex;
   font-size: 9.5px;
@@ -143,6 +144,10 @@
   display: block;
   width: 100%;
   text-align: left;
+  /* `relative` is what the kind rail below is positioned against. It is on every card rather than
+     only on kinded ones, because a positioning context that appears and disappears with an
+     attribute is a layout that changes for a reason nobody can see. */
+  position: relative;
   border: var(--border-ink) solid var(--color-ink);
   background: var(--color-surface);
   border-radius: var(--radius-card);
@@ -188,25 +193,58 @@
   align-items: center;
 }
 
-/* ── blok category colour: interaction only ──────────────────────────────────────────────────
-   EPIC-021a decision 6. The six hues live on `--blok-kind`, which is resolved per kind below and
-   then used *only* inside :hover / :focus-visible / [data-selected]. A card at rest resolves the
-   variable and paints nothing with it, so there is no persistent tint anywhere — which is the
-   rule in `docs/design/README.md` and the reason blok category colour went unshipped in EPIC-003.
+/* ── blok category colour: persistent ─────────────────────────────────────────────────────────
+   **EPIC-016d, and it reverses EPIC-021a decision 6 on Soroush's answer of 2026-09-21.** The
+   mockup gives every blok card a coloured left rail and a coloured kind tag, at rest, and the
+   question put to him was which palette. He chose this one.
 
-   It is never the only signal: the glyph and the kind's name as text are always present. And it
-   is never green, red or amber — those mean pass, fail and drift and appear on no /app route in
-   this epic. */
-.blok-card[data-kind="context"] { --blok-kind: var(--color-kind-context); }
-.blok-card[data-kind="constraint"] { --blok-kind: var(--color-kind-constraint); }
-.blok-card[data-kind="example"] { --blok-kind: var(--color-kind-example); }
-.blok-card[data-kind="expected"] { --blok-kind: var(--color-kind-expected); }
-.blok-card[data-kind="image_ref"] { --blok-kind: var(--color-kind-image-ref); }
-.blok-card[data-kind="image_input"] { --blok-kind: var(--color-kind-image-input); }
+   The mockup's own `--kc` was the alternative and is refused: two of its six values are the
+   reserved pass and drift hues, literally, character for character — the pair is written out in
+   `docs/design/README.md` and in the epic file, and deliberately not here, because a hex literal in
+   this file is a hex literal somebody copies. Using them would need `CLAUDE.md` rule 10 amended
+   across the whole product. EPIC-021a's six hues — blue, violet, magenta, clay — give the mockup's
+   effect with no collision, which is why "make the existing palette persistent" was the
+   recommendation and is the answer.
 
-.blok-card[data-kind]:hover .blok-card-rail,
-.blok-card[data-kind]:focus-visible .blok-card-rail,
-.blok-card[data-kind][data-selected="true"] .blok-card-rail {
+   **The rail is the mockup's geometry**: 5px, inset 9px top and bottom, sitting at `-2px` so it
+   covers the card's own left border rather than adding to it (`.blok::before`, mockup line 203).
+
+   **It is still never the only signal.** The glyph and the kind's name as text are unchanged, and
+   the tag keeps its border and its shape when the colour does not resolve.
+
+   **It is still never one of the three reserved hues.** `blok-card.test.tsx` fails if any rule in
+   this block reaches for one of their tokens, and that guard is unchanged.
+
+   **A card with no `data-kind` is untouched**, which is what keeps `/dev/ui`'s committed visual
+   baselines still: the gallery renders `BlokCard` without a kind and always has. */
+/* **The mapping is not scoped to `.blok-card`, and the painting rules below are.** Resolving a
+   custom property paints nothing — it is inert until something reads it — so any element that says
+   what kind it is can have the answer, and every rule that actually uses it names its own element.
+   That split is what lets the home page's product shot draw the same rail (`landing.css`,
+   `.shot-blok`) without a second copy of these six lines going stale beside them. */
+[data-kind="context"] { --blok-kind: var(--color-kind-context); }
+[data-kind="constraint"] { --blok-kind: var(--color-kind-constraint); }
+[data-kind="example"] { --blok-kind: var(--color-kind-example); }
+[data-kind="expected"] { --blok-kind: var(--color-kind-expected); }
+[data-kind="image_ref"] { --blok-kind: var(--color-kind-image-ref); }
+[data-kind="image_input"] { --blok-kind: var(--color-kind-image-input); }
+
+.blok-card[data-kind]::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 9px;
+  bottom: 9px;
+  width: 5px;
+  background: var(--blok-kind);
+}
+.blok-card[data-kind] .tag {
+  border-color: var(--blok-kind);
+  color: var(--blok-kind);
+}
+/* The glyph in the leading rail follows the same colour. It was the only thing that carried it
+   before this epic, and only on interaction; now it simply agrees with the bar beside it. */
+.blok-card[data-kind] .blok-card-rail {
   color: var(--blok-kind);
 }
 

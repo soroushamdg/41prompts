@@ -64,17 +64,31 @@ test.describe("the landing page", () => {
       });
     }
 
-    test("is the only call to action above the fold", async ({ page }) => {
+    /**
+     * **The promoted actions above the fold, and EPIC-016d changed the set.**
+     *
+     * EPIC-016 decision 2 was *"sign up is not promoted, and the only action the home page pushes is
+     * the ask bar"*, and this assertion was its guard: exactly one `.btn-pri` above the fold, and it
+     * is the paste box's submit.
+     *
+     * **Soroush's parity instruction of 2026-09-20 is newer**, and the mockup's nav draws a
+     * `Start free` primary. So there are two now, and the test is updated rather than deleted:
+     * what it exists to catch is a *third* one arriving without anybody deciding it, and an exact
+     * list still catches that. The paste box is still the page's own action and is still the only
+     * promoted thing in the hero itself.
+     *
+     * `See the workbench` is deliberately **not** in this list. It is the mockup's second hero CTA
+     * and it is a secondary `.btn`, which is what keeps one primary in the hero.
+     */
+    test("promotes exactly the two actions that were decided, and no third", async ({ page }) => {
       await page.setViewportSize(LAPTOP);
       await page.goto("/");
 
-      // Decision 2. "Sign in" is a small nav link and is allowed; what must not be up here is a
-      // second promoted action competing with the paste.
       const promoted = await page.locator(".btn-pri").evaluateAll((els, fold) =>
         els.filter((el) => el.getBoundingClientRect().top < fold).map((el) => el.textContent?.trim() ?? ""),
         LAPTOP.height
       );
-      expect(promoted).toEqual(["See what nothing checks"]);
+      expect(promoted).toEqual(["Start free", "See what nothing checks"]);
     });
   });
 
@@ -234,6 +248,7 @@ test.describe("the landing page", () => {
         );
       }
       expect(reached.some((r) => r.startsWith("a:") && r.includes("Decompiler"))).toBe(true);
+      expect(reached.some((r) => r.startsWith("a:") && r.includes("Start free"))).toBe(true);
       expect(reached.some((r) => r.startsWith("textarea"))).toBe(true);
       expect(reached.some((r) => r.includes("See what nothing checks"))).toBe(true);
     });
@@ -255,15 +270,33 @@ test.describe("the landing page", () => {
       // Staging showed "Sign in" broken across two lines at 375px with the theme button against the
       // edge. Four items, one line, no horizontal scroll, at the narrowest size the epic names.
       expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE_WIDTH);
-      const navRows = await page
-        .locator(".site-nav-inner > *")
-        .evaluateAll((els) => new Set(els.filter((el) => el.getBoundingClientRect().width > 0).map((el) => Math.round(el.getBoundingClientRect().top))).size);
+      // **`height > 0` as well as `width > 0`, added in EPIC-016d.** `.site-nav-spacer` is a
+      // zero-height `flex: 1` span, so whenever the row has slack its rect is a 0px box sitting at
+      // the row's vertical centre — a `top` no real control shares, read here as a second row. It
+      // was invisible only because the nav used to be wide enough that the spacer had no width at
+      // 375px; at 390px and above this test would have failed on a nav that was perfectly fine.
+      // A thing with no height is not a row.
+      const navRows = await page.locator(".site-nav-inner > *").evaluateAll(
+        (els) =>
+          new Set(
+            els
+              .filter((el) => {
+                const rect = el.getBoundingClientRect();
+                return rect.width > 0 && rect.height > 0;
+              })
+              .map((el) => Math.round(el.getBoundingClientRect().top))
+          ).size
+      );
       expect(navRows, "the nav wrapped onto more than one row").toBe(1);
       const nav = page.getByRole("navigation", { name: "Main" });
       const targets = [
         page.getByRole("button", { name: "See what nothing checks" }),
-        nav.getByRole("link", { name: "Decompiler" }),
+        // `Decompiler` is **not** here any more: EPIC-016d moved it into `.site-nav-links`, which
+        // collapses below 900px, so at 375px it is not rendered to be measured. It is still one tap
+        // away — the footer carries it and the closing band's `Open the decompiler` is in this very
+        // list — and `lib/site/links.ts` carries the reason it moved.
         nav.getByRole("link", { name: "Sign in" }),
+        nav.getByRole("link", { name: "Start free" }),
         nav.getByRole("button", { name: "Theme" }),
         page.getByRole("link", { name: "Open the decompiler" }),
         page.locator(".site-foot a").first(),
@@ -387,6 +420,18 @@ test.describe("the landing page", () => {
         await page.setViewportSize(LAPTOP);
         await page.goto("/");
         if (theme === "dark") await setTheme(page, "dark");
+        // **Stop the ask bar's placeholder rotating, by doing what a reader does.** It cycles five
+        // questions every 3.4s (EPIC-016d, the mockup's), so a baseline that captured whichever one
+        // the interval had reached would be flaky by construction. Focusing the field stops the
+        // rotation for good *and* settles it back on the first question — which is what every
+        // reader sees on arrival, so this is not hiding the page's real state, it is pinning it.
+        // `ask-bar.tsx` carries the argument; the behaviour itself is asserted below.
+        await page.getByLabel("Ask anything about 41Prompts").focus();
+        await page.locator("h1").click();
+        await expect(page.getByLabel("Ask anything about 41Prompts")).toHaveAttribute(
+          "placeholder",
+          "What is a blok?"
+        );
         // The logo morph is running; park it at rest so the baseline is not a random frame.
         await page.waitForTimeout(1_800);
         await expect(page).toHaveScreenshot(`landing-${theme}.png`, { fullPage: true, maxDiffPixelRatio: 0.01 });
@@ -755,6 +800,75 @@ test.describe("the home page's illustrative sections", () => {
         await expect(panel.locator(".rot-fig")).toBeVisible();
       });
     }
+  });
+
+  /**
+   * The hero's Ask-AI bar (EPIC-016d), and the three behaviours its unit test cannot reach.
+   *
+   * `apps/web` runs vitest in the `node` environment, so `ask-bar.test.tsx` asserts the markup and
+   * the destinations and stops there. Enter, the rotation and what stops it need a browser, and
+   * this is the browser.
+   */
+  test.describe("the Ask-AI bar", () => {
+    const FIELD = "Ask anything about 41Prompts";
+
+    test("hands a typed question to the sheet, from the keyboard alone", async ({ page }) => {
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await field.fill("What happens when a check fails on one model and passes on another?");
+      await field.press("Enter");
+
+      // The sheet opens showing exactly what will be sent — `ask-chip.tsx`'s whole promise, now
+      // reached through a second trigger.
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        "What happens when a check fails on one model and passes on another?"
+      );
+    });
+
+    test("offers a question of its own when nothing was typed", async ({ page }) => {
+      await page.goto("/");
+      await page.locator(".askai-go").click();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        "What is 41Prompts and who is it for?"
+      );
+    });
+
+    test("rotates its placeholder, and stops for good once the field is focused", async ({ page }) => {
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+
+      // A condition, not a duration: it must simply stop being the first one. The interval is
+      // 3400ms and the timeout is generous, so a slow machine is not a failure.
+      await expect
+        .poll(async () => field.getAttribute("placeholder"), { timeout: 12_000 })
+        .not.toBe("What is a blok?");
+
+      // WCAG 2.2.2 wants a mechanism to stop content that auto-updates. Focusing the field is it,
+      // and it settles back on the first question rather than freezing mid-cycle.
+      await field.focus();
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+      await page.locator("h1").click();
+      await page.waitForTimeout(4_000);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+    });
+
+    test("does not rotate at all under prefers-reduced-motion", async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/");
+      const field = page.getByLabel(FIELD);
+      await page.waitForTimeout(4_000);
+      await expect(field).toHaveAttribute("placeholder", "What is a blok?");
+    });
+
+    test("offers the mockup's four suggestions, each opening the sheet with its own question", async ({ page }) => {
+      await page.goto("/");
+      await page.getByRole("button", { name: "What is a blok?" }).click();
+      await expect(page.getByLabel("This is exactly what will be sent.")).toHaveValue(
+        /why break one prompt into pieces/
+      );
+    });
   });
 
   test("Replay restarts the shot's walk", async ({ page }) => {

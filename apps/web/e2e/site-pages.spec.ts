@@ -44,7 +44,11 @@ test.describe("the chrome goes where it says", () => {
   test("every nav link answers 200", async ({ page, request }) => {
     await page.goto("/");
     for (const link of NAV_LINKS) {
-      await expect(page.locator(`.site-nav a[href="${link.href}"]`)).toHaveCount(1);
+      // **Scoped to `a.site-nav-link`, not to every anchor in the nav.** EPIC-016d added `Product`,
+      // which points at `/` — and so does the logo, so an unscoped `[href="/"]` counts two and this
+      // walk fails on a nav that is correct. Scoping to the class the section links carry asks the
+      // question the walk means: is this entry rendered as a nav link, once.
+      await expect(page.locator(`.site-nav a.site-nav-link[href="${link.href}"]`)).toHaveCount(1);
       expect((await request.get(link.href)).status(), `nav → ${link.href}`).toBe(200);
     }
   });

@@ -90,10 +90,35 @@ compiled pane" explicitly out of scope), and passed to EPIC-021a/021b.
 
 **EPIC-021a took it.** `--color-kind-context|constraint|example|expected|image-ref|image-input` live
 in `packages/ui/src/tokens.css` in both themes, drawn from blue, violet, magenta and clay and
-nowhere near the three reserved hues, and held to 3:1 against surface because they mark a boundary
-rather than carry text. `recipes.css` resolves each onto `--blok-kind` and paints it **only** inside
-`:hover`, `:focus-visible` and `[data-selected]`, so a card at rest resolves the variable and paints
-nothing with it. It is never the only signal — the glyph and the kind's name as text are always
-there — and `blok-card.test.tsx` fails if a card at rest paints one.
+nowhere near the three reserved hues. It is never the only signal — the glyph and the kind's name as
+text are always there.
 
-Do not copy `--kc`. The palette that exists is the one that is correct.
+**It became persistent in EPIC-016d. Soroush's answer, 2026-09-21.** EPIC-021a shipped it as
+interaction-only — painted inside `:hover`, `:focus-visible` and `[data-selected]`, so a card at
+rest resolved the variable and painted nothing with it — and this paragraph recorded that as the
+decision. The mockup-parity programme put the question back to him, because the mockup gives every
+blok card a coloured left rail and a coloured kind tag *at rest* and the only way to have that was
+to choose a palette. Three options were put: this palette made persistent, the mockup's literal
+`--kc` plus an amendment to rule 10, or leave it interaction-only. **He chose this palette, made
+persistent.**
+
+So `recipes.css` now paints, at rest and gated on `[data-kind]`:
+
+- the mockup's 5px leading rail (`.blok-card[data-kind]::before`, its geometry copied from
+  `.blok::before` — 5px wide, inset 9px top and bottom, at `left: -2px` so it covers the card's own
+  border rather than adding to it);
+- the kind tag's border and text;
+- the leading glyph, which previously carried the colour only on interaction.
+
+**The contrast tier moved with it, and was measured rather than assumed.** Holding a colour to 3:1
+was right while it only ever marked a boundary; a coloured kind tag is text. All six values clear
+**4.5:1 against `surface`, `bg` and `sunken`, in both themes** — the worst of the eighteen is
+`--color-kind-context` on light `bg` at 5.97:1 — so nothing was renumbered to make it pass.
+`CONTRAST_PAIRS` carries all eighteen and `contrast.test.ts` fails if a future hue does not clear
+them.
+
+**A card that declares no kind is untouched**, which is what keeps `/dev/ui`'s committed Linux
+baselines still, and `blok-card.test.tsx` fails if a rule ever drops the attribute gate.
+
+Do not copy `--kc`. Two of its six values are `--pass` and `--warn` exactly, and that is still the
+whole reason the palette that exists is the one that is correct.

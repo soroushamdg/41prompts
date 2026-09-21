@@ -64,10 +64,38 @@ const text = flatten(html);
 const textWithoutExamples = flatten(withoutExamples(html));
 
 describe("/", () => {
-  it("leads with the failure, not the tool", () => {
-    // The position, decided 2026-09-11. If this sentence changes, it changes because Soroush
-    // replaced it, not because somebody tidied the hero.
-    expect(text).toContain("A prompt change ships. Nothing checks it. You find out from a user.");
+  /**
+   * The hero, as the mockup writes it — **and Soroush replaced the sentence, which is the only way
+   * this assertion was ever allowed to change.**
+   *
+   * The line it replaces was *"A prompt change ships. Nothing checks it. You find out from a
+   * user."*, chosen on 2026-09-11 out of five drafts, and the note here said: *if this sentence
+   * changes, it changes because Soroush replaced it, not because somebody tidied the hero.* On
+   * 2026-09-21 `plan-landing-parity.md` put the mockup's headline back to him as one of four
+   * questions about the landing page and he chose it. The note stands, unchanged, for the next one.
+   */
+  it("opens with the headline the mockup writes and Soroush chose", () => {
+    expect(text).toContain("Stop guessing which prompt works.");
+  });
+
+  it("carries the mockup's eyebrow and lede above it, verbatim", () => {
+    expect(text).toContain("The workbench for the prompt layer");
+    expect(text).toContain(
+      "Break any prompt into bloks, attach expectations to each one, and run it against every model at once."
+    );
+  });
+
+  it("no longer carries the sentence it replaced", () => {
+    // Not tidiness: two headlines on one page is the failure mode of a copy change made by adding.
+    expect(text).not.toContain("A prompt change ships");
+  });
+
+  it("offers the mockup's second call to action, and no credit card", () => {
+    expect(text).toContain("See the workbench");
+    expect(text).toContain("No credit card");
+    // It points where a signed-out reader can actually go. The mockup sends it to the signed-in
+    // editor, which for this page's audience is a sign-in wall.
+    expect(html).toMatch(/<a class="btn" href="\/features">/);
   });
 
   /**
@@ -90,10 +118,30 @@ describe("/", () => {
    * sentence a **decided** string, so changing it takes a decision rather than a tidy-up.
    */
   it("closes with the band heading as decided, so a copy change is caught by text and not by pixels", () => {
-    expect(text).toContain("Prompts often have rules nothing checks.");
+    // EPIC-016d: the mockup's, restored with the headline and under the same decision. The
+    // paragraph above is about a *quantifier* — a claim about how many prompts are wrong — and this
+    // sentence makes none: it is an imperative, an invitation to look, which is what the decompiler
+    // does. The measured finding behind it is 11 of 25.
+    expect(text).toContain("Paste a prompt. See what is wrong with it.");
+    expect(text).toContain("Free, no signup, no card.");
   });
 
-  it("names bloks and checks in the subhead, and promises nothing else", () => {
+  it("names the three steps the way the rest of the page names them", () => {
+    // EPIC-016d: the mockup's Decompile · Assert · Ship. EPIC-016's Paste · See the bloks · Add the
+    // check described the decompiler; these three are the loop the rotator and the SDK are about.
+    for (const step of ["Decompile", "Assert", "Ship"]) {
+      expect(text).toContain(step);
+    }
+  });
+
+  /**
+   * **Renamed in EPIC-016d, because it stopped being about the subhead.** EPIC-016's lede said
+   * "named bloks" and "nothing checks" in one sentence; the mockup's says "bloks" and "breaks". The
+   * two phrases are still on the page — in the first step of the strip and in the proof row — so
+   * this went on passing while no longer asserting what its name claimed, which is the quietest way
+   * a test stops being true. It says where they are now.
+   */
+  it("still names bloks, and still names what nothing checks", () => {
     expect(text).toContain("named bloks");
     expect(text).toContain("nothing checks");
   });
@@ -408,10 +456,78 @@ describe("the mockup's home page (EPIC-016b, and its rotator EPIC-016c)", () => 
   });
 
   it("offers the Ask-AI chips, and shows the question each one will send", () => {
-    expect(html.match(/class="ask-chip"/g) ?? []).toHaveLength(3);
+    // Seven since EPIC-016d: three beside section headings, and the hero's four suggestions under
+    // the Ask-AI bar.
+    expect(html.match(/class="ask-chip"/g) ?? []).toHaveLength(7);
     expect(text).toContain("Why does it matter which line failed?");
     expect(text).toContain("Why compare models this way?");
     expect(text).toContain("What would this catch in CI?");
+  });
+
+  /**
+   * The hero's Ask-AI bar (EPIC-016d), which the mockup draws and EPIC-016 replaced with the paste
+   * box. Both are here now: the paste box is the page's own action, and the bar hands a question
+   * about the product to whichever assistant the reader already uses.
+   */
+  it("puts the mockup's Ask-AI bar in the hero, labelled and server-rendered", () => {
+    expect(html).toContain('id="ask-ai"');
+    // The visible `ASK AI` prefix is decorative; the field's name comes from a real label, or a
+    // screen reader hears "ASK AI Ask anything…" or nothing at all.
+    expect(html).toMatch(/<label class="sr-only" for="ask-ai">/);
+    expect(text).toContain("Ask anything about 41Prompts");
+    // It renders with the first of the mockup's five questions in place, before any timer has run.
+    expect(html).toContain('placeholder="What is a blok?"');
+  });
+
+  it("offers the mockup's four suggestions under it", () => {
+    for (const suggestion of [
+      "How is it different from Langfuse?",
+      "What is a blok?",
+      "How do live updates work?",
+      "Is it right for my team?"
+    ]) {
+      expect(text).toContain(suggestion);
+    }
+  });
+
+  /**
+   * The product shot's pane bar, C1 of `plan-landing-parity.md`.
+   *
+   * **Both counts are derived** from the arrays that render the cards and the run demo's rows, so a
+   * picture cannot print a number that contradicts what is beside it. The mockup's literals are 6
+   * and 6 over a canvas of six cards; ours draws five.
+   */
+  it("gives the shot the mockup's pane bar, with its counts derived", () => {
+    expect(text).toContain("read-only");
+    expect(text).toContain("1,284 tok");
+    expect(text).toContain("5 bloks");
+    expect(text).toContain("Run 5 checks");
+  });
+
+  it("draws the run control as a picture of one, not as a button nobody can press", () => {
+    expect(html).toMatch(/<span class="btn btn-sm shot-run">Run \d+ checks<\/span>/);
+  });
+
+  /**
+   * The shot's cards carry the kind rail too (C2).
+   *
+   * They are not `BlokCard`s — they are a picture of one, with no control inside — so they get the
+   * attribute rather than the component. `recipes.css` resolves `--blok-kind` from `data-kind` on
+   * any element, and `landing.css` says where to paint it; without the attribute here the most
+   * visible instance of persistent kind colour on this page would simply be ink.
+   */
+  it("gives every card in the shot its kind, so the rail and the tag can be coloured", () => {
+    const kinds = [...html.matchAll(/class="shot-blok"[^>]*data-kind="([a-z_]+)"/g)].map((m) => m[1]);
+    expect(kinds.length, "no shot card declares a kind").toBe(5);
+    for (const kind of kinds) {
+      expect(["context", "constraint", "example", "expected", "image_ref", "image_input"]).toContain(kind);
+    }
+  });
+
+  it("says checks where the mockup says the other word, on the shot too", () => {
+    // `pnpm forbidden-words` fails the build on it; this names the string so a failure reads as
+    // "the mockup's copy came through" rather than as a grep hit.
+    expect(text).not.toMatch(/\bassertions?\b/i);
   });
 
   it("gives the shot a Replay that is a button, not a link", () => {
