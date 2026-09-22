@@ -113,6 +113,20 @@
       "when": 1789635590417,
       "tag": "0015_steep_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790069694115,
+      "tag": "0016_nosy_silver_fox",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790069704730,
+      "tag": "0017_large_warlock",
+      "breakpoints": true
     }
   ]
 }

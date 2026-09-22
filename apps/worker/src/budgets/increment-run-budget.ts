@@ -1,7 +1,5 @@
-import { planBudgetDefaults, runBudgets, users, type Db } from "@41prompts/db";
+import { planFor, runBudgets, type Db } from "@41prompts/db";
 import { eq, sql } from "drizzle-orm";
-
-const DEFAULT_PLAN = "free";
 
 export type RunBudget = typeof runBudgets.$inferSelect;
 
@@ -10,26 +8,20 @@ export interface IncrementResult {
   budget: RunBudget;
 }
 
+/**
+ * The cents cap a new `run_budgets` row is seeded with.
+ *
+ * **It reads the plan through `planFor`, which derives it from the subscription row** — EPIC-070
+ * and ADR-007 §3. This used to read `users.plan`, a column EPIC-004 added as substrate *"until
+ * Stripe exists"*; Stripe exists, the column is gone, and the fallback to Free when nobody has a
+ * granting subscription now lives in one place instead of being re-implemented here.
+ *
+ * `planFor` throws if the migration never seeded a Free row, which is the same failure this
+ * function used to raise by name and for the same reason: a missing seed must not silently become
+ * a cap of zero or a cap of infinity.
+ */
 async function defaultCapCentsForOwner(db: Db, owner: string): Promise<number> {
-  const [user] = await db.select({ plan: users.plan }).from(users).where(eq(users.id, owner));
-  const plan = user?.plan ?? DEFAULT_PLAN;
-
-  const [match] = await db
-    .select({ monthlyCapCents: planBudgetDefaults.monthlyCapCents })
-    .from(planBudgetDefaults)
-    .where(eq(planBudgetDefaults.plan, plan));
-  if (match) {
-    return match.monthlyCapCents;
-  }
-
-  const [fallback] = await db
-    .select({ monthlyCapCents: planBudgetDefaults.monthlyCapCents })
-    .from(planBudgetDefaults)
-    .where(eq(planBudgetDefaults.plan, DEFAULT_PLAN));
-  if (!fallback) {
-    throw new Error(`plan_budget_defaults has no "${DEFAULT_PLAN}" row — migration not applied?`);
-  }
-  return fallback.monthlyCapCents;
+  return (await planFor(db, owner)).monthlyCapCents;
 }
 
 // Empty of provider integration (EPIC-031 calls this with a real `amountCents`); this epic only

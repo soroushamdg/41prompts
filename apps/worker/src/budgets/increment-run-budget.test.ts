@@ -1,4 +1,4 @@
-import { createDb, planBudgetDefaults, runBudgets, users, type Db } from "@41prompts/db";
+import { createDb, plans, runBudgets, subscriptions, users, type Db } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "@41prompts/db";
@@ -20,15 +20,24 @@ describe.skipIf(!HAS_TEST_DATABASE)("run budget increment", () => {
     const databaseUrl = testDatabaseUrl();
     db = createDb(databaseUrl);
     await db
-      .insert(planBudgetDefaults)
-      .values({ plan: TEST_PLAN, monthlyCapCents: TEST_CAP_CENTS })
-      .onConflictDoNothing({ target: planBudgetDefaults.plan });
+      .insert(plans)
+      .values({ key: TEST_PLAN, monthlyRunLimit: 1_000_000, monthlyCapCents: TEST_CAP_CENTS })
+      .onConflictDoNothing({ target: plans.key });
   });
 
   afterAll(async () => {
-    await db.delete(planBudgetDefaults).where(eq(planBudgetDefaults.plan, TEST_PLAN));
+    await db.delete(plans).where(eq(plans.key, TEST_PLAN));
   });
 
+  /**
+   * A user on `TEST_PLAN`, which since EPIC-070 means **a granting subscription row** rather than
+   * a `users.plan` string.
+   *
+   * The column is gone (ADR-007 §3) and the plan is derived, so putting a user on a plan is now
+   * the same act the product performs — a subscription whose period covers now and whose status
+   * grants. The period is deliberately wide rather than "now to now + an hour": a boundary that
+   * expires mid-test would make an unrelated assertion fail as a budget fallback to Free.
+   */
   async function makeTestUser(id: string): Promise<void> {
     await db
       .insert(users)
@@ -37,9 +46,22 @@ describe.skipIf(!HAS_TEST_DATABASE)("run budget increment", () => {
         name: "Budget test",
         email: `${id}@example.com`,
         emailVerified: true,
-        plan: TEST_PLAN,
       })
       .onConflictDoNothing({ target: users.id });
+
+    const now = Date.now();
+    await db
+      .insert(subscriptions)
+      .values({
+        id: `sub_test_${id}`,
+        owner: id,
+        stripeCustomerId: `cus_test_${id}`,
+        planKey: TEST_PLAN,
+        status: "active",
+        currentPeriodStart: new Date(now - 86_400_000),
+        currentPeriodEnd: new Date(now + 86_400_000),
+      })
+      .onConflictDoNothing({ target: subscriptions.id });
   }
 
   // Cascades to the user's run_budgets row (schema.ts's ON DELETE CASCADE).

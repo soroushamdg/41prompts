@@ -35,10 +35,15 @@ export const users = pgTable("users", {
   // Soft delete (decision 5): set immediately on account-delete request, read by the
   // session-create hook to refuse sign-in, and by the worker's purge job.
   deletedAt: timestamp("deleted_at"),
-  // EPIC-004 decision 6's substrate for "per-plan defaults" — there is no billing integration
-  // yet (EPIC-070), just a plain string a new `run_budgets` row's default cap is looked up
-  // against in `plan_budget_defaults`. Every account defaults to "free" until Stripe exists.
-  plan: text("plan").notNull().default("free"),
+  // **There is deliberately no `plan` column here** (EPIC-070, ADR-007 §3). EPIC-004 put one on
+  // this table as "substrate for per-plan defaults … until Stripe exists"; Stripe exists now, so
+  // the substrate is replaced rather than filled in. A plan is read through `subscriptions` —
+  // `planKeyFor()` in `billing.ts` — because two copies of what somebody is paying for diverge,
+  // and here the divergence is either service given away or service withheld.
+  //
+  // `packages/db/src/billing.test.ts` fails if a plan-like column comes back, so re-adding one is
+  // a failing build rather than a decision nobody notices. EPIC-051 applied the same rule to
+  // `Live` for the same reason.
 });
 
 export const sessions = pgTable("sessions", {
@@ -149,15 +154,129 @@ export const apiKeys = pgTable("api_keys", {
   revokedAt: timestamp("revoked_at"),
 });
 
-// EPIC-004 decision 6: "no user can run up an unbounded provider bill" and "the cap is a number
-// in the database, not a constant in code." This table is that number's home — a new
-// `run_budgets` row is seeded from the caller's plan at creation time, but the cap actually
-// enforced on every increment (`apps/worker/src/budgets/increment-run-budget.ts`) always comes
-// from `run_budgets.capCents`, never from this table or a code constant, directly. Seed values
-// (below, in the generated migration) are placeholders — EPIC-070 owns the real pricing numbers.
-export const planBudgetDefaults = pgTable("plan_budget_defaults", {
-  plan: text("plan").primaryKey(),
+/**
+ * What a plan is, in one row — **this replaces EPIC-004's `plan_budget_defaults`** (EPIC-070).
+ *
+ * That table held one fact about a plan, its cents cap, and carried a comment saying the values
+ * were placeholders and *"EPIC-070 owns the real pricing numbers"*. Keeping it and adding a second
+ * table keyed by the same string is the shape that drifts, so there is one table and a plan's row
+ * says everything a plan means. The migration copies the three existing rows across.
+ *
+ * ## The two limits are different quantities and both are here (ADR-007 §2)
+ *
+ * - **`monthlyRunLimit`** is what a customer buys and what `/pricing` prints: 50 on Free, 5,000 on
+ *   Pro. A **run** here is a `suite_runs` row — the thing a person triggers and the thing the Runs
+ *   page lists — not a `runs` row, which is one model call inside one of them. The two differ by
+ *   about two orders of magnitude, so it is stated rather than left to be inferred.
+ * - **`monthlyCapCents`** is EPIC-004 decision 6's guard: *"no user can run up an unbounded
+ *   provider bill."* It is **not printed anywhere** and is not a plan feature — printing a safety
+ *   rail turns it into a promise. 50 runs against an expensive model on a long input is still an
+ *   unbounded bill, which is why a run count does not replace it.
+ *
+ * As before, the cap actually enforced on every increment comes from `run_budgets.capCents`, which
+ * is seeded from here at row creation — never read from this table directly at increment time.
+ *
+ * ## `stripePriceId` is null for two of the three
+ *
+ * Free is never bought, and Team is a contact link with no price and no checkout (ADR-007 §6),
+ * because its five mockup features do not exist and four of them are denylisted.
+ */
+export const plans = pgTable("plans", {
+  /** `free` | `pro` | `team`. The natural key, and what `subscriptions.planKey` points at. */
+  key: text("key").primaryKey(),
+  /** Stripe's `price_…`, or null where the plan is not sold. Unique where present. */
+  stripePriceId: text("stripe_price_id").unique(),
+  /** Suite runs per billing period. What `/pricing` prints. */
+  monthlyRunLimit: integer("monthly_run_limit").notNull(),
+  /** The spend rail. Never printed. */
   monthlyCapCents: integer("monthly_cap_cents").notNull(),
+});
+
+/**
+ * Which Stripe customer an account is, and nothing else.
+ *
+ * Its own table rather than a column on `users`, because a customer id is an **external identity
+ * mapping** and not plan state — the thing ADR-007 §3 keeps off `users`. Keeping billing's two
+ * facts in billing's own tables also means the test that asserts `users` has nothing plan-like
+ * does not have to carve out an exception on its first day.
+ *
+ * A row appears the first time somebody opens checkout or the portal, which is before any
+ * subscription exists — that is the whole reason it is separate from `subscriptions`.
+ */
+export const billingCustomers = pgTable("billing_customers", {
+  owner: text("owner")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripeCustomerId: text("stripe_customer_id").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * The subscription row, which **is** the answer to "what plan is this account on" (ADR-007 §3).
+ *
+ * ## Stripe's id is the primary key
+ *
+ * No second id is minted. `sub_…` is globally unique, it is the natural key, and inventing a local
+ * id would mean a mapping that can disagree with the thing it maps to. `plan_budget_defaults`
+ * already set the precedent for a natural key in this schema.
+ *
+ * ## What is read, and what is not
+ *
+ * The plan is *"is there a row whose current period covers now and whose status is `active` or
+ * `trialing`"* — **not** `cancelAtPeriodEnd === false`. ADR-007 §5: a customer who cancels on day 3
+ * keeps Pro until day 30, so a read keyed on the cancel flag downgrades them 27 days early. The
+ * flag is stored because the Billing page says *when* it ends, not because the plan read uses it.
+ */
+export const subscriptions = pgTable(
+  "subscriptions",
+  {
+    /** Stripe's `sub_…`. */
+    id: text("id").primaryKey(),
+    owner: text("owner")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    stripeCustomerId: text("stripe_customer_id").notNull(),
+    planKey: text("plan_key")
+      .notNull()
+      .references(() => plans.key),
+    /** Stripe's own status string, stored as sent rather than mapped to one of ours. */
+    status: text("status").notNull(),
+    currentPeriodStart: timestamp("current_period_start").notNull(),
+    currentPeriodEnd: timestamp("current_period_end").notNull(),
+    /** Displayed on Billing as "ends on …". Never read by the plan lookup — see above. */
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [
+    // The plan read is by owner on every budget check, so it is the index that matters.
+    index("subscriptions_owner_idx").on(table.owner),
+  ]
+);
+
+/**
+ * Every Stripe event this deployment has already acted on. **The idempotency ledger.**
+ *
+ * Stripe redelivers — on a timeout, on a non-2xx, and on its own retry schedule — so a handler that
+ * is not idempotent grants a second period for one payment. `docs/PROCESS.md` puts money bugs in
+ * the P0 class with data loss and keys, and the epic's Notes say to write the test before the
+ * handler rather than after.
+ *
+ * The primary key is Stripe's `evt_…`, so "have we seen this" is an insert that either succeeds or
+ * conflicts. No read-then-write, therefore no window between the two for a concurrent redelivery
+ * to slip through.
+ *
+ * **`handled` is false for an event type we do not recognise, and the row is still written.**
+ * Stripe adds event types. A handler that silently drops what it does not know cannot tell "we do
+ * not care about this" from "we stopped caring about something we used to handle", and the row is
+ * how that question stays answerable.
+ */
+export const stripeEvents = pgTable("stripe_events", {
+  /** Stripe's `evt_…`. */
+  id: text("id").primaryKey(),
+  type: text("type").notNull(),
+  handled: boolean("handled").notNull(),
+  receivedAt: timestamp("received_at").notNull().defaultNow(),
 });
 
 // Empty of provider integration on purpose (EPIC-031 wires the actual `amountCents` from a real
