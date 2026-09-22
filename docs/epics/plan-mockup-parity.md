@@ -58,11 +58,19 @@ Stage 3 and Providers is Stage 4"*, and both stages are `done`. Same dropped han
 | 5 | **EPIC-070** Stripe and the pricing page | M | 072b | Three tiers, checkout, portal, webhooks, quotas. The per-seat price stops being a denied claim because it becomes an enforced one. |
 | — | **EPIC-025** In-app Import *(proposed, not scheduled)* | M | 023 | The decompiler has a home inside the product, with the mockup's findings panel and "Create project from bloks". |
 
-**Where the programme is, 2026-09-21.** Rows 1 to 3 are **done**: EPIC-023, EPIC-024 and
-EPIC-016b are each merged into local `main` with a report in `docs/epics/reports/` and
-`node scripts/gates.mjs ci` green on the commit before the merge. **EPIC-072b is next**, and its
-epic file is `docs/epics/EPIC-072b-about-and-careers.md`. Nothing is pushed, so every one of those
-merges is on local `main` only and no deployed URL reflects any of them.
+**Where the programme is, 2026-09-21.** Rows 1 to 4 are **done**: EPIC-023, EPIC-024, EPIC-016b
+and EPIC-072b are each merged into local `main` with a report in `docs/epics/reports/` and
+`node scripts/gates.mjs ci` green on the commit before the merge. **EPIC-070 is next** — Stripe and
+the pricing page — and it is the row that needs product ids and an API key from Soroush, so read
+its epic file against `docs/AUTONOMOUS.md`'s "rows whose dependency is a person" before starting.
+Nothing is pushed, so every one of those merges is on local `main` only and no deployed URL
+reflects any of them.
+
+**EPIC-072b also closed a defect on five pages it does not own.** Thirteen links across seven pages
+rendered with the same colour, the same weight and no underline as the text around them — the
+mockup underlines every link it puts inside a sentence and ours had taken only its global
+`text-decoration:none`. `axe` cannot see that class, so nine pages had been clean over it since
+EPIC-072. Report §4, and it is a walk over every public route now.
 
 **One follow-on sits between rows 3 and 4: EPIC-016c**, merged as `144faff`. It is not a row of its
 own in the table below because it adds nothing to the sequence — it is EPIC-016b's rotator brought

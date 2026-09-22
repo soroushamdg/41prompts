@@ -3,60 +3,84 @@ SPDX-FileCopyrightText: 2026 41Prompts Inc.
 SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
-# No epic is in progress — EPIC-016d is merged
+# EPIC-072b: About and Careers, said honestly
 
-**EPIC-016d closed sixteen of the twenty-three landing-page differences**, including all four that
-were waiting on Soroush. Merged into local `main` as `8a552eb` on a green
-`node scripts/gates.mjs ci` (17 of 17, on `ab6e5f6`). Report
-`docs/epics/reports/EPIC-016d-report.md`.
+Stage: 6 · Depends on: EPIC-072, EPIC-016b · Size: **S**
 
-The four answers, 2026-09-21, because they are decisions and not just history:
+Sequence and rationale in `docs/epics/plan-mockup-parity.md`.
 
-| | question | answer |
+## Why this row
+
+EPIC-072 built six marketing pages and refused five, each with a reason written before any code.
+Two of those reasons were **facts only Soroush could assert**, and he has now asserted them:
+
+| Page | EPIC-072's refusal | Soroush, 2026-09-20 |
 |---|---|---|
-| B7 | the trust row of five invented customers | **Leave it out** |
-| D1 | the three fabricated counters | **Keep the three true sentences** |
-| B2 | the hero headline | **Restore the mockup's** — *"Stop guessing which prompt works."* |
-| C2 | blok kind colour | **EPIC-021a's palette, made persistent** |
+| `/about` | *"names a second co-founder — your fact, not mine"* | Not a current co-founder. **Omit the name.** |
+| `/careers` | *"three invented openings"* | Not real. **Closed.** |
 
-Two of them were "build nothing", so **EPIC-016e does not exist** — the only thing left of it was
-the headline, and that landed here.
+The other three refusals stand: `/pricing` goes to EPIC-070, `/learn` to Stage 7, `/blog` to
+EPIC-073.
 
-## What is merged into local `main`, and not pushed
+## Goal
 
-EPIC-023 (app shell), EPIC-024 (page composition), EPIC-016b (the home page in full), EPIC-016c
-(the rotator), EPIC-016d (the rest of the landing page). All five `gates.mjs ci` green.
-`origin/main` is far behind; **no staging URL is evidence about any of it**, and
-`docs/epics/RELEASE-DUE.md` has been waiting since 2026-09-20.
+`/about` and `/careers` exist, are linked from the footer, and say only what is true — one founder,
+and no open roles.
 
-## What is left on the landing page, and none of it is a decision
+## Scope
 
-Seven differences, each of them a page that does not exist. `docs/epics/plan-landing-parity.md`
-has the table; the short version:
+1. **`/about`.** The mockup's structure: eyebrow, a headline, a paragraph of origin, and the people.
+   The origin paragraph is the mockup's own and is true as written apart from its date — check the
+   year against the repository's first commit rather than copying `2025`.
 
-| waits on | closes |
-|---|---|
-| **EPIC-072b** About and Careers · S | E3 |
-| **EPIC-070** Stripe and the pricing page · M | A2, D4's second button, E1 |
-| **EPIC-073b** the blog, with real posts · S | half of E2 |
-| **Stage 7** — EPIC-064, 060, 061, 062, 063 | A3, D3, the other half of E2 |
+   **One person: Soroush Bonab, Founder.** No second card, no placeholder, and no sentence implying
+   a team.
 
-EPIC-016's rule holds for all of them: *a nav link to a 404 is worse than no nav.*
+2. **`/careers`.** The page exists and says there are no open roles right now, with the contact
+   route for someone who wants to be told when that changes. Not a 404, not three invented cards.
 
-## What comes next
+   *Assumption, flag it if wrong:* "close them" is read as *the openings are closed, the page
+   stays*. A footer link to a 404 is what EPIC-016 refused for the site nav. If Soroush would
+   rather the page not exist at all, drop the route and the footer link together — it is a
+   ten-minute change either way.
 
-`docs/epics/plan-mockup-parity.md` is the sequence and supersedes `docs/backlog.md` for this
-programme — the backlog does not know it exists, because `CLAUDE.md` reserves that file for
-Soroush. Its next unbuilt row is **EPIC-072b: About and Careers, honest**, which is written, scoped
-and carries two rulings already on file from 2026-09-20. `PROMPT_CONTINUE` says to pick the next
-epic from the backlog; for this programme, pick it from there.
+3. **The footer gains both**, in the `Company` group the mockup draws.
 
-## Three things that are Soroush's, not the next session's
+4. **Both pages into the claims registry** where they make a factual statement, and into
+   `public-routes.json`, `sitemap.xml` and the Lighthouse sweep — the three places EPIC-072 found
+   a page can be built and still be invisible.
 
-1. **`docs/epics/RELEASE-DUE.md`.** Five epics have merged since the last push.
-2. **The run demo's heading says "Six checks" over five rows** — the mockup's own copy, shipped in
-   EPIC-016b and deliberately out of scope for EPIC-016d rather than re-decided quietly. One line
-   either way: the heading becomes "Five checks", or the table gains a row.
-3. **`See the workbench` goes to `/features`, not to the workbench.** The mockup sends it to the
-   signed-in editor, which for a signed-out reader is a sign-in wall. If he wants the mockup's
-   destination, it is one href.
+## Out of scope
+
+- `/pricing`, `/learn`, `/blog`.
+- A job-application form, an applicant mailbox, or an ATS.
+- Photographs, bios beyond a line, or a company history longer than the mockup's paragraph.
+- Changing `/security`'s SOC 2 absence. Still not true.
+
+## Acceptance criteria
+
+- [ ] `/about` contains no string matching `/\bco-founders?\b/i` or `/\bour team\b/i`, and
+      `claims.test.ts` stays green with its controls intact. Evidence: the run.
+- [ ] `/about` names exactly one person. Evidence: test name.
+- [ ] `/careers` states plainly that there are no open roles and offers a contact route. Evidence:
+      test name plus a screenshot.
+- [ ] Both routes are in `public-routes.json` and in `sitemap.xml`, and the sitemap test that
+      EPIC-072 added still fails when a page is missing from it. Evidence: the run.
+- [ ] Both pages carry the skip link and the shared nav and footer. Evidence: the chrome test.
+- [ ] Lighthouse ≥90 on both, accessibility 100. Evidence: `scripts/lighthouse-site.mjs`.
+- [ ] Neither page scrolls sideways at 390px. Evidence: `overflow.ts`.
+- [ ] `pnpm forbidden-words` passes; all gates green per package; `gates.mjs ci` green before merge.
+- [ ] Both pages loaded in a browser from the built app, screenshots in the report.
+- [ ] Report and session log written.
+
+## Notes for the implementer
+
+- The mockup's `/about` is at lines 864–878 and `/careers` at 966–980.
+- `claims.test.ts`'s `["a team", /\bco-founders?\b|\bour team\b|\bwe are hiring\b/i]` is the guard
+  and its control row is the mockup's *"Co-founder. Engineering."*. **Neither the pattern nor its
+  control is removed by this epic** — the pattern is still protecting something true. "Founder"
+  alone does not match it. Check that before writing the line, not after.
+- `we are hiring` is also in that pattern, which is the right answer for `/careers` as scoped.
+- EPIC-072's four found defects are the checklist for any new public page: the nav's width at
+  390px, absence from `sitemap.xml`, a missing skip link, and the footer's fourth group wrapping.
+  Only the last was visible in a screenshot; the other three passed every assertion.

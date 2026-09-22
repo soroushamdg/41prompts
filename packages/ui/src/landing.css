@@ -455,6 +455,41 @@
   color: var(--color-ink-3);
 }
 
+/* ─────────────────────── a link in running text looks like one ───────────────────────
+ *
+ * **Found by EPIC-072b's drive, measured rather than eyeballed**: thirteen links across seven
+ * pages rendered with the *same colour, the same weight and no underline* as the text around them.
+ * Not "distinguished only by colour", which is the WCAG failure people quote — distinguished by
+ * nothing at all. `/security`'s "Privacy", `/guides`'s three card headings, `/contact`'s one
+ * channel, `/sign-in`'s "Create one" and `/about`'s two. A reader could only find them by moving a
+ * mouse over the sentence.
+ *
+ * **axe cannot see it and never could.** Its `link-in-text-block` rule fires when a link differs
+ * from its surroundings *by colour alone*; a link that differs by nothing is outside the rule.
+ * Nine pages have been axe-clean over this the whole time.
+ *
+ * **The mockup already ruled on it.** `41prompts-full-mockup.html` sets `a{color:inherit;
+ * text-decoration:none}` globally — which is where ours comes from — and then writes
+ * `text-decoration:underline` inline on every link it puts inside a sentence (its "Forgot?",
+ * "Create one" and "Sign in", lines 811–848). Ours took the first half and not the second.
+ *
+ * **Enumerated rather than blanket.** `main a` would underline the nav-shaped and card-shaped
+ * links too, which the mockup deliberately leaves bare. These are the containers that hold running
+ * text, and the probe that found the thirteen is the check that they are now none. */
+.site-lede a,
+.site-grid-item p a,
+.site-card-body p a,
+.site-row-body p a,
+.site-row-body h2 a,
+.site-row-body h3 a,
+.prose-page a,
+.auth-alt a,
+.auth-side p a {
+  text-decoration: underline;
+  /* Far enough off the baseline that a descender does not sit on the rule. */
+  text-underline-offset: 3px;
+}
+
 /* ──────────────────────────── legal stubs ──────────────────────────── */
 
 .prose-page {

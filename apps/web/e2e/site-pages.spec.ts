@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { ALL_FOOTER_LINKS, NAV_LINKS, PUBLIC_ROUTES } from "../lib/site/links";
 
 /**
@@ -77,8 +77,12 @@ test.describe("the chrome goes where it says", () => {
   });
 
   test("a route nobody built is a 404, so the two walks above mean something", async ({ request }) => {
+    // `/pricing` is the real case: EPIC-070 builds it, and until then it is not there.
     expect((await request.get("/pricing")).status()).toBe(404);
-    expect((await request.get("/careers")).status()).toBe(404);
+    // **`/careers` was the other half of this control until EPIC-072b built it.** Replacing it with
+    // another route somebody intends to build would put this control back on the same clock —
+    // `/blog`, `/learn` and `/about` were all "nobody built it" once. This one is on no roadmap.
+    expect((await request.get("/not-a-route-this-site-has")).status()).toBe(404);
   });
 
   test("the current page marks itself in the nav", async ({ page }) => {
@@ -124,7 +128,20 @@ test.describe("with motion turned off", () => {
 });
 
 test.describe("the new pages are accessible and fit a phone", () => {
-  const NEW_ROUTES = ["/features", "/delivery", "/docs", "/security", "/changelog", "/guides", "/legal/third-party-notices"];
+  // EPIC-072b added the last two. EPIC-072's four found defects are the checklist for any new public
+  // page — the nav's width at 390px, absence from `sitemap.xml`, a missing skip link, and the
+  // footer's fourth group wrapping — and only the last was visible in a screenshot.
+  const NEW_ROUTES = [
+    "/features",
+    "/delivery",
+    "/docs",
+    "/security",
+    "/changelog",
+    "/guides",
+    "/legal/third-party-notices",
+    "/about",
+    "/careers"
+  ];
 
   for (const route of NEW_ROUTES) {
     test(`${route} has no axe violations`, async ({ page }) => {
@@ -145,6 +162,77 @@ test.describe("the new pages are accessible and fit a phone", () => {
       expect(overflow, `${route} overflows by ${overflow}px`).toBeLessThanOrEqual(0);
     });
   }
+});
+
+/**
+ * A link inside running text is visibly a link — EPIC-072b, found by its drive.
+ *
+ * The drive measured thirteen anchors across seven pages rendering with the **same colour, the
+ * same weight and no underline** as the text around them. Not "distinguished only by colour",
+ * which is the WCAG failure everybody quotes — distinguished by *nothing*. `axe` cannot see it:
+ * its `link-in-text-block` rule fires on a link that differs by colour alone, and a link that
+ * differs by nothing at all is outside it. Nine pages had been axe-clean over this the whole time.
+ *
+ * So the probe is here, over every public route, rather than the one CSS rule being asserted in a
+ * stylesheet test. A rule that exists and does not reach an element is the defect this is for.
+ *
+ * **`.logo` and `.btn` are excluded by shape, not by name.** The mockup leaves a wordmark and a
+ * button bare and so do we; what it underlines — and what ours did not — is a link inside a
+ * sentence. Two of the original thirteen were the wordmark and were never the defect.
+ */
+test.describe("links in running text", () => {
+  /** Every anchor in a page's body that is prose rather than chrome, and whether it is visible. */
+  const bareLinks = (page: Page) =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("main#main a")]
+        .filter(
+          (anchor) =>
+            !anchor.classList.contains("btn") &&
+            !anchor.classList.contains("logo") &&
+            anchor.closest(".site-nav, .site-foot, .ask-sheet") === null
+        )
+        .map((anchor) => {
+          const own = getComputedStyle(anchor);
+          const around = anchor.parentElement ? getComputedStyle(anchor.parentElement) : own;
+          return {
+            text: (anchor.textContent ?? "").trim().slice(0, 40),
+            bare:
+              own.color === around.color &&
+              own.textDecorationLine === "none" &&
+              own.fontWeight === around.fontWeight
+          };
+        })
+    );
+
+  for (const route of PUBLIC_ROUTES) {
+    test(`${route} has no link that looks like ordinary text`, async ({ page }) => {
+      await page.goto(route);
+      const bare = (await bareLinks(page)).filter((link) => link.bare).map((link) => link.text);
+      expect(bare, `${route}: indistinguishable link(s)`).toEqual([]);
+    });
+  }
+
+  test("the probe can report one, so the walk above is not vacuous", async ({ page }) => {
+    // The positive control. Every assertion above is `toEqual([])`, which also passes when the
+    // probe has stopped finding anything — a renamed container, a changed selector. This injects
+    // exactly the defect the epic found and proves the probe still reports it.
+    await page.goto("/about");
+    const found = await page.evaluate(() => {
+      const paragraph = document.querySelector("main#main p");
+      if (paragraph === null) return "no paragraph on /about to inject into";
+      const anchor = document.createElement("a");
+      anchor.href = "/security";
+      anchor.textContent = "a link nobody can see";
+      anchor.style.color = "inherit";
+      anchor.style.textDecoration = "none";
+      anchor.style.fontWeight = "inherit";
+      paragraph.append(anchor);
+      return "";
+    });
+    expect(found).toBe("");
+    const bare = (await bareLinks(page)).filter((link) => link.bare).map((link) => link.text);
+    expect(bare).toContain("a link nobody can see");
+  });
 });
 
 /**

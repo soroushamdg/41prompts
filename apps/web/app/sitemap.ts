@@ -38,7 +38,11 @@ const PRIORITY: Readonly<Record<string, { priority: number; changeFrequency: "we
   "/guides/what-your-prompt-does-not-check": { priority: 0.7, changeFrequency: "monthly" },
   "/guides": { priority: 0.6, changeFrequency: "monthly" },
   "/security": { priority: 0.6, changeFrequency: "monthly" },
-  "/changelog": { priority: 0.5, changeFrequency: "weekly" }
+  "/changelog": { priority: 0.5, changeFrequency: "weekly" },
+  // EPIC-072b. `yearly` is honest about both: `/about` changes when the company does, and
+  // `/careers` changes on the day a role opens, which is not a date anybody can put in a file.
+  "/about": { priority: 0.4, changeFrequency: "yearly" },
+  "/careers": { priority: 0.4, changeFrequency: "yearly" }
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
