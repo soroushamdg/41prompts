@@ -43,16 +43,26 @@ export default function AboutPage() {
       lede="41Prompts started in Montréal in 2026, after one too many afternoons spent scrolling a two-thousand-token prompt looking for the line that broke production. It is the tool I wanted: prompts made of parts, each part testable, each failure traceable."
     >
       <div className="site-wrap">
+        {/* **The `.site-row` idiom, not the mockup's two side-by-side cards.** With one person the
+            mockup's `.two` leaves half a row empty, and an empty half reads as a card that failed
+            to load rather than as a decision — which is exactly what the drive is for. This is the
+            shape `/guides` and `/changelog` already use for a fact against a sentence, and one row
+            of it fills its width the way one of two cards does not.
+
+            `data-person` is the mechanism `company-pages.test.tsx` counts, and it is an attribute
+            rather than a class so that restyling this cannot quietly change what the test
+            measures. */}
         <div className="site-card">
-          <div className="site-card-head">Who builds it</div>
-          <div className="site-card-body">
-            {/* `data-person` is the mechanism the "exactly one person" test counts, and it is an
-                attribute rather than a class so that restyling this card cannot quietly change what
-                the test is measuring. */}
-            <div data-person="Soroush Bonab">
-              <h2 style={{ margin: 0, fontSize: "17px" }}>Soroush Bonab</h2>
-              <p style={{ margin: "var(--spacing-s2) 0 0", fontSize: "14px", color: "var(--color-ink-2)" }}>
-                Founder. Montréal, Québec.
+          <div className="site-row" data-person="Soroush Bonab">
+            <div className="site-row-key">
+              <b>Founder</b>
+              <span>Montréal, Québec</span>
+            </div>
+            <div className="site-row-body">
+              <h2>Soroush Bonab</h2>
+              <p>
+                Writes the code, the epics and the tests. There is nobody else, which is what the section below is
+                about.
               </p>
             </div>
           </div>
