@@ -41,6 +41,32 @@ into a half version — the blocker's §2 argument is unchanged: shipping `/pric
 publishes the exact sentence `claims.test.ts` denies, and shipping plan-based quotas without
 checkout enforces plans nobody can buy.
 
+## 1b. Where this is, 2026-09-22
+
+**Step 3 is complete and committed; step 4 has not started, because the key has not arrived.**
+Four commits on `epic/070-stripe-and-pricing`, none merged:
+
+| commit | what |
+|---|---|
+| `b457f39` | ADR-007, this plan, the epic into `CURRENT.md` |
+| `c4046a4` | the billing schema — `plans`, `subscriptions`, `billing_customers`, `stripe_events`; `users.plan` dropped; the plan derived |
+| `0334504` | the run limit, refused in words before a run exists |
+| `6739508` | the webhook, idempotent on Stripe's event id, proved to fire |
+
+Gates on that tree: `pnpm test` 9/9 · `typecheck` 9/9 · `lint` 12/12 · `compliance` green ·
+`pnpm e2e` **394 passed, 4 skipped** (the Linux-only baselines). `gates.mjs ci` has not been run —
+it gates a merge, and there is nothing to merge until the epic is finished.
+
+**What the account still gates**, unchanged from §1: everything in step 4. The stop is deliberate
+rather than a pause — shipping `/pricing` without checkout publishes the exact sentence
+`claims.test.ts` denies, and shipping plan quotas without checkout enforces plans nobody can buy.
+
+**One acceptance criterion is already met and one is met early**: the webhook idempotency proof
+(`a webhook delivered twice has the effect of one`) and the unknown-event-type rule both hold
+without Stripe, because event signing is HMAC over a body with a shared secret and the ledger is
+ours. `plan state is derived, and a test fails if a plan column is ever added to users` is met too,
+against the schema source so it runs on a machine with no Postgres.
+
 ## 2. ADR-007 — **done**
 
 Committed before any schema, as the epic's scope item 1 and `PROCESS.md` both require.
