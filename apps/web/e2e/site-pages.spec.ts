@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { ALL_FOOTER_LINKS, NAV_LINKS, PUBLIC_ROUTES } from "../lib/site/links";
 
 /**
@@ -182,7 +182,7 @@ test.describe("the new pages are accessible and fit a phone", () => {
  */
 test.describe("links in running text", () => {
   /** Every anchor in a page's body that is prose rather than chrome, and whether it is visible. */
-  const bareLinks = (page: import("@playwright/test").Page) =>
+  const bareLinks = (page: Page) =>
     page.evaluate(() =>
       [...document.querySelectorAll("main#main a")]
         .filter(

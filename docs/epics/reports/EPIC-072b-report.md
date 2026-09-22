@@ -204,19 +204,48 @@ checked in both directions by the script). Full table in the session log.
 
 ## 10. The gate, and what a green here does not cover
 
-`node scripts/gates.mjs ci` — see §11 for the run. Its closing block prints three things every
-time, and they are part of the result:
+`node scripts/gates.mjs ci`, twice — the run below is the second, on the commit that was merged.
 
-1. **The runner is slower.** Nothing here is timing-sensitive; the two new pages are static and the
-   one new e2e walk reads computed styles rather than waiting on anything.
-2. **The runner is Linux, and the four visual baselines skip on darwin.** For this epic that gap is
-   **closed further than usual**: both `/` baselines were compared inside
+```
+checkout      git clone + checkout <final>     PASS
+ci.yml        pnpm install --frozen-lockfile   PASS
+              pnpm lint                        PASS
+              pnpm typecheck                   PASS
+              pnpm db:migrate                  PASS
+              pnpm test                        PASS
+              playwright install chromium      PASS
+              pnpm e2e                         PASS    4 test(s) skipped on darwin
+              uv run pytest -q (sdks/python)   PASS
+compliance    reuse lint                       PASS
+              pnpm boundaries                  PASS
+              turbo boundaries                 PASS
+              pnpm forbidden-words             PASS
+              pnpm binary-files                PASS
+              pnpm dead-code                   PASS
+              license-gate --sbom              PASS
+              pnpm mirror-dry-run              PASS
+              17 step(s), all passed
+```
+
+**There were two runs because the first was about a different commit.** `70dc884` went 17/17 in
+14m21s, and then self-review changed two lines — a clarified sentence on `/careers` and a tidied
+type import. `PROCESS.md` is explicit that the gate's answer is about one specific commit and no
+other, so the second run is the one the merge rests on rather than the first.
+
+**Its closing block printed two things, and they are part of the result:**
+
+1. **The runner is Linux and this is darwin**, so the four visual-regression baselines skip here.
+   For this epic that gap is **closed further than usual**: both `/` baselines were compared inside
    `mcr.microsoft.com/playwright:v1.63.0-noble` — at zero tolerance, not merely at the configured
-   one — and the `/dev/ui` pair was compared byte-for-byte (§7). What remains uncovered on Linux is
-   everything *else* in the suite that darwin and Linux could render differently, which is the
-   standing gap and not one this epic narrows.
-3. **A `pull_request` run tests the merge, not the branch tip.** There is no pull request; nothing
-   is pushed. `origin/main` is 48 commits behind local `main` before this epic.
+   one — and the `/dev/ui` pair byte-for-byte (§7). What stays uncovered is everything *else* in
+   the suite that darwin and Linux could render differently, which is the standing gap and not one
+   this epic narrows.
+2. **The runner is slower than this machine**, so a test that only fails under load passes here.
+   Nothing in this epic is timing-sensitive: the two pages are static and the one new e2e walk
+   reads computed styles rather than waiting on anything.
+
+It did **not** print the third item it sometimes does — that a `pull_request` run tests the merge
+rather than the branch tip — because there is no pull request and nothing is pushed.
 
 **And what nothing local covers, stated so no line above reads as more than it is:** no second
 machine built this, no image was built, nothing deployed, and no migration ran against a real

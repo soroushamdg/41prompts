@@ -51,9 +51,9 @@ export default function CareersPage() {
             <div className="site-row-body">
               <h2>There is no position to apply for</h2>
               <p>
-                The three this site&apos;s prototype drew were never real. A page listing jobs nobody can be hired
-                into costs the most time for the people most likely to take it seriously, which is the wrong group
-                to waste.
+                The three openings this site&apos;s prototype once drew were never real. A page listing jobs nobody
+                can be hired into costs the most time for the people most likely to take it seriously, which is the
+                wrong group to waste.
               </p>
             </div>
           </div>

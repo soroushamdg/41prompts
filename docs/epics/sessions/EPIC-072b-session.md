@@ -121,7 +121,17 @@ node scripts/lighthouse-site.mjs http://127.0.0.1:3131
 † SEO recomputed without `is-crawlable` — disallowed in robots.txt on purpose, EPIC-015.
 ```
 
-The `gates.mjs ci` run and its closing block are report §10 and the commit that follows this file.
+```
+node scripts/gates.mjs ci      run 1, on 70dc884a   17 step(s), all passed, 14m21s
+                               run 2, on the merged commit — report §10
+```
+
+**Two runs, because the first was about a different commit.** Self-review after run 1 changed two
+lines: `/careers` said "The three this site's prototype drew", which needs the reader to have seen
+the prototype to know what three, and `site-pages.spec.ts` had an inline
+`import("@playwright/test").Page` in a file that already imports from it. Neither is worth much on
+its own; merging on the strength of a green about a commit that no longer exists is worth quite a
+lot, and `PROCESS.md` says so in as many words.
 
 ## Open questions for Soroush
 
