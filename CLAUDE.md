@@ -72,7 +72,13 @@ showing a sample as though it were the set.
 - Blok kinds: `context | constraint | example | expected | image_ref | image_input`.
 - Prompt ids `pr_` + 8 hex. Project ids `proj_` + 4 hex. Build hash: content hash of the compiled artifact.
 - Env: `FORTYONE_API_KEY`, `FORTYONE_BASE_URL`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`,
-  `KEY_ENCRYPTION_SECRET`, `KEY_ENCRYPTION_PUBLIC_KEY`. The last two are halves of one key: a process
+  `KEY_ENCRYPTION_SECRET`, `KEY_ENCRYPTION_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
+  `STRIPE_PUBLISHABLE_KEY`. The three Stripe values are optional and absent means **this deployment
+  has no billing** — a supported state, not a misconfiguration: every page serves and there is no
+  checkout. Test mode is what EPIC-070 is built against; a live key is configuration set when
+  somebody decides to charge a customer. `apps/web/e2e/env.mjs` deliberately invents **no**
+  placeholder for them, because a made-up Stripe key fails at the network instead of at
+  configuration. The last two are halves of one key: a process
   that only **seals** a provider key needs the public half alone, which is what lets `apps/web` be
   given it and `apps/worker` the secret (threat model row `043a`). Both are optional and a process
   holding the secret ignores the public half, so the split is additive — nothing breaks without it.

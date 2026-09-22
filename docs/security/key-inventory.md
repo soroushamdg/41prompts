@@ -80,6 +80,9 @@ first rotation; until then it says what is true.
 | `COOLIFY_DEPLOY_TOKEN` | triggering a deploy of either application | GitHub Actions secrets | Coolify → API tokens | never recorded |
 | `GITHUB_TOKEN` | the workflow's own scoped token | **minted per run by GitHub**; nothing stores it | nothing to rotate | n/a |
 | `GH_TOKEN` | `gh` inside a workflow; set from `GITHUB_TOKEN` | nothing stores it | nothing to rotate | n/a |
+| `STRIPE_SECRET_KEY` | **charging customers and reading what they were charged** (EPIC-070). Absent means this deployment has no billing, which is a supported state rather than a fault | Coolify ×2 when billing is live; **nothing today** | Stripe → Developers → API keys. Roll the restricted key, redeploy, then revoke | never recorded |
+| `STRIPE_WEBHOOK_SECRET` | verifying the HMAC over the exact bytes Stripe posts to `/api/stripe/webhook`. A wrong value reads as "bad signature", never as a delivery problem | Coolify ×2 when billing is live; `stripe listen` prints its own for local work | Stripe → Developers → Webhooks → the endpoint. **Per endpoint**, so staging and production hold different values and always did | never recorded |
+| `STRIPE_PUBLISHABLE_KEY` | the browser half of a checkout. **Public by design** — it identifies the account and authorises nothing | Coolify ×2 when billing is live | with `STRIPE_SECRET_KEY` | never recorded |
 | `FORTYONE_API_KEY` | **a customer's key, in a customer's process** — `@41prompts/sdk` and `fortyone` fall back to it when `apiKey` is not passed to `createClient`. We never hold a value | the customer's environment | the customer rotates it, from the API keys tab | n/a |
 
 ## Not in the table, and why

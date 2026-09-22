@@ -72,7 +72,20 @@ export const PUBLIC_PATHS: readonly string[] = [
  * `@41prompts/sdk` may well not, since it must never block a call — an outright failure. Whatever
  * base URL somebody configures, the answer has to be the answer.
  */
-export const SHARED_PATHS: readonly string[] = ["/healthz", "/_next", "/dev", "/favicon.ico", "/icon.svg", "/v1"];
+export const SHARED_PATHS: readonly string[] = [
+  "/healthz",
+  "/_next",
+  "/dev",
+  "/favicon.ico",
+  "/icon.svg",
+  "/v1",
+  // **`/api/stripe` for the same reason as `/v1`** (EPIC-070). Stripe posts a signed body to
+  // whichever URL is configured in its dashboard, and a 301 is answered by re-sending — or, for a
+  // client that does not follow one, not at all. The signature is over the exact bytes, so a
+  // redirect that drops or re-encodes the body fails verification in a way that reads as a wrong
+  // secret. Whatever host the webhook is configured against has to be the host that answers.
+  "/api/stripe",
+];
 
 function matches(pathname: string, prefixes: readonly string[]): boolean {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
