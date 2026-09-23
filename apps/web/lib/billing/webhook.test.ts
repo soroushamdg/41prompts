@@ -3,7 +3,14 @@ import { HAS_TEST_DATABASE, announceDatabaseSkip, testDatabaseUrl } from "@41pro
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { HANDLED_EVENT_TYPES, isHandledType, recordEvent, subscriptionFactsFrom, upsertSubscription } from "./webhook";
+import {
+  HANDLED_EVENT_TYPES,
+  isHandledType,
+  recordEvent,
+  subscriptionFactsFrom,
+  subscriptionIdOnInvoice,
+  upsertSubscription,
+} from "./webhook";
 
 /**
  * **The idempotency test, written before the handler that serves it** — the epic's Notes say so,
@@ -57,12 +64,64 @@ describe("which event types are acted on", () => {
     expect(isHandledType(type)).toBe(true);
   });
 
+  it.each(["customer.subscription.trial_will_end", "charge.refunded", "some.type.stripe.has.not.invented.yet"])(
+    "%s is not handled, and that is a recorded fact rather than a silent drop",
+    (type) => {
+      expect(isHandledType(type)).toBe(false);
+    }
+  );
+
+  /**
+   * The four Stripe's billing reference says an integration is not complete without, named one at
+   * a time rather than counted.
+   *
+   * *"Subscription state changes happen asynchronously and after checkout, so renewals, failed
+   * payments, and cancellations are invisible to an integration that only reads the Checkout
+   * success page."* The first version of this file handled neither invoice event and neither
+   * asynchronous settlement.
+   */
   it.each([
-    "invoice.payment_failed",
-    "customer.subscription.trial_will_end",
-    "some.type.stripe.has.not.invented.yet",
-  ])("%s is not handled, and that is a recorded fact rather than a silent drop", (type) => {
-    expect(isHandledType(type)).toBe(false);
+    ["a renewal", "invoice.paid"],
+    ["a failed charge, which is also the dunning trigger", "invoice.payment_failed"],
+    ["a cancellation", "customer.subscription.deleted"],
+    ["an asynchronous method settling after checkout", "checkout.session.async_payment_succeeded"],
+  ])("handles %s", (_what, type) => {
+    expect(isHandledType(type)).toBe(true);
+  });
+});
+
+describe("finding the subscription an invoice belongs to", () => {
+  /**
+   * Stripe moved this field in the 2025-03-31 API version, the same reshaping that moved the
+   * period onto the subscription item. Both shapes are read, because a deployment pinned to either
+   * must not silently conclude "no subscription" and ignore a renewal.
+   */
+  it("reads the newer nested shape", () => {
+    const invoice = { parent: { subscription_details: { subscription: "sub_nested" } } } as unknown as Parameters<
+      typeof subscriptionIdOnInvoice
+    >[0];
+    expect(subscriptionIdOnInvoice(invoice)).toBe("sub_nested");
+  });
+
+  it("reads the older top-level shape", () => {
+    const invoice = { subscription: "sub_top" } as unknown as Parameters<typeof subscriptionIdOnInvoice>[0];
+    expect(subscriptionIdOnInvoice(invoice)).toBe("sub_top");
+  });
+
+  it("reads an expanded object in either place", () => {
+    const top = { subscription: { id: "sub_expanded" } } as unknown as Parameters<typeof subscriptionIdOnInvoice>[0];
+    expect(subscriptionIdOnInvoice(top)).toBe("sub_expanded");
+    const nested = {
+      parent: { subscription_details: { subscription: { id: "sub_expanded_nested" } } },
+    } as unknown as Parameters<typeof subscriptionIdOnInvoice>[0];
+    expect(subscriptionIdOnInvoice(nested)).toBe("sub_expanded_nested");
+  });
+
+  it("says nothing rather than guessing when an invoice has no subscription", () => {
+    // A one-off invoice is a real thing and is not a renewal. Returning undefined is what stops
+    // the handler retrieving `undefined` from Stripe and erroring on a perfectly normal event.
+    const invoice = { id: "in_oneoff" } as unknown as Parameters<typeof subscriptionIdOnInvoice>[0];
+    expect(subscriptionIdOnInvoice(invoice)).toBeUndefined();
   });
 });
 

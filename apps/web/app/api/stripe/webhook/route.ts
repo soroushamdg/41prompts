@@ -4,7 +4,7 @@ import type Stripe from "stripe";
 import { createLogger, withRequestId } from "@41prompts/logger";
 import { getDb } from "@/lib/db";
 import { stripeOrUndefined, webhookSecret } from "@/lib/billing/stripe";
-import { recordEvent, subscriptionFactsFrom, upsertSubscription } from "@/lib/billing/webhook";
+import { recordEvent, subscriptionFactsFrom, subscriptionIdOnInvoice, upsertSubscription } from "@/lib/billing/webhook";
 
 /**
  * Stripe's webhook endpoint.
@@ -89,11 +89,39 @@ async function handle(request: Request): Promise<Response> {
     return await applySubscription(db, event.data.object as Stripe.Subscription);
   }
 
-  if (event.type === "checkout.session.completed") {
+  if (event.type === "invoice.paid" || event.type === "invoice.payment_failed") {
+    // **Resolved through the object graph**, which is also why this needs the client: the invoice
+    // names a subscription id, and the subscription is the thing that says what plan and what
+    // period. Re-reading it is how a renewal and a failed charge both land as the truth Stripe
+    // holds rather than as our guess from an invoice's fields.
+    const subscriptionId = subscriptionIdOnInvoice(event.data.object as Stripe.Invoice);
+    if (subscriptionId === undefined) {
+      log.info({ eventId: event.id }, "invoice carried no subscription; nothing to apply");
+      return Response.json({ received: true, acted: false, why: "the invoice names no subscription" });
+    }
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    return await applySubscription(db, subscription);
+  }
+
+  if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
     // Checkout tells us who the customer is; the subscription events carry the plan and the period.
     // Recording the mapping here means the subscription event can find an owner even when Stripe
     // delivers the two out of order, which it sometimes does.
     const session = event.data.object as Stripe.Checkout.Session;
+
+    // **Gated on `payment_status`, not on the event alone.** An asynchronous method — a bank debit,
+    // most notably — completes checkout `unpaid` and settles later, so `checkout.session.completed`
+    // arriving is not the same as money having moved. The mapping below is only an id pairing and
+    // is harmless either way, but the gate is here so that anything added to this branch later
+    // inherits it rather than having to remember it.
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+      log.info(
+        { eventId: event.id, paymentStatus: session.payment_status },
+        "checkout session is not paid yet; waiting for async_payment_succeeded"
+      );
+      return Response.json({ received: true, acted: false, why: `payment_status is ${session.payment_status}` });
+    }
+
     const owner = session.metadata?.["owner"];
     const customer = typeof session.customer === "string" ? session.customer : session.customer?.id;
     if (owner === undefined || customer === undefined) {
@@ -114,23 +142,33 @@ async function handle(request: Request): Promise<Response> {
 /**
  * Write what a subscription event says, having worked out whose it is.
  *
- * **Owner comes from the subscription's metadata first, then from `billing_customers`.** Checkout
- * sets the metadata, so the first path covers everything this product creates; the second covers a
- * subscription created in Stripe's dashboard by a person, which has no metadata and is exactly the
- * case somebody will hit while testing.
+ * ## The customer is the ownership boundary; metadata is the fallback
+ *
+ * **This order was the other way round in the first version of this file, and Stripe's own billing
+ * reference names the mistake**: *"Don't map asynchronous Stripe events to application objects
+ * through metadata by default. Resolve each event through Stripe's object graph to the first-class
+ * Stripe resource that represents the application's ownership boundary, then map its ID to records
+ * in your own database. Use metadata only as an explicit fallback."*
+ *
+ * The reasoning holds independently of the citation. `metadata` is a free-form map that anybody
+ * with Dashboard access can edit, that is absent on any object not created by our own checkout, and
+ * that Stripe never validates. The **Customer** is the thing a subscription genuinely belongs to,
+ * and `billing_customers` is our own record of which account that customer is. So the lookup goes
+ * `subscription.customer` → `billing_customers` → owner, and metadata answers only when that finds
+ * nothing — a subscription somebody created by hand in the Dashboard, which is exactly the case
+ * that turns up while testing.
  */
 async function applySubscription(db: ReturnType<typeof getDb>, subscription: Stripe.Subscription): Promise<Response> {
-  let owner = subscription.metadata?.["owner"];
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
 
-  if (owner === undefined || owner.length === 0) {
-    const customerId =
-      typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-    const [mapped] = await db
-      .select({ owner: billingCustomers.owner })
-      .from(billingCustomers)
-      .where(eq(billingCustomers.stripeCustomerId, customerId));
-    owner = mapped?.owner;
-  }
+  const [mapped] = await db
+    .select({ owner: billingCustomers.owner })
+    .from(billingCustomers)
+    .where(eq(billingCustomers.stripeCustomerId, customerId));
+
+  // Metadata second, and only when the object graph found nothing.
+  let owner = mapped?.owner;
+  if (owner === undefined || owner.length === 0) owner = subscription.metadata?.["owner"];
 
   const rows = await db.select({ key: plans.key, priceId: plans.stripePriceId }).from(plans);
   const byPrice = new Map(rows.filter((row) => row.priceId !== null).map((row) => [row.priceId as string, row.key]));

@@ -28,12 +28,33 @@ import type Stripe from "stripe";
  * non-2xx tells Stripe to retry something that will never succeed.
  */
 
-/** The event types this deployment acts on. Anything else is recorded with `handled: false`. */
+/**
+ * The event types this deployment acts on. Anything else is recorded with `handled: false`.
+ *
+ * **The invoice pair is not optional and was missing from the first version of this file.** Stripe's
+ * own billing reference is direct about it: *"Don't call a subscription integration complete
+ * without a webhook handler for the subscription lifecycle events (`customer.subscription.*`,
+ * `invoice.paid`, `invoice.payment_failed`). Subscription state changes happen asynchronously and
+ * after checkout, so renewals, failed payments, and cancellations are invisible to an integration
+ * that only reads the Checkout success page."*
+ *
+ * `invoice.payment_failed` is also the dunning trigger — the moment a card stops working is the
+ * moment there is something to tell somebody, and under ADR-007 §4 it is *not* the moment anything
+ * is taken away.
+ *
+ * **`checkout.session.async_payment_succeeded` is here for the same reason.** A bank debit or any
+ * other asynchronous method completes checkout with `payment_status: "unpaid"` and settles minutes
+ * or days later. An integration that only watches `checkout.session.completed` either grants
+ * nothing to those customers or grants it before the money moves.
+ */
 export const HANDLED_EVENT_TYPES: readonly string[] = [
   "checkout.session.completed",
+  "checkout.session.async_payment_succeeded",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
+  "invoice.paid",
+  "invoice.payment_failed",
 ];
 
 export function isHandledType(type: string): boolean {
@@ -171,5 +192,32 @@ function periodSecondsOf(
   if (typeof fromItem === "number") return fromItem;
   const fromSubscription = (subscription as unknown as Record<string, unknown>)[`current_period_${which}`];
   if (typeof fromSubscription === "number") return fromSubscription;
+  return undefined;
+}
+
+/**
+ * The subscription an invoice belongs to, read from wherever this API version puts it.
+ *
+ * Stripe moved `invoice.subscription` to `invoice.parent.subscription_details.subscription` in the
+ * 2025-03-31 API version, the same reshaping that moved the period onto the subscription item.
+ * Both are read for the same reason: a deployment pinned to either version must not silently see
+ * "this invoice has no subscription" and ignore a renewal.
+ */
+export function subscriptionIdOnInvoice(invoice: Stripe.Invoice): string | undefined {
+  const record = invoice as unknown as Record<string, unknown>;
+
+  const direct = record["subscription"];
+  if (typeof direct === "string") return direct;
+  if (direct !== null && typeof direct === "object" && typeof (direct as { id?: unknown }).id === "string") {
+    return (direct as { id: string }).id;
+  }
+
+  const parent = record["parent"] as { subscription_details?: { subscription?: unknown } } | undefined;
+  const nested = parent?.subscription_details?.subscription;
+  if (typeof nested === "string") return nested;
+  if (nested !== null && typeof nested === "object" && typeof (nested as { id?: unknown }).id === "string") {
+    return (nested as { id: string }).id;
+  }
+
   return undefined;
 }
