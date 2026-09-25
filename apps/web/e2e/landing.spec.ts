@@ -897,7 +897,20 @@ test.describe("the home page's illustrative sections", () => {
     test("the rows are landed, the meters are full, and nothing is animating", async ({ page }) => {
       await page.goto("/");
       const rows = page.locator(".run-demo tbody tr");
-      await expect(rows).toHaveCount(5);
+      /**
+       * **The relationship, not a literal, and this is the second time the literal has broken.**
+       *
+       * It read `toHaveCount(5)`, which was true only while the demo happened to have five rows.
+       * EPIC-070 added a sixth — the mockup's heading has said "Six checks" since EPIC-016b — and
+       * `page.test.tsx` was moved to the relationship in the same commit while this one was
+       * missed, because nothing runs the e2e suite until a merge is due.
+       *
+       * The invariant this test actually needs is *"every row that exists is landed and still"*, so
+       * the count is read rather than asserted, with a floor that keeps the block from passing
+       * vacuously over a table that failed to render.
+       */
+      const rowCount = await rows.count();
+      expect(rowCount, "no demo rows rendered — every assertion below would be vacuous").toBeGreaterThan(1);
 
       const state = await page.locator(".run-demo").evaluate((table) => {
         const rowEls = [...table.querySelectorAll("tbody tr")];

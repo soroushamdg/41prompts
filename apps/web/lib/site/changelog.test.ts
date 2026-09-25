@@ -23,8 +23,15 @@ describe("the changelog only names epics that shipped", () => {
     expect(existsSync(join(REPORTS, `${epic}-report.md`)), `${epic} has no report`).toBe(true);
   });
 
+  /**
+   * **This named `EPIC-070` until EPIC-070 shipped**, which is the control working rather than
+   * breaking: its job is to name an epic id that has no report, and an id that ships has to leave
+   * the list or the assertion becomes false. `claims.test.ts` has the same control and made the
+   * same move in the same commit. `EPIC-073` is a real roadmap row with nothing built, for the same
+   * reason a plausible id beats a made-up one — a typo looks like a plausible id.
+   */
   it("would fail on an epic that never shipped", () => {
-    expect(existsSync(join(REPORTS, "EPIC-070-report.md"))).toBe(false);
+    expect(existsSync(join(REPORTS, "EPIC-073-report.md"))).toBe(false);
   });
 
   it("cites no epic twice", () => {

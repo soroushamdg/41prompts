@@ -12,8 +12,10 @@ import publicRoutes from "./public-routes.json";
  * nearly empty and said why: the mockup's Product · Features · Delivery · Pricing · Learn · Docs row
  * named pages that did not exist, and a nav link to a 404 is worse than no nav. Four of those six
  * exist now, and `Product` — which points at the home page and therefore cannot 404 — joined them.
- * **Pricing and Learn still do not** — pricing needs EPIC-070 and there is no plan to sell, lessons
- * are Stage 7 — so they are still absent rather than stubbed, for the same reason as before.
+ * **Pricing joined in EPIC-070**, which is the epic that gave it something to point at: there is a
+ * plan to sell, a checkout that sells it, and a page whose number is the number Stripe charges.
+ * **Learn still does not** — lessons are Stage 7 — so it is still absent rather than stubbed, for
+ * the same reason as before.
  *
  * **There is still no GitHub link.** `github.com/41prompts/41prompts` is the URL `packages/core`'s
  * manifest and `REUSE.toml` publish, and EPIC-056's report §8 records that the repository has not
@@ -43,6 +45,7 @@ export type SiteNavCurrent =
   | "home"
   | "features"
   | "delivery"
+  | "pricing"
   | "docs"
   | "security"
   | "changelog"
@@ -75,6 +78,11 @@ export const NAV_SECTION_LINKS: readonly NavLink[] = [
   { id: "home", name: "Product", href: "/" },
   { id: "features", name: "Features", href: "/features" },
   { id: "delivery", name: "Delivery", href: "/delivery" },
+  // **The mockup has always drawn this one** (line 426, between Delivery and Docs) and it was
+  // absent for one reason: until EPIC-070 the route was a 404, and EPIC-016 decision 6 rules out a
+  // chrome link that goes nowhere. The route exists now, so the nav entry the mockup specifies
+  // arrives with it rather than needing its own epic.
+  { id: "pricing", name: "Pricing", href: "/pricing" },
   { id: "docs", name: "Docs", href: "/docs" },
   // **`Decompiler` moved in here in EPIC-016d**, out of a second group that kept it visible at every
   // width. EPIC-072 put it there because EPIC-016's `landing.spec.ts` asserted a 44px `Decompiler`
@@ -98,6 +106,7 @@ export const NAV_LINKS: readonly NavLink[] = NAV_SECTION_LINKS;
 const PRODUCT_LINKS: readonly SiteLink[] = [
   { name: "Features", href: "/features" },
   { name: "Delivery", href: "/delivery" },
+  { name: "Pricing", href: "/pricing" },
   { name: "Decompiler", href: "/decompile" },
   { name: "Changelog", href: "/changelog" },
   { name: "Sign in", href: "/sign-in" }

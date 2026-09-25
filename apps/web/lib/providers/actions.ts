@@ -4,6 +4,7 @@ import {
   deleteProviderKey,
   isProviderName,
   PROVIDER_TITLES,
+  providerKeyMetadata,
   putProviderKey,
   refusalWords,
   recordProviderKeyTest,
@@ -15,6 +16,7 @@ import { createLogger } from "@41prompts/logger";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { requireSession } from "@/lib/session";
+import { byoKeyRefusal } from "@/lib/runs/plan-gate";
 import { enqueueKeyTest } from "@/lib/runs/queue";
 
 /**
@@ -49,9 +51,14 @@ async function ownerAnd(provider: string) {
 /**
  * Store a key, having first asked the provider whether it is real.
  *
- * The three refusals a person can meet, in the order they are checked: it is not a provider we
- * support; it is empty; the provider would not take it. Only the third costs a network call, and
- * none of them writes anything.
+ * The four refusals a person can meet, in the order they are checked: it is not a provider we
+ * support; it is empty; **the plan does not include bringing one**; the provider would not take it.
+ * Only the last costs a network call, and none of them writes anything.
+ *
+ * **The plan check is third and not fourth on purpose.** Asking a provider to verify a key we are
+ * about to refuse to store spends somebody's rate limit on an answer nobody will use, and — worse —
+ * it means the person's key has been sent over the network for no reason at all. The cheap refusal
+ * goes before the expensive one whenever both would fire; here it is also the more private order.
  */
 export async function saveProviderKeyAction(provider: string, key: string): Promise<ProviderActionResult> {
   const found = await ownerAnd(provider);
@@ -59,6 +66,14 @@ export async function saveProviderKeyAction(provider: string, key: string): Prom
 
   const plaintext = key.trim();
   if (plaintext === "") return { ok: false, message: "Paste a key first." };
+
+  // **Replacing a key is never refused** — only attaching a first one for this provider. ADR-007 §4
+  // enforces nothing retroactively, and a Free account that cannot rotate a leaked key is a plan
+  // boundary that has become a security incident. `plan-gate.ts` carries the whole argument.
+  const existing = await providerKeyMetadata(found.db, found.owner);
+  const alreadyHasOne = existing.some((row) => row.provider === found.provider);
+  const notOnThisPlan = await byoKeyRefusal(found.db, found.owner, alreadyHasOne);
+  if (notOnThisPlan !== undefined) return { ok: false, message: notOnThisPlan };
 
   const { verdict, usedFake } = await verifyProviderKeyOrFake(found.provider, plaintext);
   if (usedFake) {

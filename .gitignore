@@ -54,3 +54,23 @@ PROMPT_CONTINUE
 # **Ignoring it is not the same as deciding about it.** If this icon becomes a real asset it needs a
 # home under a package, a licence header or a REUSE.toml entry, and this line removed.
 app-icon.jpg
+
+# Agent skills installed from a URL by `npx skills add` (2026-09-23, Stripe's docs skills).
+# `.agents/skills/` holds them and the other four are symlink trees one editor each reads.
+#
+# **Ignored rather than tracked, and that is about the gates rather than about taste.** Seventy-six
+# untracked files with no SPDX headers fail `reuse lint`; `pnpm binary-files` and `pnpm dead-code`
+# both scan untracked files; and `node scripts/gates.mjs ci` refuses a dirty tree outright. Tracking
+# them instead would mean vendoring a third party's prose into a repository that licence-lints every
+# file it carries.
+#
+# `skills-lock.json` is the installer's own lockfile. Ignored with them: pinning the set is only
+# worth doing if the set is tracked, and it is not.
+.agents/
+.devin/
+.junie/
+.windsurf/
+skills-lock.json
+# **`.claude/skills/` and not `.claude/`**: a project `.claude/settings.json` or an agent
+# definition is this repository's own and should be trackable. Only the symlink tree is not.
+.claude/skills/

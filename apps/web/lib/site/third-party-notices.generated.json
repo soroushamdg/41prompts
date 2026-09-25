@@ -2264,6 +2264,12 @@
       "homepage": "https://github.com/antfu/strip-literal#readme"
     },
     {
+      "name": "stripe",
+      "version": "22.6.2",
+      "license": "MIT",
+      "homepage": "https://github.com/stripe/stripe-node"
+    },
+    {
       "name": "styled-jsx",
       "version": "5.1.6",
       "license": "MIT",

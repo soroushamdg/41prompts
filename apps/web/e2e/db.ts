@@ -4,6 +4,7 @@ import {
   promptVersions,
   providerKeys,
   sessions,
+  subscriptions,
   suiteRuns,
   users,
   verifications,
@@ -147,4 +148,44 @@ export async function providerKeysFor(
     .innerJoin(users, eq(providerKeys.owner, users.id))
     .where(eq(users.email, email))
     .orderBy(providerKeys.provider);
+}
+
+/**
+ * Put an account on a paid plan, for a suite whose subject is not billing (EPIC-070).
+ *
+ * ## Why this exists rather than the suite buying a plan
+ *
+ * EPIC-070 made bringing a provider key a Pro feature, and `providers.spec.ts` is five tests about
+ * what happens to a key **once it is stored** — none of them is about the plan. Driving a Stripe
+ * Checkout at the top of that file would make it depend on a network, a card and a webhook to
+ * assert something about sealing, which is the shape of a test that fails for reasons unrelated to
+ * what it is testing.
+ *
+ * **This is the one place a subscription is written by hand, and the drive deliberately does not
+ * use it.** `scripts/drive-epic-070.mts` buys the plan through Checkout with a real test card,
+ * because `docs/AUTONOMOUS.md` is explicit that driving the creation path is part of the test. A
+ * spec establishing a precondition and a drive proving the path are different jobs.
+ *
+ * The row is what the webhook would have written: `active`, a period covering now, and a plan key
+ * the `plans` table holds — so `planKeyFor` answers from the same predicate it always does and
+ * nothing here special-cases a test.
+ */
+export async function putOnPlan(email: string, planKey = "pro"): Promise<void> {
+  const [user] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+  if (!user) throw new Error(`no user with email ${email}`);
+
+  const now = Date.now();
+  await db
+    .insert(subscriptions)
+    .values({
+      id: `sub_e2e_${user.id.slice(-12)}`,
+      owner: user.id,
+      stripeCustomerId: `cus_e2e_${user.id.slice(-12)}`,
+      planKey,
+      status: "active",
+      currentPeriodStart: new Date(now - 24 * 60 * 60 * 1000),
+      currentPeriodEnd: new Date(now + 29 * 24 * 60 * 60 * 1000),
+      cancelAtPeriodEnd: false,
+    })
+    .onConflictDoNothing({ target: subscriptions.id });
 }

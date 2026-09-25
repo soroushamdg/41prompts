@@ -5,6 +5,7 @@ import { AskBar } from "./ask-bar";
 import { AskChip, AskChipRow } from "./ask-chip";
 import { Attribution, CapabilityLoop, HomeProof, ProductShot, ProviderComparison, RunDemo } from "./home-sections";
 import { SiteFooter, SiteNavWithSession } from "./site-chrome";
+import { appOrigin } from "@/lib/site/url";
 import { startDecompile } from "./start-actions";
 
 export const metadata: Metadata = {
@@ -28,9 +29,15 @@ export const metadata: Metadata = {
  *
  * **The paste box stays where the mockup puts a button.** The mockup's `Paste a prompt, free` links
  * to the import screen; the paste box *is* that screen's first step, done here. So the box keeps the
- * position and the mockup's second CTA, `See the workbench`, sits under it — pointing at
- * `/features` rather than at the signed-in editor the mockup names, because for a signed-out reader
- * that editor is a sign-in wall and `Start free` is the control that asks for an account.
+ * position and the mockup's second CTA, `See the workbench`, sits under it.
+ *
+ * **`See the workbench` points at the app, which reverses EPIC-016d's ruling** (Soroush,
+ * 2026-09-24: *match the mockup*). It pointed at `/features` because the mockup's destination is
+ * `app:editor` and for a signed-out reader that is a sign-in wall — the objection was put to him
+ * and he chose the mockup anyway, so it goes to the app. The consequence is unchanged and worth
+ * stating rather than hiding: a visitor with no account lands on sign-in, with `next` carrying them
+ * on afterwards. `/features` is still one click away in the nav, which is what stops this being a
+ * dead end for somebody who only wanted to look.
  *
  * **Sign up is promoted now**, in the nav, which reverses EPIC-016 decision 2 for the same reason
  * as the headline. `site-chrome.tsx` carries that argument and `landing.spec.ts` carries the guard.
@@ -93,8 +100,11 @@ export default function HomePage() {
             </form>
 
             <div className="hero-cta">
-              {/* An anchor wearing a button's clothes, like the closing band's: it navigates. */}
-              <a className="btn" href="/features">
+              {/* An anchor wearing a button's clothes, like the closing band's: it navigates.
+                  Absolute and to the app host, the way the nav's own dashboard link is: `/app` on
+                  the apex only 301s there, and a link that visibly goes where it says is worth more
+                  than a tidy relative href. */}
+              <a className="btn" href={`${appOrigin()}/app`}>
                 See the workbench
               </a>
             </div>
@@ -167,6 +177,12 @@ export default function HomePage() {
                   a link for the keyboard, the context menu and anyone middle-clicking it. */}
               <a className="btn btn-pri cta-band-link" href="/decompile">
                 Open the decompiler
+              </a>
+              {/* **The mockup's second button** (line 620), absent until EPIC-070 because the page
+                  it points at was a 404 and EPIC-016 decision 6 rules out a chrome link that goes
+                  nowhere. `.cta-band-actions` has always been a flex row with a gap for two. */}
+              <a className="btn cta-band-link" href="/pricing">
+                See pricing
               </a>
             </div>
           </div>

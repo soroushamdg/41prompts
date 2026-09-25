@@ -29,6 +29,7 @@ import { keyedProvidersFor } from "@/lib/providers/queries";
 import { compiledNow, editRefusalFor } from "./queries";
 import { enqueueRun } from "./queue";
 import { GRID_LIMITS, MAX_INPUTS, MAX_UPLOAD_BYTES } from "./limits";
+import { runLimitRefusal } from "./plan-gate";
 import { byHandProblemWords, columnProblemWords, csvProblemWords } from "./view";
 
 /**
@@ -281,6 +282,12 @@ export async function startRunAction(
   if (set === undefined) return { ok: false, message: "That set of inputs is not available." };
   if (set.rowCount === 0) return { ok: false, message: "That set has no inputs in it." };
 
+  // **Before `createSuiteRun`, not after** (EPIC-070). A run is counted by its `suite_runs` row,
+  // so a gate that ran later would let the row be written, refuse it, and leave it counted — the
+  // refused run consuming the quota it was refused for. `plan-gate.ts` carries the argument.
+  const overLimit = await runLimitRefusal(db, owner);
+  if (overLimit !== undefined) return { ok: false, message: overLimit };
+
   const now = await compiledNow(db, promptId, owner);
   if (now === undefined) return REFUSED;
 
@@ -398,6 +405,10 @@ export async function startRunOnEveryProviderAction(
   const set = await inputSetForPrompt(db, promptId, inputSetId);
   if (set === undefined) return { ok: false, message: "That set of inputs is not available." };
   if (set.rowCount === 0) return { ok: false, message: "That set has no inputs in it." };
+
+  // One row per provider, so the gate is asked for that many rather than for one.
+  const overLimit = await runLimitRefusal(db, owner, providers.length);
+  if (overLimit !== undefined) return { ok: false, message: overLimit };
 
   const now = await compiledNow(db, promptId, owner);
   if (now === undefined) return REFUSED;

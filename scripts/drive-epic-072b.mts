@@ -212,14 +212,12 @@ try {
     "neither pattern found in the rendered text"
   );
 
-  const aboutLinks = await page.locator("main#main a").evaluateAll((nodes) =>
-    nodes.map((node) => (node as HTMLAnchorElement).getAttribute("href") ?? "")
-  );
-  record(
-    "the second half sends a reader to the two pages that answer 'what if he stops'",
-    aboutLinks.includes("/legal/privacy") && aboutLinks.includes("/security"),
-    aboutLinks.join(" · ")
-  );
+  // **The "if I stop" section was removed on 2026-09-24**, Soroush ruling *same as the mockup* —
+  // whose about page is an eyebrow, a headline, an origin paragraph and the people, and nothing
+  // after. So the page now ends at the person card, and the check is that it does: a stray section
+  // surviving the edit would show up here rather than in a screenshot nobody re-reads.
+  const aboutSections = await page.locator("main#main section").count();
+  record("the page ends at the person card, as the mockup's does", aboutSections === 0, `${aboutSections} section(s) after it`);
 
   await page.screenshot({ path: join(SHOTS, "02-about-1440.png"), fullPage: true });
   await shoot(page, "03-about-person-card.png", ".site-card");

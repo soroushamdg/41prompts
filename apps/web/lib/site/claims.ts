@@ -419,6 +419,61 @@ const ENTRIES: readonly Claim[] = [
     evidence: "packages/core/src/budgets.ts"
   },
 
+  // ─────────────────────────── plans and billing ───────────────────────────
+  //
+  // **These are the first claims in this file that are about money**, and the bar is different
+  // because the consequence is. A sentence on `/features` that overstates what a check does costs
+  // somebody an afternoon; a sentence on `/pricing` that overstates what $29 buys is a thing a
+  // customer paid for and did not get. Each of the six below names the code that enforces it, and
+  // the two run counts name `plan-gate.ts` rather than the plans table, because a number in a table
+  // that nothing reads is not a limit.
+  //
+  // **The price is unvalidated and this file is not the place that pretends otherwise.** $29 comes
+  // from `docs/roadmap.md`, which took it from the mockup; EPIC-005 is cut. ADR-007 says so, the
+  // epic report says so, and the claim below says what we charge rather than what it is worth.
+  {
+    id: "plan-free-runs",
+    text: "The Free plan runs 50 suite runs a period. They are counted from the runs themselves rather than from a tally that could drift, and the fifty-first is refused in words that name the number, the plan and the date it starts again.",
+    epic: "EPIC-070",
+    evidence: "apps/web/lib/runs/plan-gate.ts"
+  },
+  {
+    id: "plan-pro-runs",
+    text: "Pro runs 5,000 suite runs a period, on the meter Settings → Billing shows you, against the billing period Stripe is charging you for rather than a month we invented.",
+    epic: "EPIC-070",
+    evidence: "packages/db/src/billing.ts"
+  },
+  {
+    id: "plan-pro-price",
+    text: "Pro is $29 a month for the account. There are no seats to count, because there is nobody to invite yet, and a charge per seat would bill a quantity that is always one and call it a seat.",
+    epic: "EPIC-070",
+    evidence: "docs/decisions/ADR-007-plans-prices-and-what-a-seat-is.md"
+  },
+  {
+    id: "plan-pro-trial",
+    text: "Pro starts with a 14-day trial that grants the plan from the first minute, and cancelling inside it charges nothing.",
+    epic: "EPIC-070",
+    evidence: "apps/web/lib/billing/checkout.ts"
+  },
+  {
+    id: "plan-byo-on-pro",
+    text: "Bringing your own provider key is a Pro feature. A Free account runs on ours instead, inside a spend rail it never has to think about, and a key you have already attached keeps working whatever plan you are on.",
+    epic: "EPIC-070",
+    evidence: "apps/web/lib/providers/actions.ts"
+  },
+  {
+    id: "plan-cancel-keeps-everything",
+    text: "Stop paying and nothing is deleted. Every prompt, version and run stays readable and exportable, publishing to Live keeps working so a lapsed card cannot break your deploy, and new runs fall back to the Free limit.",
+    epic: "EPIC-070",
+    evidence: "packages/db/src/billing.ts"
+  },
+  {
+    id: "plan-downgrade-at-period-end",
+    text: "A cancellation takes effect at the end of the period you paid for, never on the day you click it.",
+    epic: "EPIC-070",
+    evidence: "packages/db/src/billing.ts"
+  },
+
   // ─────────────────────────── the workbench itself ───────────────────────────
   {
     id: "keyboard-and-touch",
