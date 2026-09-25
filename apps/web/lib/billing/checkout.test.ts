@@ -213,18 +213,43 @@ describe("who is selling", () => {
    * adds back while believing they are being explicit.
    */
   it.each([
+    // Stripe's documented table of parameters Managed Payments removes, copied rather than guessed
+    // — https://docs.stripe.com/payments/managed-payments/update-checkout#remove-unsupported-parameters
     "automatic_tax",
     "tax_id_collection",
+    "payment_method_types",
     "shipping_address_collection",
     "shipping_options",
-    "payment_intent_data",
+    "application_fee_amount",
+    "application_fee_percent",
     "on_behalf_of",
-    "application_fee_amount"
+    "transfer_data",
+    "payment_intent_data",
+    "invoice_creation",
+    "custom_text",
+    "submit_type"
   ])("does not set %s, which Managed Payments manages", async (parameter) => {
     delete process.env.STRIPE_MANAGED_PAYMENTS;
     const { stripe, recorded } = recorder();
     await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
     expect(recorded.sessions[0]).not.toHaveProperty(parameter);
+  });
+
+  /**
+   * `subscription_data` **is** set — the trial and the owner live there — so the nested keys Stripe
+   * manages are checked inside it rather than by asserting the whole object away.
+   */
+  it.each(["invoice_settings", "transfer_data"])("does not set subscription_data.%s", async (key) => {
+    delete process.env.STRIPE_MANAGED_PAYMENTS;
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]!["subscription_data"]).not.toHaveProperty(key);
+  });
+
+  it("still sets the subscription_data keys that are ours, so the line above is not vacuous", async () => {
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]!["subscription_data"]).toHaveProperty("trial_period_days");
   });
 
   it("would notice if the session stopped being recorded, so the absences mean something", async () => {
