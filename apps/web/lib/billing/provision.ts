@@ -60,6 +60,25 @@ export interface SoldPlan {
   readonly unitAmount: number;
 }
 
+/**
+ * The product's tax **classification** — and it is not a tax registration (ADR-008 §2).
+ *
+ * Nobody issues this. It is a string from Stripe's own published catalogue saying *what kind of
+ * thing is being sold*, so that Stripe can apply the right rules under Managed Payments. It costs
+ * nothing, it requires no company, and it is not a VAT, GST or HST number. Those are the things
+ * **Stripe** holds, in 80+ countries, which is the entire reason for paying it 3.5%.
+ *
+ * That sentence is here rather than only in the ADR because "tax code" reads like "tax number" to
+ * almost everybody, and somebody editing this file is exactly who must not make that mistake.
+ *
+ * **Why SaaS and not AI-as-a-Service** (`txcd_10105002`), which is the tempting one: what is sold
+ * here is not model access. On Pro the customer brings their own provider key, so the inference is
+ * theirs and their provider bills them for it. What we charge for is cloud software — not
+ * customised per buyer, nothing downloaded — sold to commercial users, which is `txcd_10103001`
+ * exactly. ADR-008 §3 has the comparison and names this as the one line for an accountant.
+ */
+const PRODUCT_TAX_CODE = "txcd_10103001";
+
 /** The plans this provisions objects for. Free and Team are deliberately absent — see above. */
 const SOLD_PLANS: readonly SoldPlan[] = [
   {
@@ -72,6 +91,18 @@ const SOLD_PLANS: readonly SoldPlan[] = [
 ];
 
 const CURRENCY = "usd";
+
+/**
+ * Stripe returns `tax_code` as an id or as an expanded object, depending on the request.
+ *
+ * Reading only the string shape would make the comparison above fail on an account where it is
+ * expanded, and the script would then "set" a code that is already set on every single run — an
+ * idempotent script that writes every time, which is the property this file exists to protect.
+ */
+function taxCodeIdOf(taxCode: string | { id: string } | null | undefined): string | undefined {
+  if (taxCode === null || taxCode === undefined) return undefined;
+  return typeof taxCode === "string" ? taxCode : taxCode.id;
+}
 
 /** A product id we choose, so the create path is idempotent even under a race. */
 function productIdFor(planKey: string): string {
@@ -98,6 +129,7 @@ async function productFor(stripe: Stripe, plan: SoldPlan, say: (line: string) =>
     id,
     name: plan.name,
     description: plan.description,
+    tax_code: PRODUCT_TAX_CODE,
     metadata: { plan_key: plan.planKey },
   });
   say(`product  ${plan.planKey}  created  ${created.id}`);
@@ -111,13 +143,17 @@ async function productFor(stripe: Stripe, plan: SoldPlan, say: (line: string) =>
  * `lookup_key` is unique per account and `prices.list` is strongly consistent, so if the price
  * exists the product it belongs to is read off it and nothing is made.
  */
-async function priceFor(stripe: Stripe, plan: SoldPlan, say: (line: string) => void): Promise<string> {
+async function priceFor(
+  stripe: Stripe,
+  plan: SoldPlan,
+  say: (line: string) => void
+): Promise<{ priceId: string; productId: string }> {
   const found = await stripe.prices.list({ lookup_keys: [plan.lookupKey], limit: 1, expand: ["data.product"] });
   const existing = found.data[0];
   if (existing) {
     const productId = typeof existing.product === "string" ? existing.product : existing.product.id;
     say(`price    ${plan.lookupKey}  found    ${existing.id}  (product ${productId})`);
-    return existing.id;
+    return { priceId: existing.id, productId };
   }
 
   const productId = await productFor(stripe, plan, say);
@@ -132,7 +168,37 @@ async function priceFor(stripe: Stripe, plan: SoldPlan, say: (line: string) => v
     metadata: { plan_key: plan.planKey },
   });
   say(`price    ${plan.lookupKey}  created  ${created.id}`);
-  return created.id;
+  return { priceId: created.id, productId };
+}
+
+/**
+ * Make sure the product carries its tax classification — **on every run, not only on create**.
+ *
+ * ## This was a real bug and it was found by running the script rather than by reading it
+ *
+ * The first version of EPIC-074 put this inside `productFor`, which looks right and is not:
+ * `priceFor` finds the price by `lookup_key` and **returns before `productFor` is ever called**.
+ * So on every account that already had the price — which is every account after its first run, and
+ * therefore every account that matters — the tax code was never written, the script reported
+ * success, and the next Managed Payments checkout would have failed with the same `400` EPIC-070
+ * already spent a session on.
+ *
+ * It runs unconditionally now, and it is still idempotent: it reads first and writes only on a
+ * difference. A script that writes every time is not idempotent, it is merely convergent, and the
+ * whole argument for this file is the stronger property.
+ *
+ * `tax_code` comes back as an id or as an expanded object depending on the request, so both shapes
+ * are read; comparing only the string would make every run see a difference and write again.
+ */
+async function ensureTaxCode(stripe: Stripe, productId: string, say: (line: string) => void): Promise<boolean> {
+  const product = await stripe.products.retrieve(productId);
+  if (taxCodeIdOf(product.tax_code) === PRODUCT_TAX_CODE) {
+    say(`taxcode  ${productId}  already ${PRODUCT_TAX_CODE}`);
+    return false;
+  }
+  await stripe.products.update(productId, { tax_code: PRODUCT_TAX_CODE });
+  say(`taxcode  ${productId}  set to ${PRODUCT_TAX_CODE}  (was ${taxCodeIdOf(product.tax_code) ?? "unset"})`);
+  return true;
 }
 
 export interface ProvisionResult {
@@ -189,8 +255,12 @@ export async function provisionPlans(
   const priceIdByPlan: Record<string, string> = {};
 
   for (const plan of SOLD_PLANS) {
-    const priceId = await priceFor(stripe, plan, say);
+    const { priceId, productId } = await priceFor(stripe, plan, say);
     priceIdByPlan[plan.planKey] = priceId;
+
+    // Unconditional, and after the price rather than inside it — see `ensureTaxCode`. Without a
+    // tax code every Managed Payments checkout fails at its last step (ADR-008 §3, EPIC-074).
+    if (await ensureTaxCode(stripe, productId, say)) changed += 1;
 
     const [row] = await db.select().from(plans).where(eq(plans.key, plan.planKey));
     if (!row) throw new Error(`plans has no "${plan.planKey}" row — run pnpm db:migrate first.`);

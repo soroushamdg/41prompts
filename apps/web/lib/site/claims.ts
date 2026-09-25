@@ -468,6 +468,12 @@ const ENTRIES: readonly Claim[] = [
     evidence: "packages/db/src/billing.ts"
   },
   {
+    id: "plan-stripe-sells",
+    text: "Stripe is the seller on your receipt. It charges you, collects any tax that applies where you are, and may bill your card in your own currency at its rate.",
+    epic: "EPIC-074",
+    evidence: "docs/decisions/ADR-008-who-sells.md"
+  },
+  {
     id: "plan-downgrade-at-period-end",
     text: "A cancellation takes effect at the end of the period you paid for, never on the day you click it.",
     epic: "EPIC-070",

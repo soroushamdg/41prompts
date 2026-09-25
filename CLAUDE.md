@@ -73,12 +73,16 @@ showing a sample as though it were the set.
 - Prompt ids `pr_` + 8 hex. Project ids `proj_` + 4 hex. Build hash: content hash of the compiled artifact.
 - Env: `FORTYONE_API_KEY`, `FORTYONE_BASE_URL`, `DATABASE_URL`, `R2_*`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`,
   `KEY_ENCRYPTION_SECRET`, `KEY_ENCRYPTION_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`,
-  `STRIPE_PUBLISHABLE_KEY`. The three Stripe values are optional and absent means **this deployment
-  has no billing** — a supported state, not a misconfiguration: every page serves and there is no
-  checkout. Test mode is what EPIC-070 is built against; a live key is configuration set when
-  somebody decides to charge a customer. `apps/web/e2e/env.mjs` deliberately invents **no**
-  placeholder for them, because a made-up Stripe key fails at the network instead of at
-  configuration. The last two are halves of one key: a process
+  `STRIPE_PUBLISHABLE_KEY`, `STRIPE_MANAGED_PAYMENTS`. The three Stripe **keys** are optional and
+  absent means **this deployment has no billing** — a supported state, not a misconfiguration: every
+  page serves and there is no checkout. Test mode is what EPIC-070 is built against; a live key is
+  configuration set when somebody decides to charge a customer. `apps/web/e2e/env.mjs` deliberately
+  invents **no** placeholder for them, because a made-up Stripe key fails at the network instead of
+  at configuration. **`STRIPE_MANAGED_PAYMENTS` is not a key and unset means *on*** (ADR-008): Stripe
+  is the merchant of record and holds the tax registrations, so nobody here has one. `off` turns it
+  back to us, and exists only because eligibility is Stripe's review of an account rather than a
+  property of this code — an unenrolled deployment must fail at configuration rather than with a 400
+  in the middle of a checkout. The last two are halves of one key: a process
   that only **seals** a provider key needs the public half alone, which is what lets `apps/web` be
   given it and `apps/worker` the secret (threat model row `043a`). Both are optional and a process
   holding the secret ignores the public half, so the split is additive — nothing breaks without it.

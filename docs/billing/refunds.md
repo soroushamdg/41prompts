@@ -5,7 +5,14 @@ SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 
 # Refunds
 
-The procedure for giving somebody their money back. Written for EPIC-070, 2026-09-24.
+The procedure for giving somebody their money back. Written for EPIC-070, 2026-09-24; revised for
+EPIC-074, 2026-09-25.
+
+> **Stripe is the merchant of record** (ADR-008). It sells to the customer, it collects and remits
+> any tax, and it handles disputes. That changes the second half of this procedure and not the
+> first: **the policy in §1 is still ours**, and so is the decision to refund. What changed is who
+> the transaction legally belongs to, who answers a chargeback, and the fact that **Stripe can now
+> refund without asking us** in some circumstances.
 
 **This is a written procedure and not code, deliberately.** EPIC-070's scope item 10 asks for "a
 documented refund path", and a refund button would be the wrong answer: a refund is a judgement
@@ -64,7 +71,25 @@ Stripe's Dashboard, in the sandbox or in live mode, whichever the charge is in.
    happens to their account. If the subscription was cancelled, say that everything they made is
    still there and still exportable, because that is true and it is the thing they will worry about.
 
-## 3. What happens in this system, and what does not
+## 3. Stripe can refund without us, and that is not a bug
+
+Under Managed Payments, Stripe states it **can issue refunds within 60 days of purchase in certain
+cases, including to help reduce chargebacks**, and that it applies consumer-protection rules such as
+regional cooling-off periods. So a refund can appear that nobody here decided.
+
+Three consequences, and none of them needs code:
+
+- **`refunds-given.md` will have gaps**, because a refund Stripe issued was never written down by
+  step 4. That is acceptable and it is better than the alternative of pretending the log is
+  complete: the log's purpose is to show how *our policy* has been applied, and a Stripe-initiated
+  refund is not our policy being applied. Write the row anyway if you notice one, with `stripe` as
+  the reason.
+- **§1's 30-day answer is unchanged.** It is more generous than a rule Stripe would apply on its
+  own, and being outvoted in the customer's favour costs nothing.
+- **Do not chase one.** A refund Stripe issued to avoid a chargeback has already saved the fee it
+  was issued to avoid.
+
+## 4. What happens in this system, and what does not
 
 **Nothing in the product reacts to a refund, and that is correct.**
 
@@ -83,27 +108,33 @@ Stripe's Dashboard, in the sandbox or in live mode, whichever the charge is in.
 **Nothing is deleted from the account by a refund.** ADR-007 §4 applies to a refunded customer the
 same way it applies to a cancelled one: prompts, versions, runs and published builds stay.
 
-## 4. Chargebacks are a different thing
+## 5. Chargebacks are Stripe's now
 
-A chargeback is the customer's bank reversing the charge without asking us, and it costs a fee on
-top of the amount.
+A chargeback is the customer's bank reversing the charge without asking us. **Under Managed Payments
+Stripe handles it** — it reviews the dispute and submits evidence on our behalf, automatically or by
+hand.
 
-- Stripe emits `charge.dispute.created`. It is **not handled** and is recorded like any other
-  unhandled type.
-- **Do not fight one over $29.** The evidence submission takes longer than the amount is worth, and
-  a lost dispute costs the fee twice.
-- Do cancel the subscription, so the next period does not produce a second one.
-- Write the line in `refunds-given.md` with `chargeback` as the reason, because the pattern worth
-  noticing here is *more than one from the same account*, which is fraud rather than a refund.
+So the old advice here ("do not fight one over $29") is no longer a decision anybody has to make,
+and that is most of what the 3.5% buys. What remains:
 
-## 5. What this does not cover, and where it goes when it does
+- Stripe still emits `charge.dispute.created`. It is **not handled** and is recorded in
+  `stripe_events` with `handled: false`, like any other unhandled type.
+- Do cancel the subscription, so the next period does not produce a second dispute.
+- Write the line in `refunds-given.md` with `chargeback` as the reason. The pattern worth noticing
+  is *more than one from the same account*, which is fraud rather than a refund — and it is also
+  what threatens **eligibility**: Stripe requires a low dispute rate to keep Managed Payments.
+
+## 6. What this does not cover, and where it goes when it does
 
 - **Partial and pro-rata refunds.** Not offered. Stripe can do them; the policy above deliberately
   cannot, because "how much of a month did you use" is a negotiation and $29 is not worth one.
-- **Tax.** No tax is collected (`docs/decisions/AUTONOMOUS.md`, 2026-09-24), so no tax is refunded.
-  The day a registration exists, this section becomes the part of the procedure that is not optional.
+- **Tax.** Stripe collects and remits it, and refunds it with the charge — under Managed Payments
+  there is no separate tax step for anybody here to get wrong. This replaces the 2026-09-24 position
+  that no tax is collected at all, which was true until ADR-008.
 - **Invoiced Team customers.** There is no Team price and no Team invoicing yet; both are their own
   backlog row. A negotiated invoice refunded under a negotiated contract is not this procedure.
-- **Anything in live mode.** As of this epic every Stripe object this product has is in the
-  `41prompts` sandbox and nobody has been charged. The procedure is written now so that the first
-  real charge is not also the first time anybody thinks about the second half of it.
+- **Anything in live mode.** Every Stripe object this product has is in the `41prompts` sandbox and
+  nobody has been charged. The procedure is written now so that the first real charge is not also
+  the first time anybody thinks about the second half of it. **Managed Payments in live mode also
+  needs its Terms of Service accepted** at `dashboard.stripe.com/settings/managed-payments`, and
+  Stripe runs an eligibility review — neither is something this repository can do.

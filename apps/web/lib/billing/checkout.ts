@@ -1,6 +1,7 @@
 import { billingCustomers, plans, type Db } from "@41prompts/db";
 import { eq } from "drizzle-orm";
 import type Stripe from "stripe";
+import { managedPaymentsEnabled } from "./stripe";
 
 /**
  * Starting a subscription, and managing one afterwards.
@@ -24,32 +25,36 @@ import type Stripe from "stripe";
  * `['card']` later would be making the integration worse while appearing to make it more explicit.
  * `checkout.test.ts` asserts the parameter is not in what we send.
  *
- * ## Managed Payments is off, and that is a decision rather than a workaround
+ * ## Managed Payments is **on**: Stripe is the merchant of record (ADR-008)
  *
- * **Found by the browser drive, not by a test.** The first real checkout this project ever opened
- * came back `400`: *"the product tax code is missing … Product tax code is required for Managed
- * Payments, which is enabled by default on your account."* Stripe turns Managed Payments on for new
- * accounts, and under it **Stripe is the merchant of record** — it sells to the customer, it
- * charges and remits the tax, and the money reaches us as a payout from Stripe rather than as a
- * charge we made.
+ * **EPIC-070 shipped this as `enabled: false` and EPIC-074 reversed it**, which is worth reading as
+ * one decision rather than as a change of mind. EPIC-070's first real checkout came back `400` —
+ * *"the product tax code is missing … Product tax code is required for Managed Payments, which is
+ * enabled by default on your account"* — and it turned the feature off rather than clearing the
+ * error with a tax code, because clearing it would have opted us into a merchant-of-record
+ * arrangement **silently**. Soroush then made the decision explicitly on 2026-09-25, which is what
+ * ADR-008 records and what this line implements.
  *
- * That is a change to who is selling, not a checkout parameter, and it is outside this epic twice
- * over: `docs/epics/EPIC-070-stripe-and-pricing.md` puts tax beyond Stripe Tax out of scope, and
- * `docs/decisions/AUTONOMOUS.md` (2026-09-24) records Soroush's decision that **no tax is
- * collected** because he is not registered anywhere. Adding a `tax_code` to the Product would have
- * made the error go away and opted us into all of it silently, which is the worse of the two
- * failures available here.
+ * Under it, **Stripe sells to the customer**: it calculates, collects, registers, files and remits
+ * sales tax, VAT and GST in 80+ countries, issues tax invoices, and takes fraud, disputes and
+ * transaction-level support. The alternative was never "do it ourselves" — no registration exists
+ * anywhere, so it was "no compliance", which is a liability rather than a saving.
  *
- * So the session says `managed_payments: { enabled: false }`, which is exactly the behaviour every
- * document about this epic already describes: we are the merchant, and no tax is collected. Turning
- * it **on** is a real option and possibly a good one — it is the usual answer to selling digital
- * services worldwide without registering anywhere — but it is Soroush's decision with an
- * accountant, and it is in the report as one.
+ * **It is set per session rather than in the Dashboard** so the behaviour lives in this repository
+ * and survives a Dashboard nobody remembers configuring, and it is read from
+ * `managedPaymentsEnabled()` rather than hardcoded because eligibility belongs to the Stripe
+ * account and not to this code (ADR-008 §5).
  *
- * It is set per session rather than in the Dashboard so that the behaviour lives in this repository
- * and survives a Dashboard nobody remembers configuring. `stripe@22`'s types do not carry the
- * parameter yet, so it is spread in through a cast; the API accepts it and names it in the error
- * text quoted above.
+ * `stripe@22`'s types do not carry the parameter yet, so it is spread in through a cast; the API
+ * accepts it and names it in the error text quoted above.
+ *
+ * ## What this file must **not** grow
+ *
+ * Stripe says Managed Payments *"automatically manages certain parameters related to Connect, tax
+ * configuration, and shipping"* and that those cannot be set by hand. `automatic_tax`,
+ * `tax_id_collection`, `shipping_address_collection` and anything Connect-shaped therefore belong
+ * to Stripe here. None is set below, and `checkout.test.ts` asserts their absence so that adding
+ * one later is a failing test rather than a 400 in front of a customer.
  *
  * ## The customer is created once and reused
  *
@@ -157,9 +162,9 @@ export async function createCheckoutSession(
     cancel_url: request.cancelUrl,
     // No `payment_method_types` — see the note at the top of this file. It is an absence on purpose.
     //
-    // **Managed Payments is turned off, per session.** See the block below; it is not in the typed
+    // **Managed Payments**, per session — see the block at the top of this file. Not in the typed
     // parameters of `stripe@22`, and the cast is what that costs.
-    ...({ managed_payments: { enabled: false } } as object),
+    ...({ managed_payments: { enabled: managedPaymentsEnabled() } } as object),
   });
 
   if (session.url === null) return { why: "Stripe did not return a checkout URL." };

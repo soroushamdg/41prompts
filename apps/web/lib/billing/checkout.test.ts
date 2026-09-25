@@ -1,5 +1,5 @@
 import type Stripe from "stripe";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { INTEGRATION_IDENTIFIER, TRIAL_DAYS, createCheckoutSession, stripeCustomerFor } from "./checkout";
 
 /**
@@ -152,6 +152,113 @@ describe("the checkout session we ask Stripe for", () => {
     const result = await createCheckoutSession(fakeDb(null), stripe, { ...REQUEST, planKey: "nope" });
     expect(result).toHaveProperty("why");
     expect(recorded.sessions).toHaveLength(0);
+  });
+});
+
+/**
+ * Managed Payments: Stripe is the merchant of record (ADR-008, EPIC-074).
+ *
+ * **Both directions are exercised**, and that is the point rather than thoroughness for its own
+ * sake. EPIC-070 shipped `enabled: false` and EPIC-074 reversed it; a test that only proves the
+ * current value would pass just as happily if the flag stopped being read at all, which is the
+ * failure mode of a boolean that is set in one place and consumed in another.
+ */
+describe("who is selling", () => {
+  const plan = { key: "pro", stripePriceId: "price_test", monthlyRunLimit: 5000, monthlyCapCents: 5000 };
+  const managedPaymentsOf = (session: Record<string, unknown>) =>
+    session["managed_payments"] as { enabled: boolean } | undefined;
+
+  it("asks Stripe to be the merchant of record by default", async () => {
+    delete process.env.STRIPE_MANAGED_PAYMENTS;
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(managedPaymentsOf(recorded.sessions[0]!)).toEqual({ enabled: true });
+  });
+
+  /**
+   * The default is the decision, so **absence must not mean the opposite of it**. This is the same
+   * rule `stripeOrUndefined()` follows for the key: a deployment that has never heard of the
+   * variable gets the decision, and one that wants the other thing has to say so.
+   */
+  it.each(["off", "false", "0", "OFF", " off "])("lets a deployment say %s", async (said) => {
+    process.env.STRIPE_MANAGED_PAYMENTS = said;
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(managedPaymentsOf(recorded.sessions[0]!)).toEqual({ enabled: false });
+  });
+
+  it.each(["", "on", "true", "yes", "anything else at all"])(
+    "reads %s as the default rather than as off",
+    async (said) => {
+      // The control on the row above. A parser that turned every unrecognised value into `false`
+      // would pass every test there and quietly disable the decision on a typo.
+      process.env.STRIPE_MANAGED_PAYMENTS = said;
+      const { stripe, recorded } = recorder();
+      await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+      expect(managedPaymentsOf(recorded.sessions[0]!)).toEqual({ enabled: true });
+    }
+  );
+
+  afterEach(() => {
+    delete process.env.STRIPE_MANAGED_PAYMENTS;
+  });
+
+  /**
+   * **The parameters Stripe now owns**, asserted absent.
+   *
+   * Stripe's docs: Managed Payments *"automatically manages certain parameters related to Connect,
+   * tax configuration, and shipping"* and they cannot be set by hand. Setting one is a `400` in
+   * front of a customer at the last step of checkout — the worst place this integration can fail,
+   * and the place EPIC-070 already failed once. An absence nobody asserts is an absence somebody
+   * adds back while believing they are being explicit.
+   */
+  it.each([
+    // Stripe's documented table of parameters Managed Payments removes, copied rather than guessed
+    // — https://docs.stripe.com/payments/managed-payments/update-checkout#remove-unsupported-parameters
+    "automatic_tax",
+    "tax_id_collection",
+    "payment_method_types",
+    "shipping_address_collection",
+    "shipping_options",
+    "application_fee_amount",
+    "application_fee_percent",
+    "on_behalf_of",
+    "transfer_data",
+    "payment_intent_data",
+    "invoice_creation",
+    "custom_text",
+    "submit_type"
+  ])("does not set %s, which Managed Payments manages", async (parameter) => {
+    delete process.env.STRIPE_MANAGED_PAYMENTS;
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]).not.toHaveProperty(parameter);
+  });
+
+  /**
+   * `subscription_data` **is** set — the trial and the owner live there — so the nested keys Stripe
+   * manages are checked inside it rather than by asserting the whole object away.
+   */
+  it.each(["invoice_settings", "transfer_data"])("does not set subscription_data.%s", async (key) => {
+    delete process.env.STRIPE_MANAGED_PAYMENTS;
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]!["subscription_data"]).not.toHaveProperty(key);
+  });
+
+  it("still sets the subscription_data keys that are ours, so the line above is not vacuous", async () => {
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]!["subscription_data"]).toHaveProperty("trial_period_days");
+  });
+
+  it("would notice if the session stopped being recorded, so the absences mean something", async () => {
+    // The control on all seven above: they are `not.toHaveProperty`, which passes over an empty
+    // object. This is the positive half — the session really is there and really has our fields.
+    const { stripe, recorded } = recorder();
+    await createCheckoutSession(fakeDb(plan), stripe, REQUEST);
+    expect(recorded.sessions[0]).toHaveProperty("mode", "subscription");
+    expect(recorded.sessions[0]).toHaveProperty("line_items");
   });
 });
 
