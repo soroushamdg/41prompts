@@ -77,3 +77,69 @@ describe("the list is usable", () => {
     }
   });
 });
+
+/**
+ * The per-platform exclusion, proved in **both** directions (EPIC-074's follow-up).
+ *
+ * `scripts/third-party-notices.mjs` drops native builds like `@esbuild/darwin-x64` because
+ * `pnpm licenses list` reports what is *installed*, and that differs by machine — which made this
+ * file's own `--check` answer "current" on a Mac and "stale" on the Linux runner, and left `main`
+ * red on GitHub from 2026-09-20.
+ *
+ * **A filter that makes a notices page shorter is a filter that can make it less true**, so it does
+ * not stand on its own reasoning. These are its controls: nothing platform-specific survives, and
+ * every project whose per-platform build was removed is **still credited by name**.
+ */
+describe("per-platform native builds are excluded, and nothing is lost by it", () => {
+  const names = NOTICE_PACKAGES.map((entry) => entry.name);
+
+  /**
+   * **This pattern is written here rather than imported from the generator, on purpose.**
+   *
+   * A test sharing its subject's predicate cannot catch a bug in that predicate — it would agree
+   * with it however wrong it was. Two independent expressions of "this is a per-platform build"
+   * disagree when either is wrong, which is the whole value. (`turbo boundaries` also refuses the
+   * import, `scripts/` being outside this package, which is how the first version was caught.)
+   */
+  const PLATFORM = /(?:^|[-/])(?:darwin|linux|win32|freebsd|android)(?:[-.]|$)|-(?:x64|arm64|ia32|musl|gnu|msvc)(?:-|$)/;
+
+  it("lists no platform-specific build", () => {
+    const platform = names.filter((name) => PLATFORM.test(name));
+    expect(platform, `platform-specific packages survived the filter: ${platform.join(", ")}`).toEqual([]);
+  });
+
+  /**
+   * The half that matters. Each of these is a project whose per-platform binary was dropped; if the
+   * parent ever stops being listed, the filter has removed a **project** rather than a duplicate of
+   * one already credited — which would make the page shorter by making it less true.
+   */
+  it.each(["esbuild", "sharp", "next", "rollup", "lightningcss", "@tailwindcss/oxide", "@sentry/cli"])(
+    "still credits %s, whose per-platform build was dropped",
+    (parent) => {
+      expect(names, `${parent} was excluded along with its platform builds`).toContain(parent);
+    }
+  );
+
+  /**
+   * The control on this file's own pattern. Every assertion above would pass over a regex narrowed
+   * until it matched nothing — which is exactly how the darwin/linux split would come back.
+   */
+  it.each([
+    "@esbuild/darwin-x64",
+    "@esbuild/linux-x64",
+    "@img/sharp-linux-x64",
+    "@next/swc-darwin-arm64",
+    "@rollup/rollup-linux-x64-gnu",
+    "lightningcss-win32-x64-msvc",
+    "@sentry/cli-darwin"
+  ])("recognises %s as a platform build", (name) => {
+    expect(PLATFORM.test(name)).toBe(true);
+  });
+
+  it.each(["esbuild", "sharp", "next", "rollup", "lightningcss", "react", "@sentry/cli", "@types/node"])(
+    "does not mistake %s for one",
+    (name) => {
+      expect(PLATFORM.test(name)).toBe(false);
+    }
+  );
+});
