@@ -18,18 +18,21 @@
  * what it is. `apps/web/e2e/settings-nav.spec.ts` asserts the absence of `role="tab"` with a control
  * proving the probe can find the role when it is there.
  *
- * ## Three, not five
+ * ## Four, not five
  *
- * Team and Billing are Stage 6 (EPIC-070). A navigation naming screens that do not exist is the
- * same defect as an empty apps-resolving table: it makes a claim about the product.
+ * **Billing arrived with EPIC-070** and is a real page rather than a name. **Team has not**: it
+ * needs roles and a membership table, and nothing has either — ADR-007 §1 is explicit that a seat
+ * does not exist in this product. A navigation naming a screen that does not exist is the same
+ * defect as an empty apps-resolving table: it makes a claim about the product.
  */
 
-export type SettingsSection = "providers" | "keys" | "publishing";
+export type SettingsSection = "providers" | "keys" | "publishing" | "billing";
 
 const SECTIONS: readonly { section: SettingsSection; href: string; text: string }[] = [
   { section: "providers", href: "/app/settings/providers", text: "Providers" },
   { section: "keys", href: "/app/settings/keys", text: "API keys" },
   { section: "publishing", href: "/app/settings/publishing", text: "Publishing" },
+  { section: "billing", href: "/app/settings/billing", text: "Billing" },
 ];
 
 export function SettingsNav({ current }: { current: SettingsSection }) {
