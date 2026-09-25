@@ -132,6 +132,12 @@ function Tier({ tier }: { tier: PricingTier }) {
 
       {tier.inherits ? <p className="price-inherits">{tier.inherits}</p> : null}
 
+      {tier.note?.map((paragraph) => (
+        <p className="price-note" key={paragraph.slice(0, 24)}>
+          {paragraph}
+        </p>
+      ))}
+
       {tier.features.length > 0 ? (
         <ul className="price-features">
           {tier.features.map((feature) => (

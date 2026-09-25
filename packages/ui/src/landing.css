@@ -1957,3 +1957,19 @@ a.logo {
 .price-name {
   margin: 0;
 }
+
+/* The tier with no list. `.price-features` is the usual occupant of this space; a column that has
+   nothing to list needs prose in it or it reads as a card that failed to load — which is what the
+   first drive of /pricing photographed. */
+.price-note {
+  margin: var(--spacing-s4) 0 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+.price-note + .price-note {
+  margin-top: var(--spacing-s3);
+}
+.price-note:last-of-type {
+  margin-bottom: var(--spacing-s5);
+}

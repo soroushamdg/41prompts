@@ -33,6 +33,18 @@ import Stripe from "stripe";
  * every line item shows the same name and customers won\'t be able to tell them apart."* So Pro is
  * its own Product rather than a second Price on a shared one.
  *
+ * ## It also makes the customer portal openable, and that was found by driving it
+ *
+ * `billingPortal.sessions.create` fails with *"a default configuration has not been created"* until
+ * the portal's settings have been saved **once** for the account. Nothing in the code can tell that
+ * from any other portal failure, so `createPortalSession` reports it as "not configured yet" — which
+ * is the right thing for it to say and the wrong thing for this repository to leave true. The first
+ * browser drive of this epic hit exactly that, and a settings page whose one button says the feature
+ * is not configured is a feature that is not shipped.
+ *
+ * So the configuration is created here, with the objects, for the same reason the price is: a thing
+ * clicked into existence in one Dashboard exists in one account and nobody can say how it was made.
+ *
  * ## What it does not create
  *
  * **Free**, which is never bought, and **Team**, which ADR-007 §6 makes a contact link with no
@@ -126,6 +138,46 @@ async function priceFor(stripe: Stripe, plan: SoldPlan, say: (line: string) => v
 export interface ProvisionResult {
   readonly changed: number;
   readonly priceIdByPlan: Readonly<Record<string, string>>;
+  /** True when the account already had a default portal configuration and this made none. */
+  readonly portalAlreadyConfigured: boolean;
+}
+
+/**
+ * The customer portal's default configuration, created once.
+ *
+ * **Idempotent by asking first**, not by an upsert: `billingPortal.configurations.list` is a plain
+ * list read, and a second default configuration would silently become the one customers get. What
+ * it allows is what ADR-007 already decided — cancel at the period end, never immediately (§5), and
+ * update a payment method, which is the whole of what a lapsed card needs.
+ *
+ * **`subscription_update` is deliberately absent.** There is one paid plan, so "switch plan" would
+ * offer a list of one, and turning it on later is a setting rather than a migration.
+ */
+async function configurePortal(stripe: Stripe, say: (line: string) => void): Promise<boolean> {
+  const existing = await stripe.billingPortal.configurations.list({ is_default: true, limit: 1 });
+  if (existing.data.length > 0) {
+    say(`portal   default configuration found    ${existing.data[0]!.id}`);
+    return true;
+  }
+
+  const created = await stripe.billingPortal.configurations.create({
+    business_profile: {
+      headline: "41Prompts — manage your subscription",
+    },
+    features: {
+      payment_method_update: { enabled: true },
+      invoice_history: { enabled: true },
+      customer_update: { enabled: true, allowed_updates: ["email", "address"] },
+      subscription_cancel: {
+        enabled: true,
+        // ADR-007 §5: a customer who cancels on day 3 keeps Pro until day 30. `at_period_end` is
+        // that decision expressed to Stripe; `immediately` would take back something they paid for.
+        mode: "at_period_end",
+      },
+    },
+  });
+  say(`portal   default configuration created  ${created.id}`);
+  return false;
 }
 
 export async function provisionPlans(
@@ -152,7 +204,9 @@ export async function provisionPlans(
     changed += 1;
   }
 
-  return { changed, priceIdByPlan };
+  const portalAlreadyConfigured = await configurePortal(stripe, say);
+
+  return { changed, priceIdByPlan, portalAlreadyConfigured };
 }
 
 /**

@@ -73,6 +73,18 @@ export interface PricingTier {
    * "Everything in Free" is not a claim — it is a statement about this page's own layout.
    */
   readonly inherits?: string;
+  /**
+   * Prose in place of a list, for the tier that has no list.
+   *
+   * **The first drive is why this field exists.** Team rendered as a tall box with a heading at the
+   * top, a button at the bottom and seven hundred pixels of nothing between — every assertion on the
+   * page passed and the picture read as a card that had failed to load. EPIC-072b's `/about` had the
+   * identical defect and the identical cause: correct content, in a layout drawn for more of it.
+   *
+   * It is **not a feature list by another name** (ADR-007 §6). It names nothing the product does not
+   * do; it says why there is no number, which is the one thing a reader of this column wants.
+   */
+  readonly note?: readonly string[];
   readonly features: readonly TierFeature[];
   readonly cta: { readonly words: string; readonly href: string };
   /** The mockup's `.tier.best`: a heavier plate on the tier being recommended. */
@@ -139,6 +151,10 @@ export const PRICING_TIERS: readonly PricingTier[] = [
     // empty rather than merely happening to be.
     cadence: "No price yet",
     features: [],
+    note: [
+      "Team is a conversation rather than a plan. What a bigger tier would be sold on is not built yet, so there is no number to print and nothing to check out.",
+      "Write anyway if Pro does not cover what you need. The answer will say what exists rather than what could, which is the most useful thing it can be.",
+    ],
     cta: { words: "Talk to us", href: "/contact" },
   },
 ];

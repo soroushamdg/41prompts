@@ -60,8 +60,8 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
     id: "stage-6",
     stage: "Stage 6",
     heading: "The site says what the product does, and a test keeps it honest",
-    body: "Features, Delivery, Docs, Security, Changelog and Guides, plus the third-party notices. Every claim on them is held as data naming the work that shipped it, and the build fails if a page says something this repository cannot back. About and Careers arrived after, saying only what is true: one person, and no roles open. A link inside a sentence is now drawn as a link on every page, which it had not been on nine of them.",
-    epics: ["EPIC-072", "EPIC-072b"]
+    body: "Features, Delivery, Docs, Security, Changelog and Guides, plus the third-party notices. Every claim on them is held as data naming the work that shipped it, and the build fails if a page says something this repository cannot back. About and Careers arrived after, saying only what is true: one person, and no roles open. A link inside a sentence is now drawn as a link on every page, which it had not been on nine of them. Then Pricing, which needed the thing it describes to exist first: Pro is a flat monthly charge for the account rather than for a seat, a trial and a checkout sell it, cancelling takes nothing away, and a test fails if the page and Stripe ever disagree about the number. The price itself is printed on one page and nowhere else, which is the only place it can be checked against what Stripe charges.",
+    epics: ["EPIC-072", "EPIC-072b", "EPIC-070"]
   },
   {
     id: "stage-5b",

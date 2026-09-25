@@ -24,6 +24,33 @@ import type Stripe from "stripe";
  * `['card']` later would be making the integration worse while appearing to make it more explicit.
  * `checkout.test.ts` asserts the parameter is not in what we send.
  *
+ * ## Managed Payments is off, and that is a decision rather than a workaround
+ *
+ * **Found by the browser drive, not by a test.** The first real checkout this project ever opened
+ * came back `400`: *"the product tax code is missing … Product tax code is required for Managed
+ * Payments, which is enabled by default on your account."* Stripe turns Managed Payments on for new
+ * accounts, and under it **Stripe is the merchant of record** — it sells to the customer, it
+ * charges and remits the tax, and the money reaches us as a payout from Stripe rather than as a
+ * charge we made.
+ *
+ * That is a change to who is selling, not a checkout parameter, and it is outside this epic twice
+ * over: `docs/epics/EPIC-070-stripe-and-pricing.md` puts tax beyond Stripe Tax out of scope, and
+ * `docs/decisions/AUTONOMOUS.md` (2026-09-24) records Soroush's decision that **no tax is
+ * collected** because he is not registered anywhere. Adding a `tax_code` to the Product would have
+ * made the error go away and opted us into all of it silently, which is the worse of the two
+ * failures available here.
+ *
+ * So the session says `managed_payments: { enabled: false }`, which is exactly the behaviour every
+ * document about this epic already describes: we are the merchant, and no tax is collected. Turning
+ * it **on** is a real option and possibly a good one — it is the usual answer to selling digital
+ * services worldwide without registering anywhere — but it is Soroush's decision with an
+ * accountant, and it is in the report as one.
+ *
+ * It is set per session rather than in the Dashboard so that the behaviour lives in this repository
+ * and survives a Dashboard nobody remembers configuring. `stripe@22`'s types do not carry the
+ * parameter yet, so it is spread in through a cast; the API accepts it and names it in the error
+ * text quoted above.
+ *
  * ## The customer is created once and reused
  *
  * A second Stripe customer for the same account means a subscription the ownership lookup cannot
@@ -129,6 +156,10 @@ export async function createCheckoutSession(
     success_url: request.successUrl,
     cancel_url: request.cancelUrl,
     // No `payment_method_types` — see the note at the top of this file. It is an absence on purpose.
+    //
+    // **Managed Payments is turned off, per session.** See the block below; it is not in the typed
+    // parameters of `stripe@22`, and the cast is what that costs.
+    ...({ managed_payments: { enabled: false } } as object),
   });
 
   if (session.url === null) return { why: "Stripe did not return a checkout URL." };
