@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { PLACEHOLDER_MASTER_SECRET } from "@41prompts/db";
-import { deleteTestUser, providerKeysFor, runsFor } from "./db";
+import { deleteTestUser, providerKeysFor, putOnPlan, runsFor } from "./db";
 import { addBlok, declare, newPrompt, signIn, uploadCsv } from "./runs-helpers";
 import { startWorker, type RunningWorker } from "./worker-process";
 
@@ -24,6 +24,15 @@ import { startWorker, type RunningWorker } from "./worker-process";
  * `KEY_ENCRYPTION_PUBLIC_KEY` (from `env.mjs`, via `placeholders()`), so if sealing needed the
  * secret these tests would fail. `apps/web/no-key-opening.test.ts` is the other half of the same
  * claim.
+ *
+ * ## The owner is on Pro, and one test below is about why
+ *
+ * EPIC-070 made bringing a key a Pro feature. Five of the tests here are about what happens to a
+ * key **once it is stored** — sealing, the last four characters, the on/off switch, the test job,
+ * the matrix — and none is about the plan, so the owner is put on Pro in `beforeAll` and they are
+ * unchanged. **The first test is the exception and is new**: it runs before that, on Free, and
+ * asserts the refusal — because a precondition established by a helper is a precondition nothing
+ * has proved the product actually enforces.
  */
 
 const OWNER_EMAIL = `providers-${Date.now()}@example.test`;
@@ -79,7 +88,22 @@ test.describe("provider keys and the two pivots", () => {
     // copies of this value together, so there is one source either way.
     worker = await startWorker({ FAKE_PROVIDER: "1", KEY_ENCRYPTION_SECRET: PLACEHOLDER_MASTER_SECRET });
     const context = await browser.newContext();
-    await signIn(await context.newPage(), OWNER_EMAIL);
+    const page = await context.newPage();
+    await signIn(page, OWNER_EMAIL);
+
+    // **On Free first, so the gate is proved rather than assumed** (EPIC-070). Everything after
+    // this is about a key that is already stored, which needs Pro; this is the one moment the
+    // account is on the plan that cannot store one.
+    await page.goto("/app/settings/providers");
+    await save(page, "Anthropic", GOOD_KEY);
+    await expect(page.getByTestId("message-anthropic")).toContainText("Pro feature");
+    await expect(page.getByTestId("message-anthropic")).toContainText("Settings → Billing");
+    expect(
+      await providerKeysFor(OWNER_EMAIL),
+      "a refused key was stored anyway, which makes the refusal a message over a write"
+    ).toHaveLength(0);
+
+    await putOnPlan(OWNER_EMAIL);
     await context.storageState({ path: STATE_FILE });
     await context.close();
   });
