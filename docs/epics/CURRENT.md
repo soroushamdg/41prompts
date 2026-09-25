@@ -46,12 +46,34 @@ Then `gates.mjs ci` found **six more in the e2e suite**, because it was the firs
 against that branch. Five from the BYO-key gate meeting a suite whose owner is a fresh Free account,
 one from this epic's own sixth run-demo row meeting a literal `toHaveCount(5)`.
 
-## What is merged into local `main`, and not pushed
+## Pushed on 2026-09-25 — and GitHub CI is red, for reasons that are not this epic's
 
-EPIC-023, EPIC-024, EPIC-016b, EPIC-016c, EPIC-016d, EPIC-072b and now EPIC-070 — **seven epics, all
-`gates.mjs ci` green, none pushed.** `origin/main` is 70+ commits behind, so **no staging URL is
-evidence about any of it**, and `docs/epics/RELEASE-DUE.md` has been waiting since 2026-09-20, when
-the count was three.
+**Soroush pushed.** `origin/main` and local `main` are both at `4d98c3d`; the seventy-five-commit
+gap is closed and seven epics — EPIC-023, EPIC-024, EPIC-016b, EPIC-016c, EPIC-016d, EPIC-072b and
+EPIC-070 — are on the remote.
+
+**Compliance passed. CI failed**, on `pnpm test`, with three failures:
+
+| failure | cause |
+|---|---|
+| `cli-generated-code.test.ts` × 2 — `spawnSync uv ENOENT` | **`ci.yml` installs `uv` too late.** `astral-sh/setup-uv@v3` is step 116 and `pnpm test` is step 105, so `uv` is not on the PATH when the mypy-over-generated-Python test shells out to it. A one-line fix: move the step above `pnpm test`. |
+| `third-party-notices.test.ts` — *"notices are stale"* | **The generated list is platform-dependent.** `node scripts/third-party-notices.mjs --check` says *"current"* on darwin and *"stale"* on the Linux runner, because the installed optional dependencies differ. `stripe` **is** in the file, so EPIC-070 regenerated it correctly. |
+
+**Neither is EPIC-070's, and this is checked rather than assumed**: the previous CI run — `35501369717`,
+`bbcb038`, **2026-09-20**, five days and seven epics earlier — failed on **the same three tests with
+the same two messages.** `main` has been red on GitHub since then.
+
+**This is the "Local green is not CI green" class exactly**, and `gates.mjs ci` cannot see either
+one. It runs `ci.yml`'s steps in CI's order, but on a machine that **already has `uv` on the PATH**,
+so an ordering bug in the workflow is invisible to it by construction; and it runs on darwin, where
+the notices generate clean. Its own closing block names the runner being Linux as what it does not
+cover, and these are two more instances of that. Both are cheap: move `setup-uv` above `pnpm test`,
+and regenerate the notices on Linux (or make the generator platform-independent, which is the real
+fix — a check that depends on the machine cannot be a gate).
+
+**Nothing has redeployed.** Staging serves `bbcb038` (2026-09-19) and production `af089c7`, so
+**no deployed URL is evidence about any of the seven epics** — the deploy is behind the red CI.
+`docs/epics/RELEASE-DUE.md` has been waiting since 2026-09-20, when the count was three.
 
 ## Six things are Soroush's
 
