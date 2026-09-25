@@ -347,6 +347,34 @@ try {
 
   // ── 6. Checkout, with a card ─────────────────────────────────────────────────────────────────
 
+  /**
+   * The tax classification, read off the **live Product** rather than off our own source.
+   *
+   * **The product id is followed from the price, not typed.** The first version asked for
+   * `/v1/products/41p_pro` — the deterministic id `provision.ts` uses on its *create* path — and
+   * this account's product predates that path, so it is `prod_…` and the read returned
+   * `resource_missing`. The assertion then reported "tax_code: unset" about a product that was
+   * correctly set, which is a false alarm on a purchase that had just succeeded and could only have
+   * succeeded *because* the code was there.
+   *
+   * It also sits **before** the purchase rather than after it: this is a fact about Stripe objects
+   * and needs no checkout, so it runs under `DRIVE_HEADLESS=1` too. An assertion gated on something
+   * it does not depend on is an assertion that stops running for no reason.
+   */
+  const priceRow = JSON.parse(
+    stripeCli(["get", "/v1/prices", "-d", "lookup_keys[0]=41p_pro_monthly", "-d", "limit=1"])
+  ) as { data: { product: string }[] };
+  const productId = priceRow.data[0]?.product ?? "";
+  const product = JSON.parse(stripeCli(["get", `/v1/products/${productId}`])) as {
+    tax_code?: string | { id: string };
+  };
+  const taxCodeId = typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id;
+  record(
+    "the product carries the tax classification Managed Payments requires",
+    taxCodeId === "txcd_10103001",
+    `${productId} → tax_code: ${taxCodeId ?? "unset"}`
+  );
+
   await page.goto(`${BASE}/app/settings/billing`, { waitUntil: "networkidle" });
   pane(`${BASE}/app/settings/billing`);
   await page.getByRole("button", { name: /Start a 14-day trial|Upgrade to Pro/ }).click();
@@ -543,14 +571,6 @@ try {
     `managed_payments: ${JSON.stringify(session.managed_payments)} · payment_status: ${session.payment_status}`
   );
 
-  // The tax code that made the 400 go away, read off the live Product rather than off our source.
-  const product = JSON.parse(stripeCli(["get", "/v1/products/41p_pro"])) as { tax_code?: string | { id: string } };
-  const taxCodeId = typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id;
-  record(
-    "the product carries the tax classification Managed Payments requires",
-    taxCodeId === "txcd_10103001",
-    `tax_code: ${taxCodeId ?? "unset"}`
-  );
 
   // ── 7. The plan the webhook wrote ────────────────────────────────────────────────────────────
   //

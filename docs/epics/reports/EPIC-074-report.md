@@ -8,8 +8,9 @@ SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 Branch `epic/074-managed-payments`. Epic file `docs/epics/EPIC-074-managed-payments.md`,
 decision record `docs/decisions/ADR-008-who-sells.md`.
 
-**Status: built and proved as far as a script can go. Not merged.** One acceptance criterion needs
-a person to press one button — §5 — and this report does not tick it on his behalf.
+**Status: done.** Soroush pressed the one button a script cannot press, and the purchase completed:
+`managed_payments: {"enabled": true}`, `payment_status: paid`. §5 has what that took and why it is
+permanent.
 
 ## 0. The short version
 
@@ -27,9 +28,10 @@ Stripe's own catalogue — `txcd_10103001`, "Software as a service (SaaS) — bu
 *what kind of thing is being sold*. Nobody issues it, it costs nothing, and it requires no company.
 The registrations are the things Stripe now holds, which is the entire reason for paying it 3.5%.
 
-**Proved against the sandbox**: the checkout page says **"Sold through Link"**, and Stripe computed
-**$4.34** of Québec tax on the $29 plan — a $33.34 total — from a billing address, with no
-registration of ours anywhere in it.
+**Proved against the sandbox, end to end**: the checkout page says **"Sold through Link"**, Stripe
+computed **$4.34** of Québec tax on the $29 plan — a $33.34 total — from a billing address, and a
+real test-mode purchase completed with Stripe recording it as a Managed Payments sale. No
+registration of ours appears anywhere in it.
 
 ## 1. What changed
 
@@ -69,6 +71,8 @@ run 2   taxcode  prod_VJVXAdL5uEHdhO  already txcd_10103001
 | claim | evidence |
 |---|---|
 | A session is created with `managed_payments.enabled = true` | The **real** `createCheckoutSession` against the sandbox returned a checkout URL — not a re-derived parameter set |
+| **Stripe records the completed sale as Managed Payments** | Read back from Stripe by session id after the purchase: `managed_payments: {"enabled": true}` · `payment_status: paid`. What we send and what Stripe records are different claims |
+| The plan still arrives, under the new arrangement | The webhook wrote **Pro**, 0 of 5000 runs, period ending 9 October — and `stripe events resend` left **one** row and one period |
 | Stripe accepts our exact parameters | Same call; nothing we send conflicts with what Managed Payments manages |
 | Stripe is the seller, visibly | Checkout carries **"Sold through Link"** — shot `08` |
 | Stripe computes the tax | `Tax $4.34`, total `$33.34`, from a Montréal address — shot `08` |
@@ -112,20 +116,42 @@ interactive stdin. It was offered once during this session and the five minutes 
 **`DRIVE_HEADLESS=1` skips it and records that it skipped it**, so `gates.mjs ci` never waits on a
 window and a run that bought nothing cannot read as one that did.
 
-### What completes this epic
+### It was offered twice; the second time it was taken
+
+The first handoff expired after five minutes with nobody there, and the branch was left unmerged
+rather than the criterion being ticked on Soroush's behalf — `CLAUDE.md` is explicit that a
+criterion is not reinterpreted silently. The second time he pressed it and everything downstream
+ran: **30 of 31**.
+
+**The one failure was the instrument, not the product**, and it is worth writing down because it is
+the third instrument bug in this epic. The assertion read `/v1/products/41p_pro` — the deterministic
+id `provision.ts` uses on its **create** path — and this account's product predates that path, so it
+is `prod_VJVXAdL5uEHdhO` and the read returned `resource_missing`. It then reported *"tax_code:
+unset"* about a product that was correctly set, **on a purchase that had just succeeded and could
+only have succeeded because the code was there.** A false alarm that contradicts the run it is part
+of.
+
+It now follows the product id from the price, and it **moved before the purchase**, because it is a
+fact about Stripe objects and needs no checkout — so it runs headless too. Verified without asking
+for a second click:
 
 ```
-# the setup block at the top of scripts/drive-epic-074.mts, then:
-npx tsx scripts/drive-epic-074.mts
-# press "Start trial" in the window it opens
+DRIVE_HEADLESS=1 npx tsx scripts/drive-epic-074.mts
+  PASS  the product carries the tax classification Managed Payments requires
+        — prod_VJVXAdL5uEHdhO → tax_code: txcd_10103001
+  22/22
 ```
 
-Everything after that button is already written and already passed under EPIC-070: the webhook
-writes the plan, the meter moves, the portal opens, and `stripe events resend` leaves one row.
+and directly, against Stripe:
 
-**This report does not tick that criterion.** `CLAUDE.md` is explicit that a criterion is not
-reinterpreted silently, and `docs/AUTONOMOUS.md` that a step needing a person is named rather than
-faked.
+```
+$ stripe get /v1/products/prod_VJVXAdL5uEHdhO
+  tax_code: txcd_10103001
+```
+
+**The watched run was not re-run to turn 30/31 into 31/31.** It would have cost another human click
+to re-prove a fact already proved twice, and a drive is worth what it catches rather than what its
+score reads.
 
 ## 6. This changes the Definition of Done, permanently
 
@@ -170,6 +196,6 @@ email is mildly annoying; a customer who assumes a failed card broke their deplo
 ```
 node scripts/with-stripe-env.mjs -- npx tsx scripts/stripe-products.mts   # twice
 pnpm test && pnpm typecheck && pnpm lint
-DRIVE_HEADLESS=1 npx tsx scripts/drive-epic-074.mts                        # 21/21, purchase skipped
-npx tsx scripts/drive-epic-074.mts                                         # and press the button
+DRIVE_HEADLESS=1 npx tsx scripts/drive-epic-074.mts                        # 22/22, purchase skipped
+npx tsx scripts/drive-epic-074.mts                                         # and press "Start trial"
 ```
