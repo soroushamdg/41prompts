@@ -38,22 +38,39 @@ nothing cannot read as one that did.
 
 **This changes the Definition of Done and `docs/PROCESS.md` should say so** — report §6.
 
-## The state of the remote, and it is not green
+## The remote is green, and staging is serving it (2026-09-25)
 
-`origin/main` was level with local `main` before this merge; **two epics now sit on top of it,
-unpushed** (EPIC-070's merge was pushed on 2026-09-25; EPIC-074's is not).
+**`main` is pushed and GitHub CI is green** — the first green build since 2026-09-20 — with
+Compliance green beside it. **Staging serves `82bc38f`**, the commit CI passed, rebuilt on the box
+from `infra/docker-compose.staging.yml`. Verified as more than `/healthz`: the marketing host serves
+`/`, `/pricing`, `/features`, `/changelog` and `/about` at 200, the app host serves `/sign-in` with
+a submittable form, and both stylesheets `/pricing` links fetch as real CSS.
 
-**GitHub CI has been red on `main` since 2026-09-20**, which is why staging still serves `bbcb038`
-and production `af089c7`. Neither cause belongs to EPIC-070 or EPIC-074 — checked against the
-2026-09-20 run, which failed on the same three tests:
+**Production is unchanged and still serves `af089c7`.** It moves only on a `v*` tag —
+`build-images.yml` triggers on tags alone since EPIC-009 — and that is Soroush's.
 
-- **`ci.yml` installs `uv` at step 116 and runs `pnpm test` at step 105**, so `uv` is not on the
-  PATH when `cli-generated-code.test.ts` shells out to it. One line: move `setup-uv` above it.
-- **The third-party notices list is platform-dependent** — `--check` says *current* on darwin and
-  *stale* on the Linux runner. The real fix is a platform-independent generator; a check that
-  depends on the machine cannot be a gate.
+### What it took, because three rounds of it were instructive
 
-**This is the smallest useful thing to do next** and it is what unblocks the deploy.
+The red build had **two** causes, and the fix for the second was wrong the first time:
+
+1. **`ci.yml` set Python up after it needed it.** `setup-uv` was step 116 and `pnpm test` step 105,
+   so `uv` was not on the PATH when the mypy-over-generated-Python test shelled out to it. Fixed by
+   moving the step. **`gates.mjs ci` cannot see this**: it runs the same steps in the same order on
+   a machine where `uv` is already installed, because it refuses to start without it.
+2. **The notices check was machine-dependent, so it was not a gate.** First attempt excluded
+   packages by **name**, which missed **`fsevents`** — macOS-only, name says nothing — and `main`
+   stayed red. The signal is `os`/`cpu` in the package's own manifest: npm's own declaration, and
+   symmetric across platforms. **Verified in `node:22-slim` before pushing the second time**, which
+   is what should have happened before the first.
+3. **Then the Linux visual baselines**, which EPIC-070 had moved by adding `Pricing` to the nav and
+   `See pricing` to the home page's closing band. Regenerated in
+   `mcr.microsoft.com/playwright:v1.63.0-noble`. **This is the gap `gates.mjs ci` names in its own
+   closing block every run** — the runner is Linux, this machine is darwin, and those specs skip
+   here.
+
+Two things EPIC-016's procedure for that does not mention, each of which cost a run: the suite
+refuses to start without `DATABASE_URL` even for tests that never touch it, and `tar` from macOS
+carries AppleDouble `._` files that Playwright tries to parse as specs.
 
 ## What is Soroush's
 
