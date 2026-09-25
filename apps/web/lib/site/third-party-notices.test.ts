@@ -90,26 +90,42 @@ describe("the list is usable", () => {
  * not stand on its own reasoning. These are its controls: nothing platform-specific survives, and
  * every project whose per-platform build was removed is **still credited by name**.
  */
-describe("per-platform native builds are excluded, and nothing is lost by it", () => {
+describe("platform-specific packages are excluded, and nothing is lost by it", () => {
   const names = NOTICE_PACKAGES.map((entry) => entry.name);
 
   /**
    * **This pattern is written here rather than imported from the generator, on purpose.**
    *
-   * A test sharing its subject's predicate cannot catch a bug in that predicate — it would agree
-   * with it however wrong it was. Two independent expressions of "this is a per-platform build"
-   * disagree when either is wrong, which is the whole value. (`turbo boundaries` also refuses the
-   * import, `scripts/` being outside this package, which is how the first version was caught.)
+   * A test sharing its subject's predicate cannot catch a bug in that predicate — it agrees with it
+   * however wrong it is. Two independent expressions disagree when either is wrong, which is the
+   * whole value. (`turbo boundaries` also refuses the import, `scripts/` being outside this
+   * package, which is how the first version of this test was caught.)
+   *
+   * **It is deliberately a weaker check than the generator's**, and that is the right way round:
+   * the generator excludes on `os`/`cpu` in a package's own manifest, which is npm's own
+   * declaration and catches packages whose names say nothing — `fsevents` being the one that cost a
+   * red CI run. A name pattern here cannot catch those, so it is a floor rather than the rule.
    */
-  const PLATFORM = /(?:^|[-/])(?:darwin|linux|win32|freebsd|android)(?:[-.]|$)|-(?:x64|arm64|ia32|musl|gnu|msvc)(?:-|$)/;
+  const PLATFORM_NAME = /(?:^|[-/])(?:darwin|linux|win32|freebsd|android)(?:[-.]|$)|-(?:x64|arm64|ia32|musl|gnu|msvc)(?:-|$)/;
 
-  it("lists no platform-specific build", () => {
-    const platform = names.filter((name) => PLATFORM.test(name));
+  it("lists nothing whose name declares a platform", () => {
+    const platform = names.filter((name) => PLATFORM_NAME.test(name));
     expect(platform, `platform-specific packages survived the filter: ${platform.join(", ")}`).toEqual([]);
   });
 
   /**
-   * The half that matters. Each of these is a project whose per-platform binary was dropped; if the
+   * **The case a name pattern cannot see, named explicitly because it is the one that broke CI.**
+   *
+   * `fsevents` is macOS-only and its name says nothing about that. It is excluded because its own
+   * manifest says `"os": ["darwin"]`, and it is right to exclude: the deployed application runs on
+   * Linux and a notices page is about what is **distributed**.
+   */
+  it("excludes fsevents, which is macOS-only and does not say so in its name", () => {
+    expect(names).not.toContain("fsevents");
+  });
+
+  /**
+   * The half that matters. Each of these is a project whose per-platform build was dropped; if the
    * parent ever stops being listed, the filter has removed a **project** rather than a duplicate of
    * one already credited — which would make the page shorter by making it less true.
    */
@@ -122,7 +138,7 @@ describe("per-platform native builds are excluded, and nothing is lost by it", (
 
   /**
    * The control on this file's own pattern. Every assertion above would pass over a regex narrowed
-   * until it matched nothing — which is exactly how the darwin/linux split would come back.
+   * until it matched nothing — which is how the darwin/linux split would come back.
    */
   it.each([
     "@esbuild/darwin-x64",
@@ -133,13 +149,13 @@ describe("per-platform native builds are excluded, and nothing is lost by it", (
     "lightningcss-win32-x64-msvc",
     "@sentry/cli-darwin"
   ])("recognises %s as a platform build", (name) => {
-    expect(PLATFORM.test(name)).toBe(true);
+    expect(PLATFORM_NAME.test(name)).toBe(true);
   });
 
   it.each(["esbuild", "sharp", "next", "rollup", "lightningcss", "react", "@sentry/cli", "@types/node"])(
     "does not mistake %s for one",
     (name) => {
-      expect(PLATFORM.test(name)).toBe(false);
+      expect(PLATFORM_NAME.test(name)).toBe(false);
     }
   );
 });
