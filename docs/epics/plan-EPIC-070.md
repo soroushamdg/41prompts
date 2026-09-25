@@ -41,31 +41,77 @@ into a half version — the blocker's §2 argument is unchanged: shipping `/pric
 publishes the exact sentence `claims.test.ts` denies, and shipping plan-based quotas without
 checkout enforces plans nobody can buy.
 
-## 1b. Where this is, 2026-09-22
+## 1b. Where this is, 2026-09-24 — **the account arrived; step 4 is half done**
 
-**Step 3 is complete and committed; step 4 has not started, because the key has not arrived.**
-Four commits on `epic/070-stripe-and-pricing`, none merged:
+**`STRIPE_SECRET_KEY` exists.** Soroush created the `41prompts sandbox` on 2026-09-23 (test key
+valid to 2026-12-22) and the blocker is cleared. `docs/epics/BLOCKER-EPIC-070.md` stays as the
+record of why it was written, not as a live blocker.
+
+Ten commits on `epic/070-stripe-and-pricing`, none merged:
 
 | commit | what |
 |---|---|
 | `b457f39` | ADR-007, this plan, the epic into `CURRENT.md` |
-| `c4046a4` | the billing schema — `plans`, `subscriptions`, `billing_customers`, `stripe_events`; `users.plan` dropped; the plan derived |
+| `c4046a4` | the billing schema; `users.plan` dropped; the plan derived |
 | `0334504` | the run limit, refused in words before a run exists |
 | `6739508` | the webhook, idempotent on Stripe's event id, proved to fire |
+| `3e8ac67` | **the Stripe-review fixes** — four missing lifecycle events, and the customer as the ownership boundary |
+| `7fee7cb` | the provisioning script, idempotent, and the search-consistency bug it found |
+| `c1318e0` | four of Soroush's rulings (two changed a page) |
+| `ef425aa` | the sixth check row; GATE 3 and GATE 5 recorded as passed |
+| `0a5753f` | **checkout, the customer portal, Settings → Billing** |
 
-Gates on that tree: `pnpm test` 9/9 · `typecheck` 9/9 · `lint` 12/12 · `compliance` green ·
-`pnpm e2e` **394 passed, 4 skipped** (the Linux-only baselines). `gates.mjs ci` has not been run —
-it gates a merge, and there is nothing to merge until the epic is finished.
+Gates on that tree: `pnpm test` 9/9 · `typecheck` 9/9 · `lint` 12/12 · `dead-code` clean.
+`gates.mjs ci` has **not** been run — it gates a merge and there is nothing to merge yet.
 
-**What the account still gates**, unchanged from §1: everything in step 4. The stop is deliberate
-rather than a pause — shipping `/pricing` without checkout publishes the exact sentence
-`claims.test.ts` denies, and shipping plan quotas without checkout enforces plans nobody can buy.
+### The Stripe objects that exist
 
-**One acceptance criterion is already met and one is met early**: the webhook idempotency proof
-(`a webhook delivered twice has the effect of one`) and the unknown-event-type rule both hold
-without Stripe, because event signing is HMAC over a body with a shared secret and the ledger is
-ours. `plan state is derived, and a test fails if a plan column is ever added to users` is met too,
-against the schema source so it runs on a machine with no Postgres.
+`41Prompts Pro`, one Product, one recurring monthly Price at **$29**,
+`lookup_key: 41p_pro_monthly`, written into `plans.stripe_price_id`. Re-running
+`scripts/stripe-products.mts` creates nothing — proved over three consecutive runs.
+
+### Reviewed against Stripe's own guidance, 2026-09-23
+
+`stripe_implementation_planner` was unreachable (the MCP server needs OAuth), so the documented
+fallback `npx skills add https://docs.stripe.com` was used and the integration reviewed against
+`stripe-best-practices`. **Two real defects, both fixed in `3e8ac67`** — see that commit. The skills
+live in `.agents/skills/` and are gitignored.
+
+**Still open from that review, and none of it blocks the epic:**
+
+- **No CSP header anywhere in this app.** Stripe.js and Checkout want `https://*.stripe.com` in
+  `script-src`, `frame-src` and `connect-src`. Pre-existing and wider than billing; it is a row of
+  its own rather than a line in this one.
+- **The key is `sk_test`, not a restricted `rk_`.** Stripe's recommendation is least privilege.
+  Matters for the live key rather than the sandbox one.
+- **Stripe Tax is off and stays off** — Soroush is not registered anywhere and sells worldwide. The
+  exposure is in `docs/decisions/AUTONOMOUS.md`, 2026-09-24, and is his and an accountant's.
+
+## 4bis. What is left, in order
+
+The rest of §4. Nothing below is blocked.
+
+| | what | notes |
+|---|---|---|
+| 4c | **`stripe listen` + `stripe trigger` + `stripe events resend`** | The one acceptance criterion that needs the real thing: *one subscription row after the resend, not two*. The offline proof already exists; this is the same property against Stripe's own delivery. `stripe listen --project-name 41prompts --forward-to localhost:3120/api/stripe/webhook` |
+| 4d/4e | **`/pricing`**, and the **price-parity test** | The parity test is `docs/roadmap.md`'s Review line made mechanical: the page's numbers read **from Stripe**, failing when the two disagree. Team is a contact link with no feature list (ADR-007 §6). |
+| 4g | **The claims-guard removal** | Delete `["a per-seat price", …]` **and** its control row together, in one commit, with the reason in the message. §4g below has the detail and it has not changed: `$29 / month` still matches the pattern's second alternative. |
+| 4h | **Dunning via Resend**, and the refund path as a written procedure in `docs/` | `invoice.payment_failed` is already handled and is the trigger. |
+| — | **The drive**, through a test-mode purchase with card `4242 4242 4242 4242`, screenshots into `docs/epics/reports/screenshots/EPIC-070/` | |
+| — | **Lighthouse** over `/pricing`; `pnpm audit-run`'s gitleaks step | The first secrets added to the environment since EPIC-042. |
+| — | Report, session log, `gates.mjs ci`, `git merge --no-ff` | |
+
+**`/pricing` joins five lists, not four** — `public-routes.json`, `sitemap.ts`, `robots.ts`,
+`site-claims.test.tsx`'s `PAGES`, **and `PUBLIC_PATHS` in `lib/site/hosts.ts`**, which is the one
+EPIC-072b's plan missed. `site-pages.spec.ts` also asserts `/pricing` **is a 404 today**; that
+assertion comes out with this epic and the route that is on no roadmap stays as the control.
+
+## 4ter. Not this epic
+
+**Invoicing is its own row** (Soroush, 2026-09-24): manual invoices to Team customers who agreed a
+price by email. The two invoice webhook events it needs are already handled; the rest is a
+documented procedure and whatever surface sends one. It shares almost nothing with subscription
+billing and folding it in would widen the largest epic in the programme.
 
 ## 2. ADR-007 — **done**
 
