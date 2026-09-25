@@ -91,6 +91,21 @@ export default function PricingPage() {
             </div>
             <div className="site-row">
               <div className="site-row-key">
+                <b>Who charges you</b>
+                <span>Stripe</span>
+              </div>
+              <div className="site-row-body">
+                <h2>Stripe is the seller, not a payment box</h2>
+                <p>{claim("plan-stripe-sells")}</p>
+                <p>
+                  So the amount above is what the plan costs. What your card is actually debited can
+                  differ where tax applies or where your currency is not the one this page prints,
+                  and your receipt comes from Stripe with those figures on it.
+                </p>
+              </div>
+            </div>
+            <div className="site-row">
+              <div className="site-row-key">
                 <b>Team</b>
                 <span>A conversation</span>
               </div>

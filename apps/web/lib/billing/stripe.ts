@@ -32,6 +32,24 @@ export function stripeOrUndefined(): Stripe | undefined {
   return client;
 }
 
+/**
+ * Whether Stripe sells, rather than us (ADR-008 §1 and §5).
+ *
+ * **Defaults to on**, which is the decision. The variable exists because eligibility is a property
+ * of the **Stripe account**, not of this code — Stripe's docs say access *"is based on an
+ * eligibility review that considers factors such as business type and geography"* — so a deployment
+ * whose account is not enrolled needs an answer that is not a code change.
+ *
+ * Off is spelled out (`off`, `false` or `0`) rather than inferred from absence, for the same reason
+ * `stripeOrUndefined()` treats an unset key as "no billing" rather than as an error: **absence is a
+ * state, and it must not silently mean the opposite of the default.** A deployment that has never
+ * heard of this variable gets the decision; one that wants the other thing has to say so.
+ */
+export function managedPaymentsEnabled(): boolean {
+  const said = process.env.STRIPE_MANAGED_PAYMENTS?.trim().toLowerCase();
+  return said !== "off" && said !== "false" && said !== "0";
+}
+
 export function webhookSecret(): string | undefined {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   return secret === undefined || secret.length === 0 ? undefined : secret;

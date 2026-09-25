@@ -30,6 +30,23 @@ import { sendBillingEmail } from "@/lib/email";
  * sentence — would contradict the decision *and* `/security`'s published claim that an application
  * depending on us keeps running. The copy below is the only copy consistent with both.
  *
+ * ## It survives Managed Payments, and the duplicate is accepted on purpose (EPIC-074)
+ *
+ * ADR-008 makes Stripe the merchant of record, and Stripe then *"automatically sends receipts,
+ * invoices, refunds, and certain subscription-related emails directly to customers"*. So a customer
+ * whose card fails may now get two messages.
+ *
+ * **Ours stays, because the two say different things.** Stripe's is about the payment: it failed,
+ * here is how to fix the card. Ours is about **the product**, and it answers the question the
+ * customer actually has — *what have I just lost?* — with the answer ADR-007 §4 obliges us to give:
+ * nothing. Publishing to Live keeps working, every prompt and run stays readable, and new runs fall
+ * back to the Free limit. Stripe has never read ADR-007 and cannot say any of that.
+ *
+ * The cost of being wrong in each direction is not symmetric. A second email is mildly annoying; a
+ * customer who assumes a failed payment broke their production deploy, because nobody told them
+ * otherwise, is a churn event and a support thread. **If this ever needs cutting, cut Stripe's**
+ * subscription emails in the Dashboard rather than this one.
+ *
  * ## Why a failure to send is not a failure of the webhook
  *
  * The caller answers Stripe 200 either way. A non-2xx tells Stripe to redeliver, and the event id
