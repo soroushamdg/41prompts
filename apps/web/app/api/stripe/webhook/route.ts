@@ -4,7 +4,9 @@ import type Stripe from "stripe";
 import { createLogger, withRequestId } from "@41prompts/logger";
 import { getDb } from "@/lib/db";
 import { stripeOrUndefined, webhookSecret } from "@/lib/billing/stripe";
+import { sendDunningEmail } from "@/lib/billing/dunning";
 import { recordEvent, subscriptionFactsFrom, subscriptionIdOnInvoice, upsertSubscription } from "@/lib/billing/webhook";
+import { appOrigin } from "@/lib/site/url";
 
 /**
  * Stripe's webhook endpoint.
@@ -100,7 +102,23 @@ async function handle(request: Request): Promise<Response> {
       return Response.json({ received: true, acted: false, why: "the invoice names no subscription" });
     }
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-    return await applySubscription(db, subscription);
+    const applied = await applySubscription(db, subscription);
+
+    // **Dunning (EPIC-070 scope 10, ADR-007 §4), and it happens after the write, not instead of
+    // it.** Stripe does the retrying; what it cannot say is what *this* product does to somebody
+    // whose card failed, which is nothing — `lib/billing/dunning.ts` carries the argument and the
+    // copy. A send that fails is logged and swallowed: the event id is already recorded, so a
+    // non-2xx would buy a redelivery that sends nothing and fixes nothing.
+    if (event.type === "invoice.payment_failed") {
+      const owner = await ownerOfCustomer(db, subscription);
+      if (owner !== undefined) {
+        await sendDunningEmail(db, owner, `${appOrigin()}/app/settings/billing`);
+      } else {
+        log.warn({ eventId: event.id }, "payment failed for a subscription with no known owner; nobody to tell");
+      }
+    }
+
+    return applied;
   }
 
   if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
@@ -140,6 +158,31 @@ async function handle(request: Request): Promise<Response> {
 }
 
 /**
+ * Whose subscription this is: **the Customer first, metadata only as a fallback**.
+ *
+ * Extracted so the dunning branch and the write below cannot answer it differently. Two lookups
+ * would be two ideas of who to charge and who to email, which is the same class of copy ADR-007 §3
+ * spends its argument on, one level down.
+ */
+async function ownerOfCustomer(
+  db: ReturnType<typeof getDb>,
+  subscription: Stripe.Subscription
+): Promise<string | undefined> {
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+
+  const [mapped] = await db
+    .select({ owner: billingCustomers.owner })
+    .from(billingCustomers)
+    .where(eq(billingCustomers.stripeCustomerId, customerId));
+
+  if (mapped?.owner !== undefined && mapped.owner.length > 0) return mapped.owner;
+
+  // Metadata second, and only when the object graph found nothing.
+  const fromMetadata = subscription.metadata?.["owner"];
+  return fromMetadata !== undefined && fromMetadata.length > 0 ? fromMetadata : undefined;
+}
+
+/**
  * Write what a subscription event says, having worked out whose it is.
  *
  * ## The customer is the ownership boundary; metadata is the fallback
@@ -159,16 +202,7 @@ async function handle(request: Request): Promise<Response> {
  * that turns up while testing.
  */
 async function applySubscription(db: ReturnType<typeof getDb>, subscription: Stripe.Subscription): Promise<Response> {
-  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
-
-  const [mapped] = await db
-    .select({ owner: billingCustomers.owner })
-    .from(billingCustomers)
-    .where(eq(billingCustomers.stripeCustomerId, customerId));
-
-  // Metadata second, and only when the object graph found nothing.
-  let owner = mapped?.owner;
-  if (owner === undefined || owner.length === 0) owner = subscription.metadata?.["owner"];
+  const owner = await ownerOfCustomer(db, subscription);
 
   const rows = await db.select({ key: plans.key, priceId: plans.stripePriceId }).from(plans);
   const byPrice = new Map(rows.filter((row) => row.priceId !== null).map((row) => [row.priceId as string, row.key]));
