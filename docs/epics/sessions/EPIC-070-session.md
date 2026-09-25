@@ -102,7 +102,20 @@ node scripts/lighthouse-site.mjs http://127.0.0.1:3170
 
 npx tsx scripts/drive-epic-070.mts
   24/24
+
+node scripts/gate-run.mjs        # → gates.mjs ci, at 50dcc131
+  17 step(s), all passed, 14m07s
 ```
+
+**The gate was red twice before that and both were real.** Six e2e failures — five from the BYO
+gate meeting a suite whose owner is a fresh Free account, one from this epic's own sixth run-demo
+row meeting a literal `toHaveCount(5)` that `page.test.tsx` had already been moved off. Report §9.
+
+**And one red run that was my own fault, written down because it cost twenty minutes.** The first
+gate invocation was double-backgrounded — `run_in_background` *and* a trailing `&` — so the harness
+reported exit 0 while its children kept running, and one of them still held port 3000 when the next
+run reached `pnpm e2e`. It failed in **two seconds**. That is the tell: a suite that fails that fast
+did not start.
 
 The parity test, both ways:
 

@@ -272,7 +272,67 @@ is never sent over the network. That ordering is in the code with the reason.
 
 ## 9. The gate
 
-`node scripts/gates.mjs ci` — see §12 for the run and its closing block.
+**Green at `50dcc13`, 17 of 17, 14m07s.** Clean checkout, frozen lockfile, cold cache, both
+workflows in CI's order. The only commit after it is the one that writes this section down.
+
+```
+  checkout
+    git clone + checkout 50dcc131       PASS
+  ci.yml
+    pnpm install --frozen-lockfile      PASS
+    pnpm lint                           PASS
+    pnpm typecheck                      PASS
+    pnpm db:migrate                     PASS
+    pnpm test                           PASS
+    playwright install chromium         PASS
+    pnpm e2e                            PASS    4 test(s) skipped on darwin
+    uv run pytest -q (sdks/python)      PASS
+  compliance.yml
+    reuse lint · boundaries · turbo boundaries · forbidden-words ·
+    binary-files · dead-code · license-gate --sbom · mirror-dry-run   all PASS
+  17 step(s), all passed
+```
+
+### It was red twice first, and both were this epic's
+
+**`pnpm e2e`, six failures, and `pnpm test` could not see any of them.** This gate run is the first
+thing to have run the e2e suite against this branch — the previous session's handoff says so in as
+many words: *"`gates.mjs ci` has not been run — it gates a merge and there is nothing to merge
+yet."*
+
+- **Five in `providers.spec.ts`.** Its owner is a fresh account, which is Free, which can no longer
+  attach a provider key — so every test about what happens to a *stored* key failed at the storing.
+  The owner is put on Pro in `beforeAll`, and **the `beforeAll` proves the gate before it steps over
+  it**: it saves on Free first, asserts the refusal names Pro and Settings → Billing, and asserts
+  nothing was written. A precondition established by a helper is a precondition nothing has proved
+  the product enforces.
+- **One in `landing.spec.ts`: `toHaveCount(5)` over the run demo's rows.** This epic's own `ef425aa`
+  added a sixth row and moved `page.test.tsx` to the *relationship* in the same commit while missing
+  this one. The literal has now broken twice for the same reason. It reads the count and asserts a
+  floor, so the block cannot pass vacuously over a table that failed to render.
+
+**There was also a red run that was not a real failure**, and it is written down because it cost
+time: `pnpm e2e` failed in **two seconds** with *"http://localhost:3000 is already used"*. The cause
+was mine — the first gate invocation was double-backgrounded, reported exit 0 while its children
+kept running, and one of them held the port. Two seconds is the tell: a suite that fails that fast
+did not start.
+
+### What a green here still does not cover
+
+Quoted from the run's own closing block, because it is part of the result:
+
+- **The runner is Linux and this is darwin.** Four visual-regression baselines are `-linux.png` and
+  their specs skip here. A layout change can pass this run and fail CI (2026-09-14, CI #206).
+  `/pricing` is a **new page with no baseline**, so nothing here or in CI compares it to a
+  picture — the drive's screenshots are the only visual record it has.
+- **The runner is slower than this machine.** A test that only fails under load passes here.
+
+And two more that belong to this epic specifically:
+
+- **Nothing in this gate reaches Stripe.** `pricing.parity.test.ts` skips without a key, so the
+  claim *"the page equals Stripe"* is proved by the run in §3 and not by this one.
+- **Nothing is deployed.** No image was built, no migration ran against a real database, and
+  `origin/main` is 60+ commits behind. No staging URL is evidence about anything here.
 
 ## 10. What is Soroush's, and is not blocking
 
