@@ -3,154 +3,77 @@ SPDX-FileCopyrightText: 2026 41Prompts Inc.
 SPDX-License-Identifier: LicenseRef-41Prompts-Proprietary
 -->
 
-# EPIC-070: Stripe, and the pricing page it makes true
+# No epic is in progress — EPIC-070 is merged
 
-Stage: 6 · Depends on: EPIC-072b · Size: **M**
+**EPIC-070 built Stripe and the pricing page it makes true**, merged into local `main` as `e121b0c`
+on a green `node scripts/gates.mjs ci` (17 of 17 at `50dcc13`). Report
+`docs/epics/reports/EPIC-070-report.md`, session log
+`docs/epics/sessions/EPIC-070-session.md`, decision record
+`docs/decisions/ADR-007-plans-prices-and-what-a-seat-is.md`.
 
-Sequence and rationale in `docs/epics/plan-mockup-parity.md`. `docs/roadmap.md`, Stage 6:
+A customer can buy Pro, the price they see is the price Stripe charges, and the plan they are on
+decides what the product lets them do. Driven end to end on the built app with a real test card:
+Checkout, a webhook Stripe actually delivered, the plan on Settings → Billing, and
+`stripe events resend` leaving one subscription row and one period.
 
-> **Tasks.** Products and prices as this roadmap names them ($29/$79 per seat, unvalidated —
-> EPIC-005 is cut); checkout, portal, webhooks (idempotent); `run_budgets` by plan; BYO-key unlock
-> on Pro; usage meter; dunning via Resend; refund path documented.
-> **Review.** Pricing page equals Stripe.
+## The order was the epic
 
-## Why this row, now
+`not-true-yet.ts` denied any per-seat or per-month price, and **that denial was correct** — EPIC-072
+refused `/pricing` for exactly that reason. So checkout, the webhook, the plans table and the run
+gate landed first, the claim became true, and the pattern came out **with its control row, in the
+same commit**. Removing one without the other leaves a control matching nothing, which is the
+failure the controls exist to catch.
 
-EPIC-072 refused `/pricing` because *"needs EPIC-070; no checkout, no metering, prices marked
-unvalidated"*. Soroush, 2026-09-20: **build the page now at the mockup's prices, and build Stripe
-underneath it.** He supplies the Stripe product ids and the API key.
+What replaced it is narrower and stronger: `["a price", /\$\d/]` still applies to every page
+**except `/pricing`**, with three controls on the exception — the list is exactly one route, every
+other page is still checked, and the exempt page really does print a price.
 
-The order matters and is the point of this epic. `apps/web/lib/site/claims.test.ts` denies the
-pattern `["a per-seat price", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i]`, paired with
-the control `"$29 per seat / month"` — the mockup's own sentence. **That denial is correct today.**
-A page saying $29 per seat when nothing charges $29 is a claim a reader could hold us to and we
-would lose.
+## What the drive found, and the gate after it
 
-So this epic does not work around the guard. It **makes the claim true and then removes the guard in
-the same commit**, with the reason in the commit message. The denylist row and its control row go
-together; removing one without the other leaves a pattern matching nothing, which is the exact
-failure mode the controls were built to catch.
+Three defects no test could reach, and the first is the one to read:
 
-## Goal
+1. **The first real Checkout returned 400.** Stripe's **Managed Payments** is on by default and
+   wants a product tax code — and under it **Stripe is the merchant of record**. Adding the tax code
+   would have opted us into that silently, against the 2026-09-24 decision that no tax is collected.
+   It is off, per session.
+2. **The customer portal's one button said the portal was not configured**, and the drive's
+   assertion accepted that answer — a test that passed both ways.
+3. **The Team card rendered as a tall box with seven hundred pixels of nothing**, every assertion
+   passing over it. The guard written for it was vacuous — `margin-top: auto` makes the fill ratio
+   94% either way — and had to be written twice.
 
-A customer can buy Pro or Team, the price they see is the price Stripe charges, the plan they are on
-determines what the product lets them do, and the pricing page's prices stop being a denied claim
-because they become an enforced one.
+Then `gates.mjs ci` found **six more in the e2e suite**, because it was the first thing to run e2e
+against that branch. Five from the BYO-key gate meeting a suite whose owner is a fresh Free account,
+one from this epic's own sixth run-demo row meeting a literal `toHaveCount(5)`.
 
-## Scope
+## What is merged into local `main`, and not pushed
 
-1. **ADR-007: plans, prices and what a seat is.** Written **before** the schema, per
-   `PROCESS.md` — a billing schema keyed to an external system's ids is not cheaply reversible.
-   It fixes: the three plans, what a seat is, what happens at the period boundary on a downgrade,
-   whether quota is per seat or per account, and what a customer keeps when they stop paying.
+EPIC-023, EPIC-024, EPIC-016b, EPIC-016c, EPIC-016d, EPIC-072b and now EPIC-070 — **seven epics, all
+`gates.mjs ci` green, none pushed.** `origin/main` is 70+ commits behind, so **no staging URL is
+evidence about any of it**, and `docs/epics/RELEASE-DUE.md` has been waiting since 2026-09-20, when
+the count was three.
 
-2. **Stripe products and prices.** Free, Pro `$29`/seat/month, Team `$79`/seat/month — the
-   roadmap's numbers, which are the mockup's numbers, **unvalidated** (EPIC-005 is cut and said so).
-   Built and tested against **Stripe test mode with our own test products**, so the suite runs
-   without Soroush's account. His live product ids and key are configuration, read from the
-   environment, never committed.
+## Six things are Soroush's
 
-3. **Checkout, the customer portal, and webhooks.** Webhooks **idempotent** on Stripe's event id —
-   Stripe redelivers, and a second delivery that grants a second month is a money bug. Every handled
-   event type enumerated; an unknown type is recorded and ignored, never assumed benign.
+Report §10 has all of them. In order of how much the delay costs:
 
-4. **`plans` and `subscriptions` in `packages/db`**, keyed by Stripe's ids, with a migration.
-   **Live plan state is derived from the subscription row, never copied onto the user** — the same
-   rule EPIC-051 applied to `Live` and for the same reason: two copies diverge, and here the
-   divergence is somebody's money.
+1. **Managed Payments: on or off?** Cheapest to decide before anybody is charged, and it decides
+   whether the EU/UK VAT exposure recorded on 2026-09-24 is his or Stripe's.
+2. **The live key and live objects.** Everything so far is the `41prompts` sandbox.
+   `scripts/stripe-products.mts` refuses a live key on purpose.
+3. **A restricted `rk_` key** rather than `sk_`, for the live one.
+4. **No CSP header anywhere in this app** — pre-existing, wider than billing, a row of its own.
+5. **$29 is unvalidated.** EPIC-005 is cut.
+6. **A sandbox `whsec_` reached a session transcript** and can be rolled.
 
-5. **`run_budgets` by plan, enforced.** The mockup's Free tier says 50 runs a month and Pro says
-   5,000. A quota printed and not enforced is the same class of untrue claim this epic exists to
-   close. The worker refuses over budget **in words**, the way EPIC-042 refuses a missing provider
-   key.
+## What comes next
 
-6. **BYO-key unlock on Pro**, using EPIC-042's existing provider-key path.
+`docs/epics/plan-mockup-parity.md` is the sequence for this programme and supersedes
+`docs/backlog.md` for it. EPIC-070 was its row 5.
 
-7. **A usage meter** in Settings → Billing: runs this period against the plan's budget, and the
-   period's end date.
+Two things this epic deliberately left as their own rows, neither scoped yet:
 
-8. **Settings → Billing**, the fifth of the mockup's Settings tabs, as a route beside the existing
-   three — a link with `aria-current`, not a `role="tab"` tablist (EPIC-055's ruling: a control that
-   changes the URL is a link).
-
-9. **`/pricing`**, the mockup's three tiers, with each tier's feature list **cut down to what is
-   true**. The mockup's Team tier lists SSO/SAML, roles and an audit log, a shared blok library and
-   private judge models. None exists, and four of them are separately denylisted. Team ships with
-   the features it has, or Team ships as "talk to us" with no feature list at all.
-
-10. **Dunning via Resend**, which is already a dependency, and a **documented refund path** in
-    `docs/` — a written procedure, not code.
-
-11. **The claims-guard change**: delete `["a per-seat price", …]` from `NOT_TRUE_YET` **and** its
-    control row `["$29 per seat / month", …]`, and register the price sentences in `claims.ts`
-    citing this epic. The report states the removal in its own section.
-
-## Out of scope
-
-- **Validating the prices.** EPIC-005 is cut; $29/$79 stand on the roadmap alone and the report says
-  so, as the roadmap already does.
-- **SSO/SAML, roles, an audit log, a shared blok library, private judge models.** The mockup's Team
-  tier invents all five. Each stays denylisted.
-- **Tax, VAT/GST handling beyond what Stripe Tax does for us**, and invoicing outside Stripe.
-- **Annual billing, coupons, trials beyond the mockup's 14 days, and usage-based pricing.**
-- **Enforcing anything retroactively** on accounts that exist before this ships.
-- **Publishing prices anywhere but `/pricing`.** The home page does not gain a price.
-
-## Acceptance criteria
-
-- [ ] ADR-007 is written and merged **before** the migration. Evidence: the file and the commit
-      order.
-- [ ] Checkout completes against Stripe test mode and the resulting plan is visible in the product.
-      Evidence: the drive, end to end, with a test card.
-- [ ] **A webhook delivered twice has the effect of one.** Evidence: a test replaying the same
-      event id, asserting one subscription row and one period.
-- [ ] An unknown event type is recorded and ignored. Evidence: test name.
-- [ ] Plan state is **derived**, and a test fails if a plan column is ever added to `users`.
-      Evidence: test name.
-- [ ] A run over budget is refused **in words that name the budget and the plan**, and the refusal
-      is visible in the UI, not only in a log. Evidence: test name plus a screenshot.
-- [ ] Downgrade takes effect at the period end, not immediately. Evidence: test name.
-- [ ] `/pricing`'s three tiers match the Stripe prices **read from Stripe**, not retyped. Evidence:
-      a test that fails when the two disagree — this is the roadmap's Review line, made mechanical.
-- [ ] Every feature line on `/pricing` is in `claims.ts` citing a shipped epic, or is absent.
-      Evidence: the claims tests.
-- [ ] `NOT_TRUE_YET`'s per-seat row and its control row are **both** removed, in one commit, and the
-      remaining ten patterns each still match their control. Evidence: the run.
-- [ ] No secret in the repository; `pnpm audit-run`'s gitleaks step green. Evidence: the run.
-- [ ] Settings → Billing shows runs used against budget and the period end. Evidence: screenshot.
-- [ ] Lighthouse ≥90 on `/pricing`, accessibility 100; no sideways scroll at 390px.
-- [ ] All gates green per package; `gates.mjs ci` green before merge.
-- [ ] The built app driven in a browser through a test-mode purchase, screenshots in the report.
-- [ ] Report and session log written, with the unvalidated-price caveat restated.
-
-## Verification
-
-As EPIC-023's block, plus the Stripe CLI for webhook delivery:
-
-```
-stripe listen --forward-to localhost:3120/api/stripe/webhook
-stripe trigger checkout.session.completed
-stripe events resend <event-id>     # the idempotency proof
-npx tsx scripts/drive-epic-070.mts
-```
-
-Expected: one subscription row after the resend, not two.
-
-## Notes for the implementer
-
-- **Soroush supplies the live product ids and the API key.** Do not wait on them
-  (`CLAUDE.md`, "Human-only work is skipped, not blocked on"). Build and prove everything against
-  test mode with products this repository creates; his ids are environment configuration. If the
-  live ids are absent at close, the epic still closes — say so in the report and list exactly which
-  variables he sets.
-- New env vars go in `CLAUDE.md`'s Env list in the same commit, and never in a `.env` this
-  repository tracks.
-- **Money bugs are the P0 class.** `PROCESS.md`: data loss, security and keys are fixed within 24
-  hours as an S epic. Charging twice belongs in that set; write the idempotency test before the
-  handler, not after.
-- The mockup's pricing page is lines 700–730. Its Free tier says *"1 project"* and *"1 provider"* —
-  check both against what the product actually restricts before printing either; today it restricts
-  neither, so either enforce it or do not say it.
-- `docs/design/README.md`: the prototypes are the spec for the interface, not for what is true about
-  the company. That applies to a price list more than to anything else on the site.
-- If a criterion is impossible, write `docs/epics/BLOCKER-EPIC-070.md` and stop.
+- **Invoicing** (Soroush, 2026-09-23) — manual invoices to Team customers who agreed a price by
+  email. The two invoice webhook events it needs are already handled; the rest is a documented
+  procedure and whatever surface sends one.
+- **A CSP header**, which Stripe.js and Checkout would want if anything ever loads them.
