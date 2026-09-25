@@ -43,6 +43,10 @@ export const PUBLIC_PATHS: readonly string[] = [
   "/docs",
   "/security",
   "/changelog",
+  // EPIC-070's one. It is marketing like the rest of them, and it is written out here for the same
+  // reason the five above are: `hosts.test.ts` walks `app/` and fails on a route nobody classified,
+  // which is what has caught every omission from this list so far.
+  "/pricing",
   // EPIC-072b's two, and `hosts.test.ts` is what found they were missing — not staging, not the
   // e2e walk, not the sitemap. Both were already served correctly, because everything outside
   // `APP_PATHS` is marketing by default; what was missing was the classification, which is the

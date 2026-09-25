@@ -57,17 +57,18 @@ describe("the landing nav", () => {
   });
 
   /**
-   * EPIC-016d: the mockup's nav, minus the two destinations that do not exist.
+   * EPIC-016d: the mockup's nav, minus the destinations that do not exist.
    *
-   * The mockup's row is Product · Features · Delivery · Pricing · Learn · Docs. `Pricing` needs
-   * EPIC-070 and `Learn` needs Stage 7, and EPIC-016's rule — *a nav link to a 404 is worse than no
-   * nav* — still holds, so they are still absent. Everything else is here, in the mockup's order,
-   * with `Decompiler` last because it is ours and the mockup has no place for it.
+   * The mockup's row is Product · Features · Delivery · Pricing · Learn · Docs. **`Pricing` joined
+   * in EPIC-070**, which built the page it points at; `Learn` needs Stage 7 and EPIC-016's rule — *a
+   * nav link to a 404 is worse than no nav* — still holds for it, so it is still absent. Everything
+   * else is here, in the mockup's order, with `Decompiler` last because it is ours and the mockup
+   * has no place for it.
    */
   it("opens with Product, in the mockup's order", () => {
     const html = renderToStaticMarkup(SiteNav({ signedIn: false }));
     const names = [...html.matchAll(/class="site-nav-link"[^>]*>([^<]+)</g)].map((m) => m[1]);
-    expect(names).toEqual(["Product", "Features", "Delivery", "Docs", "Decompiler"]);
+    expect(names).toEqual(["Product", "Features", "Delivery", "Pricing", "Docs", "Decompiler"]);
   });
 
   it("marks Product as the current page on the home page, and nowhere else", () => {
@@ -82,11 +83,23 @@ describe("the landing nav", () => {
     );
   });
 
-  it("still links Pricing and Learn nowhere, because neither page exists", () => {
+  /**
+   * **`Pricing` was on this list until EPIC-070 built the page**, and it came off the day it did.
+   * That is the rule working rather than the rule weakening: the rule is *no nav link to a 404*, so
+   * an entry leaves this assertion at exactly the moment its route starts answering. `Learn` stays,
+   * because Stage 7 has not happened.
+   */
+  it("still links Learn nowhere, because that page does not exist", () => {
     for (const signedIn of [true, false]) {
       const html = renderToStaticMarkup(SiteNav({ signedIn }));
-      expect(html).not.toContain(">Pricing<");
       expect(html).not.toContain(">Learn<");
+    }
+  });
+
+  it("links Pricing, now that the page answers", () => {
+    for (const signedIn of [true, false]) {
+      const html = renderToStaticMarkup(SiteNav({ signedIn }));
+      expect(html).toContain('href="/pricing"');
     }
   });
 

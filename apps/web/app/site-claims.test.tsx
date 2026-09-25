@@ -35,6 +35,9 @@ const { default: Notices } = await import("./legal/third-party-notices/page.js")
 // routes around by accident. `company-pages.test.tsx` carries what is specific to them.
 const { default: About } = await import("./about/page.js");
 const { default: Careers } = await import("./careers/page.js");
+// EPIC-070. The one page on this site that is allowed to print a price, and therefore the one page
+// whose every other guard matters most — see the `a price` row in `UNBACKED` below.
+const { default: Pricing } = await import("./pricing/page.js");
 
 /**
  * The rendered text of a page, with the markup and the code samples removed.
@@ -84,7 +87,8 @@ const PAGES: readonly (readonly [string, ReactElement])[] = [
   ["/guides", <Guides key="g" />],
   ["/legal/third-party-notices", <Notices key="n" />],
   ["/about", <About key="a" />],
-  ["/careers", <Careers key="r" />]
+  ["/careers", <Careers key="r" />],
+  ["/pricing", <Pricing key="p" />]
 ];
 
 const RENDERED = new Map(PAGES.map(([route, element]) => [route, textOf(element)] as const));
@@ -160,12 +164,59 @@ const UNBACKED: readonly (readonly [string, RegExp])[] = [
   ["roles or an audit trail", /\brole-based\b|\baudit (?:trail|log)\b/i]
 ];
 
+/**
+ * The one rule that does not apply to every page, and why it is an exception rather than a deletion.
+ *
+ * `["a price", /\$\d/]` exists because for the whole life of this site a price was a claim nothing
+ * could back — EPIC-072 refused `/pricing` in exactly those words. **EPIC-070 made it backable on
+ * one page and one page only**: `/pricing`'s number is formatted from the cents figure
+ * `pricing.parity.test.ts` holds the Stripe Price against, so it is the one place where `$29` is
+ * checked against the thing that actually charges.
+ *
+ * Everywhere else the rule is unchanged and is still the right rule. A price on `/features` or in
+ * the footer is a second copy of a number with nothing comparing it, which is the drift this whole
+ * file exists to prevent — so the exception is a named list of one route rather than the rule being
+ * softened, and the three controls below keep it that way.
+ */
+const MAY_PRINT_A_PRICE: readonly string[] = ["/pricing"];
+
+function rulesFor(route: string): readonly (readonly [string, RegExp])[] {
+  return UNBACKED.filter(([label]) => label !== "a price" || !MAY_PRINT_A_PRICE.includes(route));
+}
+
 describe("no page claims anything we cannot back", () => {
   for (const [route, text] of RENDERED) {
-    it.each(UNBACKED)(`${route} carries no %s`, (_label, pattern) => {
+    it.each(rulesFor(route))(`${route} carries no %s`, (_label, pattern) => {
       expect(text).not.toMatch(pattern);
     });
   }
+
+  /**
+   * The exception's three controls. Without them it is a hole that grows quietly.
+   *
+   * 1. **It is one route.** A second entry has to be argued for here rather than appended.
+   * 2. **Every other page is still checked.** A rule that stopped being applied anywhere would
+   *    leave every assertion above green and every page unchecked.
+   * 3. **The exempt page really does print a price.** If `/pricing` ever stopped, the exemption
+   *    would be dead code that only shows itself the day somebody puts a price back on it.
+   */
+  it("exempts exactly one route from the price rule", () => {
+    expect(MAY_PRINT_A_PRICE).toEqual(["/pricing"]);
+  });
+
+  it.each([...RENDERED.keys()].filter((route) => !MAY_PRINT_A_PRICE.includes(route)))(
+    "%s is still checked for a price",
+    (route) => {
+      expect(rulesFor(route).map(([label]) => label)).toContain("a price");
+    }
+  );
+
+  it("exempts /pricing from a rule it would otherwise fail", () => {
+    // Not "the page is allowed a price" — "the page has one". The exemption is only honest while
+    // there is something for it to exempt.
+    expect(RENDERED.get("/pricing") ?? "").toMatch(/\$\d/);
+    expect(rulesFor("/pricing").map(([label]) => label)).not.toContain("a price");
+  });
 
   it.each([
     ["Trusted by 1,200 teams", /trusted by/i],
@@ -208,7 +259,7 @@ describe("no page claims anything we cannot back", () => {
  * tokeniser rather than in the list.
  */
 const EXPLAINED_NUMBERS: Readonly<Record<string, string>> = {
-  "0": "a stage number on the changelog — this project's own stages, which docs/roadmap.md numbers from 0",
+  "0": "a stage number on the changelog — this project's own stages, which docs/roadmap.md numbers from 0 — and the Free tier's amount on /pricing",
   "1": "a stage number, a step ordinal, and the singular in \"1 package\" and \"1 epic\"",
   "2": "a stage number and a step ordinal",
   "3": "a stage number, a step ordinal, and the three providers behind one interface",
@@ -221,7 +272,11 @@ const EXPLAINED_NUMBERS: Readonly<Record<string, string>> = {
   "11": "the number of epics in a changelog row — Stage 1, which EPIC-016b joined",
   "12": "the number of epics in a changelog row — Stage 1 again, which EPIC-016c joined",
   "13": "the number of epics in a changelog row — Stage 1 once more, which EPIC-016d joined",
+  "14": "the trial, in days — TRIAL_DAYS in apps/web/lib/billing/checkout.ts, which is what is sent to Stripe as trial_period_days",
+  "29": "Pro's price in dollars, formatted by moneyWords from the same 2900 cents that pricing.parity.test.ts holds the Stripe Price against — never typed on the page",
   "30": "DECOMPILE_RETENTION_DAYS, enforced by the purge job",
+  "50": "the Free plan's suite runs per period — the plans row the run gate reads, and the number it names when it refuses",
+  "5,000": "the Pro plan's suite runs per period, from the same plans row",
   "41": "the product's name",
   "180": "RUN_COUNT_RETENTION_DAYS, enforced by the purge job",
   "365": "RUN_PAYLOAD_RETENTION_DAYS, enforced by the purge job",

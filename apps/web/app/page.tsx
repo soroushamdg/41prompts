@@ -178,6 +178,12 @@ export default function HomePage() {
               <a className="btn btn-pri cta-band-link" href="/decompile">
                 Open the decompiler
               </a>
+              {/* **The mockup's second button** (line 620), absent until EPIC-070 because the page
+                  it points at was a 404 and EPIC-016 decision 6 rules out a chrome link that goes
+                  nowhere. `.cta-band-actions` has always been a flex row with a gap for two. */}
+              <a className="btn cta-band-link" href="/pricing">
+                See pricing
+              </a>
             </div>
           </div>
         </section>

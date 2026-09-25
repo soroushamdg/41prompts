@@ -77,12 +77,20 @@ test.describe("the chrome goes where it says", () => {
   });
 
   test("a route nobody built is a 404, so the two walks above mean something", async ({ request }) => {
-    // `/pricing` is the real case: EPIC-070 builds it, and until then it is not there.
-    expect((await request.get("/pricing")).status()).toBe(404);
-    // **`/careers` was the other half of this control until EPIC-072b built it.** Replacing it with
-    // another route somebody intends to build would put this control back on the same clock —
-    // `/blog`, `/learn` and `/about` were all "nobody built it" once. This one is on no roadmap.
+    // **`/pricing` was the first half of this control until EPIC-070 built it**, and `/careers` was
+    // the second until EPIC-072b did. Both are the same lesson: a route somebody intends to build
+    // is a control on a clock, and it runs out on the day the epic lands. The two below are on no
+    // roadmap, so there is no epic that will quietly turn this assertion false.
     expect((await request.get("/not-a-route-this-site-has")).status()).toBe(404);
+    expect((await request.get("/pricing/enterprise")).status()).toBe(404);
+  });
+
+  test("/pricing is served, and it is the page the nav points at", async ({ page }) => {
+    // The other side of the control above: the walk means nothing if the server 404s everything
+    // either. This is the route EPIC-070 added, asserted as present rather than merely linked.
+    const response = await page.goto("/pricing");
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('.site-nav a[href="/pricing"]')).toHaveAttribute("aria-current", "page");
   });
 
   test("the current page marks itself in the nav", async ({ page }) => {

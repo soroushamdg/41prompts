@@ -2,9 +2,34 @@
  * The things `docs/design/41prompts-full-mockup.html` says and the product does not do.
  *
  * Each pattern was read off the mockup, not imagined: SOC 2 Type I "underway"; nine lessons; a
- * shared blok library; SSO/SAML; roles and an audit trail; retention "per project"; per-seat
- * prices; a second co-founder; three open positions. The mockup is the spec for the interface
+ * shared blok library; SSO/SAML; roles and an audit trail; retention "per project"; a second
+ * co-founder; three open positions. The mockup is the spec for the interface
  * (`docs/design/README.md`) and not for what is true about the company.
+ *
+ * ## One pattern has been removed, and this is the record of it
+ *
+ * **`["a per-seat price", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i]` came out in
+ * EPIC-070, with its control row, in the commit that made the claim true.** It had been right for
+ * the whole of its life: EPIC-072 refused `/pricing` because *"no checkout, no metering, prices
+ * marked unvalidated"*, and a page saying $29 while nothing charged $29 is a sentence a reader
+ * could hold us to and we would lose.
+ *
+ * What changed is not the guard's judgement but the fact underneath it. There is a Stripe Price at
+ * $29, a checkout that sells it, a webhook that records it and a run gate that enforces what it
+ * buys, and `apps/web/lib/site/pricing.parity.test.ts` fails when the page and that Price disagree.
+ * The guard was replaced by a stronger one: the old rule said *never print a price*, and the new
+ * rule says *print the price Stripe charges and no other*.
+ *
+ * **Both rows came out together and that is the load-bearing part.** Removing the pattern and
+ * leaving its control would have left a control matching nothing; removing the control and leaving
+ * the pattern would have denied the page this epic exists to ship. `site-claims.test.tsx` keeps a
+ * narrower version of the same idea — `["a price", /\$\d/]`, applied to every page **except**
+ * `/pricing` — so the mockup's per-seat sentence is still refused everywhere it used to be refused,
+ * on the one page it could ever have appeared.
+ *
+ * **What is *not* claimed by its removal**: that $29 is the right number. EPIC-005, the
+ * pricing-validation study, is cut. ADR-007's Context paragraph says so and so does the epic report.
+ * The guard was about whether we charge it, not about whether it is worth it.
  *
  * ## Why it lives here and not in the test that used to own it
  *
@@ -28,7 +53,6 @@
 export const NOT_TRUE_YET: readonly (readonly [string, RegExp])[] = [
   ["a compliance certification", /\bSOC\s*2\b|\bISO\s*27001\b|\bHIPAA\b|\bFedRAMP\b/i],
   ["lessons", /\blessons?\b/i],
-  ["a per-seat price", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i],
   ["single sign-on", /\bSSO\b|\bSAML\b|\bSCIM\b/i],
   ["roles or an audit trail", /\brole-based\b|\baudit (?:trail|log)\b/i],
   ["a shared library", /\bshared blok library\b/i],
@@ -43,7 +67,6 @@ export const NOT_TRUE_YET: readonly (readonly [string, RegExp])[] = [
 export const NOT_TRUE_YET_CONTROLS: readonly (readonly [string, RegExp])[] = [
   ["SOC 2 in progress. Type I underway.", /\bSOC\s*2\b/i],
   ["Nine lessons. All of them run in the product.", /\blessons?\b/i],
-  ["$29 per seat / month", /\bper seat\b|\$\d+\s*(?:a|per|\/)\s*(?:month|seat)/i],
   ["SSO / SAML", /\bSSO\b|\bSAML\b/i],
   ["Roles and audit log", /\baudit (?:trail|log)\b/i],
   ["Shared blok library", /\bshared blok library\b/i],

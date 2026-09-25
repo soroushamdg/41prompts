@@ -1,6 +1,6 @@
 import type { PlanUsage } from "@41prompts/db";
 import { describe, expect, it } from "vitest";
-import { periodResetWords, planTitle, runLimitWords } from "./plan-gate";
+import { byoKeyWords, periodResetWords, planTitle, runLimitWords } from "./plan-gate";
 
 /**
  * The refusal, as a pure function over a usage shape.
@@ -106,5 +106,42 @@ describe("the small pieces", () => {
 
   it("uses the singular for a one-run plan", () => {
     expect(runLimitWords(usage({ runsUsed: 1, limit: 1 }))).toContain("all 1 run on");
+  });
+});
+
+/**
+ * The BYO-key gate (EPIC-070 scope 6, ADR-007 §2 and §4).
+ *
+ * Four cases and each is a decision rather than a branch: **Pro may**, **Free may not**, **Free may
+ * still replace one it already has**, and the refusal **says where to change it**.
+ */
+describe("bringing your own provider key", () => {
+  it("is allowed on a paid plan", () => {
+    expect(byoKeyWords("pro", false)).toBeUndefined();
+    expect(byoKeyWords("team", false)).toBeUndefined();
+  });
+
+  it("is refused on Free when there is no key yet", () => {
+    const said = byoKeyWords("free", false);
+    expect(said).toBeDefined();
+    // It has to name the plan that changes it and where to do it, for the same reason the run
+    // refusal names the number and the date: a refusal with no next step is a dead end.
+    expect(said).toContain("Pro");
+    expect(said).toContain("Settings → Billing");
+  });
+
+  /**
+   * **The one that is not obvious, and the one that matters most.**
+   *
+   * ADR-007 §4 enforces nothing retroactively, and a customer whose key has leaked has to be able
+   * to rotate it. A gate that refuses a replacement turns a downgrade into a security incident,
+   * which is a far worse thing than a plan boundary somebody stepped over.
+   */
+  it("is allowed on Free when a key for that provider is already attached", () => {
+    expect(byoKeyWords("free", true)).toBeUndefined();
+  });
+
+  it("says a key already attached keeps working, so the refusal is not read as a threat", () => {
+    expect(byoKeyWords("free", false)).toContain("already attached keeps working");
   });
 });

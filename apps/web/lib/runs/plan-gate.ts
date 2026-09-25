@@ -1,4 +1,4 @@
-import { planUsageFor, type Db, type PlanUsage } from "@41prompts/db";
+import { FREE_PLAN_KEY, planKeyFor, planUsageFor, type Db, type PlanUsage } from "@41prompts/db";
 
 /**
  * The run-count limit a plan buys, refused **in words, before a run exists** (EPIC-070, ADR-007 §2).
@@ -85,4 +85,48 @@ export async function runLimitRefusal(
   now: Date = new Date()
 ): Promise<string | undefined> {
   return runLimitWords(await planUsageFor(db, owner, now), needed);
+}
+
+/**
+ * Whether this account may attach **a new** provider key of its own (ADR-007 §2, EPIC-070 scope 6).
+ *
+ * ## Why this is a plan feature at all
+ *
+ * ADR-007 §2's argument for keeping the cents cap turns on a fact that is easy to miss: *"the cents
+ * cap is the only thing standing between a Free account and a real invoice."* That sentence is only
+ * true because **a Free account runs on the deployment's key** — ours — inside that cap. Pro is the
+ * plan where the spend stops being ours, and bringing a key is the mechanism. The mockup puts
+ * "Bring your own keys" in Pro and not in Free for the same reason.
+ *
+ * ## Nothing is taken away from anybody
+ *
+ * ADR-007 §4 is explicit that nothing is enforced retroactively, so this refuses **attaching a new
+ * key**, never using or replacing one that is already there:
+ *
+ * - a key already attached keeps working, whatever plan the account is on;
+ * - **replacing one is still allowed**, and that is not a loophole. A customer whose key has leaked
+ *   has to be able to rotate it. A gate that stops them is a gate that turns a downgrade into a
+ *   security incident, which is a much worse thing than a plan boundary somebody stepped over.
+ *
+ * So the question this asks is narrow: *is this account on a paid plan, or does it already hold a
+ * key for this provider?*
+ *
+ * `alreadyHasOne` is a parameter rather than a query, so this stays a function a test can drive
+ * without a database and so the caller — which has already read the provider's row — pays for one
+ * round trip rather than two.
+ */
+export function byoKeyWords(planKey: string, alreadyHasOne: boolean): string | undefined {
+  if (planKey !== FREE_PLAN_KEY) return undefined;
+  if (alreadyHasOne) return undefined;
+  return `Bringing your own provider key is a ${planTitle("pro")} feature. On ${planTitle(planKey)} your runs use ours instead, inside a spend rail you do not have to think about. Settings → Billing is where that changes, and a key you have already attached keeps working whatever plan you are on.`;
+}
+
+/** The same check against the database. `undefined` means the key may be attached. */
+export async function byoKeyRefusal(
+  db: Db,
+  owner: string,
+  alreadyHasOne: boolean,
+  now: Date = new Date()
+): Promise<string | undefined> {
+  return byoKeyWords(await planKeyFor(db, owner, now), alreadyHasOne);
 }

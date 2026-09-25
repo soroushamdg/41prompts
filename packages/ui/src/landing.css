@@ -1852,3 +1852,108 @@ a.logo {
     display: none;
   }
 }
+
+/* ── /pricing: three tiers ─────────────────────────────────────────────────────────────────────
+
+   The mockup's `.price` / `.tier` (lines 126–133), in tokens. It is the **interactive** surface
+   language and not the data one — 2px ink, a hard plate offset, a radius — because a tier is a
+   card whose whole purpose is the control at the bottom of it, and decision 2 says a component is
+   one language or the other. `.site-card` beneath it on the same page is the data surface, which
+   is the contrast the mockup draws too.
+
+   `minmax(0, 1fr)` rather than `1fr` in the three-column template, for the reason `.site-two`
+   already carries: a bare `1fr` is `minmax(auto, 1fr)`, so one long unbroken word in a feature
+   sentence sets the track's minimum and the page scrolls sideways at 390px. */
+.price-tiers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-s4);
+  margin-top: var(--spacing-s6);
+}
+@media (min-width: 860px) {
+  .price-tiers {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+
+.price-tier {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-s5);
+  border: var(--border-ink) solid var(--color-ink);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--color-plate);
+}
+/* The mockup's `.tier.best`: the same card, standing further off the page. Nothing else changes —
+   it is not a different colour, and it does not carry a badge, because "recommended" is a nudge
+   and not a fact about the plan. */
+.price-tier-best {
+  box-shadow: var(--shadow-offset-xl) var(--shadow-offset-xl) 0 var(--color-plate);
+}
+
+.price-amount {
+  margin: var(--spacing-s3) 0 var(--spacing-s1);
+  font-size: clamp(30px, 6vw, 40px);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+/* Team has no amount above it (ADR-007 §6), so the cadence line carries its own top margin and
+   tightens up again when an amount is there to sit under. */
+.price-cadence {
+  margin: var(--spacing-s3) 0 0;
+  font-size: 13px;
+  color: var(--color-ink-3);
+}
+.price-amount + .price-cadence {
+  margin-top: var(--spacing-s1);
+}
+.price-inherits {
+  margin: var(--spacing-s4) 0 0;
+  font-size: 13px;
+  color: var(--color-ink-3);
+}
+
+.price-features {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-s4) 0 var(--spacing-s5);
+}
+.price-features li {
+  padding: var(--spacing-s3) 0;
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+.price-features li:last-child {
+  border-bottom: 0;
+}
+/* The bold line is what a reader scans; the sentence under it is the registered claim that backs
+   it. Two elements rather than one string, so the scan and the substance can be sized apart
+   without the claim becoming decoration. */
+.price-features b {
+  display: block;
+  font-size: 13.5px;
+  color: var(--color-ink);
+}
+.price-features span {
+  display: block;
+  margin-top: var(--spacing-s1);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+/* `margin-top: auto` is what keeps the three buttons on one line when the lists are different
+   lengths — the mockup does the same thing inline. */
+.price-cta {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* The tier name is an `h2` wearing the eyebrow's clothes — a heading for the reader moving by
+   headings, at the size the mockup draws. `.eyebrow` carries the letter-spacing and the case; this
+   only undoes the margin an `h2` brings with it. */
+.price-name {
+  margin: 0;
+}

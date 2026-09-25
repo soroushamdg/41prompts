@@ -34,7 +34,12 @@ describe("every claim names an epic that shipped", () => {
    * honest and would also pass if the path were being built wrong and happened to point at
    * something real. This is the shape of an epic id that did not ship.
    */
-  it.each(["EPIC-999", "EPIC-070", "EPIC-060"])("would fail on %s, which has no report", (epic) => {
+  // **`EPIC-070` was one of these three and is not any more**, because this epic gave it a report.
+  // That is the control working rather than the control breaking: its job is to name epic ids that
+  // have not shipped, and an id that ships has to leave the list or the assertion becomes false.
+  // `EPIC-073` takes its place — a real roadmap row, unbuilt, for the same reason `EPIC-060` is
+  // here rather than a made-up number: a plausible id is what a typo would look like.
+  it.each(["EPIC-999", "EPIC-073", "EPIC-060"])("would fail on %s, which has no report", (epic) => {
     expect(existsSync(join(REPO_ROOT, "docs", "epics", "reports", `${epic}-report.md`))).toBe(false);
   });
 });
