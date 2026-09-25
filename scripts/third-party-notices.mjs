@@ -58,11 +58,48 @@ export function collect() {
     }
   }
   rows.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
-  return rows;
+  return rows.filter((row) => !isPlatformBuild(row.name));
+}
+
+/**
+ * The platform-specific native builds, which are **excluded** — and the reason is not tidiness.
+ *
+ * ## The check was machine-dependent, which means it was not a gate
+ *
+ * `pnpm licenses list` reports what is **installed**, and a native binary installs only on the
+ * platform it is built for. So this file, generated on a Mac, carried `@esbuild/darwin-x64` and
+ * nine like it; the Linux runner regenerated it with `@esbuild/linux-x64` and reported the
+ * committed file **stale**. `main` was red on GitHub from 2026-09-20 for that reason alone, while
+ * `--check` said *"current"* on every developer's machine.
+ *
+ * A check whose answer depends on who runs it cannot be a gate. This makes the output the same
+ * everywhere.
+ *
+ * ## It costs the reader nothing, and that was measured rather than assumed
+ *
+ * A notices page owes attribution to the **projects** whose code is distributed. Every excluded
+ * binary is one platform's build of a project that is **already in the list** — `esbuild`,
+ * `sharp`, `next`, `rollup`, `lightningcss`, `@tailwindcss/oxide`, `@sentry/cli` — with the same
+ * licence and, literally, the same `homepage`: `@esbuild/darwin-x64` points at
+ * `github.com/evanw/esbuild`, which is where `esbuild` points.
+ *
+ * **`third-party-notices.test.ts` asserts that**, for every family excluded here. The exclusion can
+ * therefore never quietly drop a project — only a duplicate of one already credited. Without that
+ * test this filter would be a way to make a page shorter by making it less true, which is the
+ * opposite of what the page is for.
+ *
+ * That test writes its **own** pattern rather than importing this one, and deliberately: a shared
+ * predicate cannot catch a bug in itself, and `scripts/` is outside `@41prompts/web` anyway —
+ * `turbo boundaries` refuses the import, which is how the first version of that test was caught.
+ */
+const PLATFORM_BUILD = /-(?:darwin|linux|win32|freebsd|openbsd|netbsd|sunos|android)(?:-|$)|-(?:x64|arm64|ia32|arm|ppc64|s390x|riscv64|loong64)(?:-|$)|-(?:musl|gnu|gnueabihf|msvc)(?:-|$)/;
+
+function isPlatformBuild(name) {
+  return PLATFORM_BUILD.test(name);
 }
 
 export function render(rows) {
-  return `${JSON.stringify({ generatedFrom: "pnpm licenses list --prod --json", packages: rows }, null, 2)}\n`;
+  return `${JSON.stringify({ generatedFrom: "pnpm licenses list --prod --json, minus per-platform native builds", packages: rows }, null, 2)}\n`;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

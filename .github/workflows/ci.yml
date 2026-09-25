@@ -102,18 +102,28 @@ jobs:
 
       - run: pnpm db:migrate
 
+      # **Python is set up before `pnpm test`, not after it, and that ordering is the fix for a
+      # five-day red build.** `apps/web/cli-generated-code.test.ts` runs `mypy --strict` over the
+      # Python the CLI generates, and it shells out to `uv` to do it. With `setup-uv` below
+      # `pnpm test`, `uv` was not on the PATH when the test ran: `spawnSync uv ENOENT`, twice, on
+      # every run since 2026-09-20.
+      #
+      # **`gates.mjs ci` cannot catch this by construction.** It runs these steps in this order, but
+      # on a machine where `uv` is already installed — it refuses to start without it. An ordering
+      # bug in a workflow is invisible to a runner that does not need the workflow to install
+      # anything. `compliance.yml` had it right and only this file was wrong.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v3
+
       - run: pnpm test
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
       - run: pnpm e2e
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - uses: astral-sh/setup-uv@v3
 
       - name: Python tests
         working-directory: sdks/python
