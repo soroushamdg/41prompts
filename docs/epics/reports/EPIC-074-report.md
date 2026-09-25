@@ -153,6 +153,25 @@ $ stripe get /v1/products/prod_VJVXAdL5uEHdhO
 to re-prove a fact already proved twice, and a drive is worth what it catches rather than what its
 score reads.
 
+## 5b. The gate
+
+**Green at `837affa`, 17 of 17, 16m10s.** Clean checkout, frozen lockfile, cold cache, both
+workflows in CI's order. The only commits after it are the ones that write this section down.
+
+```
+  ci.yml       install · lint · typecheck · db:migrate · test · playwright · e2e · pytest    all PASS
+  compliance   reuse · boundaries · turbo boundaries · forbidden-words · binary-files ·
+               dead-code · license-gate --sbom · mirror-dry-run                              all PASS
+  17 step(s), all passed
+```
+
+**It was refused once first, and for a good reason**: the watched run had written its screenshots
+and CI mode tests a commit rather than a tree. The evidence from the purchase is committed.
+
+Its closing block still does not cover the Linux visual baselines or a slower runner, and — specific
+to this epic — **nothing in the gate reaches Stripe**. Every claim in §3 rests on the runs recorded
+there, not on this one.
+
 ## 6. This changes the Definition of Done, permanently
 
 **The browser drive can no longer complete a purchase unattended.** That is not a regression in this
