@@ -1502,12 +1502,6 @@
       "homepage": "https://github.com/sindresorhus/find-up#readme"
     },
     {
-      "name": "fsevents",
-      "version": "2.3.3",
-      "license": "MIT",
-      "homepage": "https://github.com/fsevents/fsevents"
-    },
-    {
       "name": "gensync",
       "version": "1.0.0-beta.2",
       "license": "MIT",

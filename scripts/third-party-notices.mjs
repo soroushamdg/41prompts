@@ -48,6 +48,7 @@ export function collect() {
   for (const [license, packages] of Object.entries(byLicense)) {
     for (const entry of packages) {
       for (const version of entry.versions ?? []) {
+        if (declaresPlatform(entry.paths)) continue;
         rows.push({
           name: entry.name,
           version,
@@ -58,44 +59,53 @@ export function collect() {
     }
   }
   rows.sort((a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version));
-  return rows.filter((row) => !isPlatformBuild(row.name));
+  return rows;
 }
 
 /**
- * The platform-specific native builds, which are **excluded** — and the reason is not tidiness.
+ * Packages that declare their own platform, which are **excluded**.
  *
  * ## The check was machine-dependent, which means it was not a gate
  *
- * `pnpm licenses list` reports what is **installed**, and a native binary installs only on the
- * platform it is built for. So this file, generated on a Mac, carried `@esbuild/darwin-x64` and
- * nine like it; the Linux runner regenerated it with `@esbuild/linux-x64` and reported the
- * committed file **stale**. `main` was red on GitHub from 2026-09-20 for that reason alone, while
- * `--check` said *"current"* on every developer's machine.
+ * `pnpm licenses list` reports what is **installed**, and a platform-specific package installs only
+ * where it belongs. So this file, generated on a Mac, carried `@esbuild/darwin-x64` and eight like
+ * it; the Linux runner regenerated it with the `linux-x64` names and reported the committed file
+ * **stale**. `main` was red on GitHub from 2026-09-20 for that reason alone, while `--check` said
+ * *"current"* on every developer's machine. A check whose answer depends on who runs it cannot be a
+ * gate.
  *
- * A check whose answer depends on who runs it cannot be a gate. This makes the output the same
- * everywhere.
+ * ## The signal is the package's own manifest, not its name
  *
- * ## It costs the reader nothing, and that was measured rather than assumed
+ * **The first fix matched names** — anything carrying `darwin`, `linux`, `x64` and so on — and it
+ * was wrong in a way that took a red CI run to show: **`fsevents` is macOS-only and its name says
+ * nothing about that.** A name pattern can only exclude what the machine running it happens to
+ * install, which is precisely the property being fixed.
  *
- * A notices page owes attribution to the **projects** whose code is distributed. Every excluded
- * binary is one platform's build of a project that is **already in the list** — `esbuild`,
+ * `os` and `cpu` in a package's own `package.json` are npm's declaration of exactly this, they are
+ * what the package manager itself uses to decide whether to install it, and they are **symmetric**:
+ * the same rule removes the darwin builds here and the linux builds on the runner.
+ *
+ * ## What it costs the reader, measured rather than assumed
+ *
+ * Seven of the nine are one platform's build of a project **already in the list** — `esbuild`,
  * `sharp`, `next`, `rollup`, `lightningcss`, `@tailwindcss/oxide`, `@sentry/cli` — with the same
- * licence and, literally, the same `homepage`: `@esbuild/darwin-x64` points at
- * `github.com/evanw/esbuild`, which is where `esbuild` points.
+ * licence and literally the same `homepage`. Nothing is lost by dropping them.
  *
- * **`third-party-notices.test.ts` asserts that**, for every family excluded here. The exclusion can
- * therefore never quietly drop a project — only a duplicate of one already credited. Without that
- * test this filter would be a way to make a page shorter by making it less true, which is the
- * opposite of what the page is for.
- *
- * That test writes its **own** pattern rather than importing this one, and deliberately: a shared
- * predicate cannot catch a bug in itself, and `scripts/` is outside `@41prompts/web` anyway —
- * `turbo boundaries` refuses the import, which is how the first version of that test was caught.
+ * **`fsevents` is the one that is a project in its own right**, and dropping it is still right:
+ * it is macOS-only, the deployed application runs on Linux, and a notices page is about what is
+ * **distributed**. Listing a package no user ever receives is not more honest, it is less.
  */
-const PLATFORM_BUILD = /-(?:darwin|linux|win32|freebsd|openbsd|netbsd|sunos|android)(?:-|$)|-(?:x64|arm64|ia32|arm|ppc64|s390x|riscv64|loong64)(?:-|$)|-(?:musl|gnu|gnueabihf|msvc)(?:-|$)/;
-
-function isPlatformBuild(name) {
-  return PLATFORM_BUILD.test(name);
+function declaresPlatform(paths) {
+  for (const dir of paths ?? []) {
+    try {
+      const manifest = JSON.parse(readFileSync(join(dir, "package.json"), "utf8"));
+      if (Array.isArray(manifest.os) || Array.isArray(manifest.cpu)) return true;
+    } catch {
+      // A package whose manifest cannot be read is kept: the notices page erring towards listing
+      // something is the right direction for it to err in.
+    }
+  }
+  return false;
 }
 
 export function render(rows) {
