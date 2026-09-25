@@ -504,7 +504,28 @@ describe("the mockup's home page (EPIC-016b, and its rotator EPIC-016c)", () => 
     expect(text).toContain("read-only");
     expect(text).toContain("1,284 tok");
     expect(text).toContain("5 bloks");
-    expect(text).toContain("Run 5 checks");
+  });
+
+  /**
+   * The pane bar's check count **equals the run demo's row count**, asserted as the relationship
+   * rather than as a number.
+   *
+   * It used to read `expect(text).toContain("Run 5 checks")`, which was true only while the two
+   * happened to be equal — and they stopped being equal the moment a sixth row was added
+   * (2026-09-24, so the "Six checks" heading stopped being a lie). A literal there re-creates
+   * exactly the drift EPIC-016d derived these counts to prevent: the next person to change the
+   * table has to remember a number written down somewhere else.
+   *
+   * Five bloks and six checks is coherent rather than a rounding error — the demo's rows cite
+   * B1, B2, B3, B4 and B6, which is five bloks, and one of them carries two checks.
+   */
+  it("counts the checks in the pane bar from the demo's rows, not from a number typed twice", () => {
+    const rowCount = (html.match(/<tr class="run-demo-row"|<tbody>[\s\S]*?<\/tbody>/) ? html : "")
+      .split("<tbody>")[1]
+      ?.split("</tbody>")[0]
+      ?.match(/<tr/g)?.length;
+    expect(rowCount, "no demo rows found — the assertion below would be vacuous").toBeGreaterThan(1);
+    expect(text).toContain(`Run ${rowCount} checks`);
   });
 
   it("draws the run control as a picture of one, not as a button nobody can press", () => {

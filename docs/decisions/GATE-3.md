@@ -58,3 +58,17 @@ Not blockers on starting EPIC-040 — work owed before Stage 4 closes:
 A release is due: four epics have merged since the last one, production is at `af089c7` and 79
 commits behind, and the newest tag is `v0.5.0`. `docs/epics/RELEASE-DUE.md` has the commit list.
 That is a separate decision and is not made here.
+
+## Passed — 2026-09-24
+
+**Soroush's decision, given directly when asked.** He was shown both readings of his answer — *"they
+pass, record them as passed"* against *"skip them, stop blocking, decide later"* — and chose the
+first. So this is a decision that the exit criteria are met, not a waiver of the checkpoint.
+
+`docs/backlog.md`'s status cell now reads `passed`, which is one of the words
+`scripts/pick-next-epic.mjs`'s `GATE_CLEARED` matches, so the picker stops stopping here.
+
+**What this does not decide**, because it was a separate question then and still is: the release.
+The "Also outstanding" section above is unchanged and its numbers have only grown —
+`docs/epics/RELEASE-DUE.md` has the list, nothing is pushed, and production is still at `v0.5.0`.
+Passing a gate is not a decision to deploy.

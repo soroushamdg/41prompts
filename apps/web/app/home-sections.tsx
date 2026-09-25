@@ -176,7 +176,13 @@ const RUN_ROWS = [
   { blok: "B3", check: "Category is one of the allowed values", gpt: "40/40", claude: "40/40", gemini: "37/40", rate: 97 },
   { blok: "B3", check: "Reason under 20 words", gpt: "40/40", claude: "31/40", gemini: "39/40", rate: 92 },
   { blok: "B1", check: "Never says it is a model", gpt: "40/40", claude: "40/40", gemini: "40/40", rate: 100 },
-  { blok: "B6", check: "Valid JSON shape, exactly three keys", gpt: "28/40", claude: "40/40", gemini: "22/40", rate: 75 }
+  { blok: "B6", check: "Valid JSON shape, exactly three keys", gpt: "28/40", claude: "40/40", gemini: "22/40", rate: 75 },
+  // **The sixth, added 2026-09-24 so the heading above stops being a lie.** It had said "Six
+  // checks" over five rows since EPIC-016b — the mockup's copy, shipped with one fewer row than it
+  // counts. Soroush's ruling was to match the mockup rather than to write "Five", so the row
+  // arrives instead of the heading changing. `matches a pattern` is one of ADR-003's eight check
+  // kinds and is the one this illustration did not already show.
+  { blok: "B4", check: "Ticket id matches the pattern", gpt: "40/40", claude: "38/40", gemini: "40/40", rate: 98 }
 ] as const;
 
 export function RunDemo() {
