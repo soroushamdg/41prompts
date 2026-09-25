@@ -93,9 +93,12 @@ describe("/", () => {
   it("offers the mockup's second call to action, and no credit card", () => {
     expect(text).toContain("See the workbench");
     expect(text).toContain("No credit card");
-    // It points where a signed-out reader can actually go. The mockup sends it to the signed-in
-    // editor, which for this page's audience is a sign-in wall.
-    expect(html).toMatch(/<a class="btn" href="\/features">/);
+    // **It points at the app, which is the mockup's own destination** — Soroush, 2026-09-24,
+    // reversing EPIC-016d. It used to point at `/features` because `app:editor` is a sign-in wall
+    // for a signed-out reader; the objection was put to him and he chose the mockup. Asserted as
+    // "ends in /app" rather than as a literal, because the host comes from `appOrigin()` and
+    // differs between a local run and a deployment.
+    expect(html).toMatch(/<a class="btn" href="[^"]*\/app">\s*See the workbench/);
   });
 
   /**
