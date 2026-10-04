@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import type { ReactNode } from "react";
+import { betaEnvironment } from "@/lib/site/beta";
 import { siteOrigin } from "@/lib/site/url";
+import { BetaNotice } from "./beta-notice";
 import { ConsentBanner } from "./consent-banner";
 import "./globals.css";
 
@@ -49,6 +51,7 @@ const plexMono = IBM_Plex_Mono({
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieTheme = (await cookies()).get(THEME_COOKIE_NAME)?.value;
   const theme = isThemeValue(cookieTheme) ? cookieTheme : undefined;
+  const beta = betaEnvironment(process.env.DEPLOY_ENV);
 
   return (
     <html
@@ -65,6 +68,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
             body, synchronous and blocking, so `data-theme` is set before anything paints; no
             flash of the wrong theme. */}
         {!theme && <script dangerouslySetInnerHTML={{ __html: themeInitScript(THEME_COOKIE_NAME) }} />}
+        {/* Staging and production only; local and e2e render nothing here. See lib/site/beta.ts. */}
+        {beta && <BetaNotice environment={beta} />}
         {children}
         {/* Every page, because a visitor can land on any of them and the choice is about the visit
             rather than the page. It renders nothing once answered. */}

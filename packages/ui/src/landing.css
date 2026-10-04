@@ -869,6 +869,65 @@ a.logo {
   gap: var(--spacing-s3);
 }
 
+/* ── beta notice: a strip on every page of staging and production, and production's one-time
+   dialog. Neutral ink on sunken, never amber — amber means drift and nothing else (rule 10). It is
+   in the flow rather than fixed, so it scrolls away and covers nothing. */
+.beta-strip {
+  background: var(--color-sunken);
+  border-bottom: var(--border-hairline) solid var(--color-line);
+}
+.beta-strip-inner {
+  align-items: center;
+  color: var(--color-ink-2);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 13px;
+  gap: var(--spacing-s2) var(--spacing-s3);
+  justify-content: center;
+  margin: 0 auto;
+  max-width: 68rem;
+  padding: var(--spacing-s2) var(--spacing-s4);
+  text-align: center;
+}
+.beta-strip-tag {
+  border: var(--border-hairline) solid var(--color-ink);
+  color: var(--color-ink);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  text-transform: uppercase;
+}
+.beta-strip-more {
+  background: none;
+  border: 0;
+  color: var(--color-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: var(--spacing-s1) 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.beta-strip-more:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+.beta-dialog-body {
+  color: var(--color-ink-2);
+  font-size: 15px;
+  line-height: 1.5;
+  margin: 0 0 var(--spacing-s3);
+}
+.beta-dialog-body a {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+.beta-dialog-close {
+  margin-top: var(--spacing-s2);
+  width: 100%;
+}
+
 /* ─────────────────────── marketing pages (EPIC-072) ───────────────────────
    The layout primitives `41prompts-full-mockup.html` draws for Features, Delivery, Docs, Security,
    Changelog and Guides, ported to the token set. Copy is not ported: `docs/design/README.md` makes
