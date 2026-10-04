@@ -57,7 +57,7 @@ export function BetaNotice({ environment }: BetaNoticeProps) {
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent className="beta-dialog">
             <div className="sheet-header">
-              <DialogTitle>This is a beta, running in production</DialogTitle>
+              <DialogTitle className="beta-dialog-title">This is a beta, running in production</DialogTitle>
             </div>
             <div className="sheet-body">
               <DialogDescription className="beta-dialog-body">

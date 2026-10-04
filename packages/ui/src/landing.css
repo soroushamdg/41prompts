@@ -913,6 +913,11 @@ a.logo {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
+.beta-dialog-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
 .beta-dialog-body {
   color: var(--color-ink-2);
   font-size: 15px;
