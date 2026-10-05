@@ -928,9 +928,17 @@ a.logo {
   color: var(--color-ink);
   font-weight: 600;
 }
-.beta-dialog-close {
+.beta-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-s3);
   margin-top: var(--spacing-s2);
-  width: 100%;
+}
+.beta-dialog-actions > * {
+  flex: 1 1 12rem;
+  justify-content: center;
+  text-align: center;
+  text-decoration: none;
 }
 
 /* ─────────────────────── marketing pages (EPIC-072) ───────────────────────
