@@ -57,22 +57,27 @@ export function BetaNotice({ environment }: BetaNoticeProps) {
         <Dialog open={open} onOpenChange={onOpenChange}>
           <DialogContent className="beta-dialog">
             <div className="sheet-header">
-              <DialogTitle className="beta-dialog-title">This is a beta, running in production</DialogTitle>
+              <DialogTitle className="beta-dialog-title">You are using an early version of 41Prompts</DialogTitle>
             </div>
             <div className="sheet-body">
               <DialogDescription className="beta-dialog-body">
-                41Prompts is still being built, and you may run into bugs here. If something breaks or
-                looks wrong, it is us, not you.
+                The live site is a beta. Parts of it are unfinished, and some things may not work the way
+                they should yet. If you hit a problem, the fault is ours.
               </DialogDescription>
               <p className="beta-dialog-body">
-                For a better experience you can use <a href={STAGING_URL}>staging</a>, which gets every
-                fix first. It is a beta too, so expect rough edges there as well.
+                Staging runs the newest beta, with fixes and features before they reach this site. It is
+                still a beta, so it has rough edges of its own.
               </p>
-              <DialogClose asChild>
-                <Button type="button" size="sm" className="beta-dialog-close">
-                  Got it
-                </Button>
-              </DialogClose>
+              <div className="beta-dialog-actions">
+                <a className="btn btn-pri btn-sm" href={STAGING_URL}>
+                  Try the newest beta on staging
+                </a>
+                <DialogClose asChild>
+                  <Button type="button" size="sm">
+                    Stay here
+                  </Button>
+                </DialogClose>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
