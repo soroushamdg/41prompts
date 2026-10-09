@@ -13,9 +13,13 @@ test("the app host serves the app", async ({ request }) => {
 });
 
 test("internal trees are not reachable from the wrong host", async ({ request }) => {
-  for (const url of [`${SITE_URL}/app`, `${SITE_URL}/app/settings`, `${APP_URL}/site`, `${APP_URL}/maintenance`, `${SITE_URL}/maintenance`]) {
-    const res = await request.get(url);
-    expect(res.status(), url).toBe(404);
+  for (const url of [`${SITE_URL}/app`, `${SITE_URL}/app/settings`, `${SITE_URL}/maintenance`]) {
+    expect((await request.get(url)).status(), url).toBe(404);
+  }
+  // On the app host an unknown path needs a session first, then 404s.
+  const cookie = { cookie: "better-auth.session_token=not-a-real-session" };
+  for (const url of [`${APP_URL}/site`, `${APP_URL}/maintenance`]) {
+    expect((await request.get(url, { headers: cookie, maxRedirects: 0 })).status(), url).toBe(404);
   }
 });
 
