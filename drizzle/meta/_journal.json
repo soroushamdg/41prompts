@@ -15,6 +15,20 @@
       "when": 1791552099178,
       "tag": "0001_review_prompts",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791578367628,
+      "tag": "0002_model_connections",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791578376140,
+      "tag": "0003_drop_model_keys",
+      "breakpoints": true
     }
   ]
 }

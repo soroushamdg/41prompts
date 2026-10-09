@@ -8,12 +8,12 @@ import { initialFor } from "@/lib/user";
 import { signInMethods } from "@/server/account";
 import { priceLabel, syncCheckoutSession } from "@/server/billing";
 import { hasInterest } from "@/server/interest";
-import { listKeys } from "@/server/keys";
+import { listConnections } from "@/server/connections";
 import { versionCounts } from "@/server/prompts";
 import { requireViewer } from "@/server/session";
 import { BillingSection } from "./billing-section";
 import { DataSection } from "./data-section";
-import { KeysSection } from "./keys-section";
+import { ModelsSection } from "./models-section";
 import { SettingsNav } from "./settings-nav";
 import { ProductHuntBadge } from "@/components/review/review";
 import { SignOutButton } from "./sign-out-button";
@@ -21,15 +21,15 @@ import s from "./settings.module.css";
 
 export const metadata = { title: "Settings" };
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ checkout?: string; session_id?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ checkout?: string; session_id?: string; add?: string }> }) {
   const viewer = await requireViewer("/settings");
   const q = await searchParams;
   if (PRICING_ENABLED && q.checkout === "success" && q.session_id) {
     // Webhooks can lag behind the redirect from Checkout; sync right away.
     await syncCheckoutSession(db, viewer.id, q.session_id).catch(() => null);
   }
-  const [keys, methods, counts, [billing], price, interested] = await Promise.all([
-    listKeys(db, viewer.id),
+  const [models, methods, counts, [billing], price, interested] = await Promise.all([
+    listConnections(db, viewer.id),
     signInMethods(db, viewer.id),
     versionCounts(db, viewer.id),
     db.select({ plan: user.plan, status: user.subscriptionStatus, periodEnd: user.currentPeriodEnd, customer: user.stripeCustomerId }).from(user).where(eq(user.id, viewer.id)),
@@ -49,10 +49,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         <div className={s.set}>
           <SettingsNav />
           <div className={s.main}>
-            <section className={s.sec} id="keys" aria-labelledby="keysT">
-              <h2 id="keysT">Model keys</h2>
-              <p>Your keys run your prompts. Each provider bills your own account. Free runs on one model at a time; Performance runs all three side by side.</p>
-              <KeysSection initial={keys} />
+            <section className={s.sec} id="models" aria-labelledby="modelsT">
+              {/* Old links to #keys land here too. */}
+              <span id="keys" aria-hidden="true" />
+              <h2 id="modelsT">Models</h2>
+              <ModelsSection initial={models} userId={viewer.id} openAdd={q.add === "1"} />
             </section>
 
             <section className={s.sec} id="billing" aria-labelledby="billT">

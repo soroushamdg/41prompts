@@ -39,7 +39,7 @@ function KitBody() {
         <button className="btn btn--primary btn--lg btn--go" type="button">Start free <Icon name="arrow-right" /></button>
         <button className="btn btn--primary is-busy" type="button" disabled><span className="btn-spin" aria-hidden="true" />Sending link</button>
         <PerfButton feature="The linter"><Icon name="scan" />Lint</PerfButton>
-        <PerfButton feature="Side-by-side runs" className="btn--sm">Run on all 3 models <span className="stamp">Performance</span></PerfButton>
+        <PerfButton feature="Side-by-side runs" className="btn--sm">Run side by side <span className="stamp">Performance</span></PerfButton>
       </section>
 
       <section className={s.row} aria-label="Stamps and chips">
@@ -49,7 +49,7 @@ function KitBody() {
         <span className="chip">Neutral</span>
         <span className="var">{"{{customer_name}}"}</span>
         <span className="kbd">⌘K</span>
-        <span className="keystate is-ok"><span className="dot" /><span>Connected</span></span>
+        <span className="keystate is-ok"><span className="dot" /><span>Works · 212 ms</span></span>
         <span className="keystate is-test"><span className="dot" /><span>Testing</span></span>
       </section>
 
@@ -58,7 +58,7 @@ function KitBody() {
           <span className="label">Frame</span>
           <label className="searchbox"><Icon name="search" /><input type="search" placeholder="Search by name" aria-label="Search" /><span className="kbd">⌘K</span></label>
           <div className="field"><label className="label" htmlFor="kitName">Name</label><input className="input input--mono" id="kitName" defaultValue="support-reply" /></div>
-          <div className="field"><label className="label" htmlFor="kitSel">Model</label><select className="input" id="kitSel"><option>OpenAI · key ending 3f9a</option></select></div>
+          <div className="field"><label className="label" htmlFor="kitSel">Model</label><select className="input" id="kitSel"><option>Work GPT · gpt-6.1-sol</option></select></div>
         </div>
         <div className={`frame frame--live ${s.panel}`}>
           <span className="label">Frame · live (hover)</span>
@@ -78,7 +78,7 @@ function KitBody() {
             <button className="btn" type="button" onClick={() => toast("Deleted blok B2.", { action: "Undo", ms: 6000, onAction: () => toast("Restored B2.") })}>Toast with Undo</button>
             <Menu summary="S" summaryClassName="avatar" summaryLabel="Account menu">
               <div className="menu__who"><b>Sora</b><span>sora@example.com</span></div>
-              <a href="#keys"><Icon name="key" />Model keys</a>
+              <a href="#models"><Icon name="cpu" />Models</a>
               <a href="#billing"><Icon name="card" />Plan and billing</a>
               <button type="button"><Icon name="logout" />Sign out</button>
             </Menu>
@@ -109,7 +109,7 @@ function KitBody() {
           <span key={n} title={n} className="chip"><Icon name={n} />{n}</span>
         ))}
       </section>
-      <p className="notice"><Icon name="key" />2 of 3 model keys connected.<a className="btn btn--sm" href="#keys">Manage keys</a></p>
+      <p className="notice"><Icon name="cpu" />No models yet. Add one to run prompts on your own account.<a className="btn btn--sm" href="#models">Add a model</a></p>
     </main>
   );
 }

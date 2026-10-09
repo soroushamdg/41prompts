@@ -8,7 +8,7 @@ import type { LibraryItem } from "@/server/prompts";
 import s from "./editor.module.css";
 
 /** The library rail beside the sheet: search by name, current prompt marked. */
-export function Rail({ items, currentId, keysLabel }: { items: LibraryItem[]; currentId: string; keysLabel: string }) {
+export function Rail({ items, currentId, modelsLabel, hasModels }: { items: LibraryItem[]; currentId: string; modelsLabel: string; hasModels: boolean }) {
   const [q, setQ] = useState("");
   const needle = q.trim().toLowerCase();
   const shown = items.filter((p) => !needle || p.slug.includes(needle));
@@ -34,7 +34,7 @@ export function Rail({ items, currentId, keysLabel }: { items: LibraryItem[]; cu
           ))}
         </AnimatePresence>
       </nav>
-      <Link className={s.railKeys} href="/settings#keys"><Icon name="key" />{keysLabel}</Link>
+      <Link className={s.railKeys} href={hasModels ? "/settings#models" : "/settings?add=1#models"}><Icon name="cpu" />{modelsLabel}</Link>
     </aside>
   );
 }

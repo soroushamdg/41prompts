@@ -1,10 +1,11 @@
 import "server-only";
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 
-/* Model keys are encrypted at rest with AES-256-GCM (M07). The additional
-   authenticated data binds each ciphertext to its user and provider, so a
-   row copied onto another account or provider fails to decrypt. The key
-   version allows rotating KEYS_ENCRYPTION_KEY later without a migration. */
+/* Model credentials are encrypted at rest with AES-256-GCM (M07). The
+   additional authenticated data binds each ciphertext to its user, its model
+   and where it may be sent, so a row copied onto another account or pointed
+   at another host fails to decrypt. The key version allows rotating
+   KEYS_ENCRYPTION_KEY later without a migration. */
 
 export const KEY_VERSION = 1;
 
@@ -33,4 +34,5 @@ export function open(sealed: Sealed, aad: string): string {
   return Buffer.concat([decipher.update(Buffer.from(sealed.ciphertext, "base64")), decipher.final()]).toString("utf8");
 }
 
-export const keyAad = (userId: string, provider: string) => `${userId}|${provider}`;
+/** AAD for one model's credentials. `destination` comes from destinationOf(). */
+export const connectionAad = (userId: string, connectionId: string, destination: string) => JSON.stringify(["mc1", userId, connectionId, destination]);
