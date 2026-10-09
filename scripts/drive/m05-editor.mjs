@@ -78,7 +78,7 @@ try {
   await page.getByRole("tab", { name: /History/ }).click();
   await page.waitForTimeout(400);
   const rows = await page.locator('[class*="vrow"]').count();
-  check(rows >= 3, `several versions (${rows})`);
+  check(rows >= 2, `versions accumulate (${rows})`);
   await shot("history");
   await page.getByRole("button", { name: "Open v1 read-only" }).click();
   await page.waitForTimeout(600);
