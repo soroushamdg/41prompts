@@ -7,6 +7,7 @@ import { PRICING_ENABLED } from "@/lib/env";
 import { initialFor } from "@/lib/user";
 import { signInMethods } from "@/server/account";
 import { priceLabel, syncCheckoutSession } from "@/server/billing";
+import { hasInterest } from "@/server/interest";
 import { listKeys } from "@/server/keys";
 import { versionCounts } from "@/server/prompts";
 import { requireViewer } from "@/server/session";
@@ -26,12 +27,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     // Webhooks can lag behind the redirect from Checkout; sync right away.
     await syncCheckoutSession(db, viewer.id, q.session_id).catch(() => null);
   }
-  const [keys, methods, counts, [billing], price] = await Promise.all([
+  const [keys, methods, counts, [billing], price, interested] = await Promise.all([
     listKeys(db, viewer.id),
     signInMethods(db, viewer.id),
     versionCounts(db, viewer.id),
     db.select({ plan: user.plan, status: user.subscriptionStatus, periodEnd: user.currentPeriodEnd, customer: user.stripeCustomerId }).from(user).where(eq(user.id, viewer.id)),
     PRICING_ENABLED ? priceLabel() : Promise.resolve(null),
+    hasInterest(db, viewer.id),
   ]);
   return (
     <>
@@ -64,6 +66,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 hasCustomer={Boolean(billing?.customer)}
                 autoCheckout={q.checkout === "1"}
                 justPaid={q.checkout === "success"}
+                interested={interested}
               />
             </section>
 

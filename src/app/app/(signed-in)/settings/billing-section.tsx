@@ -1,11 +1,13 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
-import { startCheckout, useUpgrade } from "@/components/upgrade/upgrade";
+import { startCheckout } from "@/components/upgrade/upgrade";
 import { useToast } from "@/components/toast";
+import { track } from "@/lib/analytics";
 import { cx } from "@/lib/cx";
 import type { Plan } from "@/lib/plans";
 import { shortDate } from "@/lib/time";
+import { registerInterestAction } from "@/server/actions/interest";
 import s from "./settings.module.css";
 
 type Props = {
@@ -17,6 +19,7 @@ type Props = {
   hasCustomer: boolean;
   autoCheckout: boolean;
   justPaid: boolean;
+  interested: boolean;
 };
 
 const FREE = ["Unlimited prompts, bloks and versions", "Bloks editor with the compiled prompt", "One-click copy, template or filled", "Run on one model with your key", "Library with search by name", "Export everything, delete anytime"];
@@ -34,8 +37,8 @@ const PERF: Array<[string, string]> = [
 /** Plan and billing (B01). With pricing off it shows no price and no Checkout. */
 export function BillingSection(p: Props) {
   const toast = useToast();
-  const { open } = useUpgrade();
-  const [busy, setBusy] = useState<"checkout" | "portal" | null>(null);
+  const [busy, setBusy] = useState<"checkout" | "portal" | "interest" | null>(null);
+  const [noted, setNoted] = useState(p.interested);
   const card = useRef<HTMLElement>(null);
   const started = useRef(false);
   const perf = p.plan === "performance";
@@ -46,6 +49,15 @@ export function BillingSection(p: Props) {
     if (url) return window.location.assign(url);
     setBusy(null);
     toast("Stripe Checkout did not open. Try again in a moment.", { tone: "bad" });
+  }
+  async function interest() {
+    setBusy("interest");
+    const ok = await registerInterestAction("Performance plan").catch(() => false);
+    setBusy(null);
+    if (!ok) return toast("That did not save. Try again in a moment.", { tone: "bad" });
+    setNoted(true);
+    track("performance_interest", { feature: "Performance plan" });
+    toast("Noted. We will email you when Performance opens.");
   }
   async function portal() {
     setBusy("portal");
@@ -105,8 +117,13 @@ export function BillingSection(p: Props) {
               <span>{busy === "checkout" ? "Opening Stripe Checkout" : "Upgrade with Stripe"}</span>
               <Icon name="arrow-right" />
             </button>
+          ) : noted ? (
+            <p className={s.status} role="status"><Icon name="check" size="sm" /> Noted. We will email you when it opens.</p>
           ) : (
-            <button className="btn btn--block" type="button" onClick={() => open("Tests")}>Tell me when it opens</button>
+            <button className={cx("btn btn--block", busy === "interest" && "is-busy")} type="button" onClick={interest} disabled={busy !== null}>
+              <span className="btn-spin" aria-hidden="true" />
+              Tell me when it opens
+            </button>
           )}
         </article>
       </div>
