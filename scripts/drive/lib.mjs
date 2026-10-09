@@ -40,3 +40,26 @@ export function check(cond, msg) {
   if (!cond) throw new Error(`check failed: ${msg}`);
   console.log("  ok", msg);
 }
+
+/** Signs in through the real magic-link flow, reading the link from the
+    E2E_MODE file outbox (.e2e/outbox.jsonl). The server must run with E2E_MODE=1. */
+export async function signInViaOutbox(page, email) {
+  const { readFileSync, existsSync } = await import("node:fs");
+  const t0 = Date.now() - 1000;
+  await page.goto(`${APP}/sign-in`);
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Email me a sign-in link" }).click();
+  await page.getByText("Check your inbox").waitFor();
+  let link = null;
+  for (let i = 0; i < 50 && !link; i++) {
+    if (existsSync(".e2e/outbox.jsonl")) {
+      const mails = readFileSync(".e2e/outbox.jsonl", "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((m) => m.to === email && Date.parse(m.at) >= t0);
+      link = mails.at(-1)?.text.match(/https?:\/\/\S+/)?.[0] ?? null;
+    }
+    if (!link) await new Promise((r) => setTimeout(r, 200));
+  }
+  if (!link) throw new Error("no sign-in email in the outbox");
+  await page.goto(link);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await page.waitForURL(`${APP}/`);
+}
