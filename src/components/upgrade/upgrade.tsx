@@ -112,7 +112,13 @@ export function UpgradeProvider({ children, ...config }: UpgradeConfig & { child
           {config.pricingEnabled ? (
             <>
               <p className={s.price}>
-                <b>{config.priceLabel ?? ""}</b> / month · billed through Stripe · cancel anytime
+                {config.priceLabel ? (
+                  <>
+                    <b>{config.priceLabel}</b> / month · billed through Stripe · cancel anytime
+                  </>
+                ) : (
+                  "Billed monthly through Stripe · cancel anytime"
+                )}
               </p>
               <div className={s.actions}>
                 <button type="button" className="btn" onClick={close}>
