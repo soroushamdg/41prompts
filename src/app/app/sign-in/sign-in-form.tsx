@@ -1,5 +1,6 @@
 "use client";
 import { useRef, useState, useSyncExternalStore } from "react";
+import { GitHubIcon, GoogleIcon } from "@/components/provider-icons";
 import { authClient } from "@/lib/auth-client";
 import { cx } from "@/lib/cx";
 import { siteUrl } from "@/lib/hosts";
@@ -33,6 +34,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
   const [failure, setFailure] = useState<string | null>(error ? ERRORS[error.via] : null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [drawn, setDrawn] = useState(false);
+  const [pending, setPending] = useState<"google" | "github" | null>(null);
   const input = useRef<HTMLInputElement>(null);
 
   const callbackURL = mode === "performance" ? "/settings?checkout=1" : next;
@@ -62,6 +64,9 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
 
   function social(provider: "google" | "github") {
     setFailure(null);
+    setPending(provider);
+    // The provider's page replaces this one; if the request fails, let them try again.
+    setTimeout(() => setPending(null), 8000);
     void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL, errorCallbackURL: "/sign-in?via=oauth" });
   }
 
@@ -111,12 +116,22 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
           {bad && <p className={s.err} id="emailErr" role="alert">Enter an email address like you@company.com.</p>}
           {failure && <p className={s.err} role="alert">{failure}</p>}
           <button className={cx("btn btn--primary btn--lg btn--block", busy && "is-busy")} type="submit" disabled={busy}>
-            <span className="btn-spin" aria-hidden="true" />
+            {busy ? <span className="btn-spin" aria-hidden="true" /> : <svg className="i" aria-hidden="true"><use href="#i-mail" /></svg>}
             <span>{busy ? "Sending link" : "Email me a sign-in link"}</span>
           </button>
           {providers.length > 0 && <div className={s.or}>OR</div>}
-          {providers.includes("google") && <button className="btn btn--block" type="button" onClick={() => social("google")}>Continue with Google</button>}
-          {providers.includes("github") && <button className="btn btn--block" type="button" onClick={() => social("github")}>Continue with GitHub</button>}
+          {providers.includes("google") && (
+            <button className={cx("btn btn--block", pending === "google" && "is-busy")} type="button" onClick={() => social("google")} disabled={pending !== null}>
+              {pending === "google" ? <span className="btn-spin" aria-hidden="true" /> : <GoogleIcon />}
+              Continue with Google
+            </button>
+          )}
+          {providers.includes("github") && (
+            <button className={cx("btn btn--block", pending === "github" && "is-busy")} type="button" onClick={() => social("github")} disabled={pending !== null}>
+              {pending === "github" ? <span className="btn-spin" aria-hidden="true" /> : <GitHubIcon />}
+              Continue with GitHub
+            </button>
+          )}
         </form>
       )}
 
