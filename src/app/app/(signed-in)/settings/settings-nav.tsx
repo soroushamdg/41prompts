@@ -23,7 +23,17 @@ export function SettingsNav() {
       const el = document.getElementById(id);
       if (el) spy.observe(el);
     });
-    return () => spy.disconnect();
+    // The last section can be too short to reach the trigger band: at the
+    // bottom of the page, it is the current one.
+    const atBottom = () => {
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) setOn(SECTIONS[SECTIONS.length - 1]![0]);
+    };
+    window.addEventListener("scroll", atBottom, { passive: true });
+    atBottom();
+    return () => {
+      spy.disconnect();
+      window.removeEventListener("scroll", atBottom);
+    };
   }, []);
   return (
     <nav className={s.nav} aria-label="Settings sections">

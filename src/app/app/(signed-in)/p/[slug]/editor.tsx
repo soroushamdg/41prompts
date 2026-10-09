@@ -6,6 +6,7 @@ import { Icon } from "@/components/icon";
 import { EASE_BRAND } from "@/components/motion-provider";
 import { SearchHotkey } from "@/components/search-hotkey";
 import { TabList, TabPanel } from "@/components/tabs";
+import { useReviewPrompt } from "@/components/review/review";
 import { useToast } from "@/components/toast";
 import { PerfButton } from "@/components/upgrade/upgrade";
 import { BLOK_LABEL, BLOK_TYPES, type Blok, type BlokType } from "@/lib/bloks";
@@ -44,6 +45,7 @@ export function Editor(props: EditorProps) {
   const { userId, prompt } = props;
   const router = useRouter();
   const toast = useToast();
+  const { askForReview } = useReviewPrompt();
 
   const [bloks, setBloks] = useState<Blok[]>(props.bloks);
   const bloksRef = useRef(bloks);
@@ -81,10 +83,11 @@ export function Editor(props: EditorProps) {
       if (r.created) {
         setVersions((vs) => [r.version, ...vs.filter((v) => v.number !== r.version.number)]);
         touchRail({ versions: r.version.number, updatedAt: r.version.createdAt, bloksCount: bloksRef.current.length });
+        if (r.version.number >= 10) askForReview("tenth_version");
       }
       if (r.conflict) toast("This prompt changed in another tab. Both versions are kept in History.");
     },
-    [toast, touchRail],
+    [toast, touchRail, askForReview],
   );
   const autosave = useAutosave({
     userId,

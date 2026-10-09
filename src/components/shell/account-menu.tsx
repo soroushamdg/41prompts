@@ -6,6 +6,7 @@ import { setAnalyticsSink } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { clearLocalDrafts } from "@/lib/drafts";
 import { siteUrl } from "@/lib/hosts";
+import { PH_REVIEW_URL } from "@/lib/product-hunt";
 import { initialFor } from "@/lib/user";
 
 export async function signOutEverywhere() {
@@ -26,6 +27,7 @@ export function AccountMenu({ name, email }: { name: string; email: string }) {
       <Link href="/settings#keys"><Icon name="key" />Model keys</Link>
       <Link href="/settings#billing"><Icon name="card" />Plan and billing</Link>
       <a href={siteUrl("/")}><Icon name="external" />41prompts.ai</a>
+      <a href={PH_REVIEW_URL} target="_blank" rel="noopener noreferrer"><Icon name="share" />Review on Product Hunt</a>
       <button type="button" onClick={signOutEverywhere}><Icon name="logout" />Sign out</button>
     </Menu>
   );

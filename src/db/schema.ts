@@ -159,6 +159,17 @@ export const performanceInterest = pgTable("performance_interest", {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
+/** The in-app Product Hunt review prompt: one row per user once asked. */
+export const reviewPrompts = pgTable("review_prompts", {
+  userId: text().primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  status: text({ enum: ["open", "snoozed", "never", "reviewed"] }).notNull().default("open"),
+  snoozedUntil: timestamp({ withTimezone: true }),
+  askCount: integer().notNull().default(0),
+  lastStage: text(),
+  lastAskedAt: timestamp({ withTimezone: true }),
+  updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Stripe webhook idempotency. */
 export const stripeEvents = pgTable("stripe_events", {
   id: text().primaryKey(),

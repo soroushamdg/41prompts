@@ -12,7 +12,11 @@ export type AnalyticsEvent =
   | "export_completed"
   | "account_deleted"
   | "performance_control_clicked"
-  | "performance_interest";
+  | "performance_interest"
+  | "review_prompt_shown"
+  | "review_prompt_clicked"
+  | "review_prompt_later"
+  | "review_prompt_never";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 type Sink = (event: AnalyticsEvent, props?: Props) => void;

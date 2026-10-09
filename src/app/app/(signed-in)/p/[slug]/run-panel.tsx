@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
+import { useReviewPrompt } from "@/components/review/review";
 import { PerfButton } from "@/components/upgrade/upgrade";
 import type { Provider } from "@/db/schema";
 import type { RunEvent } from "@/app/api/run/route";
@@ -40,6 +41,7 @@ export function RunPanel({ storageKey, keys, system, missing }: Props) {
   const [meter, setMeter] = useState(0);
   const [ran, setRan] = useState(false);
   const abort = useRef<AbortController | null>(null);
+  const { askForReview } = useReviewPrompt();
 
   // Restore the last model and test message for this prompt (this device only).
   useEffect(() => {
@@ -111,6 +113,7 @@ export function RunPanel({ storageKey, keys, system, missing }: Props) {
             setMeter(1);
             setStats({ tokens: e.inputTokens + e.outputTokens, exact: true, ms: e.ms, cost: e.cost });
             track("run_completed", { provider, model, ms: e.ms, outputTokens: e.outputTokens });
+            askForReview("run_completed");
           } else if (e.t === "error") {
             setError(e.message);
           }
