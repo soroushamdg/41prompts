@@ -1,0 +1,143 @@
+/* ==========================================================================
+   Maintenance page: reset, Blueprint tokens and the shared primitives it uses.
+   Loaded only by this root layout. Tokens are copied verbatim from
+   docs/assets/css/tokens.css, except the font families, which point at the
+   next/font variables set on <html>.
+   ========================================================================== */
+
+@property --reveal { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+
+:root {
+  color-scheme: dark;
+
+  --bp-ground: #0A1830;
+  --bp-sheet: #0C1C38;
+  --bp-raised: #132849;
+  --bp-well: #081428;
+
+  --chalk: #E9F1FF;
+  --chalk-2: #C9D7EE;
+  --chalk-3: #93A9CB;
+  --chalk-4: #7D93B6;
+  --accent: #9CC3FF;
+
+  --line-1: rgba(156, 195, 255, .14);
+  --line-2: rgba(156, 195, 255, .28);
+  --line-3: rgba(156, 195, 255, .45);
+  --grid-major: rgba(156, 195, 255, .07);
+  --grid-minor: rgba(156, 195, 255, .035);
+
+  --fail: #FF7A66;
+  --fail-text: #FF9A8A;
+
+  --f-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --f-body: var(--font-plex), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: var(--font-martian), ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --t-label: 10.5px;
+  --t-md: 16px;
+  --t-lg: 18px;
+
+  --r-sheet: 2px;
+
+  --ease-brand: cubic-bezier(.32, .72, 0, 1);
+  --ease-draw: cubic-bezier(.6, 0, .2, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 500ms;
+  --dur-4: 900ms;
+
+  --cur-arrow: url("/assets/cursors/cursor-arrow.svg") 5 3, default;
+  --cur-target: url("/assets/cursors/cursor-target.svg") 16 16, pointer;
+  --cur-cross: url("/assets/cursors/cursor-cross.svg") 16 16, crosshair;
+}
+
+/* ---- Base ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; background: var(--bp-ground); }
+body {
+  margin: 0;
+  background: var(--bp-ground);
+  color: var(--chalk);
+  font-family: var(--f-body);
+  font-size: var(--t-md);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  cursor: var(--cur-arrow);
+}
+img, svg { max-width: 100%; }
+a { color: var(--accent); cursor: var(--cur-target); }
+a:hover { color: var(--chalk); }
+h1 { text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: rgba(156, 195, 255, .35); color: var(--chalk); }
+
+/* ---- Label and title block (components.css) ------------------------------ */
+.label {
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: 400;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--chalk-3);
+}
+.titleblock {
+  display: inline-grid;
+  grid-auto-flow: column;
+  border: 1px solid var(--line-3);
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--chalk-3);
+  background: rgba(10, 24, 48, .86);
+}
+.titleblock > span { padding: 5px 9px; border-left: 1px solid var(--line-2); white-space: nowrap; }
+.titleblock > span:first-child { border-left: 0; color: var(--chalk); }
+
+/* ---- Logo (components.css; behaviour in logo.tsx) ------------------------- */
+.logo {
+  --logo-size: 22px;
+  display: inline-flex; align-items: center; gap: .36em;
+  min-height: 46px;
+  color: var(--chalk);
+  font-size: var(--logo-size);
+  line-height: 1;
+  text-decoration: none;
+}
+.logo:hover { color: var(--chalk); }
+.logo-glyphs { flex: 0 0 auto; width: 1.55em; height: 1.55em; display: block; }
+.logo-word {
+  font-family: var(--f-display); font-weight: 900; font-size: 1em;
+  letter-spacing: -.045em;
+  transition: letter-spacing var(--dur-3) var(--ease-brand);
+}
+.logo.is-on .logo-word { letter-spacing: -.015em; }
+.logo-plate {
+  fill: var(--chalk); stroke: var(--chalk); stroke-width: 0;
+  transition: fill var(--dur-3) var(--ease-brand), stroke-width var(--dur-3) var(--ease-brand);
+}
+.logo-glyph { fill: var(--bp-ground); transition: fill var(--dur-3) var(--ease-brand); }
+.logo.is-on .logo-plate { fill: var(--bp-ground); stroke-width: 5px; }
+.logo.is-on .logo-glyph { fill: var(--chalk); }
+
+/* ---- CAD crosshair (motion.css; behaviour in crosshair.tsx) -------------- */
+.xhair { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 300ms var(--ease-brand); z-index: 1; overflow: hidden; }
+.xhair.is-on { opacity: 1; }
+.xhair.is-dim { opacity: .25; }
+.xhair__h, .xhair__v { position: absolute; display: block; }
+.xhair__h { left: 0; right: 0; top: var(--y, 0); border-top: 1px dashed rgba(156, 195, 255, .32); }
+.xhair__v { top: 0; bottom: 0; left: var(--x, 0); border-left: 1px dashed rgba(156, 195, 255, .32); }
+.xhair__read {
+  position: absolute; left: var(--x, 0); top: var(--y, 0); transform: translate(14px, 12px);
+  font-family: var(--f-mono); font-size: 10px; letter-spacing: .06em; color: var(--accent);
+  background: rgba(10, 24, 48, .85); padding: 3px 6px; border: 1px solid var(--line-2); white-space: pre;
+}
+.xhair__read:empty { display: none; }
+
+/* Keyframes live next to the classes that use them (page.module.css,
+   sheet00.module.css): CSS modules scope animation names to their file. */
+
+@media (prefers-reduced-motion: reduce) {
+  .xhair { display: none; }
+}

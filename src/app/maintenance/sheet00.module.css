@@ -1,0 +1,81 @@
+/* Sheet 00: the mark's construction drawing. Ported from the .ms rules in
+   docs/assets/css/app.css. The base styles are the finished drawing; the
+   construction runs as keyframes only when motion is allowed, with the same
+   durations, delays and easings as the sign-in sheet's transitions. */
+
+.figure {
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  --w: min(580px, 100%);
+}
+.ms { display: block; width: var(--w); height: auto; overflow: visible; }
+
+.grid path { fill: none; stroke: rgba(156, 195, 255, .16); stroke-width: .12; }
+.grid .maj { stroke: rgba(156, 195, 255, .3); stroke-width: .16; }
+.dim path { fill: none; stroke: var(--accent); stroke-width: .18; }
+.dim text, .vx text { font-family: var(--f-mono); font-size: 2.3px; fill: var(--accent); letter-spacing: .05px; }
+.plate { fill: var(--chalk); stroke: var(--chalk); stroke-width: .35; }
+.glyph { fill: var(--bp-ground); stroke: rgba(10, 24, 48, 0); stroke-width: .3; stroke-linejoin: round; }
+.draw, .glyph { stroke-dasharray: 1; stroke-dashoffset: 0; }
+/* Each vertex's straight track, shown while the morph runs. */
+.tracks { opacity: 0; transition: opacity 700ms ease; }
+.figure[data-morph] .tracks { opacity: 1; transition-duration: 250ms; }
+.tracks line { stroke: var(--fail); stroke-width: .14; stroke-dasharray: .45 .55; stroke-linecap: round; opacity: .8; }
+.vx circle { fill: var(--bp-ground); stroke: var(--fail); stroke-width: .22; transform-box: fill-box; transform-origin: center; }
+.vx text { fill: var(--fail-text); }
+
+/* Caption: a 41 → AI scale whose marker follows the morph, and the live state. */
+.cap {
+  width: var(--w);
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line-2);
+}
+.scale {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--f-mono); font-size: var(--t-label); letter-spacing: .08em; color: var(--chalk-3);
+}
+.bar {
+  position: relative; display: block; width: clamp(88px, 22vw, 150px); height: 9px;
+  border-inline: 1px solid var(--line-3);
+  background: linear-gradient(var(--line-3), var(--line-3)) center / 100% 1px no-repeat;
+}
+.bar i {
+  position: absolute; top: 50%; left: calc(var(--m, 0) * 100%);
+  width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%;
+  background: var(--bp-ground); border: 1.5px solid var(--fail);
+}
+.state { color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .draw { animation: ms-draw var(--ms, 1400ms) var(--ease-draw) var(--dl, 0ms) both; }
+  /* Chromium scales a rounded rect's dash slightly short of its outline,
+     which left the last corner undrawn, so the plate's dash runs 10% long. */
+  .plate {
+    animation:
+      ms-draw-plate 1300ms var(--ease-draw) 500ms both,
+      ms-fill 900ms var(--ease-brand) 3900ms both;
+  }
+  .glyph {
+    animation:
+      ms-draw var(--ms) var(--ease-draw) var(--dl) both,
+      ms-fill 900ms var(--ease-brand) 3900ms both,
+      ms-line 600ms ease 3900ms both;
+  }
+  .dim text { animation: ms-fade 500ms ease 1500ms both; }
+  .vx circle { animation: ms-pop 400ms var(--ease-brand) calc(2600ms + var(--i) * 45ms) both; }
+  .vx text { animation: ms-fade 400ms ease calc(2800ms + var(--i) * 45ms) both; }
+  .cap { animation: ms-rise 900ms var(--ease-brand) 1200ms both; }
+}
+
+@keyframes ms-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes ms-draw-plate { from { stroke-dasharray: 1.1 1.1; stroke-dashoffset: 1.1; } to { stroke-dasharray: 1.1 1.1; stroke-dashoffset: 0; } }
+@keyframes ms-fill { from { fill: transparent; } }
+@keyframes ms-line { from { stroke: var(--accent); } }
+@keyframes ms-fade { from { opacity: 0; } }
+@keyframes ms-pop { from { transform: scale(0); } }
+@keyframes ms-rise { from { opacity: 0; transform: translateY(14px); } }
