@@ -1,0 +1,332 @@
+/* ==========================================================================
+   41prompts · Blueprint components
+   Shared by the landing page (41prompts.ai) and the app (app.41prompts.ai).
+   Requires tokens.css first.
+   ========================================================================== */
+
+/* ---- Base ---------------------------------------------------------------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bp-ground);
+  color: var(--chalk);
+  font-family: var(--f-body);
+  font-size: var(--t-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  cursor: var(--cur-arrow);
+}
+img, svg { max-width: 100%; }
+[hidden] { display: none !important; }
+a { color: var(--accent); }
+a:hover { color: var(--chalk); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { text-wrap: balance; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+::selection { background: rgba(156, 195, 255, .35); color: var(--chalk); }
+
+/* Cursors: arrow by default, target on anything clickable, I-beam on text entry,
+   move on drag handles, crosshair on the drawing sheet. */
+a, button, summary, select, label[for], [role="tab"], [role="radio"] { cursor: var(--cur-target); }
+input, textarea, [contenteditable="true"] { cursor: var(--cur-ibeam); }
+input[type="checkbox"], input[type="radio"] { cursor: var(--cur-target); }
+.grip { cursor: var(--cur-move); }
+.sheet-area { cursor: var(--cur-cross); }
+.sheet-area .blok { cursor: var(--cur-arrow); }
+.sheet-area .blok__text { cursor: var(--cur-ibeam); }
+:disabled, [aria-disabled="true"] { cursor: var(--cur-arrow); }
+
+/* ---- Utilities ----------------------------------------------------------- */
+.bp-grid {
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+}
+.label {
+  font-family: var(--f-mono);
+  font-size: var(--t-label);
+  font-weight: 400;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--chalk-3);
+}
+.mono { font-family: var(--f-mono); }
+.muted { color: var(--chalk-3); }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+.kbd {
+  font-family: var(--f-mono); font-size: 10px; color: var(--chalk-3);
+  border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+}
+.i { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: middle; }
+.i--sm { width: 13px; height: 13px; }
+.i--lg { width: 20px; height: 20px; }
+
+/* ---- Frame: a drawing panel with four registration corners --------------
+   The corners are drawn with background gradients so any element can be a frame.
+   Set --corner for the mark color and --frame-bg for the fill. */
+.frame {
+  --corner: var(--accent);
+  --cl: 10px;
+  --cw: 2px;
+  position: relative;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-sheet);
+  background:
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cw) var(--cl) no-repeat,
+    var(--frame-bg, var(--bp-sheet));
+  background-origin: border-box;
+  background-clip: border-box;
+}
+.frame--quiet { --corner: var(--line-3); }
+.frame--chalk { --corner: var(--chalk); border-color: var(--line-3); }
+
+/* Title block: the box in the corner of every technical drawing.
+   Used for sheet metadata: name, route, revision. */
+.titleblock {
+  display: inline-grid;
+  grid-auto-flow: column;
+  border: 1px solid var(--line-3);
+  font-family: var(--f-mono);
+  font-size: 9.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--chalk-3);
+}
+.titleblock > span { padding: 5px 9px; border-left: 1px solid var(--line-2); white-space: nowrap; }
+.titleblock > span:first-child { border-left: 0; color: var(--chalk); }
+
+/* ---- Logo (ported from the live 41prompts.ai; behaviour in assets/logo/logo.js) */
+.logo {
+  --logo-size: 22px;
+  display: inline-flex; align-items: center; gap: .36em;
+  min-height: 46px;
+  color: var(--chalk);
+  font-size: var(--logo-size);
+  line-height: 1;
+  text-decoration: none;
+}
+.logo:hover { color: var(--chalk); }
+.logo-glyphs { flex: 0 0 auto; width: 1.55em; height: 1.55em; display: block; }
+.logo-word {
+  font-family: var(--f-display); font-weight: 900; font-size: 1em;
+  letter-spacing: -.045em;
+  transition: letter-spacing var(--dur-3) var(--ease-brand);
+}
+.logo.is-on .logo-word { letter-spacing: -.015em; }
+.logo-plate {
+  fill: var(--chalk); stroke: var(--chalk); stroke-width: 0;
+  transition: fill var(--dur-3) var(--ease-brand), stroke-width var(--dur-3) var(--ease-brand);
+}
+.logo-glyph { fill: var(--bp-ground); transition: fill var(--dur-3) var(--ease-brand); }
+.logo.is-on .logo-plate { fill: var(--bp-ground); stroke-width: 5px; }
+.logo.is-on .logo-glyph { fill: var(--chalk); }
+
+/* ---- Buttons ------------------------------------------------------------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 16px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-3);
+  background: transparent;
+  color: var(--chalk-2);
+  font-family: var(--f-body); font-size: 14px; font-weight: 500; line-height: 1;
+  text-decoration: none; white-space: nowrap;
+  transition: background-color var(--dur-2) var(--ease-brand), border-color var(--dur-2) var(--ease-brand), color var(--dur-2) var(--ease-brand), transform var(--dur-1) var(--ease-brand);
+}
+.btn:hover { border-color: var(--chalk); color: var(--chalk); }
+.btn:active { transform: translateY(1px); }
+.btn--primary { background: var(--chalk); border-color: var(--chalk); color: var(--bp-ground); font-weight: 600; }
+.btn--primary:hover { background: #FFFFFF; border-color: #FFFFFF; color: var(--bp-ground); }
+.btn--danger { background: var(--fail); border-color: var(--fail); color: var(--bp-ground); font-weight: 600; }
+.btn--danger:hover { background: #FF8F7E; border-color: #FF8F7E; color: var(--bp-ground); }
+.btn--dashed { border-style: dashed; color: var(--accent); }
+.btn--sm { min-height: 36px; padding: 0 12px; font-size: 13px; }
+.btn--lg { min-height: 52px; padding: 0 22px; font-size: 16px; }
+.btn--block { width: 100%; }
+.btn--icon { width: 40px; min-height: 40px; padding: 0; }
+.btn--icon.btn--sm { width: 34px; min-height: 34px; }
+.btn--bare { border-color: transparent; color: var(--chalk-3); }
+.btn--bare:hover { border-color: transparent; background: rgba(156, 195, 255, .1); color: var(--chalk); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: .45; }
+.btn:disabled:hover { border-color: var(--line-3); color: var(--chalk-2); }
+.btn--primary:disabled { background: #3A4C6B; border-color: #3A4C6B; color: var(--chalk-3); opacity: 1; }
+
+/* A Performance action seen on the Free plan: dashed, with the stamp. */
+.btn--locked { border-style: dashed; color: var(--chalk-3); }
+.btn--locked .stamp { margin-left: 2px; }
+
+/* ---- Performance stamp ---------------------------------------------------- */
+.stamp {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 7px 2px;
+  border-radius: 3px;
+  background: var(--stamp-bg);
+  color: var(--stamp-fg);
+  font-family: var(--f-mono); font-size: 9.5px; font-weight: 500; line-height: 1.3;
+  letter-spacing: .08em; text-transform: uppercase; white-space: nowrap;
+  text-decoration: none;
+}
+.stamp::before { content: "\25C6"; font-size: 8px; line-height: 1; }
+.stamp--outline { background: transparent; color: var(--chalk); box-shadow: inset 0 0 0 1px var(--chalk); }
+
+/* ---- Chips ---------------------------------------------------------------- */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 26px; padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-2);
+  font-family: var(--f-mono); font-size: 11px; line-height: 1;
+  color: var(--chalk-3); white-space: nowrap; text-decoration: none;
+}
+.chip--ok { color: var(--pass); border-color: rgba(111, 227, 165, .45); }
+.chip--fail { color: var(--fail-text); border-color: rgba(255, 122, 102, .5); }
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+button.chip { background: transparent; min-height: 36px; padding: 0 13px; font-family: var(--f-body); font-size: 12.5px; color: var(--chalk-2); border-color: var(--line-3); }
+button.chip[aria-pressed="true"] { background: var(--chalk); border-color: var(--chalk); color: var(--bp-ground); }
+
+/* ---- Blok ---------------------------------------------------------------- */
+.blok {
+  --blok: var(--blok-context);
+  --corner: var(--blok);
+  --frame-bg: rgba(12, 28, 56, .82);
+  display: flex; gap: 10px;
+  padding: 14px 16px 16px 8px;
+  transition: border-color var(--dur-2) var(--ease-brand), background-color var(--dur-2) var(--ease-brand);
+}
+.blok[data-type="context"] { --blok: var(--blok-context); }
+.blok[data-type="constraint"] { --blok: var(--blok-constraint); }
+.blok[data-type="example"] { --blok: var(--blok-example); }
+.blok[data-type="expects"] { --blok: var(--blok-expects); }
+.blok.is-hot { border-color: var(--blok); --frame-bg: rgba(20, 42, 78, .92); }
+.blok .grip {
+  flex: none; width: 30px; height: 40px; display: grid; place-items: center;
+  background: transparent; border: 0; border-radius: 6px; color: var(--chalk-4);
+}
+.blok .grip:hover { color: var(--chalk); background: rgba(156, 195, 255, .08); }
+.blok__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.blok__head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-height: 34px; }
+.blok__type { font-family: var(--f-mono); font-size: var(--t-label); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--blok); }
+.blok__id { font-family: var(--f-mono); font-size: var(--t-label); color: var(--chalk-3); }
+.blok__tools { margin-left: auto; display: flex; gap: 2px; }
+.blok__text { margin: 0; font-size: 15px; line-height: 1.6; color: var(--chalk); white-space: pre-line; outline: none; border-radius: 3px; }
+.blok__text:focus { box-shadow: 0 0 0 1px var(--line-3); }
+.blok__note {
+  font-family: var(--f-mono); font-size: 10px; color: var(--chalk-3);
+  border: 1px dashed var(--line-3); border-radius: 4px; padding: 2px 7px;
+}
+.var {
+  font-family: var(--f-mono); font-size: 12.5px; color: var(--variable);
+  background: rgba(255, 210, 122, .12); border: 1px dashed rgba(255, 210, 122, .55);
+  border-radius: 4px; padding: 1px 6px; white-space: nowrap;
+}
+
+/* ---- Forms --------------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > .label { color: var(--chalk-3); }
+.input {
+  min-height: 44px; padding: 0 12px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--line-2);
+  background: var(--bp-well);
+  color: var(--chalk);
+  font-size: 14px;
+  transition: border-color var(--dur-2) var(--ease-brand);
+}
+.input:hover { border-color: var(--line-3); }
+.input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(156, 195, 255, .18); }
+.input::placeholder { color: var(--chalk-4); }
+.input--mono { font-family: var(--f-mono); font-size: 13px; }
+textarea.input { padding: 14px; line-height: 1.7; resize: vertical; font-family: var(--f-mono); font-size: 13px; border-radius: 3px; }
+select.input { padding-right: 32px; }
+.searchbox {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 12px;
+  border: 1px solid var(--line-2); border-radius: 8px;
+  background: rgba(8, 20, 40, .9); color: var(--chalk-3);
+}
+.searchbox:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(156, 195, 255, .18); }
+.searchbox input { flex: 1; min-width: 0; height: 40px; background: transparent; border: 0; color: var(--chalk); outline: none; }
+.searchbox input::placeholder { color: var(--chalk-4); }
+
+/* ---- Segmented control and tabs ----------------------------------------- */
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--r-control); overflow: hidden; }
+.seg button { min-height: 38px; padding: 0 14px; border: 0; background: transparent; color: var(--chalk-2); font-size: 13px; transition: background-color var(--dur-2) var(--ease-brand), color var(--dur-2) var(--ease-brand); }
+.seg button[aria-pressed="true"], .seg button[aria-selected="true"] { background: var(--chalk); color: var(--bp-ground); }
+.tabs { display: flex; border-bottom: 1px solid var(--line-2); }
+.tab {
+  flex: 1; min-height: 48px; background: none; border: 0; border-bottom: 2px solid transparent;
+  color: var(--chalk-3); font-family: var(--f-mono); font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase;
+  transition: color var(--dur-2) var(--ease-brand), border-color var(--dur-2) var(--ease-brand);
+}
+.tab:hover { color: var(--chalk-2); }
+.tab[aria-selected="true"] { border-bottom-color: var(--accent); color: var(--chalk); }
+
+/* ---- Dialog ---------------------------------------------------------------- */
+dialog.dlg {
+  border: 0; padding: 0; background: transparent; color: var(--chalk);
+  width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px);
+}
+dialog.dlg::backdrop { background: rgba(4, 10, 22, .74); }
+dialog.dlg[open] { animation: dlg-in var(--dur-3) var(--ease-brand); }
+dialog.dlg[open]::backdrop { animation: fade-in var(--dur-3) var(--ease-brand); }
+.dlg__panel { --frame-bg: var(--bp-sheet); --corner: var(--chalk); border-color: var(--line-3); padding: 28px; display: flex; flex-direction: column; gap: 16px; }
+.dlg__close { position: absolute; top: 10px; right: 10px; }
+@keyframes dlg-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---- Toast ----------------------------------------------------------------- */
+.toast {
+  position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 60;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 8px 8px 16px; min-height: 52px;
+  border: 1px solid var(--line-3); border-radius: 8px;
+  background: var(--bp-raised); color: var(--chalk);
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .7);
+  transition: transform var(--dur-3) var(--ease-brand), opacity var(--dur-2) var(--ease-brand);
+}
+.toast.is-on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+.toast:not(:has(button)) { padding-right: 16px; }
+
+/* ---- Tables ---------------------------------------------------------------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line-2); background: rgba(12, 28, 56, .9); }
+.table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.table th { text-align: left; font-family: var(--f-mono); font-size: var(--t-label); font-weight: 400; letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-3); padding: 12px 16px; border-bottom: 1px solid var(--line-2); }
+.table td { padding: 10px 16px; border-bottom: 1px solid var(--line-1); vertical-align: middle; }
+.table tr:last-child td { border-bottom: 0; }
+.table tbody tr { transition: background-color var(--dur-1) linear; }
+.table tbody tr:hover { background: rgba(156, 195, 255, .05); }
+.num { font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--chalk-2); }
+
+/* ---- Mockup tag (mockup only: shows the route of the current page) ------- */
+.mock-tag {
+  position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 10px;
+  border: 1px dashed var(--line-3); border-radius: 6px;
+  background: rgba(8, 20, 40, .94);
+  font-family: var(--f-mono); font-size: 10.5px; color: var(--chalk-3);
+}
+.mock-tag b { color: var(--chalk); font-weight: 500; }
+.mock-tag a { color: var(--accent); text-decoration: none; padding: 4px 6px; border-radius: 4px; }
+.mock-tag a:hover { background: rgba(156, 195, 255, .12); }
+@media (max-width: 720px) { .mock-tag { position: static; margin: 16px; } }
+
+/* ---- Reduced motion ------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}

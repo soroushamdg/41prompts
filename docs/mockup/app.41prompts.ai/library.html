@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en" data-plan="free">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Library · 41prompts</title>
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/components.css">
+<link rel="stylesheet" href="../../assets/css/motion.css">
+<link rel="stylesheet" href="../../assets/css/app.css">
+</head>
+<body class="app app-bg">
+<script src="../../assets/js/icons.js"></script>
+
+<!-- ======================================================================
+     ROUTE  app.41prompts.ai/            (home after sign in)
+     Library: every prompt the user owns. Free: search by name, unlimited.
+     ====================================================================== -->
+
+<header class="topbar">
+  <a class="logo" data-logo href="library.html" aria-label="41Prompts, library">
+    <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+    <span class="logo-word">prompts</span>
+  </a>
+  <nav class="appnav" aria-label="App">
+    <a href="library.html" aria-current="page"><svg class="i" aria-hidden="true"><use href="#i-folder"></use></svg>Library</a>
+    <a href="settings.html"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg>Settings</a>
+  </nav>
+  <div class="topbar__end">
+    <a class="planpill" href="settings.html#billing">Free plan <span class="stamp">Upgrade</span></a>
+    <details class="menu">
+      <summary class="avatar" aria-label="Account menu">S</summary>
+      <div class="menu__panel frame">
+        <div class="menu__who"><b>Sora</b><span>[YOUR EMAIL]</span></div>
+        <a href="settings.html#keys"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>Model keys</a>
+        <a href="settings.html#billing"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg>Plan and billing</a>
+        <a href="../41prompts.ai/index.html"><svg class="i" aria-hidden="true"><use href="#i-external"></use></svg>41prompts.ai</a>
+        <a href="sign-in.html"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg>Sign out</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main class="page" id="main">
+  <div class="page-head">
+    <div>
+      <span class="sheetno">Sheet A02 · Library · <span id="libCount">8</span> prompts</span>
+      <h1>Library</h1>
+      <p><svg class="i" aria-hidden="true"><use href="#i-lock"></use></svg>Private by default. Nothing here is public unless you share it.</p>
+    </div>
+    <div class="page-head__actions">
+      <a class="btn" href="settings.html#data"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>Export all</a>
+      <a class="btn btn--primary btn--go" href="new.html"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>New prompt</a>
+    </div>
+  </div>
+
+  <div class="notice" data-reveal="fade">
+    <svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>
+    <span>2 of 3 model keys connected. Add a Google key to run prompts on Gemini.</span>
+    <a class="btn btn--sm" href="settings.html#keys">Manage keys</a>
+  </div>
+
+  <div class="lib-tools">
+    <label class="searchbox">
+      <svg class="i" aria-hidden="true"><use href="#i-search"></use></svg>
+      <input type="search" id="libQ" data-search placeholder="Search by name" aria-label="Search prompts by name" autocomplete="off">
+      <span class="kbd">⌘K</span>
+    </label>
+    <button class="btn btn--sm btn--locked" type="button" data-perf="Search inside prompts"><svg class="i" aria-hidden="true"><use href="#i-search"></use></svg>Search inside prompts <span class="stamp">Performance</span></button>
+    <button class="btn btn--sm btn--locked" type="button" data-perf="Tags and filters"><svg class="i" aria-hidden="true"><use href="#i-tag"></use></svg>Tags <span class="stamp">Performance</span></button>
+    <div class="lib-tools__end">
+      <label for="libSort" class="label">Sort</label>
+      <select id="libSort" class="input">
+        <option value="edited">Last edited</option>
+        <option value="name">Name</option>
+        <option value="versions">Most versions</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table" aria-label="Prompts">
+      <thead><tr><th scope="col">Name</th><th scope="col">Bloks</th><th scope="col">Versions</th><th scope="col">Last edited</th><th scope="col">Access</th><th scope="col"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody id="libBody">
+        <tr class="lib-row" data-name="support-reply" data-order="1" data-versions="7"><td><div class="lib-name"><a href="editor.html">support-reply</a><span>Answers order questions for Northwind Outfitters</span></div></td><td class="num">4</td><td class="num">7</td><td>2 min ago</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate support-reply"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename support-reply"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive support-reply"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete support-reply"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="onboarding-email" data-order="2" data-versions="3"><td><div class="lib-name"><a href="editor.html">onboarding-email</a><span>Welcome email for new trial users</span></div></td><td class="num">6</td><td class="num">3</td><td>Yesterday</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate onboarding-email"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename onboarding-email"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive onboarding-email"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete onboarding-email"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="release-notes" data-order="3" data-versions="12"><td><div class="lib-name"><a href="editor.html">release-notes</a><span>Turns merged pull requests into release notes</span></div></td><td class="num">5</td><td class="num">12</td><td>Oct 6</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate release-notes"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename release-notes"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive release-notes"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete release-notes"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="sql-explainer" data-order="4" data-versions="2"><td><div class="lib-name"><a href="editor.html">sql-explainer</a><span>Explains a SQL query in plain English</span></div></td><td class="num">3</td><td class="num">2</td><td>Oct 4</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate sql-explainer"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename sql-explainer"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive sql-explainer"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete sql-explainer"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="refund-triage" data-order="5" data-versions="9"><td><div class="lib-name"><a href="editor.html">refund-triage</a><span>Sorts refund requests into five categories</span></div></td><td class="num">7</td><td class="num">9</td><td>Oct 2</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate refund-triage"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename refund-triage"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive refund-triage"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete refund-triage"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="image-brief-noir" data-order="6" data-versions="5"><td><div class="lib-name"><a href="editor.html">image-brief-noir</a><span>Image prompt for black-and-white street scenes</span></div></td><td class="num">4</td><td class="num">5</td><td>Sep 28</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate image-brief-noir"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename image-brief-noir"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive image-brief-noir"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete image-brief-noir"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="meeting-summary" data-order="7" data-versions="4"><td><div class="lib-name"><a href="editor.html">meeting-summary</a><span>Summarises a meeting transcript into decisions</span></div></td><td class="num">4</td><td class="num">4</td><td>Sep 21</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate meeting-summary"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename meeting-summary"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive meeting-summary"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete meeting-summary"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+        <tr class="lib-row" data-name="cold-intro-email" data-order="8" data-versions="6"><td><div class="lib-name"><a href="editor.html">cold-intro-email</a><span>First message to a potential client</span></div></td><td class="num">5</td><td class="num">6</td><td>Sep 14</td><td><span class="lib-access"><svg class="i i--sm" aria-hidden="true"><use href="#i-lock"></use></svg>Private</span></td><td><div class="row-actions"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate cold-intro-email"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="rename" aria-label="Rename cold-intro-email"><svg class="i" aria-hidden="true"><use href="#i-edit"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="archive" aria-label="Archive cold-intro-email"><svg class="i" aria-hidden="true"><use href="#i-archive"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="delete" aria-label="Delete cold-intro-email"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></div></td></tr>
+      </tbody>
+    </table>
+    <div class="lib-empty" id="libEmpty" role="status">No prompt names match “<span id="libEmptyQ"></span>”. <button class="btn btn--sm" type="button" id="libClear">Clear search</button></div>
+  </div>
+
+  <div class="lib-foot"><span id="libSummary">8 prompts · 48 versions</span><span>Autosaved · every save is a version</span></div>
+</main>
+
+<div class="mock-tag" role="note"><span>Mockup · <b>app.41prompts.ai/</b></span><a href="../index.html">All sheets</a></div>
+
+<script src="../../assets/logo/logo.js"></script>
+<script src="../../assets/js/motion.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/pages/library.js"></script>
+</body>
+</html>

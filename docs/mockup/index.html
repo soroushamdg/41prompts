@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>41prompts · Drawing set</title>
+<link rel="stylesheet" href="../assets/css/tokens.css">
+<link rel="stylesheet" href="../assets/css/components.css">
+<link rel="stylesheet" href="../assets/css/motion.css">
+<style>
+  .set-page { max-width: 1240px; margin: 0 auto; padding: 40px clamp(16px, 4vw, 40px) 80px; display: flex; flex-direction: column; gap: 36px; }
+  .set-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; }
+  .set-head h1 { margin: 10px 0 0; font-family: var(--f-display); font-weight: 800; font-size: clamp(40px, 5vw, 64px); letter-spacing: -.04em; line-height: .95; }
+  .set-head p { margin: 12px 0 0; color: var(--chalk-2); max-width: 60ch; font-size: 16px; }
+  .domain { display: flex; flex-direction: column; gap: 14px; }
+  .domain__h { display: flex; align-items: center; gap: 12px; }
+  .domain__h h2 { margin: 0; font-family: var(--f-mono); font-weight: 500; font-size: 14px; color: var(--accent); letter-spacing: .02em; }
+  .domain__h span { flex: 1; border-top: 1px dashed var(--line-3); }
+  .sheets { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  .sheet { --frame-bg: rgba(12, 28, 56, .92); display: flex; flex-direction: column; text-decoration: none; color: var(--chalk); transition: --cl 420ms var(--ease-brand), border-color 200ms, transform 400ms var(--ease-brand); }
+  .sheet:hover { --cl: 22px; border-color: var(--line-3); color: var(--chalk); transform: translateY(-3px); }
+  .sheet__img { aspect-ratio: 16 / 10; overflow: hidden; border-bottom: 1px solid var(--line-2); background: var(--bp-well); }
+  .sheet__img img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; transition: transform 900ms var(--ease-brand); }
+  .sheet:hover .sheet__img img { transform: scale(1.03); }
+  .sheet__body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .sheet__top { display: flex; justify-content: space-between; gap: 10px; }
+  .sheet__body h3 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 20px; letter-spacing: -.01em; }
+  .sheet__body p { margin: 0; color: var(--chalk-3); font-size: 13.5px; }
+  .route { font-family: var(--f-mono); font-size: 11px; color: var(--accent); }
+  .refs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .ref { --frame-bg: rgba(12, 28, 56, .7); padding: 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--chalk); }
+  .ref:hover { color: var(--chalk); border-color: var(--line-3); }
+  .ref b { font-family: var(--f-mono); font-weight: 500; font-size: 13px; }
+  .ref span { color: var(--chalk-3); font-size: 13px; }
+</style>
+</head>
+<body class="bp-grid">
+<script src="../assets/js/icons.js"></script>
+<main class="set-page">
+  <header class="set-head">
+    <div>
+      <a class="logo" data-logo href="41prompts.ai/index.html" aria-label="41Prompts landing page">
+        <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+        <span class="logo-word">prompts</span>
+      </a>
+      <h1>Drawing set</h1>
+      <p>Every screen of the Blueprint mockup, grouped by domain. The marketing site lives on 41prompts.ai; everything after sign in lives on app.41prompts.ai.</p>
+    </div>
+    <span class="titleblock"><span>41prompts</span><span>Set A</span><span>7 sheets</span><span>Rev 1 · Oct 2026</span></span>
+  </header>
+
+  <section class="domain" aria-labelledby="d1">
+    <div class="domain__h"><h2 id="d1">41prompts.ai</h2><span></span></div>
+    <div class="sheets">
+      <a class="sheet frame" href="41prompts.ai/index.html" data-reveal>
+        <div class="sheet__img"><img src="../assets/screenshots/s00-landing.png" alt="Landing page" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet S00</span><span class="route">41prompts.ai/</span></div><h3>Landing page</h3><p>Hero drawing, how it works, the Free bill of materials, Performance, pricing, FAQ.</p></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="domain" aria-labelledby="d2">
+    <div class="domain__h"><h2 id="d2">app.41prompts.ai</h2><span></span></div>
+    <div class="sheets">
+      <a class="sheet frame" href="app.41prompts.ai/sign-in.html" data-reveal>
+        <div class="sheet__img"><img src="../assets/screenshots/a01-sign-in.png" alt="Sign in" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A01</span><span class="route">/sign-in</span></div><h3>Sign in</h3><p>Email link, Google, GitHub. The logo’s construction drawing on the right.</p></div>
+      </a>
+      <a class="sheet frame" href="app.41prompts.ai/library.html" data-reveal data-delay="60">
+        <div class="sheet__img"><img src="../assets/screenshots/a02-library.png" alt="Library" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A02</span><span class="route">/</span></div><h3>Library</h3><p>Search by name, sort, duplicate, rename, archive, delete with undo.</p></div>
+      </a>
+      <a class="sheet frame" href="app.41prompts.ai/new.html" data-reveal data-delay="120">
+        <div class="sheet__img"><img src="../assets/screenshots/a03-new.png" alt="New prompt" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A03</span><span class="route">/new</span></div><h3>New prompt</h3><p>Paste with live variable detection, or start blank from a blok type.</p></div>
+      </a>
+      <a class="sheet frame" href="app.41prompts.ai/editor.html" data-reveal>
+        <div class="sheet__img"><img src="../assets/screenshots/a04-editor.png" alt="Editor" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A04</span><span class="route">/p/support-reply</span></div><h3>Editor</h3><p>Bloks, live compiled prompt, copy, run once, history. Performance tools locked.</p></div>
+      </a>
+      <a class="sheet frame" href="app.41prompts.ai/settings.html" data-reveal data-delay="60">
+        <div class="sheet__img"><img src="../assets/screenshots/a05-settings.png" alt="Settings" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A05</span><span class="route">/settings</span></div><h3>Settings</h3><p>Model keys, plan and billing through Stripe, export, delete account.</p></div>
+      </a>
+      <a class="sheet frame" href="app.41prompts.ai/editor.html" data-reveal data-delay="120">
+        <div class="sheet__img"><img src="../assets/screenshots/a06-upgrade.png" alt="Upgrade sheet" loading="lazy"></div>
+        <div class="sheet__body"><div class="sheet__top"><span class="label">Sheet A06</span><span class="route">any ◆ control</span></div><h3>Upgrade sheet</h3><p>What every Performance control opens on the Free plan.</p></div>
+      </a>
+    </div>
+  </section>
+
+  <section class="domain" aria-labelledby="d3">
+    <div class="domain__h"><h2 id="d3">Reference</h2><span></span></div>
+    <div class="refs">
+      <a class="ref frame frame--quiet" href="../README.md"><b>README.md</b><span>What is in this folder and how to build from it.</span></a>
+      <a class="ref frame frame--quiet" href="../FEATURES.md"><b>FEATURES.md</b><span>Final feature list by Kano category and plan.</span></a>
+      <a class="ref frame frame--quiet" href="../DESIGN.md"><b>DESIGN.md</b><span>Tokens, type, components, motion, cursors, routes.</span></a>
+      <a class="ref frame frame--quiet" href="../assets/tokens.json"><b>assets/tokens.json</b><span>Design tokens as data.</span></a>
+    </div>
+  </section>
+</main>
+<script src="../assets/logo/logo.js"></script>
+<script src="../assets/js/motion.js"></script>
+</body>
+</html>

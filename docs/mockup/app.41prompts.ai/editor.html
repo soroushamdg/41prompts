@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en" data-plan="free">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>support-reply · 41prompts</title>
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/components.css">
+<link rel="stylesheet" href="../../assets/css/motion.css">
+<link rel="stylesheet" href="../../assets/css/app.css">
+</head>
+<body class="app">
+<script src="../../assets/js/icons.js"></script>
+
+<!-- ======================================================================
+     ROUTE  app.41prompts.ai/p/support-reply
+     The editor. Left: library rail. Centre: the sheet of bloks.
+     Right: Compiled (copy), Run (one model, Free), History (versions).
+     Performance tools sit in the dashed toolbar and open the upgrade sheet.
+     ====================================================================== -->
+
+<header class="topbar">
+  <a class="logo" data-logo href="library.html" aria-label="41Prompts, library">
+    <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+    <span class="logo-word">prompts</span>
+  </a>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="library.html">Library</a><span aria-hidden="true">/</span><b id="crumbName">support-reply</b></nav>
+  <div class="topbar__end">
+    <a class="planpill" href="settings.html#billing">Free plan <span class="stamp">Upgrade</span></a>
+    <details class="menu">
+      <summary class="avatar" aria-label="Account menu">S</summary>
+      <div class="menu__panel frame">
+        <div class="menu__who"><b>Sora</b><span>[YOUR EMAIL]</span></div>
+        <a href="settings.html#keys"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>Model keys</a>
+        <a href="settings.html#billing"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg>Plan and billing</a>
+        <a href="../41prompts.ai/index.html"><svg class="i" aria-hidden="true"><use href="#i-external"></use></svg>41prompts.ai</a>
+        <a href="sign-in.html"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg>Sign out</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<div class="ed">
+  <!-- ---- Library rail ------------------------------------------------------- -->
+  <aside class="ed-rail" aria-label="Library">
+    <a class="btn btn--primary btn--block" href="new.html"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>New prompt</a>
+    <label class="searchbox">
+      <svg class="i" aria-hidden="true"><use href="#i-search"></use></svg>
+      <input type="search" id="railQ" data-search placeholder="Search by name" aria-label="Search prompts by name" autocomplete="off">
+      <span class="kbd">⌘K</span>
+    </label>
+    <div class="side-row"><span class="label">Private library</span><span class="label" id="railCount">8</span></div>
+    <nav class="ed-rail__list" aria-label="Prompts" id="railList">
+      <a class="ed-rail__item" href="editor.html" aria-current="page" data-name="support-reply"><b>support-reply <span>v7</span></b><span>2 min ago</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="onboarding-email"><b>onboarding-email <span>v3</span></b><span>Yesterday</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="release-notes"><b>release-notes <span>v12</span></b><span>Oct 6</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="sql-explainer"><b>sql-explainer <span>v2</span></b><span>Oct 4</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="refund-triage"><b>refund-triage <span>v9</span></b><span>Oct 2</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="image-brief-noir"><b>image-brief-noir <span>v5</span></b><span>Sep 28</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="meeting-summary"><b>meeting-summary <span>v4</span></b><span>Sep 21</span></a>
+      <a class="ed-rail__item" href="editor.html" data-name="cold-intro-email"><b>cold-intro-email <span>v6</span></b><span>Sep 14</span></a>
+    </nav>
+    <a class="ed-rail__keys" href="settings.html#keys"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>2 of 3 model keys connected</a>
+  </aside>
+
+  <!-- ---- The sheet ------------------------------------------------------------ -->
+  <main class="ed-main sheet-area app-bg" id="main">
+    <div class="ed-title">
+      <div>
+        <span class="sheetno" id="sheetNo">Sheet 07 · Rev 7 · Private</span>
+        <h1><span contenteditable="true" spellcheck="false" id="promptName" role="textbox" aria-label="Prompt name">support-reply</span></h1>
+      </div>
+      <div class="ed-meta">
+        <span id="edCounts">4 bloks · 1 variable</span>
+        <span class="savestate" id="saveState" role="status"><span class="spin" aria-hidden="true"></span><svg class="i i--sm" aria-hidden="true"><use href="#i-check"></use></svg><span id="saveLabel">Saved · v7</span></span>
+      </div>
+    </div>
+
+    <div class="perfbar" role="toolbar" aria-label="Performance tools">
+      <span class="perfbar__lead"><span class="stamp">Performance</span></span>
+      <button class="btn btn--locked" type="button" data-perf="The linter"><svg class="i" aria-hidden="true"><use href="#i-scan"></use></svg>Lint</button>
+      <button class="btn btn--locked" type="button" data-perf="Tests"><svg class="i" aria-hidden="true"><use href="#i-flask"></use></svg>Run tests</button>
+      <button class="btn btn--locked" type="button" data-perf="Side-by-side runs"><svg class="i" aria-hidden="true"><use href="#i-columns"></use></svg>Compare</button>
+      <button class="btn btn--locked" type="button" data-perf="Semantic diff"><svg class="i" aria-hidden="true"><use href="#i-diff"></use></svg>Diff</button>
+      <button class="btn btn--locked" type="button" data-perf="Share pages"><svg class="i" aria-hidden="true"><use href="#i-share"></use></svg>Share</button>
+      <button class="btn btn--locked" type="button" data-perf="Typed export"><svg class="i" aria-hidden="true"><use href="#i-code"></use></svg>Export .ts</button>
+    </div>
+
+    <div class="blok-list" id="bloks" aria-label="Bloks">
+      <section class="blok frame" data-type="context" data-id="B1" aria-label="Context blok B1">
+        <button class="grip" type="button" aria-label="Move blok B1. Drag, or press the up and down arrow keys."><svg class="i" aria-hidden="true"><use href="#i-grip"></use></svg></button>
+        <div class="blok__main">
+          <div class="blok__head"><span class="blok__type">Context</span><span class="blok__id">B1</span>
+            <span class="blok__tools"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate blok B1"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="del" aria-label="Delete blok B1"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></span></div>
+          <p class="blok__text" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Text of blok B1">You are a support agent for Northwind Outfitters, an outdoor gear shop. Customers write in about orders, returns and sizing.</p>
+        </div>
+      </section>
+      <section class="blok frame" data-type="constraint" data-id="B2" aria-label="Constraint blok B2">
+        <button class="grip" type="button" aria-label="Move blok B2. Drag, or press the up and down arrow keys."><svg class="i" aria-hidden="true"><use href="#i-grip"></use></svg></button>
+        <div class="blok__main">
+          <div class="blok__head"><span class="blok__type">Constraint</span><span class="blok__id">B2</span>
+            <span class="blok__tools"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate blok B2"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="del" aria-label="Delete blok B2"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></span></div>
+          <p class="blok__text" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Text of blok B2">Reply in under 80 words. Greet the customer as {{customer_name}}.</p>
+        </div>
+      </section>
+      <section class="blok frame" data-type="example" data-id="B3" aria-label="Example blok B3">
+        <button class="grip" type="button" aria-label="Move blok B3. Drag, or press the up and down arrow keys."><svg class="i" aria-hidden="true"><use href="#i-grip"></use></svg></button>
+        <div class="blok__main">
+          <div class="blok__head"><span class="blok__type">Example</span><span class="blok__id">B3</span>
+            <span class="blok__tools"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate blok B3"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="del" aria-label="Delete blok B3"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></span></div>
+          <p class="blok__text" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Text of blok B3">Customer: My boots arrived in the wrong size.
+Agent: Sorry about that, Sam. I’ve started an exchange for a size 10, and a prepaid label is in your inbox.</p>
+        </div>
+      </section>
+      <section class="blok frame" data-type="expects" data-id="B4" aria-label="Expects blok B4">
+        <button class="grip" type="button" aria-label="Move blok B4. Drag, or press the up and down arrow keys."><svg class="i" aria-hidden="true"><use href="#i-grip"></use></svg></button>
+        <div class="blok__main">
+          <div class="blok__head"><span class="blok__type">Expects</span><span class="blok__id">B4</span>
+            <span class="blok__tools"><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="dup" aria-label="Duplicate blok B4"><svg class="i" aria-hidden="true"><use href="#i-copy"></use></svg></button><button class="btn btn--icon btn--sm btn--bare" type="button" data-act="del" aria-label="Delete blok B4"><svg class="i" aria-hidden="true"><use href="#i-trash"></use></svg></button></span></div>
+          <p class="blok__text" contenteditable="true" spellcheck="false" role="textbox" aria-multiline="true" aria-label="Text of blok B4">Never promises a refund. Links the returns page whenever returns come up.</p>
+          <div class="blok__foot"><span class="blok__note">Becomes a test · not in the prompt</span><button class="btn btn--sm btn--locked blok__runtest" type="button" data-perf="Tests">Run as test <span class="stamp">Performance</span></button></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="addbar" role="group" aria-label="Add a blok">
+      <span class="label">Add blok</span>
+      <button class="btn" type="button" data-add="context"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>Context</button>
+      <button class="btn" type="button" data-add="constraint"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>Constraint</button>
+      <button class="btn" type="button" data-add="example"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>Example</button>
+      <button class="btn" type="button" data-add="expects"><svg class="i" aria-hidden="true"><use href="#i-plus"></use></svg>Expects</button>
+    </div>
+    <p class="ed-hint">Hover a blok to see its span in the compiled prompt. Drag the grip, or focus it and press ↑ ↓, to reorder. Every save is a version.</p>
+    <p class="sr-only" aria-live="polite" id="edLive"></p>
+  </main>
+
+  <!-- ---- Output -------------------------------------------------------------------- -->
+  <aside class="ed-side" aria-label="Output">
+    <div class="tabs" role="tablist" aria-label="Output panels">
+      <button class="tab" type="button" role="tab" id="tabC" aria-selected="true" aria-controls="panelC">Compiled</button>
+      <button class="tab" type="button" role="tab" id="tabR" aria-selected="false" aria-controls="panelR" tabindex="-1">Run</button>
+      <button class="tab" type="button" role="tab" id="tabH" aria-selected="false" aria-controls="panelH" tabindex="-1">History · <span id="histCount">7</span></button>
+    </div>
+
+    <section class="side-panel" id="panelC" role="tabpanel" aria-labelledby="tabC">
+      <div class="side-row">
+        <div class="seg" role="group" aria-label="Show variables as">
+          <button type="button" aria-pressed="true" data-mode="template">Template</button>
+          <button type="button" aria-pressed="false" data-mode="filled">Filled</button>
+        </div>
+        <span class="mono muted" id="tokCount" style="font-size: 11px">≈ 0 tokens</span>
+      </div>
+      <div class="compiled" id="compiled" aria-label="Compiled prompt" tabindex="0"></div>
+      <div class="field">
+        <label class="label" for="varName">Variable · customer_name</label>
+        <input class="input" id="varName" type="text" value="Sam" autocomplete="off">
+      </div>
+      <button class="btn btn--primary btn--lg btn--block copybtn" type="button" data-copy="#compiled"><svg class="i i-copy" aria-hidden="true"><use href="#i-copy"></use></svg><svg class="i i-done" aria-hidden="true"><use href="#i-check"></use></svg><span data-label>Copy prompt</span></button>
+      <div class="side-row">
+        <button class="btn btn--sm" type="button" style="flex: 1" data-copy-fmt="md">Copy as Markdown</button>
+        <button class="btn btn--sm" type="button" style="flex: 1" data-copy-fmt="json">Copy as JSON</button>
+      </div>
+      <p class="side-note">The expects blok stays out of the prompt. With Performance it becomes a test you can run on every model.</p>
+    </section>
+
+    <section class="side-panel" id="panelR" role="tabpanel" aria-labelledby="tabR" hidden>
+      <div class="field">
+        <label class="label" for="runModel">Model · runs on your key</label>
+        <select class="input" id="runModel">
+          <option value="openai">OpenAI · key ending 3f9a</option>
+          <option value="anthropic">Anthropic · key ending 8c1d</option>
+          <option disabled>Google · add a key in Settings</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="label" for="runInput">Test message</label>
+        <textarea class="input" id="runInput" rows="3">My order #4471 still hasn’t shipped and it’s been 9 days. Can I get my money back?</textarea>
+      </div>
+      <button class="btn btn--primary btn--block" type="button" id="runBtn"><svg class="i" aria-hidden="true"><use href="#i-play"></use></svg><span id="runLabel">Run once</span></button>
+      <div class="runmeter" aria-hidden="true"><i id="runMeter"></i></div>
+      <div class="runout is-empty" id="runOut" aria-live="polite">Runs the compiled prompt once on one model.<br>Your provider bills your key.</div>
+      <div class="runstats"><span>Tokens <b id="rsTok">0</b></span><span>Time <b id="rsMs">0 ms</b></span><span>Cost <b id="rsCost">$0.0000</b></span></div>
+      <button class="btn btn--locked btn--block" type="button" data-perf="Side-by-side runs"><svg class="i" aria-hidden="true"><use href="#i-columns"></use></svg>Run on all 3 models <span class="stamp">Performance</span></button>
+    </section>
+
+    <section class="side-panel" id="panelH" role="tabpanel" aria-labelledby="tabH" hidden>
+      <div class="vlist" id="vlist">
+        <div class="vrow is-current" data-v="7"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v7</span><span class="when">2 min ago</span></div><div class="vmain__note">Shortened the example reply</div></div><span class="vcur">CURRENT</span></div>
+        <div class="vrow" data-v="6"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v6</span><span class="when">Today, 09:14</span></div><div class="vmain__note">Added the expects blok</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="6">Restore</button></span></div>
+        <div class="vrow" data-v="5"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v5</span><span class="when">Yesterday, 18:02</span><span class="vname">works on Claude</span></div><div class="vmain__note">Added the customer_name variable</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="5">Restore</button></span></div>
+        <div class="vrow" data-v="4"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v4</span><span class="when">Oct 7</span></div><div class="vmain__note">Split context into its own blok</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="4">Restore</button></span></div>
+        <div class="vrow" data-v="3"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v3</span><span class="when">Oct 6</span></div><div class="vmain__note">Word limit tightened to 80</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="3">Restore</button></span></div>
+        <div class="vrow" data-v="2"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v2</span><span class="when">Oct 6</span></div><div class="vmain__note">Added an example reply</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="2">Restore</button></span></div>
+        <div class="vrow" data-v="1"><span class="vdot"><span></span></span><div class="vmain"><div class="vmain__top"><span class="mono">v1</span><span class="when">Oct 5</span></div><div class="vmain__note">Pasted from Notion</div></div><span class="vacts"><button class="btn btn--sm" type="button" data-restore="1">Restore</button></span></div>
+      </div>
+      <div id="nameBox"><button class="btn btn--dashed btn--block" type="button" id="nameVersion">Name this version</button></div>
+      <button class="btn btn--locked btn--block" type="button" data-perf="Semantic diff"><svg class="i" aria-hidden="true"><use href="#i-diff"></use></svg>Compare two versions <span class="stamp">Performance</span></button>
+    </section>
+  </aside>
+</div>
+
+<div class="mock-tag" role="note"><span>Mockup · <b>app.41prompts.ai/p/support-reply</b></span><a href="../index.html">All sheets</a></div>
+
+<script src="../../assets/logo/logo.js"></script>
+<script src="../../assets/js/motion.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/pages/editor.js"></script>
+</body>
+</html>

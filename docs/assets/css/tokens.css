@@ -1,0 +1,99 @@
+/* ==========================================================================
+   41prompts · Blueprint design tokens
+   Source of truth for color, type, spacing, radius, motion and cursors.
+   Mirrors assets/tokens.json. Change a value here, change it there.
+   ========================================================================== */
+
+/* ---- Fonts (bundled, OFL-licensed; see assets/fonts/LICENSE.md) ---------- */
+@font-face { font-family: "Archivo"; src: url("../fonts/archivo-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("../fonts/archivo-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("../fonts/archivo-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("../fonts/archivo-latin-800-normal.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Archivo"; src: url("../fonts/archivo-latin-900-normal.woff2") format("woff2"); font-weight: 900; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url("../fonts/martian-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url("../fonts/martian-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Ground: the blueprint sheet ------------------------------------ */
+  --bp-ground: #0A1830;      /* page background */
+  --bp-sheet: #0C1C38;       /* panels, rails, cards */
+  --bp-raised: #132849;      /* avatars, toasts, raised controls */
+  --bp-well: #081428;        /* code wells, inputs on panels */
+
+  /* ---- Chalk: ink drawn on the sheet ----------------------------------- */
+  --chalk: #E9F1FF;          /* primary text, primary button fill */
+  --chalk-2: #C9D7EE;        /* secondary text */
+  --chalk-3: #93A9CB;        /* labels, metadata (7.3:1 on ground) */
+  --chalk-4: #7D93B6;        /* hints, placeholders (5.6:1 on ground) */
+  --accent: #9CC3FF;         /* links, focus rings, active lines */
+
+  /* ---- Lines and grid -------------------------------------------------- */
+  --line-1: rgba(156, 195, 255, .14);   /* dividers inside panels */
+  --line-2: rgba(156, 195, 255, .28);   /* control borders, panel borders */
+  --line-3: rgba(156, 195, 255, .45);   /* emphasised borders, dashed guides */
+  --grid-major: rgba(156, 195, 255, .07); /* 80px grid */
+  --grid-minor: rgba(156, 195, 255, .035);/* 16px grid */
+
+  /* ---- Blok types (also used for their labels and corner marks) ------- */
+  --blok-context: #9CC3FF;
+  --blok-constraint: #FFD27A;
+  --blok-example: #C6A8FF;
+  --blok-expects: #6FE3A5;
+
+  /* ---- States ---------------------------------------------------------- */
+  --pass: #6FE3A5;
+  --fail: #FF7A66;           /* strokes, fills, leader lines */
+  --fail-text: #FF9A8A;      /* fail text on ground (6.9:1) */
+  --variable: #FFD27A;       /* {{variables}} inside blok text */
+
+  /* ---- Plan: the Performance stamp ------------------------------------
+     Performance is marked by form, not hue: a solid chalk stamp with the
+     ◆ glyph. Never color-code it amber; amber belongs to constraint bloks. */
+  --stamp-bg: #E9F1FF;
+  --stamp-fg: #0A1830;
+
+  /* ---- Type ------------------------------------------------------------ */
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --t-label: 10.5px;   /* mono uppercase labels, letter-spacing .08em */
+  --t-xs: 12px;
+  --t-sm: 13px;
+  --t-base: 14px;      /* app body */
+  --t-md: 16px;        /* landing body */
+  --t-lg: 18px;        /* landing lede */
+  --t-h3: 22px;
+  --t-h2: clamp(30px, 3.6vw, 44px);
+  --t-h1-app: 30px;
+  --t-h1: clamp(44px, 6.4vw, 92px);
+
+  /* ---- Space (4px base) ------------------------------------------------ */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+  --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px; --s-24: 96px;
+
+  /* ---- Radius ---------------------------------------------------------- */
+  --r-sheet: 2px;      /* bloks, drawing frames: near-square, like paper */
+  --r-control: 7px;    /* buttons, inputs */
+  --r-pill: 999px;     /* chips, badges */
+
+  /* ---- Motion ---------------------------------------------------------- */
+  --ease-brand: cubic-bezier(.32, .72, 0, 1);   /* from the live 41prompts.ai logo */
+  --ease-draw: cubic-bezier(.6, 0, .2, 1);      /* lines being drawn, panels splitting */
+  --dur-1: 120ms;      /* hover color */
+  --dur-2: 200ms;      /* small state changes */
+  --dur-3: 500ms;      /* logo morph, panel transitions */
+  --dur-4: 900ms;      /* leader lines drawing */
+
+  /* ---- Cursors (hotspots in px, 32×32 artwork) ------------------------- */
+  --cur-arrow: url("../cursors/cursor-arrow.svg") 5 3, default;
+  --cur-target: url("../cursors/cursor-target.svg") 16 16, pointer;
+  --cur-ibeam: url("../cursors/cursor-ibeam.svg") 16 16, text;
+  --cur-move: url("../cursors/cursor-move.svg") 16 16, grab;
+  --cur-cross: url("../cursors/cursor-cross.svg") 16 16, crosshair;
+}

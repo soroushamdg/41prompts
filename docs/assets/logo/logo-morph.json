@@ -1,0 +1,193 @@
+{
+  "viewBox": "0 0 64 64",
+  "plate": {
+    "x": 2.5,
+    "y": 2.5,
+    "width": 59,
+    "height": 59,
+    "rx": 5
+  },
+  "morph": {
+    "left": {
+      "from": "four",
+      "to": "A"
+    },
+    "right": {
+      "from": "one",
+      "to": "I"
+    },
+    "durationMs": 500,
+    "holdOnLoadMs": 900,
+    "easing": "cubic in-out: t<.5 ? 4t^3 : 1-(-2t+2)^3/2",
+    "isOnThreshold": 0.5
+  },
+  "shapes": {
+    "four": {
+      "outer": [
+        [
+          18,
+          14
+        ],
+        [
+          32,
+          14
+        ],
+        [
+          32,
+          50
+        ],
+        [
+          25,
+          50
+        ],
+        [
+          25,
+          41
+        ],
+        [
+          8,
+          41
+        ],
+        [
+          8,
+          41
+        ],
+        [
+          8,
+          41
+        ],
+        [
+          8,
+          34
+        ]
+      ],
+      "inner": [
+        [
+          25,
+          17
+        ],
+        [
+          25,
+          34
+        ],
+        [
+          15,
+          34
+        ]
+      ]
+    },
+    "A": {
+      "outer": [
+        [
+          28,
+          14
+        ],
+        [
+          34,
+          14
+        ],
+        [
+          44,
+          50
+        ],
+        [
+          36,
+          50
+        ],
+        [
+          31,
+          41
+        ],
+        [
+          21,
+          41
+        ],
+        [
+          16,
+          50
+        ],
+        [
+          8,
+          50
+        ],
+        [
+          16,
+          36
+        ]
+      ],
+      "inner": [
+        [
+          30,
+          20
+        ],
+        [
+          31,
+          34
+        ],
+        [
+          24,
+          34
+        ]
+      ]
+    },
+    "one": {
+      "outer": [
+        [
+          38,
+          21
+        ],
+        [
+          44,
+          14
+        ],
+        [
+          48,
+          14
+        ],
+        [
+          48,
+          50
+        ],
+        [
+          41,
+          50
+        ],
+        [
+          41,
+          21
+        ]
+      ],
+      "inner": null
+    },
+    "I": {
+      "outer": [
+        [
+          45,
+          14
+        ],
+        [
+          45,
+          14
+        ],
+        [
+          51,
+          14
+        ],
+        [
+          45,
+          50
+        ],
+        [
+          38,
+          50
+        ],
+        [
+          41.5,
+          32
+        ]
+      ],
+      "inner": null
+    }
+  },
+  "notes": "Each pair has the same vertex count, so the morph is a straight vertex-by-vertex interpolation. Past 0.5 the logo gets .is-on: plate fill becomes the ground color with a 5px chalk stroke, glyphs become chalk, wordmark letter-spacing goes from -0.045em to -0.015em."
+}
