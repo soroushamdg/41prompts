@@ -1,0 +1,26 @@
+/* New prompt (Sheet A03). Ported from docs/assets/css/app.css. */
+.card { --corner: var(--chalk); --frame-bg: rgba(12, 28, 56, .94); padding: 26px; display: flex; flex-direction: column; gap: 18px; }
+.panel { display: flex; flex-direction: column; gap: 16px; }
+.stats { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; font-size: 13px; color: var(--chalk-2); }
+.stats .count { font-family: var(--f-mono); font-size: 11px; color: var(--chalk-3); }
+.vars { display: flex; gap: 6px; flex-wrap: wrap; min-height: 26px; align-items: center; }
+.vars :global(.var) { animation: pop 380ms var(--ease-brand); }
+.split { display: flex; align-items: flex-start; gap: 12px; padding: 14px; border: 1px dashed var(--line-3); border-radius: 3px; }
+.split input { margin: 3px 0 0; width: 18px; height: 18px; flex: none; }
+.splitText { display: flex; flex-direction: column; gap: 4px; }
+.splitHead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.splitHead label { font-weight: 500; color: var(--chalk-2); }
+.splitText > span { font-size: 13px; color: var(--chalk-3); }
+.types { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.type { --c: var(--blok-context); display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 108px; padding: 14px; text-align: left; border: 1px solid var(--line-2); border-radius: 3px; background: var(--bp-well); color: var(--chalk); transition: border-color var(--dur-2), background-color var(--dur-2), transform var(--dur-2) var(--ease-brand); }
+.type:hover { transform: translateY(-2px); }
+.type[data-type="constraint"] { --c: var(--blok-constraint); }
+.type[data-type="example"] { --c: var(--blok-example); }
+.type[data-type="expects"] { --c: var(--blok-expects); }
+.type b { font-family: var(--f-mono); font-weight: 500; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--c); }
+.type span { font-size: 13.5px; color: var(--chalk-2); line-height: 1.45; }
+.type[aria-checked="true"] { border-color: var(--c); background: rgba(156, 195, 255, .07); }
+.actions { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.err { margin: 0; color: var(--fail-text); font-size: 13px; }
+@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+.start { align-self: flex-start; }

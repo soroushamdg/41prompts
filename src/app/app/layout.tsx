@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { HeadFlags } from "@/components/head-flags";
 import { IconSprite } from "@/components/icon";
+import { MotionProvider } from "@/components/motion-provider";
 import { ToastProvider } from "@/components/toast";
 import { db } from "@/db";
 import { planFor } from "@/server/plan";
@@ -27,7 +28,9 @@ export default async function AppRootLayout({ children }: { children: React.Reac
       </head>
       <body className={s.app}>
         <IconSprite />
-        <ToastProvider>{children}</ToastProvider>
+        <MotionProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </MotionProvider>
       </body>
     </html>
   );

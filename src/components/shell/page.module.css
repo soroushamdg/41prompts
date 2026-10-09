@@ -1,0 +1,8 @@
+/* Page frame shared by Library, New prompt and Settings (docs/assets/css/app.css). */
+.page { width: 100%; max-width: 1180px; margin: 0 auto; padding: 32px clamp(16px, 3vw, 28px) 80px; display: flex; flex-direction: column; gap: 22px; }
+.narrow { max-width: 920px; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.head h1 { margin: 6px 0 0; font-family: var(--f-display); font-weight: 800; font-size: 40px; line-height: 1.05; letter-spacing: -.03em; }
+.head p { margin: 6px 0 0; color: var(--chalk-3); display: flex; align-items: center; gap: 8px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 640px) { .head h1 { font-size: 32px; } }
