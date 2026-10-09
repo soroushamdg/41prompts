@@ -18,10 +18,10 @@ const ROWS: ReadonlyArray<readonly [item: string, part: string, qty: string, not
   ["M04", "Compiled prompt, one-click copy", INF, "As a template, or with variables filled."],
   ["M05", "Versions", INF, "Every save is a version. Restore in one click."],
   ["M06", "Run on one model", INF, "With your own key. The provider bills you directly."],
-  ["M07", "Model keys", "3", "OpenAI, Anthropic, Google. Encrypted at rest."],
+  ["M07", "Your models", INF, "20+ providers, any OpenAI-compatible endpoint, or a model on your machine."],
   ["M08", "Library with search by name", "1", "Private by default."],
   ["M09", "Export everything", INF, "Markdown and JSON in one .zip."],
-  ["M10", "Delete account", "1", "Removes every prompt, version and key."],
+  ["M10", "Delete account", "1", "Removes every prompt, version and saved model."],
 ];
 
 type Vars = React.CSSProperties & Record<`--${string}`, string | number>;

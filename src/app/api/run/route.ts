@@ -30,7 +30,8 @@ export async function POST(req: Request) {
   const row = await getConnection(db, userId, connectionId);
   if (!row) return Response.json({ error: "That model was removed. Pick another one or add it again in Settings.", code: "no_model" }, { status: 404 });
   if (row.runsIn !== "server") return Response.json({ error: "This model runs in your browser." }, { status: 409 });
-  const name = providerName(row.provider);
+  // A custom endpoint goes by the user's own label in messages.
+  const name = row.provider === "custom" ? row.label : providerName(row.provider);
   let secret;
   try {
     secret = readSecret(userId, row);

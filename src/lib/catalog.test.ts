@@ -83,7 +83,7 @@ describe("catalog", () => {
 
   it("says which browsers can reach an address", () => {
     const ok = (url: string) => Object.fromEntries(browserReach(url).map((r) => [r.browser, r.ok]));
-    expect(ok("http://localhost:11434/v1")).toEqual({ chrome: true, firefox: true, safari: true });
+    expect(ok("http://localhost:11434/v1")).toEqual({ chrome: true, firefox: true, safari: false });
     expect(ok("http://192.168.1.20:11434/v1")).toEqual({ chrome: true, firefox: false, safari: false });
     expect(ok("https://gpu.tail1234.ts.net/v1")).toEqual({ chrome: true, firefox: true, safari: true });
   });

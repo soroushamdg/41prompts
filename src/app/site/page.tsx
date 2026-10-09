@@ -50,7 +50,11 @@ const FAQ: ReadonlyArray<{ q: string; a: string; pricing?: true }> = [
   },
   {
     q: "What do you do with my API keys?",
-    a: "They run your prompts on the provider you choose and nothing else. Keys are encrypted at rest, shown once when you save them, and never written to logs. The provider bills your own account.",
+    a: "They run your prompts on the provider you choose and nothing else. Keys are encrypted at rest, shown once when you save them, and never written to logs. The provider bills your own account. A model on your own computer or network runs straight from your browser, so its requests and its key never touch our servers.",
+  },
+  {
+    q: "Which models can I use?",
+    a: "Any model from 20+ hosted providers, such as OpenAI, Anthropic, Google, OpenRouter, Azure, Bedrock, Mistral and Groq; any OpenAI-compatible endpoint; or a model on your own machine through Ollama or LM Studio. Add as many as you like, each with its own label. Local models run from your browser: Chrome and Edge reach them anywhere on your network after asking once, Firefox reaches models on the same computer, and Safari needs the model served over https.",
   },
   {
     q: "What is free, exactly?",
@@ -129,8 +133,8 @@ export default function LandingPage() {
                   <dd>None</dd>
                 </div>
                 <div>
-                  <dt>Model providers</dt>
-                  <dd>3, your keys</dd>
+                  <dt>Models</dt>
+                  <dd>Bring your own</dd>
                 </div>
               </dl>
             </div>
@@ -237,7 +241,7 @@ export default function LandingPage() {
                   P05 <span className="stamp">Performance</span>
                 </p>
                 <h3>One prompt, every model.</h3>
-                <p>Run the same suite on GPT, Claude and Gemini side by side, with what each run cost and how long it took.</p>
+                <p>Run the same suite on any of your models side by side, hosted or local, with what each run cost and how long it took.</p>
                 <div className={s.xm}>
                   <p className="label">Example · 200 checks per model</p>
                   <div className={cx(s.xmRow, s.xmRowHead)}>
@@ -374,7 +378,7 @@ function Pricing({ startHref }: { startHref: string }) {
               <li>Unlimited prompts, bloks and versions</li>
               <li>Bloks editor with the live compiled prompt</li>
               <li>One-click copy, as a template or filled</li>
-              <li>Run on one model with your own key</li>
+              <li>Run on one model with your own key, or on your own machine</li>
               <li>Private library with search by name</li>
               <li>Export everything, delete anytime</li>
             </ul>
@@ -403,7 +407,7 @@ function Pricing({ startHref }: { startHref: string }) {
               <li>Failure attribution to the exact blok</li>
               <li>Linter and decompiler</li>
               <li>Tests from expects bloks</li>
-              <li>GPT, Claude and Gemini side by side, with cost and latency</li>
+              <li>Your models side by side, with cost and latency</li>
               <li>Search inside prompts, tags and filters</li>
               <li>Semantic diffs and shared workspaces</li>
               <li>Share pages and typed function export</li>

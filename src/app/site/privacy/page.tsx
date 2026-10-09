@@ -25,7 +25,7 @@ export default function PrivacyPage() {
             <b>Your work.</b> Prompts, bloks, versions and test results.
           </li>
           <li>
-            <b>Your model keys.</b> Encrypted, as described below.
+            <b>Your models.</b> The label, provider, model name, address and prices of each model you add, and its key, encrypted, as described below.
           </li>
           <li>
             <b>Your plan.</b> Whether you are on Free or Performance, and a reference to your Stripe customer record if you pay.
@@ -41,10 +41,17 @@ export default function PrivacyPage() {
         </p>
       </Clause>
 
-      <Clause n={3} title="Your model keys">
+      <Clause n={3} title="Your models and keys">
         <p>
-          API keys for OpenAI, Anthropic and Google are encrypted at rest with AES-256-GCM. They are decrypted only to run your own prompts on the provider you chose, and they are
-          never written to logs. When you run a prompt, it goes to that provider with your key, and the provider&rsquo;s own privacy policy applies to it.
+          Keys for hosted providers are encrypted at rest with AES-256-GCM and bound to the address they were saved for. They are decrypted only to check them, list the provider&rsquo;s
+          models and run your own prompts on the provider you chose, and they are never written to logs. When you run a prompt on a hosted model, it goes from our server to that
+          provider with your key, and the provider&rsquo;s own privacy policy applies to it.
+        </p>
+        <p>
+          A model on your own computer or network (Ollama, LM Studio, or a custom address you mark as running in your browser) is called straight from your browser. Its prompts and
+          replies never pass through our servers, and a key for it is kept only in that browser; we store the model&rsquo;s label and address so it shows up in your list. Browsers
+          differ in what they can reach: Chrome and Edge reach models anywhere on your network after asking you once, Firefox reaches models on the same computer, and Safari needs
+          the model served over https.
         </p>
       </Clause>
 
@@ -77,14 +84,14 @@ export default function PrivacyPage() {
           <li>Google and GitHub, if you sign in with them.</li>
           <li>PostHog for analytics and Sentry for error reports.</li>
           <li>Stripe for payments.</li>
-          <li>OpenAI, Anthropic and Google, only for the runs you start with your own keys.</li>
+          <li>The model providers you add (for example OpenAI, Anthropic, Google or OpenRouter), only for the checks and runs you start with your own keys.</li>
         </ul>
       </Clause>
 
       <Clause n={8} title="Export and deletion">
         <p>
           You can export everything at any time from Settings, as Markdown and JSON in one .zip file. Deleting your account removes everything straight away: prompts, versions,
-          keys and sign-ins. A prompt you delete on its own is removed for good by a daily cleanup once it has been deleted for 24 hours.
+          saved models, keys and sign-ins. A prompt you delete on its own is removed for good by a daily cleanup once it has been deleted for 24 hours.
         </p>
       </Clause>
 

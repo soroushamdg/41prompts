@@ -55,7 +55,8 @@ async function readJson(res: Response): Promise<unknown> {
 const resolve = (base: string, path: string) => (/^https?:\/\//.test(path) ? path : `${base}${path}`);
 
 function statusResult(name: string, status: number): ProbeResult {
-  if (status === 401 || status === 403) return { ok: false, refused: true, message: `${name} refused that key. Check it and try again.` };
+  // Google and xAI answer a bad key with 400.
+  if (status === 400 || status === 401 || status === 403) return { ok: false, refused: true, message: `${name} refused that key. Check it and try again.` };
   if (status === 429) return { ok: false, refused: false, message: `${name} is rate limiting this key right now. Try again in a minute.` };
   if (status === 404) return { ok: false, refused: false, message: `Nothing answered at that address (404). Check the URL; it usually ends in /v1.` };
   return { ok: false, refused: false, message: `${name} answered with an error (${status}). Try again in a moment.` };
@@ -63,6 +64,7 @@ function statusResult(name: string, status: number): ProbeResult {
 
 export async function probe(def: ProviderDef, settings: Settings, secret: Secret | null): Promise<ProbeResult> {
   if (isE2E()) return fakeProbe(def, secret);
+  const name = def.id === "custom" ? "The server" : def.name;
   if (!def.models) return { ok: true, ms: 0, models: null, keyChecked: false };
   const base = baseUrlFor(def, settings);
   const headers = { ...authHeaders(def, secret), ...orgHeaders(def, settings), accept: "application/json" };
@@ -72,7 +74,7 @@ export async function probe(def: ProviderDef, settings: Settings, secret: Secret
     if (def.keyCheck) {
       const res = await guardedFetch(resolve(base, def.keyCheck), { headers, signal });
       await res.body?.cancel();
-      if (!res.ok) return statusResult(def.name, res.status);
+      if (!res.ok) return statusResult(name, res.status);
     }
     const listHeaders = def.models.auth ? headers : { ...def.headers, accept: "application/json" };
     let url = resolve(base, def.models.url);
@@ -81,7 +83,7 @@ export async function probe(def: ProviderDef, settings: Settings, secret: Secret
       const res = await guardedFetch(url, { headers: listHeaders, signal });
       if (!res.ok) {
         await res.body?.cancel();
-        return statusResult(def.name, res.status);
+        return statusResult(name, res.status);
       }
       const json = await readJson(res);
       models.push(...parseModelList(def.id, json));
@@ -92,8 +94,8 @@ export async function probe(def: ProviderDef, settings: Settings, secret: Secret
     const ms = Math.round(performance.now() - t0);
     return { ok: true, ms, models: sortModels(withCatalogPrices(def, models)), keyChecked: def.models.auth || Boolean(def.keyCheck) };
   } catch (error) {
-    if (error instanceof SyntaxError) return { ok: false, refused: false, message: `${def.name} did not answer with a model list. Check the URL; it usually ends in /v1.` };
-    return { ok: false, refused: false, message: providerErrorMessage(def.name, error, "test") };
+    if (error instanceof SyntaxError) return { ok: false, refused: false, message: `${name} did not answer with a model list. Check the URL; it usually ends in /v1.` };
+    return { ok: false, refused: false, message: providerErrorMessage(name, error, "test") };
   }
 }
 
@@ -108,7 +110,8 @@ function withCatalogPrices(def: ProviderDef, models: ModelEntry[]): ModelEntry[]
 
 /** One short call that spends a few tokens, for providers with no model list. */
 export async function testMessage(def: ProviderDef, settings: Settings, modelId: string, secret: Secret | null): Promise<{ ok: true; ms: number } | { ok: false; message: string }> {
-  if (isE2E() && secret?.apiKey?.includes("bad")) return { ok: false, message: `${def.name} refused the key.` };
+  const name = def.id === "custom" ? "The server" : def.name;
+  if (isE2E() && secret?.apiKey?.includes("bad")) return { ok: false, message: `${name} refused the key.` };
   const t0 = performance.now();
   try {
     await generateText({
@@ -120,7 +123,7 @@ export async function testMessage(def: ProviderDef, settings: Settings, modelId:
     });
     return { ok: true, ms: Math.round(performance.now() - t0) };
   } catch (error) {
-    return { ok: false, message: providerErrorMessage(def.name, error, "test") };
+    return { ok: false, message: providerErrorMessage(name, error, "test") };
   }
 }
 

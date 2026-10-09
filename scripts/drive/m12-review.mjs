@@ -1,7 +1,7 @@
 /* Drive: the Product Hunt review dialog after a finished run (account aged
    by two days in the local database). Built app with E2E_MODE=1. */
 import pg from "pg";
-import { APP, check, launch, signInViaOutbox } from "./lib.mjs";
+import { addModel, APP, check, launch, signInViaOutbox } from "./lib.mjs";
 
 const { browser, page, shot, errors } = await launch("m12-review");
 try {
@@ -11,10 +11,7 @@ try {
   await c.connect();
   await c.query(`update "user" set created_at = now() - interval '2 days' where email = $1`, [email]);
   await c.end();
-  await page.goto(`${APP}/settings#keys`);
-  await page.getByLabel("OpenAI API key").fill("sk-proj-good-key-1111");
-  await page.getByRole("button", { name: "Save key" }).first().click();
-  await page.getByText(/Key ending 1111/).waitFor();
+  await addModel(page, { label: "Work GPT", key: "sk-proj-good-key-1111", model: "gpt-6.1-sol" });
   await page.goto(`${APP}/new`);
   await page.getByLabel("Your prompt").fill("You are a support agent for Northwind Outfitters.");
   await page.getByRole("button", { name: "Create prompt" }).click();

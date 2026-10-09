@@ -41,3 +41,19 @@ export async function signIn(page: Page, email = uniqueEmail()) {
   await expect(page).toHaveURL(/localhost:\d+\/$/);
   return email;
 }
+
+/** Adds a hosted model through Settings › Models (E2E_MODE fakes the provider). */
+export async function addModel(page: Page, { provider = "OpenAI", label, key, model }: { provider?: string; label: string; key: string; model: string }) {
+  await page.goto("/settings#models");
+  await page.getByRole("button", { name: "Add model" }).first().click();
+  const dlg = page.getByRole("dialog");
+  await dlg.getByRole("button", { name: new RegExp(`^${provider}\\b`) }).click();
+  await dlg.getByLabel("Label").fill(label);
+  await dlg.getByLabel("API key").fill(key);
+  await dlg.getByRole("button", { name: "Connect and load models" }).click();
+  await expect(dlg.getByText(/Connected · \d+ ms/)).toBeVisible();
+  await dlg.getByRole("combobox", { name: "Model" }).fill(model);
+  await dlg.getByRole("option", { name: new RegExp(model) }).click();
+  await dlg.getByRole("button", { name: "Save model" }).click();
+  await expect(page.getByText(`Added ${label}.`)).toBeVisible();
+}

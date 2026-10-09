@@ -151,7 +151,7 @@ export const PROVIDERS: ProviderDef[] = [
     keyUrl: "https://console.aws.amazon.com/bedrock/home#/api-keys",
     models: null,
     includeUsage: true,
-    modelPlaceholder: "us.anthropic.claude-sonnet-5-5-v1:0",
+    modelPlaceholder: "us.anthropic.claude-sonnet-5-5",
     note: "Newer models need an inference profile ID (us., eu. or apac.).",
   },
   {
@@ -171,18 +171,19 @@ export const PROVIDERS: ProviderDef[] = [
     modelPlaceholder: "your deployment name",
     note: "The model is your deployment's name.",
   },
-  hosted({ id: "cerebras", name: "Cerebras", baseURL: "https://api.cerebras.ai/v1", keyUrl: "https://cloud.cerebras.ai", modelPlaceholder: "llama-4-scout-17b-16e-instruct" }),
+  // Cerebras and Z.ai always send usage in the last chunk; stream_options is undocumented there.
+  hosted({ id: "cerebras", name: "Cerebras", baseURL: "https://api.cerebras.ai/v1", keyUrl: "https://cloud.cerebras.ai", includeUsage: false, modelPlaceholder: "llama-4-scout-17b-16e-instruct" }),
   hosted({
     id: "cohere",
     name: "Cohere",
     baseURL: "https://api.cohere.ai/compatibility/v1",
     keyUrl: "https://dashboard.cohere.com/api-keys",
-    models: { url: "https://api.cohere.com/v1/models?endpoint=chat", auth: true },
+    models: { url: "https://api.cohere.com/v1/models?endpoint=chat&page_size=1000", auth: true },
     includeUsage: false,
     modelPlaceholder: "command-a-03-2025",
     openRouterVendor: "cohere",
   }),
-  hosted({ id: "deepinfra", name: "DeepInfra", baseURL: "https://api.deepinfra.com/v1/openai", keyUrl: "https://deepinfra.com/dash/api_keys", models: { url: "/models", auth: false }, modelPlaceholder: "meta-llama/Llama-4-Maverick-17B-128E-Instruct" }),
+  hosted({ id: "deepinfra", name: "DeepInfra", baseURL: "https://api.deepinfra.com/v1/openai", keyUrl: "https://deepinfra.com/dash/api_keys", models: { url: "/models", auth: false }, keyCheck: "https://api.deepinfra.com/v1/me", modelPlaceholder: "meta-llama/Llama-4-Maverick-17B-128E-Instruct" }),
   hosted({ id: "deepseek", name: "DeepSeek", baseURL: "https://api.deepseek.com", keyUrl: "https://platform.deepseek.com/api_keys", modelPlaceholder: "deepseek-chat", openRouterVendor: "deepseek" }),
   hosted({ id: "fireworks", name: "Fireworks AI", baseURL: "https://api.fireworks.ai/inference/v1", keyUrl: "https://app.fireworks.ai/settings/users/api-keys", modelPlaceholder: "accounts/fireworks/models/llama4-maverick-instruct-basic" }),
   hosted({ id: "groq", name: "Groq", baseURL: "https://api.groq.com/openai/v1", keyUrl: "https://console.groq.com/keys", modelPlaceholder: "llama-3.3-70b-versatile" }),
@@ -191,27 +192,48 @@ export const PROVIDERS: ProviderDef[] = [
     name: "Hugging Face",
     baseURL: "https://router.huggingface.co/v1",
     fields: [{ ...KEY, label: "Access token", placeholder: "hf_…", help: "A token with the Inference Providers permission." }],
-    keyUrl: "https://huggingface.co/settings/tokens",
+    keyUrl: "https://huggingface.co/settings/tokens/new?ownUserPermissions=inference.serverless.write&tokenType=fineGrained",
     models: { url: "/models", auth: false },
     keyCheck: "https://huggingface.co/api/whoami-v2",
     modelPlaceholder: "meta-llama/Llama-3.3-70B-Instruct",
     note: "Add :fastest or :cheapest to a model to pick the host.",
   }),
   hosted({ id: "mistral", name: "Mistral", baseURL: "https://api.mistral.ai/v1", keyUrl: "https://console.mistral.ai/api-keys", includeUsage: false, modelPlaceholder: "mistral-large-latest", openRouterVendor: "mistralai" }),
-  hosted({ id: "moonshot", name: "Moonshot (Kimi)", baseURL: "https://api.moonshot.ai/v1", keyUrl: "https://platform.moonshot.ai/console/api-keys", modelPlaceholder: "kimi-k2-0905-preview", openRouterVendor: "moonshotai" }),
+  hosted({ id: "moonshot", name: "Moonshot (Kimi)", baseURL: "https://api.moonshot.ai/v1", keyUrl: "https://platform.kimi.ai/console/api-keys", modelPlaceholder: "kimi-k2-0905-preview", openRouterVendor: "moonshotai" }),
+  hosted({ id: "nebius", name: "Nebius Token Factory", baseURL: "https://api.tokenfactory.nebius.com/v1", keyUrl: "https://tokenfactory.nebius.com", modelPlaceholder: "meta-llama/Llama-3.3-70B-Instruct" }),
+  hosted({ id: "novita", name: "Novita AI", baseURL: "https://api.novita.ai/openai/v1", keyUrl: "https://novita.ai/settings/key-management", models: { url: "/models", auth: false }, modelPlaceholder: "zai-org/glm-5.3-flash" }),
+  hosted({ id: "nvidia", name: "NVIDIA NIM", baseURL: "https://integrate.api.nvidia.com/v1", keyUrl: "https://build.nvidia.com/settings/api-keys", models: { url: "/models", auth: false }, modelPlaceholder: "meta/llama-3.3-70b-instruct" }),
   hosted({
     id: "perplexity",
     name: "Perplexity",
-    baseURL: "https://api.perplexity.ai",
-    keyUrl: "https://www.perplexity.ai/account/api/keys",
-    models: null,
-    includeUsage: false,
-    modelPlaceholder: "sonar-pro",
-    suggested: ["sonar", "sonar-pro", "sonar-reasoning-pro", "sonar-deep-research"],
+    // The OpenAI-compatible router replaced Sonar chat completions in Sept 2026.
+    baseURL: "https://api.perplexity.ai/router/v1",
+    keyUrl: "https://console.perplexity.ai/project/keys",
+    modelPlaceholder: "perplexity/sonar-pro",
     openRouterVendor: "perplexity",
-    note: "Cost here leaves out Perplexity's per-search fees.",
+    note: "Cost here leaves out any per-search fees Perplexity charges.",
   }),
-  hosted({ id: "qwen", name: "Alibaba Qwen", baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", keyUrl: "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key", modelPlaceholder: "qwen-plus", openRouterVendor: "qwen" }),
+  hosted({
+    id: "qwen",
+    name: "Alibaba Qwen",
+    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    fields: [
+      KEY,
+      {
+        key: "baseURL",
+        label: "Region address",
+        secret: false,
+        required: false,
+        advanced: true,
+        placeholder: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        help: "Keys work only in their own region. Singapore is the default; US is https://dashscope-us.aliyuncs.com/compatible-mode/v1.",
+      },
+    ],
+    keyUrl: "https://modelstudio.console.alibabacloud.com/ap-southeast-1/settings/api-key",
+    modelPlaceholder: "qwen-plus",
+    openRouterVendor: "qwen",
+  }),
+  hosted({ id: "sambanova", name: "SambaNova", baseURL: "https://api.sambanova.ai/v1", keyUrl: "https://cloud.sambanova.ai/apis", models: { url: "/models", auth: false }, modelPlaceholder: "Meta-Llama-3.3-70B-Instruct" }),
   hosted({ id: "together", name: "Together AI", baseURL: "https://api.together.xyz/v1", keyUrl: "https://api.together.ai/settings/api-keys", modelPlaceholder: "meta-llama/Llama-3.3-70B-Instruct-Turbo" }),
   hosted({
     id: "vercel",
@@ -223,7 +245,7 @@ export const PROVIDERS: ProviderDef[] = [
     modelPlaceholder: "anthropic/claude-sonnet-5-5",
   }),
   hosted({ id: "xai", name: "xAI (Grok)", baseURL: "https://api.x.ai/v1", keyUrl: "https://console.x.ai", modelPlaceholder: "grok-4", openRouterVendor: "x-ai" }),
-  hosted({ id: "zai", name: "Z.ai (GLM)", baseURL: "https://api.z.ai/api/paas/v4", keyUrl: "https://z.ai/manage-apikey/apikey-list", models: null, modelPlaceholder: "glm-4.6", openRouterVendor: "z-ai" }),
+  hosted({ id: "zai", name: "Z.ai (GLM)", baseURL: "https://api.z.ai/api/paas/v4", keyUrl: "https://z.ai/manage-apikey/apikey-list", models: null, includeUsage: false, modelPlaceholder: "glm-4.6", suggested: ["glm-4.6", "glm-4.5", "glm-4.5-air"], openRouterVendor: "z-ai" }),
 
   // ---- On your computer or network (runs in the browser) -----------------------
   {
@@ -322,7 +344,10 @@ export function suggestRunsIn(p: ProviderDef, baseURL?: string): RunsIn {
 export type BrowserId = "chrome" | "firefox" | "safari";
 export type Reach = { browser: BrowserId; ok: boolean; note?: string };
 
-/** What each browser allows from https://app.41prompts.ai (checked 2026-10-10). */
+/** What each browser allows from https://app.41prompts.ai, checked 2026-10-10
+    against Chrome 155, Firefox 156 and Safari 27. Plain http:// is mixed
+    content; Chrome exempts local addresses once the user allows it, Firefox
+    exempts only this computer, and Safari exempts nothing. */
 export function browserReach(baseURL: string): Reach[] {
   let u: URL;
   try {
@@ -332,22 +357,25 @@ export function browserReach(baseURL: string): Reach[] {
   }
   const host = u.hostname.replace(/^\[|\]$/g, "");
   const loopback = host === "localhost" || host.endsWith(".localhost") || /^127\./.test(host) || host === "::1";
+  const local = loopback || isLocalAddress(baseURL);
+  // Notes follow the browser's name: "Chrome and Edge ask once…", "Firefox asks once…".
+  const chromeAsk = loopback ? "ask once to allow apps on this device" : "ask once to allow your local network";
   if (u.protocol === "https:") {
     return [
-      { browser: "chrome", ok: true, note: loopback ? "asks once to allow apps on this device" : "asks once to allow your local network" },
-      { browser: "firefox", ok: true },
+      { browser: "chrome", ok: true, note: local ? chromeAsk : undefined },
+      { browser: "firefox", ok: true, note: local ? (loopback ? "asks once to allow apps on this device" : "may ask once to allow your local network") : undefined },
       { browser: "safari", ok: true },
     ];
   }
   if (loopback) {
     return [
-      { browser: "chrome", ok: true, note: "asks once to allow apps on this device" },
-      { browser: "firefox", ok: true },
-      { browser: "safari", ok: true },
+      { browser: "chrome", ok: true, note: chromeAsk },
+      { browser: "firefox", ok: true, note: "asks once to allow apps on this device" },
+      { browser: "safari", ok: false, note: "blocks http:// addresses, even on this computer" },
     ];
   }
   return [
-    { browser: "chrome", ok: true, note: "asks once to allow your local network" },
+    { browser: "chrome", ok: true, note: chromeAsk },
     { browser: "firefox", ok: false, note: "blocks http:// addresses on your network" },
     { browser: "safari", ok: false, note: "blocks http:// addresses on your network" },
   ];
@@ -427,8 +455,8 @@ export function draftProblem(p: ProviderDef, runsIn: RunsIn, settings: Settings,
     const keyPair = secret?.accessKeyId && secret?.secretAccessKey;
     if (!secret?.apiKey && !keyPair) return "Add a Bedrock API key, or an access key ID and secret access key.";
   }
-  if (p.runsIn === "either" || p.group === "local") {
-    if (!settings.baseURL) return "Base URL is required.";
+  if ((p.runsIn === "either" || p.group === "local") && !settings.baseURL) return "Base URL is required.";
+  if (settings.baseURL) {
     const u = new URL(settings.baseURL);
     if (u.protocol !== "https:" && u.protocol !== "http:") return "The address must start with http:// or https://.";
     if (u.username || u.password) return "Put credentials in the key field, not in the address.";
@@ -440,15 +468,15 @@ export function draftProblem(p: ProviderDef, runsIn: RunsIn, settings: Settings,
 
 /** Where a stored secret may be sent. Changing it needs the secret again. */
 export function destinationOf(provider: string, settings: Settings): string {
-  if (provider === "custom" || provider === "ollama" || provider === "lmstudio") {
+  let origin = "";
+  if (settings.baseURL) {
     try {
-      return `${provider}|${new URL(settings.baseURL ?? "").origin}`;
+      origin = new URL(settings.baseURL).origin;
     } catch {
-      return `${provider}|`;
+      origin = "?";
     }
   }
-  if (provider === "azure") return `azure|${settings.resourceName ?? ""}`;
-  return provider;
+  return [provider, origin, provider === "azure" ? (settings.resourceName ?? "") : ""].filter(Boolean).join("|");
 }
 
 /** Only the settings this provider uses; hosted providers keep their fixed base URL. */

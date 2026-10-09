@@ -25,9 +25,13 @@ function priceOf(provider: string, m: Obj): Pick<ModelEntry, "input" | "output">
   const p = obj(m.pricing);
   switch (provider) {
     case "openrouter":
+    case "sambanova":
       return { input: perToken(p.prompt), output: perToken(p.completion) };
+    case "novita":
+      return { input: num(obj(p.prompt).price_per_m_decimal), output: num(obj(p.completion).price_per_m_decimal) };
     case "vercel":
       return { input: perToken(p.input), output: perToken(p.output) };
+    case "perplexity":
     case "together":
       return { input: num(p.input), output: num(p.output) };
     case "deepinfra": {

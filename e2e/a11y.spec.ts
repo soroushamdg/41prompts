@@ -30,4 +30,8 @@ test("sign-in, library, new, editor and settings have no serious accessibility v
   await audit(page, "library");
   await page.goto("/settings");
   await audit(page, "settings");
+  await page.getByRole("button", { name: "Add model" }).first().click();
+  await audit(page, "add-model-providers");
+  await page.getByRole("dialog").getByRole("button", { name: /^Ollama\b/ }).click();
+  await audit(page, "add-model-connect");
 });

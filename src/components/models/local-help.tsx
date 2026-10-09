@@ -1,6 +1,6 @@
 "use client";
-import { useSyncExternalStore } from "react";
-import { blockedHere, detectBrowser } from "@/lib/browser-run";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { addressSpace, blockedHere, detectBrowser, localPermissionDenied } from "@/lib/browser-run";
 import { BROWSER_NAME, browserReach } from "@/lib/catalog";
 import s from "./models.module.css";
 
@@ -47,37 +47,49 @@ export function WorksIn({ baseURL }: { baseURL: string }) {
 export function Troubleshoot({ provider, baseURL, open }: { provider: string; baseURL: string; open?: boolean }) {
   const origin = useOrigin();
   const me = useBrowser();
-  let lan = false;
-  try {
-    const h = new URL(baseURL).hostname;
-    lan = !(h === "localhost" || h.endsWith(".localhost") || h.startsWith("127.") || h === "[::1]");
-  } catch {
-    lan = false;
-  }
+  const [denied, setDenied] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void localPermissionDenied(baseURL).then((d) => live && setDenied(d));
+    return () => {
+      live = false;
+    };
+  }, [baseURL]);
+  const space = addressSpace(baseURL);
+  const lan = space === "local";
+  const https = baseURL.startsWith("https:");
+  const blocked = me ? blockedHere(baseURL) : null;
   return (
     <details className={s.trouble} open={open}>
-      <summary>Your browser could not reach the server. How to fix it</summary>
+      <summary>How to fix it</summary>
       <div>
+        {blocked && <p className={s.warn}>{blocked}</p>}
+        {denied && (
+          <p className={s.warn}>
+            This browser is set to block this site from {lan ? "your local network" : "apps on this device"}. Allow it again in the site settings, from the icon next to the address bar.
+          </p>
+        )}
         <p>The request goes from this tab straight to {baseURL || "your server"}. If the server is running, it has to allow this site, {origin}, to call it.</p>
         {provider === "ollama" ? (
           <ol>
             <li>
-              Set <b>OLLAMA_ORIGINS</b> to this site, then quit and reopen Ollama.
-              <pre>{`# macOS\nlaunchctl setenv OLLAMA_ORIGINS "${origin}"\n\n# Linux (systemd): sudo systemctl edit ollama.service\n[Service]\nEnvironment="OLLAMA_ORIGINS=${origin}"\n# then: sudo systemctl restart ollama\n\n# Windows: Settings › Edit environment variables for your account\nOLLAMA_ORIGINS = ${origin}`}</pre>
+              Ollama only allows its own apps and localhost pages by default. Set <b>OLLAMA_ORIGINS</b> to this site, then quit and reopen Ollama.
+              <pre>{`# macOS (set it again after a restart of the Mac)\nlaunchctl setenv OLLAMA_ORIGINS "${origin}"\n\n# Linux: sudo systemctl edit ollama.service\n[Service]\nEnvironment="OLLAMA_ORIGINS=${origin}"${lan ? '\nEnvironment="OLLAMA_HOST=0.0.0.0:11434"' : ""}\n# then: sudo systemctl daemon-reload && sudo systemctl restart ollama\n\n# Windows: quit Ollama, then add a user environment variable\nOLLAMA_ORIGINS = ${origin}`}</pre>
             </li>
             {lan && (
               <li>
-                On the other machine, also set <b>OLLAMA_HOST</b> to <code>0.0.0.0</code> so Ollama listens on your network.
+                On the other machine, also set <b>OLLAMA_HOST</b> to <code>0.0.0.0:11434</code> so Ollama listens on your network.
               </li>
+            )}
+            {https && (
+              <li>Behind an HTTPS proxy such as Tailscale Serve or Caddy, Ollama refuses unknown host names. Have the proxy send Host: localhost, or set OLLAMA_HOST to 0.0.0.0.</li>
             )}
           </ol>
         ) : provider === "lmstudio" ? (
           <ol>
             <li>In LM Studio, open the Developer tab and start the server.</li>
             <li>In Server Settings, turn on <b>Enable CORS</b>{lan ? <> and <b>Serve on Local Network</b></> : null}.</li>
-            <li>
-              Enable CORS lets any website call LM Studio, so also turn on <b>Require Authentication</b>, create a token, and paste it in the API key field here.
-            </li>
+            <li>Enable CORS lets websites call LM Studio, so also turn on <b>Require Authentication</b>, create a token under Manage Tokens, and paste it in the API key field here.</li>
           </ol>
         ) : (
           <ul>
@@ -89,13 +101,13 @@ export function Troubleshoot({ provider, baseURL, open }: { provider: string; ba
           </ul>
         )}
         <p>Never allow every site (*). Any page you visit could then use your model.</p>
-        {(me === "chrome" || me === null) && (
+        {space && (me === "chrome" || me === "firefox" || me === null) && (
           <p>
-            Chrome and Edge ask once before this site can reach {lan ? "your local network" : "apps on this device"}. If you blocked it, allow it again from the site settings next to the address bar.
+            Chrome, Edge and Firefox ask once before this site can reach {lan ? "your local network" : "apps on this device"}. Choose Allow.
+            {lan ? " On a Mac, the browser also needs Local Network access in System Settings › Privacy & Security." : ""}
           </p>
         )}
       </div>
     </details>
   );
 }
-

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import pg from "pg";
-import { signIn, uniqueEmail } from "./helpers";
+import { addModel, signIn, uniqueEmail } from "./helpers";
 
 /* The Product Hunt review prompt shows after a finished run for an account
    that is not brand new, offers later and never, and respects never. */
@@ -16,10 +16,7 @@ test("asks for a review after a run, and never again once told so", async ({ pag
   const email = uniqueEmail("review");
   await signIn(page, email);
   await ageAccount(email);
-  await page.goto("/settings#keys");
-  await page.getByLabel("OpenAI API key").fill("sk-proj-good-key-1111");
-  await page.getByRole("button", { name: "Save key" }).first().click();
-  await expect(page.getByText(/Key ending 1111/)).toBeVisible();
+  await addModel(page, { label: "Work GPT", key: "sk-proj-good-key-1111", model: "gpt-6.1-sol" });
   await expect(page.getByRole("link", { name: /Product Hunt/ })).toHaveAttribute("href", /producthunt\.com\/products\/41prompts\/reviews\/new/);
 
   await page.goto("/new");
@@ -45,9 +42,7 @@ test("asks for a review after a run, and never again once told so", async ({ pag
 
 test("a brand new account is not asked yet", async ({ page }) => {
   await signIn(page, uniqueEmail("review-new"));
-  await page.goto("/settings#keys");
-  await page.getByLabel("OpenAI API key").fill("sk-proj-good-key-2222");
-  await page.getByRole("button", { name: "Save key" }).first().click();
+  await addModel(page, { label: "Work GPT", key: "sk-proj-good-key-2222", model: "gpt-6.1-sol" });
   await page.goto("/new");
   await page.getByLabel("Your prompt").fill("You are a helpful assistant.");
   await page.getByRole("button", { name: "Create prompt" }).click();

@@ -18,19 +18,40 @@ export class UnreachableError extends Error {
 
 const base = (url: string) => url.replace(/\/+$/, "");
 
-/** Chrome asks before a public page reaches a private address; this names the kind. */
-function addressSpace(url: string): "loopback" | "local" | undefined {
+const isLoopbackHost = (host: string) => host === "localhost" || host.endsWith(".localhost") || /^127\./.test(host) || host === "::1";
+
+/** Which of Chrome's Local Network Access permissions an address needs, if any. */
+export function addressSpace(url: string): "loopback" | "local" | undefined {
   try {
     const host = new URL(url).hostname.replace(/^\[|\]$/g, "");
-    if (host === "localhost" || host.endsWith(".localhost") || /^127\./.test(host) || host === "::1") return "loopback";
+    if (isLoopbackHost(host)) return "loopback";
     return isLocalAddress(url) ? "local" : undefined;
   } catch {
     return undefined;
   }
 }
 
-async function call(url: string, init: RequestInit & { targetAddressSpace?: string }): Promise<Response> {
+/** Chrome lets an https page fetch a plain http:// local address only when the
+    request says up front that it is local. Https needs no hint, and a wrong
+    hint fails the request, so it is only sent for http://. */
+function spaceHint(url: string): "loopback" | "local" | undefined {
+  return url.startsWith("http:") ? addressSpace(url) : undefined;
+}
+
+/** Whether the user blocked this site from local addresses (Chrome, Firefox). */
+export async function localPermissionDenied(url: string): Promise<boolean> {
   const space = addressSpace(url);
+  if (!space || typeof navigator === "undefined" || !navigator.permissions) return false;
+  try {
+    const st = await navigator.permissions.query({ name: space === "loopback" ? "loopback-network" : "local-network" } as unknown as PermissionDescriptor);
+    return st.state === "denied";
+  } catch {
+    return false;
+  }
+}
+
+async function call(url: string, init: RequestInit & { targetAddressSpace?: string }): Promise<Response> {
+  const space = spaceHint(url);
   try {
     // targetAddressSpace is Chrome's Local Network Access hint; other browsers ignore it.
     return await fetch(url, { ...init, mode: "cors", credentials: "omit", cache: "no-store", referrerPolicy: "no-referrer", ...(space ? { targetAddressSpace: space } : {}) });
@@ -176,6 +197,7 @@ export function blockedHere(baseURL: string): string | null {
   const me = detectBrowser();
   const r = me && browserReach(baseURL).find((x) => x.browser === me);
   if (!r || r.ok) return null;
+  if (me === "safari" && addressSpace(baseURL) === "loopback") return "Safari can't reach http:// addresses, even on this computer. Use Chrome, Edge or Firefox, or serve the model over HTTPS.";
   const who = me === "firefox" ? "Firefox" : "Safari";
   return `${who} can't reach http:// addresses on your network. Use Chrome or Edge, or serve the model over HTTPS.`;
 }

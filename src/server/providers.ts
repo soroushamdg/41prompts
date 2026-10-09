@@ -23,7 +23,8 @@ export type ServerModel = { provider: string; modelId: string; settings: Setting
 export function baseUrlFor(def: ProviderDef, settings: Settings): string {
   if (def.protocol === "azure") return `https://${settings.resourceName}.openai.azure.com/openai/v1`;
   if (def.protocol === "bedrock") return `https://bedrock-runtime.${settings.region}.amazonaws.com`;
-  return (def.baseURL ?? settings.baseURL ?? "").replace(/\/+$/, "");
+  // cleanSettings keeps a baseURL only for providers that let the user set one.
+  return (settings.baseURL ?? def.baseURL ?? "").replace(/\/+$/, "");
 }
 
 export async function languageModelFor(m: ServerModel, secret: Secret | null): Promise<LanguageModel> {

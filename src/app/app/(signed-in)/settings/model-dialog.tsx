@@ -116,6 +116,7 @@ function ModelForm({ mode, userId, taken, onClose, onSaved }: Omit<Props, "open"
         </div>
         {GROUPS.map((g) => {
           const list = shown.filter((p) => p.group === g);
+          if (g === "more") list.sort((a, b) => a.name.localeCompare(b.name));
           if (!list.length) return null;
           return (
             <section className={m.group} key={g} aria-labelledby={`grp-${g}`}>
