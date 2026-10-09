@@ -11,7 +11,7 @@ test("paste a prompt, then rename, duplicate, archive and delete it with undo", 
   await signIn(page, uniqueEmail("library"));
   await expect(page.getByRole("heading", { name: "Your library is empty." })).toBeVisible();
 
-  await page.getByRole("link", { name: "New prompt" }).click();
+  await page.getByRole("link", { name: "New prompt" }).first().click();
   await page.getByLabel("Your prompt").fill(PASTE);
   await expect(page.locator(".var", { hasText: "{{order_id}}" })).toBeVisible();
   await expect(page.locator(".var", { hasText: "{{customer_name}}" })).toBeVisible();
@@ -35,8 +35,8 @@ test("paste a prompt, then rename, duplicate, archive and delete it with undo", 
 
   await page.keyboard.press("ControlOrMeta+k");
   await page.keyboard.type("refund");
-  await expect(page.locator("mark.hit")).toHaveText("refund");
   await expect(page.locator("tbody tr")).toHaveCount(1);
+  await expect(page.locator("mark.hit")).toHaveText("refund");
   await page.getByLabel("Search prompts by name").fill("zzz");
   await expect(page.getByText("No prompt names match “zzz”.")).toBeVisible();
   await page.getByRole("button", { name: "Clear search" }).click();

@@ -17,7 +17,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
     token: q.token,
     callbackURL: safeNext(q.callbackURL),
     newUserCallbackURL: safeNext(q.newUserCallbackURL ?? q.callbackURL),
-    errorCallbackURL: "/sign-in?error=link",
+    errorCallbackURL: "/sign-in?via=link",
   });
   const href = `/api/auth/magic-link/verify?${verify.toString()}`;
   return (

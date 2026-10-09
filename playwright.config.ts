@@ -44,6 +44,7 @@ export default defineConfig({
       E2E_MODE: "1",
       DATABASE_URL: process.env.E2E_DATABASE_URL ?? "",
       DATABASE_URL_UNPOOLED: process.env.E2E_DATABASE_URL ?? "",
+      DB_POOL_MAX: process.env.DB_POOL_MAX ?? "5",
     },
   },
 });

@@ -102,9 +102,10 @@ test("typed text survives a closed tab through the local draft", async ({ page }
   await page.keyboard.press("End");
   await page.keyboard.type(" Typed offline.");
   await expect(page.getByText("Not saved · retrying")).toBeVisible({ timeout: 15_000 });
-  await page.unroute("**/api/prompts/*/versions");
+  // The tab closes before the server ever got the change.
   await page.reload();
   await expect(page.getByText(/Unsaved changes from .* were kept on this device\./)).toBeVisible();
+  await page.unroute("**/api/prompts/*/versions");
   await page.getByRole("button", { name: "Restore them" }).click();
   await expect(page.getByRole("textbox", { name: "Text of blok B1" })).toHaveText("Keep this. Typed offline.");
   await saved(page);

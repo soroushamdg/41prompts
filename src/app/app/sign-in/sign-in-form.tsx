@@ -11,12 +11,12 @@ import s from "./sign-in.module.css";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-const ERRORS: Record<string, string> = {
+const ERRORS = {
   link: "That sign-in link has expired or was already used. Ask for a new one below.",
   oauth: "That sign-in did not finish. Try again, or use an email link.",
 };
 
-type Props = { next: string; error?: string; providers: Array<"google" | "github">; pricingEnabled: boolean };
+type Props = { next: string; error?: { via: "link" | "oauth" }; providers: Array<"google" | "github">; pricingEnabled: boolean };
 
 function subscribeHash(cb: () => void) {
   window.addEventListener("hashchange", cb);
@@ -30,7 +30,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
   const [bad, setBad] = useState(false);
   const [shake, setShake] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | null>(error ? (ERRORS[error] ?? ERRORS.link!) : null);
+  const [failure, setFailure] = useState<string | null>(error ? ERRORS[error.via] : null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [drawn, setDrawn] = useState(false);
   const input = useRef<HTMLInputElement>(null);
@@ -49,7 +49,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
     setBad(false);
     setFailure(null);
     setBusy(true);
-    const { error: err } = await authClient.signIn.magicLink({ email: v, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?error=link" });
+    const { error: err } = await authClient.signIn.magicLink({ email: v, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?via=link" });
     setBusy(false);
     if (err) {
       setFailure(err.status === 429 ? "Too many links in a short time. Wait a minute and try again." : "The link did not send. Check the address and try again.");
@@ -61,7 +61,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
 
   function social(provider: "google" | "github") {
     setFailure(null);
-    void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?error=oauth" });
+    void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?via=oauth" });
   }
 
   return (
