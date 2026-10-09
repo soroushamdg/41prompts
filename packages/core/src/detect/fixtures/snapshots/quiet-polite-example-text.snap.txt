@@ -1,8 +1,0 @@
-# SPDX-FileCopyrightText: 2026 41Prompts Inc.
-# SPDX-License-Identifier: Apache-2.0
-#
-# quiet-polite-example-text — The word "please" appears only inside quoted example input, where it is the customer's word and not padding in the prompt. `padding` must not fire.
-#
-# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
-

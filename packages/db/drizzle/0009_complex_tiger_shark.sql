@@ -1,1 +1,0 @@
-ALTER TABLE "suite_runs" ADD COLUMN "passed_notified_at" timestamp;

@@ -1,8 +1,0 @@
-# SPDX-FileCopyrightText: 2026 41Prompts Inc.
-# SPDX-License-Identifier: Apache-2.0
-#
-# quiet-many-short-rules — A prompt that is long because it has many distinct rules, each of them short. `too_long` counts per blok, so none of these may fire — and the whole prompt is well under the prompt-level threshold.
-#
-# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
-

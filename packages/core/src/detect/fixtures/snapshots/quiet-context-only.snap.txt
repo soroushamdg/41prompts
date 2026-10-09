@@ -1,8 +1,0 @@
-# SPDX-FileCopyrightText: 2026 41Prompts Inc.
-# SPDX-License-Identifier: Apache-2.0
-#
-# quiet-context-only — A prompt made entirely of context, with no rule in it at all. The absence of checks is not a finding when there is nothing to check.
-#
-# Generated. Regenerate with:  pnpm --filter @41prompts/core exec vitest run -u
-# 0 finding(s)
-

@@ -1,1 +1,0 @@
-ALTER TABLE "prompt_versions" ADD COLUMN "snapshot_hash" text;
