@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@/components/analytics";
 import { HeadFlags } from "@/components/head-flags";
 import { IconSprite } from "@/components/icon";
 import { MotionProvider } from "@/components/motion-provider";
@@ -28,6 +29,7 @@ export default async function AppRootLayout({ children }: { children: React.Reac
       </head>
       <body className={s.app}>
         <IconSprite />
+        <Analytics />
         <MotionProvider>
           <ToastProvider>{children}</ToastProvider>
         </MotionProvider>

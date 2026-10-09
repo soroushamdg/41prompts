@@ -36,7 +36,7 @@ If any of these is missing, people leave. Having them earns no credit.
 
 | ID | Feature | What's expected |
 |---|---|---|
-| B01 | **Stripe billing** | Upgrade opens Stripe Checkout as a hosted page; 41prompts never touches card data. A Stripe billing portal handles card changes, invoices and cancelling. Webhooks set `plan` on the account, and Performance is enforced on the server, never only hidden in the UI. Failed payments get a grace period and an email. Cancelling keeps all data on Free. Sales tax: Stripe calculates GST/QST but is not the merchant of record. If you don't want to file tax yourself, Paddle or Lemon Squeezy are the alternative. |
+| B01 | **Stripe billing** | Upgrade opens Stripe Checkout as a hosted page; 41prompts never touches card data. A Stripe billing portal handles card changes, invoices and cancelling. Webhooks set `plan` on the account, and Performance is enforced on the server, never only hidden in the UI. Failed payments get a grace period and an email. Cancelling keeps all data on Free. Sales tax: Checkout runs with Stripe Managed Payments, so Stripe (through Link) is the merchant of record and handles sales tax, VAT and GST, receipts, refunds and disputes. |
 
 ---
 
@@ -77,7 +77,7 @@ Not in any plan. Delete the code; tag the commit before deleting.
 
 - SDK runtime fetch and live publishing. These put 41prompts in other apps' request path and make you on-call.
 - Bundled fallback and publish gating, which existed only to protect the runtime.
-- Staging server. Use a local `docker compose` copy before deploys.
+- Staging server. Use the built app locally (`next build && next start`) against a Neon branch before deploys.
 - Lessons curriculum. The first-run aha (D04) replaces it.
 - A/B comparison view. P05 and P07 cover it.
 - Creator stats, prompt chains, and hosted runs paid for out of your own inference budget.
