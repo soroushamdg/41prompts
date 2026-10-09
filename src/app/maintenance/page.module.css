@@ -1,0 +1,149 @@
+/* The maintenance sheet: a full-viewport Blueprint drawing sheet with its
+   border, zone marks, a grid that reveals itself outward from the drawing,
+   the copy, Sheet 00 and the title block. Motion follows the landing hero
+   (docs/assets/css/landing.css); base styles are the end state, so reduced
+   motion shows the finished page. */
+
+.sheet {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(24px, 3.4vh, 40px) clamp(24px, 4vw, 64px);
+  cursor: var(--cur-cross);
+}
+
+/* ---- Grid: 80/16 px, a radial mask grows it outward from the drawing ----- */
+.grid {
+  --gx: 71%;
+  --gy: 50%;
+  --reveal: 150%;
+  position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(156, 195, 255, .09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156, 195, 255, .09) 1px, transparent 1px),
+    linear-gradient(var(--grid-minor) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  background-position: -1px -1px;
+  -webkit-mask-image: radial-gradient(circle at var(--gx) var(--gy), #000 var(--reveal), transparent calc(var(--reveal) + 14%));
+  mask-image: radial-gradient(circle at var(--gx) var(--gy), #000 var(--reveal), transparent calc(var(--reveal) + 14%));
+}
+/* A soft pool of light behind the drawing. */
+.grid::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 46% 52% at var(--gx) var(--gy), rgba(156, 195, 255, .06), transparent 70%);
+}
+
+/* ---- Sheet border: registration corners and zone marks ------------------- */
+.border {
+  --corner: var(--chalk);
+  --cl: 16px;
+  --cw: 2px;
+  position: absolute; inset: 14px; z-index: 0; pointer-events: none;
+  border: 1px solid var(--line-2);
+  background:
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cw) var(--cl) no-repeat;
+  background-origin: border-box;
+}
+.zonesX, .zonesY {
+  position: absolute; display: flex;
+  font-family: var(--f-mono); font-size: 8.5px; line-height: 1; letter-spacing: .08em; color: var(--chalk-4);
+}
+.zonesX { left: 0; right: 0; top: -14px; height: 14px; }
+.zonesY { top: 0; bottom: 0; left: -14px; width: 14px; flex-direction: column; }
+.zonesX > span, .zonesY > span { flex: 1; display: grid; place-items: center; position: relative; }
+.zonesX > span + span::before { content: ""; position: absolute; left: 0; bottom: 0; height: 5px; border-left: 1px solid var(--line-2); }
+.zonesY > span + span::before { content: ""; position: absolute; top: 0; right: 0; width: 5px; border-top: 1px solid var(--line-2); }
+
+/* ---- Layout ---------------------------------------------------------------- */
+.top, .body, .foot { position: relative; z-index: 2; width: 100%; max-width: 1240px; margin-inline: auto; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(32px, 5vw, 80px);
+  align-items: center;
+  padding-block: clamp(20px, 3vh, 40px);
+}
+.foot { display: flex; justify-content: flex-end; }
+.foot > * { margin: 0; }
+
+/* ---- Copy ------------------------------------------------------------------ */
+.copy { min-width: 0; }
+.status { display: flex; align-items: center; gap: 12px; margin: 0; color: var(--accent); }
+.status b { font-weight: 400; color: var(--chalk); }
+.tick {
+  display: inline-block; width: 30px; height: 7px; flex: none;
+  border-inline: 1px solid currentColor;
+  background: linear-gradient(currentColor, currentColor) center / 100% 1px no-repeat;
+  transform-origin: left;
+}
+.spin { flex: none; width: 11px; height: 11px; border-radius: 50%; border: 1.5px dashed currentColor; }
+.caret { display: inline-block; width: .62em; height: 1.15em; margin-left: -6px; background: var(--accent); vertical-align: middle; }
+
+.title {
+  margin: .32em 0 .38em;
+  font-family: var(--f-display); font-weight: 800;
+  font-size: clamp(44px, 5.6vw, 84px);
+  line-height: .92; letter-spacing: -.048em;
+}
+.ln { display: block; overflow: hidden; padding-bottom: .07em; margin-bottom: -.07em; }
+.ln > span { display: inline-block; white-space: nowrap; }
+.lede { max-width: 44ch; margin: 0; font-size: var(--t-lg); line-height: 1.55; color: var(--chalk-2); }
+
+/* ---- Motion: only when it is welcome ------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .grid { animation: grid-open 2400ms var(--ease-draw) 80ms both; }
+  .border { animation: fade 900ms ease both; }
+  .top { animation: fade 700ms ease 60ms both; }
+  .status { animation: rise 700ms var(--ease-brand) 100ms both; }
+  .tick { animation: grow-x 900ms var(--ease-draw) 200ms both; }
+  .spin { animation: spin 1.6s linear infinite; }
+  .caret { animation: blink 1.06s steps(1) infinite; }
+  .ln > span { animation: ln-up 1100ms var(--ease-brand) both; }
+  .ln:nth-child(1) > span { animation-delay: 160ms; }
+  .ln:nth-child(2) > span { animation-delay: 250ms; }
+  .ln:nth-child(3) > span { animation-delay: 340ms; }
+  .lede { animation: rise 900ms var(--ease-brand) 520ms both; }
+  .foot { animation: rise 900ms var(--ease-brand) 760ms both; }
+}
+@keyframes grid-open { from { --reveal: 0%; } to { --reveal: 150%; } }
+@keyframes ln-up { from { transform: translateY(108%); } to { transform: none; } }
+@keyframes fade { from { opacity: 0; } }
+/* From motion.css and app.css. */
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Desktop: keep the drawing inside one screen ------------------------- */
+@media (min-width: 901px) {
+  .body > :last-child { --w: min(580px, 100%, calc((100svh - 300px) * 1.19)); }
+}
+
+/* ---- Stacked: the drawing goes under the text ----------------------------- */
+@media (max-width: 900px) {
+  .sheet { padding: 28px 24px 32px; }
+  .grid { --gx: 50%; --gy: 66%; }
+  .body { grid-template-columns: minmax(0, 1fr); align-items: start; gap: 40px; padding-block: 28px 36px; }
+  .title { font-size: clamp(40px, 11.2vw, 84px); }
+  .foot { justify-content: flex-start; }
+  .zonesX, .zonesY { display: none; }
+}
+@media (max-width: 600px) {
+  .sheet { padding-inline: 20px; }
+  .border { inset: 8px; --cl: 12px; }
+  .lede { font-size: 17px; }
+}
