@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · Find what nothing checks</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  body { --gx: 34%; --gy: 54%; }
+  .doc { position: absolute; left: 62px; top: 122px; width: 414px; z-index: 6; --corner: var(--line-3); --frame-bg: rgba(6,16,34,.95); }
+  .doc__head { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line-2); white-space: nowrap; }
+  .doc__head .chip { margin-left: auto; }
+  .doc__body { padding: 22px 20px 24px 16px; font-family: var(--f-mono); font-size: 13.2px; line-height: 2.35; color: var(--chalk-3); white-space: nowrap; }
+  .doc__body .ln { display: grid; grid-template-columns: 22px 1fr; }
+  .doc__body .ln > i { font-style: normal; color: var(--chalk-4); opacity: .6; font-size: 10px; }
+  .m { position: relative; color: var(--chalk); background: rgba(156,195,255,.18); border-radius: 2px; padding: 2px 2px; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+  .m--bad { background: rgba(255,122,102,.2); }
+  .doc__body .balloon { width: 19px; height: 19px; font-size: 9px; margin-left: 8px; vertical-align: 1px; line-height: 1; }
+  
+
+  .cards { position: absolute; left: 514px; top: 122px; width: 250px; z-index: 6; display: flex; flex-direction: column; gap: 14px; }
+  .card { --corner: var(--line-3); --frame-bg: rgba(8,20,40,.95); padding: 12px 14px 13px; }
+  .card.bad { --corner: var(--fail); border-color: rgba(255,122,102,.55); }
+  .card__head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .card__head .balloon { width: 20px; height: 20px; font-size: 9.5px; }
+  .card__head b { font-family: var(--f-display); font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+  .sev { margin-left: auto; font-family: var(--f-mono); font-size: 9px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--line-3); color: var(--chalk-3); }
+  .sev--high { color: var(--fail-text); border-color: rgba(255,122,102,.6); }
+  .card p { font-size: 12.5px; line-height: 1.45; color: var(--chalk-2); }
+  .fix { margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line-2); font-family: var(--f-mono); font-size: 10.5px; line-height: 1.7; color: var(--chalk-2); }
+  .ins { background: rgba(111,227,165,.12); border-radius: 2px; padding: 0 2px; }
+  .fix .label { font-size: 9px; display: block; margin-bottom: 2px; }
+  .del { color: var(--fail-text); text-decoration: line-through; text-decoration-color: rgba(255,154,138,.7); }
+  .ins { color: var(--pass); }
+
+  .copy { position: absolute; left: 812px; top: 150px; width: 398px; z-index: 6; }
+  .copy h1 { font-size: 64px; margin: 22px 0 22px; }
+  .copy .lede { font-size: 16px; margin-bottom: 26px; }
+  .tally { display: grid; grid-template-columns: 1fr 1fr 1fr 1.6fr; border-top: 1px dashed var(--line-2); }
+  .tally div { padding: 12px 16px 14px; border-left: 1px solid var(--line-1); display: flex; flex-direction: column; gap: 6px; }
+  .tally .small { font-size: 14px; line-height: 29px; font-family: var(--f-body); font-weight: 500; letter-spacing: 0; }
+  .tally div:first-child { border-left: 0; }
+  .tally b { font-family: var(--f-display); font-weight: 800; font-size: 24px; letter-spacing: -.02em; }
+  .tally .hi b { color: var(--fail-text); }
+</style>
+</head>
+<body data-sheet="04" data-name="Linter" data-kicker="Prompt linter" data-foot="Example data">
+
+<div class="doc frame" id="doc">
+  <div class="doc__head"><span class="label label--chalk">support-reply.prompt</span><span class="chip">3 findings</span></div>
+  <div class="doc__body">
+    <div class="ln"><i>1</i><span>You are a support agent for<br>Northwind Outfitters.<br><span class="m" id="h1">Keep replies short.</span><span class="balloon" id="k1">1</span><br>Reply in under 80 words.</span></div>
+    <div class="ln"><i>2</i><span><span class="m m--bad" id="h2a">Always offer a refund on late orders.</span><span class="balloon balloon--bad" id="k2">2</span></span></div>
+    <div class="ln"><i>3</i><span><span class="m m--bad" id="h2b">Never promise a refund.</span></span></div>
+    <div class="ln"><i>4</i><span>Greet the customer by name.<br><span class="m" id="h3">Be helpful and friendly.</span><span class="balloon" id="k3">3</span></span></div>
+  </div>
+  <div class="tally">
+    <div class="hi"><span class="label">High</span><b>1</b></div>
+    <div><span class="label">Medium</span><b>1</b></div>
+    <div><span class="label">Low</span><b>1</b></div>
+    <div><span class="label">Dismiss</span><b class="small">Per prompt</b></div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card frame" id="c1">
+    <div class="card__head"><span class="balloon">1</span><b>Repeat</b><span class="sev">Low</span></div>
+    <p>“Keep replies short” says what “Reply in under 80 words” already says.</p>
+    <div class="fix"><span class="label">Suggested fix</span><span class="del">Keep replies short.</span></div>
+  </div>
+  <div class="card frame bad" id="c2">
+    <div class="card__head"><span class="balloon balloon--bad">2</span><b>Conflict</b><span class="sev sev--high">High</span></div>
+    <p>Line 2 offers a refund.<br>Line 3 forbids one.</p>
+    <div class="fix"><span class="label">Suggested fix</span>Always offer <span class="del">a refund</span> <span class="ins">an exchange</span> on late orders.</div>
+  </div>
+  <div class="card frame" id="c3">
+    <div class="card__head"><span class="balloon">3</span><b>Untestable</b><span class="sev">Medium</span></div>
+    <p>Nothing can check “helpful”.</p>
+    <div class="fix"><span class="label">Suggested fix</span><span class="ins">Answer the question in the first sentence.</span></div>
+  </div>
+</div>
+
+<div class="copy">
+  <div class="eyebrow">Prompt linter · P02</div>
+  <h1>Find what nothing checks.</h1>
+  <p class="lede">The linter reads your prompt on import and flags repeated rules, contradictions between bloks and lines no test could verify. Each finding comes with a severity and a suggested fix.</p>
+  <div class="ids"><span class="id">P02</span><span class="id">P03</span><span class="stamp">Performance</span></div>
+</div>
+
+<script src="chrome.js"></script>
+<script>
+Sheet.ready(function () {
+  var S = Sheet, q = function (s) { return document.querySelector(s); };
+  var docR = q("#doc").getBoundingClientRect().right;
+  [["#k1", "#c1", "#9CC3FF"], ["#k2", "#c2", "#FF7A66"], ["#k3", "#c3", "#9CC3FF"]].forEach(function (k, i) {
+    var a = S.pt(q(k[0]), 1, .5), b = S.pt(q(k[1] + " .balloon"), 0, .5);
+    var x1 = docR + 14 + i * 6;
+    S.path([[a[0] + 1, a[1]], [x1, a[1]], [x1, b[1]], [b[0] - 1, b[1]]], { color: k[2], width: 1.15, opacity: .9 });
+    S.dot([x1, a[1]], k[2], 2.2);
+  });
+  // conflict bracket joining the two red lines
+  var t = q("#h2a").getBoundingClientRect(), u = q("#h2b").getBoundingClientRect();
+  var bx = q("#doc .doc__body").getBoundingClientRect().left + 6;
+  S.path([[bx + 7, t.top + t.height / 2], [bx, t.top + t.height / 2], [bx, u.top + u.height / 2], [bx + 7, u.top + u.height / 2]], { color: "#FF7A66", width: 1.3 });
+});
+</script>
+</body>
+</html>

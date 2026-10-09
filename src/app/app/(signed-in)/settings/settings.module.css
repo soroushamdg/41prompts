@@ -1,0 +1,50 @@
+/* Settings (Sheet A05). Ported from docs/assets/css/app.css. */
+.set { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; }
+.nav { flex: 1 1 200px; max-width: 240px; position: sticky; top: 84px; display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 7px; color: var(--chalk-2); text-decoration: none; transition: background-color var(--dur-1), color var(--dur-1); }
+.nav a:hover { color: var(--chalk); background: rgba(156, 195, 255, .06); }
+.nav a[data-on] { color: var(--chalk); background: rgba(156, 195, 255, .12); }
+.main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 48px; }
+.sec { display: flex; flex-direction: column; gap: 14px; scroll-margin-top: 84px; }
+.sec h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 26px; letter-spacing: -.015em; }
+.sec > p { margin: 0; color: var(--chalk-3); max-width: 62ch; }
+.box { border: 1px solid var(--line-2); background: rgba(12, 28, 56, .92); }
+.row { display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 16px; border-bottom: 1px solid var(--line-1); }
+.row:last-child { border-bottom: 0; }
+.rowMain { flex: 1 1 220px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rowMain b { font-weight: 500; font-size: 15px; }
+.rowMain span { font-size: 13px; color: var(--chalk-3); }
+.rowMain :global(.mono) { font-size: 11.5px; }
+.rowActs { display: flex; gap: 8px; flex-wrap: wrap; }
+.keyform { flex: 1 1 340px; display: flex; gap: 8px; }
+.keyform :global(.input) { flex: 1; min-width: 0; min-height: 40px; }
+.keyErr { flex: 1 1 100%; margin: 0; font-size: 13px; color: var(--fail-text); }
+.foot { display: flex; align-items: center; gap: 10px; padding: 12px 16px; font-size: 13px; color: var(--chalk-3); }
+.planrow { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.plancard { --frame-bg: rgba(12, 28, 56, .92); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+.plancardPerf { --corner: var(--chalk); border-color: var(--line-3); --frame-bg: rgba(19, 40, 76, .94); }
+.planTop { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.price { display: flex; align-items: baseline; gap: 6px; font-family: var(--f-display); }
+.price b { font-size: 40px; font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.price .tbd { color: transparent; -webkit-text-stroke: 1.2px var(--chalk); font-size: 30px; }
+.price span { font-family: var(--f-body); color: var(--chalk-3); }
+.plancard ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; flex: 1; }
+.plancard li { position: relative; padding-left: 22px; color: var(--chalk-2); font-size: 13.5px; }
+.plancard li::before { content: ""; position: absolute; left: 0; top: .75em; width: 11px; border-top: 1.5px dashed var(--accent); }
+.plancard li small { font-family: var(--f-mono); font-size: 9.5px; color: var(--chalk-3); letter-spacing: .06em; }
+.status { margin: 0; font-size: 13px; color: var(--chalk-2); }
+.exportState { display: flex; flex-direction: column; gap: 8px; flex: 1 1 100%; animation: rise 300ms var(--ease-brand); }
+.danger { --corner: var(--fail); --frame-bg: rgba(255, 122, 102, .05); border-color: rgba(255, 122, 102, .5); padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.danger b { color: var(--fail-text); font-weight: 600; }
+.danger p { margin: 0; color: var(--chalk-2); font-size: 13.5px; max-width: 64ch; }
+.dangerForm { display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.dangerForm :global(.field) { flex: 1 1 240px; }
+.danger :global(.input) { border-color: rgba(255, 122, 102, .5); }
+.shake { animation: shake 360ms; }
+.always { display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-mono); font-size: 11px; color: var(--pass); }
+.highlight { animation: glow 1100ms ease-out; }
+@keyframes glow { from { box-shadow: 0 0 0 0 rgba(233, 241, 255, .45); } to { box-shadow: 0 0 0 14px rgba(233, 241, 255, 0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@media (max-width: 900px) { .nav { position: relative; top: auto; max-width: none; flex-direction: row; flex-wrap: wrap; } }
+@media (max-width: 640px) { .keyform { flex-basis: 100%; } }

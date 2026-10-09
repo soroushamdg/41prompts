@@ -8,7 +8,6 @@ import { SearchHotkey } from "@/components/search-hotkey";
 import { TabList, TabPanel } from "@/components/tabs";
 import { useToast } from "@/components/toast";
 import { PerfButton } from "@/components/upgrade/upgrade";
-import type { Provider } from "@/db/schema";
 import { BLOK_LABEL, BLOK_TYPES, type Blok, type BlokType } from "@/lib/bloks";
 import { compile, toJson, toMarkdown } from "@/lib/compile";
 import { cx } from "@/lib/cx";
@@ -16,6 +15,7 @@ import { slugify } from "@/lib/slug";
 import { relativeTime } from "@/lib/time";
 import { getVersionAction, nameVersionAction, restoreVersionAction, saveFillValuesAction } from "@/server/actions/editor";
 import { renamePromptAction } from "@/server/actions/prompts";
+import type { KeySummary } from "@/server/keys";
 import type { LibraryItem } from "@/server/prompts";
 import type { SaveResult, VersionMeta } from "@/server/versions";
 import { BlokCard } from "./blok-card";
@@ -33,7 +33,7 @@ export type EditorProps = {
   bloks: Blok[];
   versions: VersionMeta[];
   rail: LibraryItem[];
-  providers: Provider[];
+  keys: KeySummary[];
   keysLabel: string;
 };
 
@@ -296,6 +296,7 @@ export function Editor(props: EditorProps) {
   const deferred = useDeferredValue(source);
   const compiled = useMemo(() => compile(deferred, mode, values), [deferred, mode, values]);
   const variables = useMemo(() => compile(source).variables, [source]);
+  const runSystem = useMemo(() => compile(bloks, "filled", values).text, [bloks, values]);
 
   function setValue(name: string, value: string) {
     setValues((v) => {
@@ -520,7 +521,7 @@ export function Editor(props: EditorProps) {
           />
         </TabPanel>
         <TabPanel idPrefix="out" id="run" active={tab === "run"} className={s.panel}>
-          <RunPanel />
+          <RunPanel storageKey={`41p:run:${userId}:${prompt.id}`} keys={props.keys} system={runSystem} missing={variables.filter((v) => !values[v]?.trim())} />
         </TabPanel>
         <TabPanel idPrefix="out" id="history" active={tab === "history"} className={s.panel}>
           <HistoryPanel versions={versions} viewing={viewing?.number ?? null} busy={busy} onOpen={open} onRestore={restore} onName={nameHead} />
