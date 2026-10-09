@@ -6,10 +6,7 @@ import { setAnalyticsSink } from "@/lib/analytics";
 import { authClient } from "@/lib/auth-client";
 import { clearLocalDrafts } from "@/lib/drafts";
 import { siteUrl } from "@/lib/hosts";
-
-export function initialFor(name: string, email: string): string {
-  return (name.trim() || email.trim() || "?").charAt(0).toUpperCase();
-}
+import { initialFor } from "@/lib/user";
 
 export async function signOutEverywhere() {
   clearLocalDrafts();

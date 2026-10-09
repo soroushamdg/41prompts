@@ -26,6 +26,13 @@ type UpgradeConfig = {
   interested?: boolean;
 };
 
+/** Opens Stripe Checkout (or the portal for an existing subscriber). */
+export async function startCheckout(): Promise<string | null> {
+  const res = await fetch("/api/stripe/checkout", { method: "POST" });
+  if (!res.ok) return null;
+  return ((await res.json()) as { url?: string }).url ?? null;
+}
+
 type Ctx = { open: (feature: PerformanceFeature) => void; plan: Plan };
 const UpgradeContext = createContext<Ctx>({ open: () => {}, plan: "free" });
 
@@ -71,9 +78,9 @@ export function UpgradeProvider({ children, ...config }: UpgradeConfig & { child
   }
 
   async function checkout() {
-    if (!config.startCheckout) return;
     setBusy(true);
-    const url = await config.startCheckout().catch(() => null);
+    const start = config.startCheckout ?? startCheckout;
+    const url = await start().catch(() => null);
     if (url) window.location.assign(url);
     else {
       setBusy(false);

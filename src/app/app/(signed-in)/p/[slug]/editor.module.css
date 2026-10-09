@@ -134,3 +134,4 @@
   .side { max-width: none; border-left: 0; border-top: 1px solid var(--line-1); }
   .side :global(.tabs) { top: 0; position: relative; }
 }
+.runErr { color: var(--fail-text); }
