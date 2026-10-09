@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · From a wall of text to parts you can name</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  body { --gx: 50%; --gy: 64%; }
+  .head { position: absolute; left: 62px; top: 112px; right: 62px; display: grid; grid-template-columns: 640px 1fr; gap: 50px; align-items: end; z-index: 6; }
+  .head h1 { font-size: 54px; margin-top: 18px; }
+  .head .lede { font-size: 15.5px; }
+  .head .ids { margin-top: 14px; }
+
+  .cols { position: absolute; left: 62px; right: 62px; top: 290px; display: grid; grid-template-columns: 292px 384px 330px; justify-content: space-between; z-index: 6; }
+  .step { display: flex; align-items: baseline; gap: 10px; margin-bottom: 12px; height: 20px; }
+  .step .n { font-family: var(--f-mono); font-size: 11px; color: var(--accent); }
+  .step .t { font-family: var(--f-display); font-weight: 700; font-size: 16px; letter-spacing: -.01em; color: var(--chalk); }
+  .step .label { margin-left: auto; }
+
+  .paste { --corner: var(--line-3); --frame-bg: rgba(6,16,34,.92); padding: 12px 34px 14px 14px; }
+  .paste__head { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .paste pre { font-family: var(--f-mono); font-size: 10.6px; line-height: 1.95; color: var(--chalk-2); white-space: pre; }
+  .seg { position: relative; display: block; }
+  .seg::after { content: ""; position: absolute; right: -22px; top: 5px; bottom: 5px; width: 6px; border: 1.5px solid var(--c); border-left: 0; }
+  .seg[data-b="1"] { --c: var(--blok-context); } .seg[data-b="2"] { --c: var(--blok-constraint); }
+  .seg[data-b="3"] { --c: var(--blok-example); } .seg[data-b="4"] { --c: var(--blok-expects); }
+
+  .bloks { display: flex; flex-direction: column; gap: 9px; }
+  .bloks .blok { display: flex; gap: 8px; padding: 9px 14px 10px 6px; }
+  .bloks .grip { width: 14px; flex: none; display: grid; grid-template-columns: repeat(2, 3px); gap: 3px 3px; align-content: start; padding-top: 6px; }
+  .bloks .grip i { width: 3px; height: 3px; border-radius: 50%; background: var(--chalk-4); }
+  .bloks .blok__main { flex: 1; }
+  .bloks .blok__head { margin-bottom: 3px; }
+  .bloks .blok__text { font-size: 13px; line-height: 1.5; }
+  .bloks .blok__foot { display: flex; gap: 8px; align-items: center; margin-top: 7px; }
+  .note { font-family: var(--f-mono); font-size: 9.5px; color: var(--chalk-3); border: 1px dashed var(--line-3); border-radius: 4px; padding: 2px 7px; }
+  .blok.is-hot { --frame-bg: rgba(20,42,78,.96); box-shadow: 0 0 0 4px rgba(198,168,255,.07), 0 16px 40px -14px rgba(198,168,255,.35); }
+
+  .out { display: flex; flex-direction: column; gap: 10px; }
+  .compiled { --corner: var(--line-3); --frame-bg: rgba(6,16,34,.94); padding: 12px 14px 12px 12px; }
+  .compiled__head { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .seg2 { display: grid; grid-template-columns: 24px 1fr; gap: 6px; margin-bottom: 9px; font-family: var(--f-mono); font-size: 10.3px; line-height: 1.75; color: var(--chalk); }
+  .seg2:last-child { margin-bottom: 0; }
+  .seg2 > span:first-child { color: var(--chalk-4); }
+  .seg2.is-hot > span:last-child { background: rgba(198,168,255,.13); box-shadow: -4px 0 0 rgba(198,168,255,.13), 4px 0 0 rgba(198,168,255,.13); border-radius: 2px; }
+  .seg2.is-hot > span:first-child { color: var(--blok-example); }
+  .v { color: var(--variable); }
+  .copybtn { display: flex; align-items: center; justify-content: flex-start; padding-left: 16px; gap: 8px; height: 38px; border-radius: 7px; background: var(--chalk); color: var(--bp-ground); font-weight: 600; font-size: 14px; }
+  .copybtn svg { width: 15px; height: 15px; }
+  .copyrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .copyrow span { height: 30px; border: 1px solid var(--line-3); border-radius: 7px; display: grid; place-items: center; font-size: 12px; color: var(--chalk); font-weight: 500; }
+  .tests { --corner: var(--blok-expects); --frame-bg: rgba(8,26,32,.6); border-style: dashed; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .tests__head { display: flex; justify-content: space-between; align-items: center; }
+  .tests li { list-style: none; display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--chalk-2); }
+  .tests li::before { content: ""; width: 9px; height: 9px; border: 1px solid var(--blok-expects); border-radius: 2px; flex: none; }
+  .copied { position: absolute; z-index: 22; font-family: var(--f-mono); font-size: 10px; color: var(--pass); background: var(--bp-ground); border: 1px solid rgba(111,227,165,.5); border-radius: 999px; padding: 4px 9px; display: flex; gap: 6px; align-items: center; }
+  .cursor { position: absolute; z-index: 23; width: 22px; height: 22px; }
+</style>
+</head>
+<body data-sheet="02" data-name="Bloks" data-kicker="Prompt editor" data-foot="Paste · Shape · Copy">
+
+<div class="head">
+  <div>
+    <div class="eyebrow">Prompt editor · How it works</div>
+    <h1>From a wall of text to parts you can name.</h1>
+  </div>
+  <div>
+    <p class="lede">Each blok owns an exact span of the compiled prompt, so you always know which part says what. Expects bloks stay out of the prompt and become tests.</p>
+    <div class="ids"><span class="id">M02</span><span class="id">M03</span><span class="id">M04</span><span class="stamp stamp--outline">Free</span><span class="id">P03</span><span class="stamp">Performance</span></div>
+  </div>
+</div>
+
+<div class="cols">
+  <section>
+    <div class="step"><span class="n">01</span><span class="t">Paste</span><span class="label">Any length</span></div>
+    <div class="paste frame" id="paste">
+      <div class="paste__head"><span class="label label--chalk">support-reply.prompt</span><span class="label">9 lines</span></div>
+<pre><span class="seg" data-b="1" id="s1">You are a support agent for
+Northwind Outfitters, an outdoor
+gear shop. Customers write in
+about orders, returns and sizing.</span><span class="seg" data-b="2" id="s2">Reply in under 80 words. Greet
+the customer as {{customer_name}}.</span><span class="seg" data-b="3" id="s3">Example: "Sorry about that, Sam.
+I've started an exchange for a
+size 10. A prepaid label is in
+your inbox."</span><span class="seg" data-b="4" id="s4">Never promise a refund. Link the
+returns page when returns come up.</span></pre>
+    </div>
+  </section>
+
+  <section>
+    <div class="step"><span class="n">02</span><span class="t">Shape it into bloks</span><span class="label">Drag to reorder</span></div>
+    <div class="bloks">
+      <div class="blok frame" data-type="context" id="b1"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="blok__main">
+        <div class="blok__head"><span class="blok__type">Context</span><span class="blok__id">B1</span></div>
+        <div class="blok__text">You are a support agent for Northwind Outfitters, an outdoor gear shop.</div></div></div>
+      <div class="blok frame" data-type="constraint" id="b2"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="blok__main">
+        <div class="blok__head"><span class="blok__type">Constraint</span><span class="blok__id">B2</span></div>
+        <div class="blok__text">Reply in under 80 words. Greet the customer as <span class="var">{{customer_name}}</span></div></div></div>
+      <div class="blok frame is-hot" data-type="example" id="b3"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="blok__main">
+        <div class="blok__head"><span class="blok__type">Example</span><span class="blok__id">B3</span></div>
+        <div class="blok__text">Sorry about that, Sam. I’ve started an exchange for a size 10, and a prepaid label is in your inbox.</div></div></div>
+      <div class="blok frame" data-type="expects" id="b4"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="blok__main">
+        <div class="blok__head"><span class="blok__type">Expects</span><span class="blok__id">B4</span></div>
+        <div class="blok__text">Never promises a refund. Links the returns page when returns come up.</div>
+        <div class="blok__foot"><span class="note">Becomes a test · not in the prompt</span></div></div></div>
+    </div>
+  </section>
+
+  <section class="out">
+    <div class="step" style="margin-bottom:2px"><span class="n">03</span><span class="t">Copy it, or test it</span><span class="label">Live</span></div>
+    <div class="compiled frame" id="compiled">
+      <div class="compiled__head"><span class="label label--chalk">Compiled</span><span class="label">≈ 87 tok · 346 chars</span></div>
+      <div class="seg2" id="c1"><span>B1</span><span>You are a support agent for Northwind Outfitters, an outdoor gear shop.</span></div>
+      <div class="seg2" id="c2"><span>B2</span><span>Reply in under 80 words. Greet the customer as <span class="v">{{customer_name}}</span>.</span></div>
+      <div class="seg2 is-hot" id="c3"><span>B3</span><span>Agent: Sorry about that, Sam. I’ve started an exchange for a size 10, and a prepaid label is in your inbox.</span></div>
+    </div>
+    <div class="copybtn" id="copy"><svg class="ico" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>Copy prompt</div>
+    <div class="tests frame" id="tests">
+      <div class="tests__head"><span class="label" style="color:var(--blok-expects)">Tests from B4</span><span class="stamp">Performance</span></div>
+      <ul><li>Excludes “refund”</li><li>Contains the returns page link</li></ul>
+    </div>
+  </section>
+</div>
+
+<div class="copied" id="copied"><svg class="ico" viewBox="0 0 24 24" style="width:11px;height:11px"><path d="M5 12l5 5L20 7"/></svg>Copied</div>
+<svg class="cursor" id="cur" viewBox="0 0 32 32"><path d="M6 4 L6 25 L11.5 19.8 L15.2 28 L19 26.3 L15.4 18.4 L23 18.4 Z" fill="#E9F1FF" stroke="#0A1830" stroke-width="1.6" stroke-linejoin="round"/></svg>
+
+<script src="chrome.js"></script>
+<script>
+Sheet.ready(function () {
+  var S = Sheet, q = function (s) { return document.querySelector(s); };
+  var col = { 1: "#9CC3FF", 2: "#FFD27A", 3: "#C6A8FF", 4: "#6FE3A5" };
+  // paste brackets → bloks
+  [1, 2, 3, 4].forEach(function (i) {
+    var a = S.pt(q("#s" + i), 1, .5); a = [a[0] + 22, a[1]];
+    var b = S.pt(q("#b" + i), 0, .5);
+    var mx = a[0] + (b[0] - a[0]) * .5;
+    S.path([a, [mx, a[1]], [mx, b[1]], [b[0] - 2, b[1]]], { color: col[i], width: 1.25, opacity: .85, dotStart: 2.4 });
+    S.ring([b[0] - 2, b[1]], col[i], 3);
+  });
+  // bloks → compiled spans (B4 goes to tests instead)
+  [1, 2, 3].forEach(function (i) {
+    var a = S.pt(q("#b" + i), 1, .5), b = S.pt(q("#c" + i + " > span:first-child"), 0, .5);
+    var mx = a[0] + (b[0] - 12 - a[0]) * .5;
+    S.path([[a[0] + 2, a[1]], [mx, a[1]], [mx, b[1]], [b[0] - 18, b[1]]], { color: col[i], width: 1.25, opacity: .85, dotEnd: 2.4 });
+    S.ring([a[0] + 2, a[1]], col[i], 3);
+  });
+  var a4 = S.pt(q("#b4"), 1, .5), t = S.pt(q("#tests"), 0, .5);
+  var m4 = a4[0] + (t[0] - a4[0]) * .5;
+  S.path([[a4[0] + 2, a4[1]], [m4, a4[1]], [m4, t[1]], [t[0] - 3, t[1]]], { color: "#6FE3A5", width: 1.25, dash: "4 4", arrow: false, dotEnd: 2.4 });
+  S.ring([a4[0] + 2, a4[1]], "#6FE3A5", 3);
+  // copy confirmation
+  var c = S.pt(q("#copy"), 1, .5), cp = q("#copied"), cur = q("#cur");
+  cp.style.left = (c[0] - cp.offsetWidth - 10) + "px"; cp.style.top = (c[1] - cp.offsetHeight / 2) + "px";
+  cur.style.left = (c[0] - cp.offsetWidth - 34) + "px"; cur.style.top = (c[1] - 4) + "px";
+});
+</script>
+</body>
+</html>

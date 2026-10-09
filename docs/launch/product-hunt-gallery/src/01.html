@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · Stop guessing which prompt works</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  .copy { position: absolute; left: 62px; top: 152px; width: 520px; z-index: 6; }
+  .copy h1 { font-size: 70px; margin: 24px 0 24px; }
+  .copy .lede { width: 455px; }
+  .facts { display: flex; gap: 36px; white-space: nowrap; margin-top: 34px; padding-top: 18px; border-top: 1px dashed var(--line-3); width: 470px; }
+  .facts div { display: flex; flex-direction: column; gap: 8px; }
+  .facts b { font-family: var(--f-display); font-weight: 800; font-size: 22px; letter-spacing: -.02em; color: var(--chalk); }
+
+  /* Exploded assembly: four bloks lifted off the pasted prompt */
+  .iso { position: absolute; left: 650px; top: 436px; width: 1px; height: 1px; z-index: 4; }
+  .plane { position: absolute; left: 0; top: 0; width: 400px; height: 104px; transform-style: preserve-3d; transform: rotateX(56deg) rotateZ(-26deg); }
+  .plate { position: absolute; left: 0; top: 0; width: 400px; height: 104px; transform: translate3d(var(--x, 0px), var(--y, 0px), var(--z)); }
+  .plate.blok { --frame-bg: rgba(13,30,60,.93); display: flex; flex-direction: column; justify-content: center; padding: 0 22px; box-shadow: 0 0 0 1px rgba(0,0,0,.0), 0 30px 40px -10px rgba(0,0,0,.45); }
+  .plate .blok__head { margin-bottom: 8px; }
+  .plate .blok__type, .plate .blok__id { font-size: 12px; }
+  .plate .blok__text { font-size: 18px; line-height: 1.35; }
+  .plate.base { --corner: var(--line-3); --frame-bg: rgba(6,16,34,.9); border-style: dashed; padding: 14px 18px; }
+  .base p { font-family: var(--f-mono); font-size: 7.6px; line-height: 1.75; color: var(--chalk-4); }
+  .mk { position: absolute; width: 0; height: 0; }
+  .mk.tl { left: 0; top: 0; } .mk.tr { right: 0; top: 0; } .mk.bl { left: 0; bottom: 0; } .mk.br { right: 0; bottom: 0; }
+  .mk.mr { right: 0; top: 50%; }
+
+  .run { position: absolute; right: 64px; bottom: 94px; width: 336px; z-index: 6; --frame-bg: rgba(8,20,40,.94); padding: 14px 18px 12px; }
+  .run__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .row { display: grid; grid-template-columns: 18px 58px 1fr 46px; align-items: center; gap: 10px; height: 25px; font-family: var(--f-mono); font-size: 11.5px; color: var(--chalk-2); }
+  .row .bx { width: 16px; height: 16px; border-radius: 3px; display: grid; place-items: center; background: rgba(111,227,165,.18); color: var(--pass); }
+  .row .bx svg { width: 12px; height: 12px; }
+  .row.bad .bx { background: rgba(255,122,102,.2); color: var(--fail); }
+  .row .bar { height: 3px; border-radius: 2px; background: rgba(156,195,255,.14); position: relative; overflow: hidden; }
+  .row .bar i { position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--accent); border-radius: 2px; }
+  .row.bad .bar i { background: var(--fail); }
+  .row .n { text-align: right; color: var(--chalk); }
+  .row.bad .n, .row.bad .m { color: var(--fail-text); }
+  .cause { position: absolute; z-index: 21; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--fail-text); background: var(--bp-ground);
+    border: 1px solid var(--fail); padding: 5px 9px 4px; white-space: nowrap; }
+  .cause b { color: var(--chalk); font-weight: 500; }
+  .tag { position: absolute; z-index: 21; display: flex; align-items: center; gap: 8px; }
+</style>
+</head>
+<body data-sheet="01" data-name="Decompile" data-kicker="support-reply.prompt" >
+
+<div class="copy">
+  <div class="eyebrow">Prompt testing for GPT, Claude and Gemini</div>
+  <h1>Stop guessing which prompt works.</h1>
+  <p class="lede">Break any prompt into typed bloks, keep every version, and run it on each model with your own keys. <b>When a check fails, 41prompts points at the blok that caused it.</b></p>
+  <div class="facts">
+    <div><span class="label">Prompts and versions</span><b>∞ on Free</b></div>
+    <div><span class="label">Card to sign up</span><b>None</b></div>
+    <div><span class="label">Your keys</span><b>3 providers</b></div>
+  </div>
+</div>
+
+<div class="iso" aria-label="A prompt exploded into four typed bloks">
+  <div class="plane">
+    <div class="plate frame base" style="--z:0px" id="p0">
+      <p>You are a support agent for Northwind Outfitters. Reply in under 80 words. Greet the customer as {{name}}. Example reply: "I've issued a full refund, sorry for the trouble." The reply never promises a refund. You are a support agent for Northwind Outfitters. Reply in under 80 words. Greet the customer as {{name}}. Example: "I've issued a full refund."</p>
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+    </div>
+    <div class="plate frame blok" data-type="expects" style="--z:78px;--x:16px" id="p4">
+      <div class="blok__head"><span class="blok__type">Expects</span><span class="blok__id">B4</span></div>
+      <div class="blok__text">Never promises a refund.</div>
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i><i class="mk mr"></i>
+    </div>
+    <div class="plate frame blok is-bad" data-type="example" style="--z:156px;--x:32px" id="p3">
+      <div class="blok__head"><span class="blok__type">Example</span><span class="blok__id">B3</span></div>
+      <div class="blok__text">“I’ve issued a full refund, sorry for the trouble.”</div>
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i><i class="mk mr"></i>
+    </div>
+    <div class="plate frame blok" data-type="constraint" style="--z:234px;--x:48px" id="p2">
+      <div class="blok__head"><span class="blok__type">Constraint</span><span class="blok__id">B2</span></div>
+      <div class="blok__text">Reply in under 80 words. Greet the customer as <span class="var">{{name}}</span></div>
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i><i class="mk mr"></i>
+    </div>
+    <div class="plate frame blok" data-type="context" style="--z:312px;--x:64px" id="p1">
+      <div class="blok__head"><span class="blok__type">Context</span><span class="blok__id">B1</span></div>
+      <div class="blok__text">You are a support agent for Northwind Outfitters.</div>
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i><i class="mk mr"></i>
+    </div>
+  </div>
+</div>
+
+<div class="run frame" id="run">
+  <div class="run__head"><span class="label label--chalk">Run · 40 checks</span><span class="example-tag">Example</span></div>
+  <div class="row"><span class="bx"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span>GPT</span><span class="bar"><i style="--w:100%"></i></span><span class="n">40/40</span></div>
+  <div class="row"><span class="bx"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span><span>Claude</span><span class="bar"><i style="--w:100%"></i></span><span class="n">40/40</span></div>
+  <div class="row bad" id="gem"><span class="bx"><svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></span><span class="m">Gemini</span><span class="bar"><i style="--w:77.5%"></i></span><span class="n">31/40</span></div>
+</div>
+
+<div class="tag label" id="pasted"><span class="label label--chalk">Pasted</span><span class="label">4 sentences</span></div>
+<div class="cause" id="cause">Likely cause · <b>B3</b> · 82%</div>
+
+<script src="chrome.js"></script>
+<script>
+Sheet.ready(function () {
+  var S = Sheet, q = function (s) { return document.querySelector(s); };
+  var ids = ["#p0", "#p4", "#p3", "#p2", "#p1"];
+  // assembly lines: dashed verticals joining each plate's corners to the next
+  ["tl", "tr", "bl", "br"].forEach(function (k) {
+    var pts = ids.map(function (id) { return S.pt(q(id + " .mk." + k)); });
+    S.path(pts, { color: "rgba(156,195,255,.42)", width: 1, dash: "3 4" });
+    pts.forEach(function (p, i) { if (i) S.ring(p, "rgba(156,195,255,.7)", 2.4); });
+  });
+  // dimension: the stack height
+  var a = S.pt(q("#p0 .mk.bl")), b = S.pt(q("#p1 .mk.bl"));
+  S.dim([a[0] - 26, a[1]], [a[0] - 26, b[1]], "4 BLOKS · 186 TOK", { dx: -12, dy: 0, rotate: -90 });
+  S.path([[a[0] - 31, a[1]], [a[0] - 4, a[1]]], { color: "rgba(156,195,255,.35)", width: 1 });
+  S.path([[b[0] - 31, b[1]], [b[0] - 4, b[1]]], { color: "rgba(156,195,255,.35)", width: 1 });
+
+  // failure leader: from the Gemini row up to B3
+  var g = S.pt(q("#gem .n"), 1, .5), t = S.pt(q("#p3 .mk.mr"));
+  var x = Math.max(g[0] + 18, t[0] + 26);
+  var c = q("#cause"), cr;
+  S.path([[g[0] + 6, g[1]], [x, g[1]], [x, t[1]], [t[0] + 2, t[1]]], { color: "#FF7A66", width: 1.6, dotEnd: 3.2, glow: true });
+  S.ring([g[0] + 6, g[1]], "#FF7A66", 3.5);
+  c.style.left = (x - c.offsetWidth - 10) + "px";
+  c.style.top = (t[1] - c.offsetHeight - 12) + "px";
+  // label under the pasted slab
+  var bl = S.pt(q("#p0 .mk.bl")), pl = q("#pasted");
+  pl.style.left = (bl[0] + 14) + "px"; pl.style.top = (bl[1] + 16) + "px";
+  S.path([[bl[0], bl[1] + 3], [bl[0], bl[1] + 24], [bl[0] + 8, bl[1] + 24]], { color: "rgba(156,195,255,.6)", width: 1 });
+});
+</script>
+</body>
+</html>

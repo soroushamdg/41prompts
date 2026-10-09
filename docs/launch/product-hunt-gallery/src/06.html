@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · Free, with no caps</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  body { --gx: 70%; --gy: 50%; }
+  .copy { position: absolute; left: 62px; top: 132px; width: 430px; z-index: 6; }
+  .copy h1 { font-size: 64px; margin: 20px 0 20px; }
+  .copy .lede { font-size: 16px; }
+  .cta { display: flex; align-items: center; gap: 16px; margin-top: 26px; }
+  .btn { display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px; border-radius: 7px; background: var(--chalk); color: var(--bp-ground); font-weight: 600; font-size: 16px; }
+  .btn svg { width: 16px; height: 16px; }
+  .cta .label { line-height: 1.7; }
+
+  .bom { position: absolute; left: 540px; top: 116px; width: 670px; z-index: 6; --frame-bg: rgba(8,20,40,.95); }
+  .bom__head { display: flex; justify-content: space-between; padding: 12px 18px; border-bottom: 1px solid var(--line-2); }
+  .bom__head .label:first-child { color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-family: var(--f-mono); font-size: 9.5px; font-weight: 400; letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-3); padding: 9px 18px 7px; border-bottom: 1px solid var(--line-2); }
+  td { padding: 0 18px; height: 29px; border-bottom: 1px solid var(--line-1); font-size: 12.5px; color: var(--chalk-3); white-space: nowrap; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { width: 64px; font-family: var(--f-mono); font-size: 10.5px; color: var(--accent); }
+  td:nth-child(2) { color: var(--chalk); font-weight: 500; }
+  td.q { width: 56px; font-family: var(--f-mono); font-size: 13px; color: var(--chalk); text-align: center; padding: 0; }
+  td.q.inf { font-family: var(--f-body); font-size: 19px; color: var(--chalk); line-height: 1; }
+  tr.hl td { background: rgba(156,195,255,.06); }
+  .bom__foot { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; border-top: 1px solid var(--line-2); }
+
+  .hist { position: absolute; left: 540px; top: 494px; width: 670px; height: 164px; z-index: 6; --corner: var(--line-3); --frame-bg: rgba(6,16,34,.94); }
+  .hist__head { display: flex; justify-content: space-between; padding: 11px 18px 0; }
+  .track { position: absolute; left: 40px; right: 40px; top: 86px; height: 1px; background: var(--line-3); }
+  .v { position: absolute; top: 86px; transform: translate(-50%, -50%); width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--accent); background: var(--bp-ground); }
+  .v.now { background: var(--chalk); border-color: var(--chalk); box-shadow: 0 0 0 5px rgba(233,241,255,.12); }
+  .v.named { border-color: var(--pass); }
+  .v span { position: absolute; top: 16px; left: 50%; transform: translateX(-50%); font-family: var(--f-mono); font-size: 10px; color: var(--chalk-3); }
+  .v.now span { color: var(--chalk); }
+  .name { position: absolute; z-index: 7; font-family: var(--f-mono); font-size: 10px; color: var(--pass); border: 1px solid rgba(111,227,165,.5); border-radius: 999px; padding: 3px 9px; background: var(--bp-ground); white-space: nowrap; }
+  .toast { position: absolute; z-index: 22; display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--chalk); background: var(--bp-raised); border: 1px solid var(--line-3); border-radius: 7px; padding: 7px 11px; white-space: nowrap; box-shadow: 0 12px 30px -8px rgba(0,0,0,.5); }
+  .morph { position: absolute; left: 62px; top: 508px; width: 430px; z-index: 6; }
+  .morph__head { display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px dashed var(--line-2); }
+  .morph svg { display: block; width: 430px; height: 118px; overflow: visible; }
+  .toast svg { width: 13px; height: 13px; color: var(--pass); }
+</style>
+</head>
+<body data-sheet="06" data-name="Free plan" data-kicker="Bill of materials" data-foot="Made in Montréal">
+
+<div class="copy">
+  <div class="eyebrow">Free prompt library · Version history</div>
+  <h1>Free, with no caps.</h1>
+  <p class="lede">Unlimited prompts, bloks and versions, with no trial clock and no card. Runs use your own OpenAI, Anthropic or Google key, so the provider bills you directly.</p>
+  <div class="cta">
+    <span class="btn">Start free <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+    <span class="label">41prompts.ai<br>Sign up in 30 seconds</span>
+  </div>
+</div>
+
+<div class="morph">
+  <div class="morph__head"><span class="label label--chalk">Mark · 41 ↔ AI</span><span class="label">500 ms · cubic in-out</span></div>
+  <svg id="morph" viewBox="0 0 430 118"></svg>
+</div>
+
+<div class="bom frame">
+  <div class="bom__head"><span class="label">Bill of materials</span><span class="label">Plan · Free</span><span class="label label--chalk">Price · $0</span></div>
+  <table>
+    <thead><tr><th>Item</th><th>Part</th><th style="text-align:center;padding:9px 0 7px">Qty</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>M01</td><td>Account</td><td class="q">1</td><td>Email link, Google or GitHub. No card.</td></tr>
+      <tr class="hl"><td>M02</td><td>Prompts</td><td class="q inf">∞</td><td>Paste one in or start blank.</td></tr>
+      <tr class="hl"><td>M03</td><td>Bloks per prompt</td><td class="q inf">∞</td><td>Context, constraint, example, expects.</td></tr>
+      <tr><td>M04</td><td>Compiled prompt, one-click copy</td><td class="q inf">∞</td><td>As a template, or filled.</td></tr>
+      <tr class="hl"><td>M05</td><td>Versions</td><td class="q inf">∞</td><td>Every save is a version.</td></tr>
+      <tr><td>M06</td><td>Run on one model</td><td class="q inf">∞</td><td>With your own key.</td></tr>
+      <tr><td>M07</td><td>Model keys</td><td class="q">3</td><td>Encrypted at rest.</td></tr>
+      <tr><td>M08</td><td>Library with search by name</td><td class="q">1</td><td>Private by default.</td></tr>
+      <tr><td>M09</td><td>Export everything</td><td class="q">1</td><td>Markdown and JSON in one .zip.</td></tr>
+      <tr><td>M10</td><td>Delete account</td><td class="q">1</td><td>Removes every prompt, version and key.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="hist frame" id="hist">
+  <div class="hist__head"><span class="label label--chalk">History · support-reply</span><span class="label">Restoring never overwrites</span></div>
+  <div class="track"></div>
+  <div class="v" style="left:40px"><span>v1</span></div>
+  <div class="v" style="left:124px"><span>v2</span></div>
+  <div class="v" style="left:208px"><span>v3</span></div>
+  <div class="v" style="left:292px"><span>v4</span></div>
+  <div class="v named" style="left:376px" id="v5"><span>v5</span></div>
+  <div class="v" style="left:460px"><span>v6</span></div>
+  <div class="v" style="left:544px"><span>v7</span></div>
+  <div class="v now" style="left:630px" id="v8"><span>v8</span></div>
+</div>
+<div class="name" id="nm">works on Claude</div>
+<div class="toast" id="toast"><svg class="ico" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Restored v5 as v8</div>
+
+<script src="chrome.js"></script>
+<script>
+(function () {
+  var G = {
+    four: { outer: [[18,14],[32,14],[32,50],[25,50],[25,41],[8,41],[8,41],[8,41],[8,34]], inner: [[25,17],[25,34],[15,34]] },
+    A:    { outer: [[28,14],[34,14],[44,50],[36,50],[31,41],[21,41],[16,50],[8,50],[16,36]], inner: [[30,20],[31,34],[24,34]] },
+    one:  { outer: [[38,21],[44,14],[48,14],[48,50],[41,50],[41,21]] },
+    I:    { outer: [[45,14],[45,14],[51,14],[45,50],[38,50],[41.5,32]] }
+  };
+  function L(a, b, t) { return a.map(function (p, i) { return [p[0] + (b[i][0] - p[0]) * t, p[1] + (b[i][1] - p[1]) * t]; }); }
+  function P(p) { return "M" + p.map(function (v) { return v[0].toFixed(2) + " " + v[1].toFixed(2); }).join(" L") + "Z"; }
+  function E(t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  var size = 82, gap = (430 - 3 * size) / 2, out = "";
+  [0, .5, 1].forEach(function (v, k) {
+    var e = E(v), s = size / 64, ox = k * (size + gap);
+    var lo = L(G.four.outer, G.A.outer, e), li = L(G.four.inner, G.A.inner, e), ro = L(G.one.outer, G.I.outer, e);
+    var d = P(lo) + " " + P(li) + " " + P(ro);
+    var g = '<g transform="translate(' + ox + ' 0) scale(' + s + ')">';
+    if (v === 0) g += '<rect x="2.5" y="2.5" width="59" height="59" rx="5" fill="#E9F1FF"/><path d="' + d + '" fill="#0A1830" fill-rule="evenodd"/>';
+    else if (v === 1) g += '<rect x="2.5" y="2.5" width="59" height="59" rx="5" fill="#0A1830" stroke="#E9F1FF" stroke-width="5"/><path d="' + d + '" fill="#E9F1FF" fill-rule="evenodd"/>';
+    else {
+      g += '<rect x="2.5" y="2.5" width="59" height="59" rx="5" fill="none" stroke="rgba(156,195,255,.5)" stroke-width=".8" stroke-dasharray="2 2"/>';
+      g += '<path d="' + d + '" fill="rgba(156,195,255,.08)" stroke="#9CC3FF" stroke-width=".9" fill-rule="evenodd" stroke-linejoin="round"/>';
+      lo.concat(li, ro).forEach(function (p) { g += '<circle cx="' + p[0].toFixed(2) + '" cy="' + p[1].toFixed(2) + '" r="1.3" fill="#0A1830" stroke="#E9F1FF" stroke-width=".55"/>'; });
+    }
+    g += "</g>";
+    var label = v === 0 ? "41 · rest" : v === 1 ? "AI · hover" : "Halfway";
+    g += '<text x="' + (ox + size / 2) + '" y="' + (size + 22) + '" text-anchor="middle" font-family="Martian Mono" font-size="9" letter-spacing=".8" fill="' + (v === .5 ? "#9CC3FF" : "#93A9CB") + '">' + label.toUpperCase() + "</text>";
+    out += g;
+    if (k < 2) {
+      var x1 = ox + size + 8, x2 = ox + size + gap - 8, y = size / 2;
+      out += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="rgba(156,195,255,.55)" stroke-dasharray="3 3"/>' +
+        '<path d="M' + (x2 - 5) + " " + (y - 4) + " L" + x2 + " " + y + " L" + (x2 - 5) + " " + (y + 4) + '" fill="none" stroke="rgba(156,195,255,.8)"/>';
+    }
+  });
+  document.getElementById("morph").innerHTML = out;
+})();
+Sheet.ready(function () {
+  var S = Sheet, q = function (s) { return document.querySelector(s); };
+  var a = S.pt(q("#v5")), b = S.pt(q("#v8"));
+  // restore arc from v5 to v8, above the track
+  var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  var top = a[1] - 46;
+  p.setAttribute("d", "M" + a[0] + " " + (a[1] - 8) + " C " + a[0] + " " + top + ", " + b[0] + " " + top + ", " + b[0] + " " + (b[1] - 9));
+  p.setAttribute("fill", "none"); p.setAttribute("stroke", "#6FE3A5"); p.setAttribute("stroke-width", "1.3"); p.setAttribute("stroke-dasharray", "4 4");
+  S.svg.appendChild(p);
+  S.path([[b[0] - 4, b[1] - 15], [b[0], b[1] - 9], [b[0] + 4, b[1] - 15]], { color: "#6FE3A5", width: 1.3 });
+  var nm = q("#nm"); nm.style.left = (a[0] - nm.offsetWidth / 2) + "px"; nm.style.top = (a[1] + 32) + "px";
+  var t = q("#toast"); t.style.left = ((a[0] + b[0]) / 2 - t.offsetWidth / 2) + "px"; t.style.top = (top + 4 - t.offsetHeight / 2) + "px";
+});
+</script>
+</body>
+</html>

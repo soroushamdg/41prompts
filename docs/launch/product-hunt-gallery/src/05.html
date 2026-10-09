@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · One prompt, every model</title>
+<link rel="stylesheet" href="gallery.css">
+<style>
+  body { --gx: 50%; --gy: 66%; }
+  .head { position: absolute; left: 62px; right: 62px; top: 124px; display: grid; grid-template-columns: 1fr 360px; gap: 40px; align-items: end; z-index: 6; }
+  .head h1 { font-size: 60px; margin-top: 20px; white-space: nowrap; }
+  .head .lede { font-size: 15.5px; }
+
+  .bar-top { position: absolute; left: 62px; right: 62px; top: 272px; z-index: 6; display: flex; align-items: center; gap: 14px; height: 40px; padding: 0 16px;
+    border: 1px solid var(--line-2); background: rgba(8,20,40,.9); }
+  .bar-top .sep { width: 1px; height: 16px; background: var(--line-2); }
+  .bar-top .est { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .bar-top .est b { font-family: var(--f-mono); font-weight: 500; font-size: 12px; color: var(--chalk); }
+  .runbtn { display: inline-flex; align-items: center; gap: 7px; height: 28px; padding: 0 12px; border-radius: 6px; background: var(--chalk); color: var(--bp-ground); font-size: 12.5px; font-weight: 600; }
+  .runbtn svg { width: 12px; height: 12px; fill: currentColor; stroke: none; }
+
+  .cards { position: absolute; left: 62px; right: 62px; top: 330px; z-index: 6; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card { --frame-bg: rgba(10,24,48,.94); padding: 16px 18px 14px; }
+  .card.lead { --corner: var(--chalk); border-color: var(--line-3); }
+  .card__head { display: flex; align-items: center; gap: 10px; }
+  .card__head b { font-family: var(--f-display); font-weight: 800; font-size: 24px; letter-spacing: -.02em; }
+  .card__head .key { display: inline-flex; gap: 5px; align-items: center; font-family: var(--f-mono); font-size: 10px; color: var(--chalk-3); }
+  .card__head .key svg { width: 12px; height: 12px; }
+  .card__head .chip { margin-left: auto; height: 22px; font-size: 9.5px; }
+  .big { display: flex; align-items: baseline; gap: 6px; margin: 14px 0 10px; }
+  .big b { font-family: var(--f-display); font-weight: 800; font-size: 58px; letter-spacing: -.04em; line-height: .9; }
+  .big span { font-family: var(--f-mono); font-size: 14px; color: var(--chalk-3); }
+  .big em { margin-left: auto; font-style: normal; font-family: var(--f-mono); font-size: 13px; color: var(--chalk-2); }
+  .meter { position: relative; height: 6px; background: rgba(156,195,255,.12); border-radius: 3px; }
+  .meter i { position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--accent); border-radius: 3px; }
+  .meter s { position: absolute; top: 0; bottom: 0; left: var(--w); right: 0; background: repeating-linear-gradient(135deg, rgba(255,122,102,.55) 0 2px, transparent 2px 5px); border-radius: 0 3px 3px 0; text-decoration: none; }
+  .ruler { position: relative; height: 16px; margin-top: 4px; font-family: var(--f-mono); font-size: 8.5px; color: var(--chalk-4); }
+  .ruler i { position: absolute; top: 0; width: 1px; height: 4px; background: var(--line-3); }
+  .ruler span { position: absolute; top: 6px; transform: translateX(-50%); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; margin-top: 12px; border-top: 1px solid var(--line-1); }
+  .stats div { padding: 11px 0 4px; display: flex; flex-direction: column; gap: 6px; }
+  .stats b { font-family: var(--f-mono); font-weight: 500; font-size: 17px; color: var(--chalk); }
+  .stats .best b { color: var(--pass); }
+  .strip { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line-2); }
+  .strip svg { display: block; width: 100%; height: 58px; overflow: visible; margin-top: 4px; }
+</style>
+</head>
+<body data-sheet="05" data-name="Compare" data-kicker="Cross-model runs" data-foot="Example data · Your own keys">
+
+<div class="head">
+  <div>
+    <div class="eyebrow">Cross-model LLM evaluation · P05</div>
+    <h1>One prompt, every model.</h1>
+  </div>
+  <p class="lede">Run the same test suite on GPT, Claude and Gemini side by side, each on your own key. You see the estimated cost before anything runs.</p>
+</div>
+
+<div class="bar-top">
+  <span class="label label--chalk">support-reply · v7</span><span class="sep"></span>
+  <span class="label">200 checks per model</span><span class="sep"></span>
+  <span class="example-tag">Example</span>
+  <span class="est"><span class="label">Estimated</span><b>$0.90</b><span class="runbtn"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg>Run on 3 models</span></span>
+</div>
+
+<div class="cards">
+  <div class="card frame" data-m="gpt">
+    <div class="card__head"><b>GPT</b><span class="key"><svg class="ico" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>OpenAI key</span></div>
+    <div class="big"><b>188</b><span>/200</span><em>94.0%</em></div>
+    <div class="meter" style="--w:94%"><i></i><s></s></div>
+    <div class="ruler"></div>
+    <div class="stats"><div><span class="label">Cost</span><b>$0.41</b></div><div><span class="label">p50</span><b>1.2s</b></div><div><span class="label">Failed</span><b>12</b></div></div>
+    <div class="strip"><span class="label">Latency · each dot is one run</span><svg data-p50="1.2" data-seed="3"></svg></div>
+  </div>
+  <div class="card frame lead" data-m="claude">
+    <div class="card__head"><b>Claude</b><span class="key"><svg class="ico" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Anthropic key</span><span class="chip chip--ok"><span class="dot"></span>Most passes</span></div>
+    <div class="big"><b>191</b><span>/200</span><em>95.5%</em></div>
+    <div class="meter" style="--w:95.5%"><i></i><s></s></div>
+    <div class="ruler"></div>
+    <div class="stats"><div class="best"><span class="label">Cost</span><b>$0.37</b></div><div><span class="label">p50</span><b>1.4s</b></div><div><span class="label">Failed</span><b>9</b></div></div>
+    <div class="strip"><span class="label">Latency · each dot is one run</span><svg data-p50="1.4" data-seed="7"></svg></div>
+  </div>
+  <div class="card frame" data-m="gemini">
+    <div class="card__head"><b>Gemini</b><span class="key"><svg class="ico" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Google key</span><span class="chip">Lowest cost</span></div>
+    <div class="big"><b>178</b><span>/200</span><em>89.0%</em></div>
+    <div class="meter" style="--w:89%"><i></i><s></s></div>
+    <div class="ruler"></div>
+    <div class="stats"><div class="best"><span class="label">Cost</span><b>$0.12</b></div><div class="best"><span class="label">p50</span><b>0.9s</b></div><div><span class="label">Failed</span><b>22</b></div></div>
+    <div class="strip"><span class="label">Latency · each dot is one run</span><svg data-p50="0.9" data-seed="11"></svg></div>
+  </div>
+</div>
+
+<script src="chrome.js"></script>
+<script>
+(function () {
+  // Claude's cost is not the lowest; only Gemini's stats are best on cost and p50.
+  document.querySelector('[data-m="claude"] .stats .best').classList.remove("best");
+  // ruler: 0–200 checks
+  document.querySelectorAll(".ruler").forEach(function (r) {
+    var h = "";
+    for (var i = 0; i <= 200; i += 25) {
+      h += '<i style="left:' + (i / 2) + '%"></i>';
+      if (i % 50 === 0) h += '<span style="left:' + (i / 2) + '%">' + i + "</span>";
+    }
+    r.innerHTML = h;
+  });
+  // latency strips: 200 runs on one shared 0–4 s scale, p50 marked
+  function rnd(seed) { var s = seed; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
+  document.querySelectorAll(".strip svg").forEach(function (svg) {
+    var p50 = +svg.dataset.p50, r = rnd(+svg.dataset.seed * 7919), w = svg.getBoundingClientRect().width, H = 58, max = 4;
+    var x = function (v) { return Math.min(v, max) / max * w; };
+    var out = '<line x1="0" x2="' + w + '" y1="' + (H - 12) + '" y2="' + (H - 12) + '" stroke="rgba(156,195,255,.28)"/>';
+    for (var t = 0; t <= max; t++) out += '<line x1="' + x(t) + '" x2="' + x(t) + '" y1="' + (H - 12) + '" y2="' + (H - 8) + '" stroke="rgba(156,195,255,.45)"/>' +
+      '<text x="' + x(t) + '" y="' + H + '" text-anchor="' + (t === 0 ? "start" : t === max ? "end" : "middle") + '" font-family="Martian Mono" font-size="8.5" fill="#7D93B6">' + t + "s</text>";
+    for (var i = 0; i < 200; i++) {
+      var g = 0; for (var k = 0; k < 4; k++) g += r(); g = (g - 2) / .577;   // ≈ normal
+      var v = p50 * Math.exp(g * .32), y = 18 + r() * (H - 34);
+      out += '<circle cx="' + x(v).toFixed(1) + '" cy="' + y.toFixed(1) + '" r="1.6" fill="#9CC3FF" opacity=".5"/>';
+    }
+    out += '<line x1="' + x(p50) + '" x2="' + x(p50) + '" y1="4" y2="' + (H - 12) + '" stroke="#E9F1FF" stroke-width="1.5"/>' +
+      '<text x="' + (x(p50) + 6) + '" y="10" font-family="Martian Mono" font-size="9" fill="#E9F1FF">p50 ' + p50 + "s</text>";
+    svg.innerHTML = out;
+  });
+})();
+Sheet.ready();
+</script>
+</body>
+</html>
