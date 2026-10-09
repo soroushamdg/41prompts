@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · launch film</title>
+<style>
+@font-face { font-family: "Archivo"; src: url("../../../assets/fonts/archivo-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+@font-face { font-family: "Archivo"; src: url("../../../assets/fonts/archivo-latin-700-normal.woff2") format("woff2"); font-weight: 700; }
+@font-face { font-family: "Archivo"; src: url("../../../assets/fonts/archivo-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+@font-face { font-family: "Archivo"; src: url("../../../assets/fonts/archivo-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../../../assets/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../../../assets/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../../../assets/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); font-weight: 600; }
+@font-face { font-family: "Martian Mono"; src: url("../../../assets/fonts/martian-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Martian Mono"; src: url("../../../assets/fonts/martian-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+
+:root {
+  --ground: #050C1A; --sheet: #0C1C38; --raised: #132849; --well: #081428;
+  --chalk: #E9F1FF; --chalk-2: #C9D7EE; --chalk-3: #93A9CB; --chalk-4: #7D93B6; --accent: #9CC3FF;
+  --line-1: rgba(156,195,255,.14); --line-2: rgba(156,195,255,.28); --line-3: rgba(156,195,255,.45);
+  --b1: #9CC3FF; --b2: #FFD27A; --b3: #C6A8FF; --b4: #6FE3A5; --pass: #6FE3A5; --fail: #FF7A66;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "Martian Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+body { font-family: var(--body); color: var(--chalk); -webkit-font-smoothing: antialiased; }
+#stage { position: absolute; inset: 0; overflow: hidden; background: var(--ground); }
+.layer { position: absolute; inset: 0; }
+.hide { display: none !important; }
+
+/* ground */
+#grid { position: absolute; inset: -160px;
+  background:
+    linear-gradient(rgba(156,195,255,.075) 1px, transparent 1px) 0 0 / 80px 80px,
+    linear-gradient(90deg, rgba(156,195,255,.075) 1px, transparent 1px) 0 0 / 80px 80px,
+    linear-gradient(rgba(156,195,255,.03) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, rgba(156,195,255,.03) 1px, transparent 1px) 0 0 / 16px 16px; }
+#glow { position: absolute; inset: 0; background: radial-gradient(ellipse 50% 55% at 50% 50%, rgba(84,140,232,.22), transparent 70%); }
+#vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 110% 90% at 50% 48%, transparent 55%, rgba(0,3,10,.7) 100%); z-index: 90; }
+#grain { position: absolute; inset: -200px; pointer-events: none; z-index: 91; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1.2 -.1'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+#black { position: absolute; inset: 0; background: #010307; z-index: 60; }
+
+/* type */
+.kin { position: absolute; font-family: var(--display); font-weight: 800; letter-spacing: -.045em; line-height: .98; color: var(--chalk); white-space: nowrap; z-index: 40; }
+.kin .w { display: inline-block; will-change: filter, transform, opacity; }
+.mono { font-family: var(--mono); }
+.lbl { font-family: var(--mono); font-size: 15px; letter-spacing: .1em; text-transform: uppercase; color: var(--chalk-3); }
+
+/* frame corners */
+.frame { --corner: var(--accent); --cl: 14px; --cw: 2px; position: absolute; border: 1px solid var(--line-2); border-radius: 3px;
+  background:
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) left bottom / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cl) var(--cw) no-repeat,
+    linear-gradient(var(--corner), var(--corner)) right bottom / var(--cw) var(--cl) no-repeat,
+    var(--frame-bg, rgba(12,28,56,.92));
+  background-origin: border-box; }
+
+/* ---- scenes 1-3: wall, bloks, editor --------------------------------- */
+#s123 { perspective: 2600px; perspective-origin: 50% 50%; z-index: 10; }
+#cam { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-style: preserve-3d; transform-origin: 0 0; }
+#plane { position: absolute; left: 420px; top: 316px; width: 1080px; height: 448px; transform-style: preserve-3d; transform-origin: 540px 224px; }
+#wallframe { --corner: var(--chalk); --cl: 40px; --cw: 3px; left: 0; top: 0; width: 1080px; height: 448px; --frame-bg: rgba(8,18,38,.82); }
+#corner-sheen { position: absolute; left: -3px; top: -3px; width: 260px; height: 260px; pointer-events: none;
+  background: radial-gradient(circle at var(--sx, 0px) var(--sy, 0px), rgba(255,255,255,.95), rgba(156,195,255,.35) 22px, transparent 70px);
+  -webkit-mask:
+    linear-gradient(#000,#000) left top / 40px 3px no-repeat,
+    linear-gradient(#000,#000) left top / 3px 40px no-repeat;
+  mask:
+    linear-gradient(#000,#000) left top / 40px 3px no-repeat,
+    linear-gradient(#000,#000) left top / 3px 40px no-repeat; }
+.plate { position: absolute; left: 40px; top: 0; width: 1000px; height: 92px; transform-style: preserve-3d; }
+.plate .pf { position: absolute; inset: 0; }
+.plate .pf.frame { --corner: var(--c); --cl: 16px; --frame-bg: rgba(13,30,60,.96); }
+.plate[data-b="1"] { --c: var(--b1); } .plate[data-b="2"] { --c: var(--b2); } .plate[data-b="3"] { --c: var(--b3); } .plate[data-b="4"] { --c: var(--b4); }
+.raw { position: absolute; left: 0; top: 6px; right: 0; font-family: var(--mono); font-size: 21px; line-height: 38px; color: var(--chalk-2); }
+.raw .tint { color: var(--c); }
+.blk { position: absolute; inset: 0; padding: 22px 30px 0 64px; }
+.blk .grip { position: absolute; left: 24px; top: 24px; width: 14px; display: grid; grid-template-columns: 4px 4px; gap: 5px 6px; }
+.blk .grip i { width: 4px; height: 4px; border-radius: 50%; background: var(--chalk-4); }
+.bh { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.bt { font-family: var(--mono); font-size: var(--lf, 15px); font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--c); }
+.bi { margin-left: auto; font-family: var(--mono); font-size: var(--lf, 15px); color: var(--chalk-3); }
+.bx { font-size: var(--tf, 23px); line-height: 1.45; color: var(--chalk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.var { font-family: var(--mono); font-size: .8em; color: var(--b2); background: rgba(255,210,122,.12); border: 1.5px dashed rgba(255,210,122,.6); border-radius: 5px; padding: 0 7px; }
+.note { position: absolute; right: 26px; top: 18px; font-family: var(--mono); font-size: 13px; color: var(--chalk-3); border: 1px dashed var(--line-3); border-radius: 5px; padding: 3px 10px; }
+.sheen { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent calc(var(--p) - 18%), rgba(255,255,255,.16) var(--p), transparent calc(var(--p) + 18%)); mix-blend-mode: screen; }
+.mk { position: absolute; width: 0; height: 0; }
+.mk.r { right: 0; top: 50%; } .mk.l { left: 0; top: 50%; }
+#scan { position: absolute; left: -20px; right: -20px; height: 2px; background: linear-gradient(90deg, transparent, var(--chalk), transparent); box-shadow: 0 0 18px 4px rgba(156,195,255,.55); }
+
+#ed-head { position: absolute; left: 160px; top: 150px; width: 1600px; height: 60px; display: flex; align-items: center; gap: 26px; }
+#ed-head .name { font-family: var(--display); font-weight: 800; font-size: 44px; letter-spacing: -.03em; }
+#ed-head .meta { font-family: var(--mono); font-size: 16px; color: var(--chalk-3); }
+#badge { margin-left: auto; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid rgba(111,227,165,.55); font-family: var(--mono); font-size: 16px; color: var(--pass); }
+#badge-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--chalk); box-shadow: 0 0 10px rgba(233,241,255,.8); }
+#compiled { left: 1060px; top: 250px; width: 700px; height: 470px; --corner: var(--line-3); --frame-bg: rgba(6,16,34,.96); padding: 22px 26px; }
+.ch { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.seg { margin-left: auto; display: flex; border: 1px solid var(--line-3); border-radius: 8px; overflow: hidden; position: relative; }
+.seg span { position: relative; z-index: 1; font-size: 16px; padding: 7px 16px; color: var(--chalk-2); }
+.seg i { position: absolute; top: 0; bottom: 0; left: 0; width: 50%; background: var(--chalk); }
+.cl { display: grid; grid-template-columns: 44px 1fr; gap: 8px; margin-bottom: 16px; font-family: var(--mono); font-size: 18px; line-height: 1.7; color: var(--chalk); }
+.cl > span:first-child { color: var(--chalk-4); }
+.cl .v { color: var(--b2); position: relative; display: inline-block; }
+.cl .v b { font-weight: 400; }
+.counts { position: absolute; left: 26px; bottom: 18px; font-family: var(--mono); font-size: 15px; color: var(--chalk-3); }
+#copybtn { position: absolute; left: 1060px; top: 744px; width: 700px; height: 72px; border-radius: 10px; background: var(--chalk); color: #0A1830; display: flex; align-items: center; padding-left: 28px; gap: 14px; font-weight: 600; font-size: 24px; transform-origin: 50% 50%; }
+#copybtn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2; }
+#copied { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 16px; border-radius: 999px; background: #0A1830; color: var(--pass); font-family: var(--mono); font-size: 16px; font-weight: 400; }
+#cursor { position: absolute; width: 40px; height: 40px; z-index: 50; }
+#links { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+
+/* labels during the orbit */
+.olab { position: absolute; font-family: var(--display); font-weight: 800; font-size: 76px; letter-spacing: -.04em; white-space: nowrap; z-index: 30; }
+.olab small { display: block; font-family: var(--mono); font-weight: 400; font-size: 15px; letter-spacing: .12em; color: var(--chalk-3); margin-bottom: 8px; }
+
+/* ---- scene 4: versions --------------------------------------------------- */
+#s4 { z-index: 12; }
+#tl { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 960px 640px; }
+#track { position: absolute; top: 640px; height: 2px; background: var(--line-3); }
+.node { position: absolute; top: 640px; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 2.5px solid var(--accent); background: var(--ground); }
+.node span { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); font-family: var(--mono); font-size: 20px; color: var(--chalk-3); white-space: nowrap; }
+.node.lit { background: var(--chalk); border-color: var(--chalk); box-shadow: 0 0 0 calc(var(--g, 0) * 14px) rgba(233,241,255,.12), 0 0 calc(var(--g, 0) * 40px) rgba(156,195,255,.7); }
+.node.lit span { color: var(--chalk); }
+.node.named { border-color: var(--pass); }
+#tag { position: absolute; font-family: var(--mono); font-size: 20px; color: var(--pass); border: 1.5px solid rgba(111,227,165,.6); border-radius: 999px; padding: 8px 18px; background: var(--ground); white-space: nowrap; }
+#arc { position: absolute; inset: 0; overflow: visible; }
+#toast { position: absolute; display: flex; align-items: center; gap: 12px; font-size: 22px; color: var(--chalk); background: var(--raised); border: 1px solid var(--line-3); border-radius: 10px; padding: 12px 20px; white-space: nowrap; box-shadow: 0 20px 50px -12px rgba(0,0,0,.6); }
+#toast svg { width: 20px; height: 20px; stroke: var(--pass); fill: none; stroke-width: 2.4; }
+#dive { position: absolute; border-radius: 50%; background: var(--chalk); }
+
+/* ---- scene 5: run ---------------------------------------------------------- */
+#s5 { z-index: 14; perspective: 2400px; }
+#run { left: 460px; top: 230px; width: 1000px; height: 610px; --corner: var(--chalk); --frame-bg: rgba(8,20,40,.96); padding: 30px 36px; transform-origin: 50% 50%; }
+#run::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent calc(var(--sp, -30%) - 14%), rgba(255,255,255,.10) var(--sp, -30%), transparent calc(var(--sp, -30%) + 14%)); mix-blend-mode: screen; }
+.rh { display: flex; align-items: center; gap: 18px; margin-bottom: 28px; }
+.pick { display: flex; align-items: center; gap: 12px; height: 46px; padding: 0 18px; border: 1px solid var(--line-3); border-radius: 9px; font-size: 21px; font-weight: 500; }
+.pick svg, .keychip svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; }
+.keychip { display: flex; gap: 8px; align-items: center; font-family: var(--mono); font-size: 15px; color: var(--chalk-3); }
+.tm { margin-bottom: 26px; position: relative; }
+.tm .lbl { display: block; margin-bottom: 12px; }
+.tm .in { font-size: 24px; color: var(--chalk); padding-bottom: 14px; }
+#uline { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: var(--line-3); }
+#runbtn { position: absolute; right: 36px; top: 30px; height: 50px; padding: 0 24px; border-radius: 9px; background: var(--chalk); color: #0A1830; font-weight: 600; font-size: 20px; display: flex; align-items: center; gap: 10px; }
+#runbtn svg { width: 16px; height: 16px; fill: currentColor; }
+.reply { height: 230px; border: 1px solid var(--line-2); border-radius: 6px; background: rgba(6,16,34,.9); padding: 20px 24px; font-size: 24px; line-height: 1.55; color: var(--chalk); }
+.caret { display: inline-block; width: 3px; height: 28px; background: var(--accent); vertical-align: -5px; margin-left: 3px; }
+.meters { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 24px; border-top: 1px solid var(--line-1); }
+.meters div { padding-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+.meters b { font-family: var(--mono); font-weight: 500; font-size: 30px; color: var(--chalk); }
+
+/* ---- scene 6: manifesto ------------------------------------------------- */
+#s6 { z-index: 16; }
+#mword { position: absolute; left: 960px; top: 560px; font-family: var(--display); font-weight: 900; font-size: 300px; letter-spacing: -.055em; line-height: 1; white-space: nowrap; }
+#mid { position: absolute; left: 960px; font-family: var(--mono); font-size: 24px; letter-spacing: .14em; color: var(--chalk-3); white-space: nowrap; }
+#mframe { --cl: 34px; --cw: 4px; --frame-bg: transparent; border-color: rgba(156,195,255,.18); }
+
+/* ---- scene 7 + 8 --------------------------------------------------------- */
+#s7 { z-index: 70; }
+#s8 { z-index: 72; }
+#logo { position: absolute; left: 800px; top: 360px; width: 320px; height: 320px; overflow: visible; }
+#ring { position: absolute; border-radius: 50%; border: 2px solid var(--chalk); }
+#word { position: absolute; top: 412px; font-family: var(--display); font-weight: 900; font-size: 196px; line-height: 1; color: var(--chalk); white-space: nowrap; }
+#tagline { position: absolute; top: 740px; left: 0; width: 1920px; text-align: center; font-family: var(--display); font-weight: 700; font-size: 58px; letter-spacing: -.02em; color: var(--chalk-2); white-space: nowrap; }
+#url { position: absolute; top: 850px; left: 0; width: 1920px; text-align: center; font-family: var(--mono); font-size: 28px; letter-spacing: .12em; color: var(--accent); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="grid"></div>
+  <div id="glow"></div>
+
+  <!-- scenes 1-3 -->
+  <div class="layer" id="s123">
+    <div id="cam">
+      <div id="plane">
+        <div id="wallframe" class="frame"></div>
+        <div id="corner-sheen"></div>
+        <div class="plate" data-b="1"><div class="pf frame"></div>
+          <div class="raw"><span class="tint">You are a support agent for Northwind Outfitters, an outdoor gear shop. Customers write in about orders, returns and sizing.</span></div>
+          <div class="blk"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="bh"><span class="bt">Context</span><span class="bi">B1</span></div><div class="bx">You are a support agent for Northwind Outfitters.</div></div>
+          <div class="sheen"></div><i class="mk r"></i><i class="mk l"></i></div>
+        <div class="plate" data-b="2"><div class="pf frame"></div>
+          <div class="raw"><span class="tint">Reply in under 80 words. Greet the customer as {{customer_name}}. Keep it warm and plain.</span></div>
+          <div class="blk"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="bh"><span class="bt">Constraint</span><span class="bi">B2</span></div><div class="bx">Reply in under 80 words. Greet the customer as <span class="var">{{customer_name}}</span></div></div>
+          <div class="sheen"></div><i class="mk r"></i><i class="mk l"></i></div>
+        <div class="plate" data-b="3"><div class="pf frame"></div>
+          <div class="raw"><span class="tint">Example: "Sorry about that, Sam. I've started an exchange for a size 10, and a prepaid label is in your inbox."</span></div>
+          <div class="blk"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="bh"><span class="bt">Example</span><span class="bi">B3</span></div><div class="bx">“Sorry about that, Sam. I’ve started an exchange for a size 10.”</div></div>
+          <div class="sheen"></div><i class="mk r"></i><i class="mk l"></i></div>
+        <div class="plate" data-b="4"><div class="pf frame"></div>
+          <div class="raw"><span class="tint">Never promise a refund. Link the returns page whenever returns come up in the conversation.</span></div>
+          <div class="blk"><div class="grip"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="bh"><span class="bt">Expects</span><span class="bi">B4</span></div><div class="bx">Never promises a refund. Links the returns page.</div><div class="note">Stays out of the prompt</div></div>
+          <div class="sheen"></div><i class="mk r"></i><i class="mk l"></i></div>
+        <div id="scan"></div>
+      </div>
+    </div>
+    <div id="ed-head"><span class="name">support-reply</span><span class="meta">4 bloks · 1 variable</span><span id="badge"><span id="badge-dot"></span>Saved · v18</span></div>
+    <div id="compiled" class="frame">
+      <div class="ch"><span class="lbl" style="color:var(--chalk)">Compiled</span><div class="seg"><i id="segi"></i><span id="seg-t">Template</span><span id="seg-f">Filled</span></div></div>
+      <div class="cl" id="c1"><span>B1</span><span>You are a support agent for Northwind Outfitters, an outdoor gear shop.</span></div>
+      <div class="cl" id="c2"><span>B2</span><span>Reply in under 80 words. Greet the customer as <span class="v" id="vv"><b id="v-t">{{customer_name}}</b><b id="v-f" style="position:absolute;left:0;top:0">Sam</b></span>.</span></div>
+      <div class="cl" id="c3"><span>B3</span><span>Customer: My boots arrived in the wrong size. Agent: Sorry about that, Sam. I’ve started an exchange for a size 10.</span></div>
+      <div class="counts" id="counts">≈ 87 tokens · 346 chars</div>
+    </div>
+    <div id="copybtn"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/></svg>Copy prompt<span id="copied"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor"><path d="M5 12l5 5L20 7"/></svg>Copied</span></div>
+    <svg id="links" viewBox="0 0 1920 1080"></svg>
+  </div>
+
+  <div class="layer" id="olabs">
+    <div class="olab" id="ol1" style="color:var(--b1)"><small>B1</small>Context</div>
+    <div class="olab" id="ol2" style="color:var(--b2)"><small>B2</small>Constraint</div>
+    <div class="olab" id="ol3" style="color:var(--b3)"><small>B3</small>Example</div>
+    <div class="olab" id="ol4" style="color:var(--b4)"><small>B4</small>Expects</div>
+  </div>
+
+  <!-- scene 4 -->
+  <div class="layer" id="s4">
+    <div id="tl"><div id="track"></div><svg id="arc" viewBox="0 0 1920 1080"></svg><div id="nodes"></div><div id="tag">works on Claude</div></div>
+    <div id="toast"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Restored v5 as v19</div>
+    <div id="dive"></div>
+  </div>
+
+  <!-- scene 5 -->
+  <div class="layer" id="s5">
+    <div id="run" class="frame">
+      <div class="rh"><span class="lbl">Model · runs on your key</span>
+        <span class="pick">Claude <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+        <span class="keychip"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Anthropic key</span></div>
+      <div class="tm"><span class="lbl">Test message</span><div class="in">My boots arrived in the wrong size.</div><div id="uline"></div></div>
+      <div class="reply" id="reply"></div>
+      <div class="meters"><div><span class="lbl">Tokens</span><b id="m-tok">0</b></div><div><span class="lbl">Time</span><b id="m-time">0.0s</b></div><div><span class="lbl">Cost</span><b id="m-cost">$0.0000</b></div></div>
+      <div id="runbtn"><svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg>Run once</div>
+    </div>
+  </div>
+
+  <!-- scene 6 -->
+  <div class="layer" id="s6"><div id="mframe" class="frame"></div><div id="mid"></div><div id="mword"></div></div>
+
+  <!-- kinetic lines -->
+  <div class="kin" id="t1" style="left:960px;top:400px;font-size:144px;white-space:normal;width:1180px;text-align:center;line-height:1.0">Your prompt is&nbsp;a wall&nbsp;of text.</div>
+  <div class="kin" id="t2a" style="left:150px;top:300px;font-size:150px">4 blok types.</div>
+  <div class="kin" id="t2b" style="left:150px;top:300px;font-size:124px;line-height:1.02;white-space:normal;width:900px">Know what every line does.</div>
+  <div class="kin" id="t3" style="left:160px;top:900px;font-size:84px">One&nbsp;click. Paste&nbsp;it anywhere.</div>
+  <div class="kin" id="t4a" style="left:160px;top:210px;font-size:120px">Every&nbsp;save is&nbsp;a version.</div>
+  <div class="kin" id="t4b" style="left:160px;top:210px;font-size:120px">Never&nbsp;lose the&nbsp;one that&nbsp;worked.</div>
+  <div class="kin" id="t5a" style="left:150px;top:330px;font-size:128px;line-height:1.02;white-space:normal;width:900px">OpenAI. Anthropic. Google.</div>
+  <div class="kin" id="t5b" style="left:150px;top:330px;font-size:128px;line-height:1.02;white-space:normal;width:1000px">Your&nbsp;key. They&nbsp;bill you&nbsp;directly.</div>
+
+  <div id="black"></div>
+
+  <!-- scene 7 -->
+  <div class="layer" id="s7"><div class="kin" id="t7" style="left:960px;top:400px;font-size:150px;text-align:center;white-space:normal;width:1500px;line-height:1.02">Stop&nbsp;guessing which&nbsp;prompt works.</div></div>
+
+  <!-- scene 8 -->
+  <div class="layer" id="s8">
+    <div id="ring"></div>
+    <svg id="logo" viewBox="0 0 64 64">
+      <defs>
+        <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0" gradientUnits="objectBoundingBox">
+          <stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+        <clipPath id="plateclip"><rect x="2.5" y="2.5" width="59" height="59" rx="5"/></clipPath>
+      </defs>
+      <rect id="plate" x="2.5" y="2.5" width="59" height="59" rx="5" fill="#E9F1FF" stroke="#E9F1FF" stroke-width="0"/>
+      <path id="gl" fill="#0A1830" fill-rule="evenodd"/>
+      <path id="gr" fill="#0A1830" fill-rule="evenodd"/>
+      <g clip-path="url(#plateclip)"><rect id="specbar" x="-30" y="-10" width="18" height="90" fill="url(#spec)" transform="rotate(18 32 32)" opacity=".55"/></g>
+      <g id="verts"></g>
+    </svg>
+    <div id="word">prompts</div>
+    <div id="tagline"><span class="w">Free.</span> <span class="w">Unlimited.</span> <span class="w">No&nbsp;card.</span></div>
+    <div id="url">41prompts.ai</div>
+  </div>
+
+  <div id="vignette"></div>
+  <div id="grain"></div>
+</div>
+<script src="engine.js"></script>
+<script src="film.js"></script>
+</body>
+</html>
