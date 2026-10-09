@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@/components/analytics";
 import { HeadFlags } from "@/components/head-flags";
 import { IconSprite } from "@/components/icon";
 import { siteUrl } from "@/lib/hosts";
@@ -23,6 +24,7 @@ export default function SiteRootLayout({ children }: { children: React.ReactNode
       </head>
       <body>
         <IconSprite />
+        <Analytics />
         {children}
       </body>
     </html>
