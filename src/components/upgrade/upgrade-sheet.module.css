@@ -1,0 +1,20 @@
+/* Upgrade sheet (Sheet A06). Ported from the "Upgrade sheet" block of
+   docs/assets/css/app.css. Keyframes are local: modules hash the names they use. */
+
+.stamp { align-self: flex-start; font-size: 11px; padding: 5px 10px 4px; }
+:global(dialog[open]) .stamp { animation: stamp 560ms var(--ease-brand) 120ms both; }
+.title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1.1; letter-spacing: -.02em; padding-right: 32px; }
+.p { margin: 0; color: var(--chalk-2); }
+.list { list-style: none; margin: 0; padding: 12px 0 0; border-top: 1px dashed var(--line-3); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
+.list li { display: flex; gap: 10px; font-size: 13px; color: var(--chalk-2); }
+.list li > span:first-child { flex: none; font-family: var(--f-mono); font-size: 10.5px; color: var(--accent); padding-top: 2px; }
+:global(dialog[open]) .list li { animation: rise 420ms var(--ease-brand) both; animation-delay: calc(200ms + var(--k) * 40ms); }
+.price { margin: 0; font-size: 13px; color: var(--chalk-3); }
+.price b { font-family: var(--f-display); font-size: 18px; color: var(--chalk); }
+.actions { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.noted { display: inline-flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 11px; color: var(--pass); }
+
+@keyframes stamp { 0% { opacity: 0; transform: scale(1.6) rotate(-8deg); } 55% { opacity: 1; transform: scale(.94) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) rotate(-3deg); } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 560px) { .list { grid-template-columns: 1fr; } }

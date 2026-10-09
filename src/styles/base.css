@@ -1,0 +1,84 @@
+/* Base: reset, cursors, utilities. Ported from docs/assets/css/components.css. */
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bp-ground);
+    color: var(--chalk);
+    font-family: var(--f-body);
+    font-size: var(--t-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    cursor: var(--cur-arrow);
+  }
+  img, svg { max-width: 100%; }
+  [hidden] { display: none !important; }
+  a { color: var(--accent); }
+  a:hover { color: var(--chalk); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  h1, h2, h3 { text-wrap: balance; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  ::selection { background: rgba(156, 195, 255, .35); color: var(--chalk); }
+
+  /* Cursors: arrow by default, target on anything clickable, I-beam on text
+     entry, move on drag handles, crosshair on the drawing sheet. Touch devices
+     show none. */
+  a, button, summary, select, label[for], [role="tab"], [role="radio"], [role="menuitem"], [role="menuitemradio"] { cursor: var(--cur-target); }
+  input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"] { cursor: var(--cur-ibeam); }
+  input[type="checkbox"], input[type="radio"] { cursor: var(--cur-target); }
+  .grip { cursor: var(--cur-move); }
+  .sheet-area { cursor: var(--cur-cross); }
+  .sheet-area .blok { cursor: var(--cur-arrow); }
+  .sheet-area .blok__text { cursor: var(--cur-ibeam); }
+  :disabled, [aria-disabled="true"] { cursor: var(--cur-arrow); }
+
+  /* ---- Utilities --------------------------------------------------------- */
+  .bp-grid, .app-bg {
+    background-image:
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+      linear-gradient(var(--grid-minor) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-minor) 1px, transparent 1px);
+    background-size: 80px 80px, 80px 80px, 16px 16px, 16px 16px;
+  }
+  .label {
+    font-family: var(--f-mono);
+    font-size: var(--t-label);
+    font-weight: 400;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--chalk-3);
+  }
+  .mono { font-family: var(--f-mono); }
+  .muted { color: var(--chalk-3); }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  .kbd {
+    font-family: var(--f-mono); font-size: 10px; color: var(--chalk-3);
+    border: 1px solid var(--line-2); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+  }
+  .i { width: 16px; height: 16px; flex: none; display: inline-block; vertical-align: middle; }
+  .i--sm { width: 13px; height: 13px; }
+  .i--lg { width: 20px; height: 20px; }
+  .num { font-family: var(--f-mono); font-size: 12px; font-variant-numeric: tabular-nums; color: var(--chalk-2); }
+  .var {
+    font-family: var(--f-mono); font-size: 12.5px; color: var(--variable);
+    background: rgba(255, 210, 122, .12); border: 1px dashed rgba(255, 210, 122, .55);
+    border-radius: 4px; padding: 1px 6px; white-space: nowrap;
+  }
+  mark.hit { background: rgba(156, 195, 255, .25); color: var(--chalk); border-radius: 2px; }
+  .sheetno { font-family: var(--f-mono); font-size: var(--t-label); letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-3); }
+
+  /* A small dashed spinner used by save state and busy buttons. */
+  .spin-dash { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed currentColor; animation: spin 1.1s linear infinite; }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  @layer base {
+    body, a, button, summary, select, input, textarea, [contenteditable], .grip, .sheet-area { cursor: auto; }
+  }
+}

@@ -1,0 +1,86 @@
+/* 41prompts · Blueprint design tokens.
+   Ported from docs/assets/css/tokens.css (mirrors docs/assets/tokens.json).
+   Fonts come from next/font/local (src/styles/fonts.ts) as --font-* variables
+   on <html>; cursors are served from /assets/cursors. */
+
+@layer tokens {
+  :root {
+    color-scheme: dark;
+
+    /* ---- Ground: the blueprint sheet ------------------------------------ */
+    --bp-ground: #0A1830;      /* page background */
+    --bp-sheet: #0C1C38;       /* panels, rails, cards */
+    --bp-raised: #132849;      /* avatars, toasts, raised controls */
+    --bp-well: #081428;        /* code wells, inputs on panels */
+
+    /* ---- Chalk: ink drawn on the sheet ----------------------------------- */
+    --chalk: #E9F1FF;          /* primary text, primary button fill */
+    --chalk-2: #C9D7EE;        /* secondary text */
+    --chalk-3: #93A9CB;        /* labels, metadata (7.3:1 on ground) */
+    --chalk-4: #7D93B6;        /* hints, placeholders (5.6:1 on ground) */
+    --accent: #9CC3FF;         /* links, focus rings, active lines */
+
+    /* ---- Lines and grid -------------------------------------------------- */
+    --line-1: rgba(156, 195, 255, .14);
+    --line-2: rgba(156, 195, 255, .28);
+    --line-3: rgba(156, 195, 255, .45);
+    --grid-major: rgba(156, 195, 255, .07);
+    --grid-minor: rgba(156, 195, 255, .035);
+
+    /* ---- Blok types ------------------------------------------------------ */
+    --blok-context: #9CC3FF;
+    --blok-constraint: #FFD27A;
+    --blok-example: #C6A8FF;
+    --blok-expects: #6FE3A5;
+
+    /* ---- States ---------------------------------------------------------- */
+    --pass: #6FE3A5;
+    --fail: #FF7A66;
+    --fail-text: #FF9A8A;
+    --variable: #FFD27A;
+
+    /* ---- Plan: the Performance stamp (form, not hue) --------------------- */
+    --stamp-bg: #E9F1FF;
+    --stamp-fg: #0A1830;
+
+    /* ---- Type ------------------------------------------------------------ */
+    --f-display: var(--font-archivo), "Archivo", "Helvetica Neue", Arial, sans-serif;
+    --f-body: var(--font-plex), "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --f-mono: var(--font-martian), "Martian Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+    --t-label: 10.5px;
+    --t-xs: 12px;
+    --t-sm: 13px;
+    --t-base: 14px;
+    --t-md: 16px;
+    --t-lg: 18px;
+    --t-h3: 22px;
+    --t-h2: clamp(30px, 3.6vw, 44px);
+    --t-h1-app: 30px;
+    --t-h1: clamp(44px, 6.4vw, 92px);
+
+    /* ---- Space (4px base) ------------------------------------------------ */
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px;
+    --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px; --s-24: 96px;
+
+    /* ---- Radius ---------------------------------------------------------- */
+    --r-sheet: 2px;
+    --r-control: 7px;
+    --r-pill: 999px;
+
+    /* ---- Motion ---------------------------------------------------------- */
+    --ease-brand: cubic-bezier(.32, .72, 0, 1);
+    --ease-draw: cubic-bezier(.6, 0, .2, 1);
+    --dur-1: 120ms;
+    --dur-2: 200ms;
+    --dur-3: 500ms;
+    --dur-4: 900ms;
+
+    /* ---- Cursors (hotspots in px, 32×32 artwork) ------------------------- */
+    --cur-arrow: url("/assets/cursors/cursor-arrow.svg") 5 3, default;
+    --cur-target: url("/assets/cursors/cursor-target.svg") 16 16, pointer;
+    --cur-ibeam: url("/assets/cursors/cursor-ibeam.svg") 16 16, text;
+    --cur-move: url("/assets/cursors/cursor-move.svg") 16 16, grab;
+    --cur-cross: url("/assets/cursors/cursor-cross.svg") 16 16, crosshair;
+  }
+}
