@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-plan="free">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sign in · 41prompts</title>
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/components.css">
+<link rel="stylesheet" href="../../assets/css/motion.css">
+<link rel="stylesheet" href="../../assets/css/app.css">
+</head>
+<body class="app">
+<script src="../../assets/js/icons.js"></script>
+
+<!-- ======================================================================
+     ROUTE  app.41prompts.ai/sign-in
+            #start        → "Create your account" (from Start free)
+            #performance  → sign in, then Stripe Checkout (from Start Performance)
+     One form for sign in and sign up: an email link, or Google / GitHub.
+     Right side: Sheet 00, the logo's construction drawing (decorative).
+     ====================================================================== -->
+
+<div class="auth">
+  <section class="auth__form app-bg">
+    <a class="logo" data-logo href="../41prompts.ai/index.html" aria-label="41Prompts, home" style="--logo-size: 21px">
+      <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+      <span class="logo-word">prompts</span>
+    </a>
+
+    <div class="auth__card">
+      <span class="sheetno">Sheet A01 · Access</span>
+      <h1 id="authTitle">Sign in to 41prompts</h1>
+      <p id="authSub">One link by email. No password, no card.</p>
+
+      <p class="notice auth__perf" id="authPerf"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg><span>After you sign in, Stripe Checkout opens to start <b>Performance</b>.</span></p>
+
+      <form class="frame frame--quiet" id="authForm" novalidate style="--frame-bg: rgba(12, 28, 56, .92); padding: 22px; display: flex; flex-direction: column; gap: 12px">
+        <div class="field">
+          <label class="label" for="email">Email</label>
+          <input class="input" id="email" type="email" autocomplete="email" placeholder="you@company.com" required aria-describedby="emailErr">
+        </div>
+        <p class="auth__err" id="emailErr" role="alert">Enter an email address like you@company.com.</p>
+        <button class="btn btn--primary btn--lg btn--block" type="submit" id="sendBtn"><span class="btn-spin" aria-hidden="true"></span><span id="sendLabel">Email me a sign-in link</span></button>
+        <div class="auth__or">OR</div>
+        <a class="btn btn--block" href="library.html" data-oauth>Continue with Google</a>
+        <a class="btn btn--block" href="library.html" data-oauth>Continue with GitHub</a>
+      </form>
+
+      <div class="auth__sent frame" id="authSent" role="status">
+        <svg class="env" viewBox="0 0 64 44" aria-hidden="true"><rect x="2" y="2" width="60" height="40" rx="3" pathLength="1" style="stroke-dasharray: 1; stroke-dashoffset: 1"></rect><path d="M3 5 L32 26 L61 5" pathLength="1" style="stroke-dasharray: 1; stroke-dashoffset: 1"></path></svg>
+        <b>Check your inbox</b>
+        <p>We sent a sign-in link to <span id="sentTo">your email</span>. It works once and expires in 15 minutes.</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <a class="btn btn--primary btn--sm" href="library.html" id="openLink">Open the link (mockup)</a>
+          <button class="btn btn--sm" type="button" id="resetBtn">Use a different email</button>
+        </div>
+      </div>
+
+      <p class="auth__fine">New here? The same link creates your account. Your prompts are private by default. By continuing you agree to the <a href="../41prompts.ai/index.html">Terms</a> and <a href="../41prompts.ai/index.html">Privacy policy</a>.</p>
+    </div>
+  </section>
+
+  <section class="auth__art app-bg" aria-hidden="true">
+    <div class="mark-sheet">
+      <svg class="ms" id="ms" viewBox="-22 -20 108 104">
+        <g class="ms-grid" id="msGrid"></g>
+        <g class="ms-dim">
+          <path data-draw-me pathLength="1" style="--dl: 900ms; --ms: 900ms" d="M0 -12V-2M64 -12V-2M0 -9H64M-1 -8L1 -10M63 -8L65 -10"></path>
+          <path data-draw-me pathLength="1" style="--dl: 1050ms; --ms: 900ms" d="M-12 0H-2M-12 64H-2M-9 0V64M-10 -1L-8 1M-10 63L-8 65"></path>
+          <path data-draw-me pathLength="1" style="--dl: 1200ms; --ms: 900ms" d="M50 14H74M50 50H74M72 14V50M71 13L73 15M71 49L73 51"></path>
+          <path data-draw-me pathLength="1" style="--dl: 1350ms; --ms: 700ms" d="M60.04 3.96L69 -5H77"></path>
+          <text x="32" y="-11" text-anchor="middle">64</text>
+          <text x="-11" y="32" text-anchor="middle" transform="rotate(-90 -11 32)">64</text>
+          <text x="73.6" y="33">36</text>
+          <text x="77.6" y="-4.4">R5</text>
+        </g>
+        <rect class="ms-plate" data-draw-me pathLength="1" style="--dl: 500ms; --ms: 1300ms" x="2.5" y="2.5" width="59" height="59" rx="5"></rect>
+        <path class="ms-glyph" id="msL" data-draw-me pathLength="1" style="--dl: 1500ms; --ms: 1300ms" fill-rule="evenodd" d="M18 14L32 14L32 50L25 50L25 41L8 41L8 41L8 41L8 34Z M25 17L25 34L15 34Z"></path>
+        <path class="ms-glyph" id="msR" data-draw-me pathLength="1" style="--dl: 1700ms; --ms: 1100ms" fill-rule="evenodd" d="M38 21L44 14L48 14L48 50L41 50L41 21Z"></path>
+        <g class="ms-vx" id="msVx"></g>
+      </svg>
+    </div>
+    <div class="mark-cap">
+      <span class="titleblock"><span>41prompts</span><span>Sheet 00</span><span>Mark construction</span><span>Units 64</span></span>
+      <span class="label" id="msState">41 · rest</span>
+    </div>
+  </section>
+</div>
+
+<div class="mock-tag" role="note"><span>Mockup · <b>app.41prompts.ai/sign-in</b></span><a href="../index.html">All sheets</a></div>
+
+<script src="../../assets/logo/logo.js"></script>
+<script src="../../assets/js/motion.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="../../assets/js/pages/sign-in.js"></script>
+</body>
+</html>

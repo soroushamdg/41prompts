@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# env
+.env
+.env*.local
+!.env.example
+
+# tests
+coverage/
+playwright-report/
+test-results/
+blob-report/
+.e2e/
+.drive/
+
+# vercel
+.vercel/
+
+# os and editors
+.DS_Store
+*.log

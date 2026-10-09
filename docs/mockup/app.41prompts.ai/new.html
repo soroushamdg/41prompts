@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-plan="free">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>New prompt · 41prompts</title>
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/components.css">
+<link rel="stylesheet" href="../../assets/css/motion.css">
+<link rel="stylesheet" href="../../assets/css/app.css">
+</head>
+<body class="app app-bg">
+<script src="../../assets/js/icons.js"></script>
+
+<!-- ======================================================================
+     ROUTE  app.41prompts.ai/new
+     Paste a prompt (becomes one context blok on Free; automatic split into
+     bloks is the Performance decompiler) or start blank with a chosen blok.
+     ====================================================================== -->
+
+<header class="topbar">
+  <a class="logo" data-logo href="library.html" aria-label="41Prompts, library">
+    <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+    <span class="logo-word">prompts</span>
+  </a>
+  <nav class="appnav" aria-label="App">
+    <a href="library.html"><svg class="i" aria-hidden="true"><use href="#i-folder"></use></svg>Library</a>
+    <a href="settings.html"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg>Settings</a>
+  </nav>
+  <div class="topbar__end">
+    <a class="planpill" href="settings.html#billing">Free plan <span class="stamp">Upgrade</span></a>
+    <details class="menu">
+      <summary class="avatar" aria-label="Account menu">S</summary>
+      <div class="menu__panel frame">
+        <div class="menu__who"><b>Sora</b><span>[YOUR EMAIL]</span></div>
+        <a href="settings.html#keys"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>Model keys</a>
+        <a href="settings.html#billing"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg>Plan and billing</a>
+        <a href="sign-in.html"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg>Sign out</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main class="page np" id="main">
+  <div class="page-head">
+    <div>
+      <span class="sheetno">Sheet A03 · New prompt</span>
+      <h1>Paste a prompt, or start blank.</h1>
+      <p>It stays private to you and saves itself as you go.</p>
+    </div>
+  </div>
+
+  <div class="seg" role="tablist" aria-label="How to start" style="align-self: flex-start">
+    <button type="button" role="tab" id="tabPaste" aria-selected="true" aria-controls="panelPaste">Paste a prompt</button>
+    <button type="button" role="tab" id="tabBlank" aria-selected="false" aria-controls="panelBlank" tabindex="-1">Start blank</button>
+  </div>
+
+  <form class="np-card frame" id="npForm" novalidate>
+    <div class="field">
+      <label class="label" for="npName">Name</label>
+      <input class="input input--mono" id="npName" type="text" value="order-status-reply" autocomplete="off" spellcheck="false">
+    </div>
+
+    <div id="panelPaste" role="tabpanel" aria-labelledby="tabPaste" style="display: flex; flex-direction: column; gap: 16px">
+      <div class="field">
+        <label class="label" for="npText">Your prompt</label>
+        <textarea class="input" id="npText" rows="11" spellcheck="false" placeholder="Paste any prompt. Markdown and variables in double braces are kept.">You are the order assistant for Northwind Outfitters.
+
+When a customer asks about an order, look up {{order_id}} and greet them as {{customer_name}}.
+
+Keep replies under 80 words. Be warm but brief.
+
+Never promise a delivery date you cannot see in the order record.</textarea>
+      </div>
+      <div class="np-stats">
+        <span class="mono" id="npStats">0 characters</span>
+        <span class="label">Variables found</span>
+        <span class="np-vars" id="npVars" aria-live="polite"></span>
+      </div>
+      <div class="np-split">
+        <input id="npSplit" type="checkbox" disabled>
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+            <label for="npSplit" style="font-weight: 500; color: var(--chalk-2)">Split into bloks automatically</label>
+            <button class="stamp" type="button" data-perf="The decompiler" style="border: 0">Performance</button>
+          </div>
+          <span style="font-size: 13px; color: var(--chalk-3)">On Free your paste becomes one context blok. Split it by hand in the editor, or let the decompiler type every part with Performance.</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="panelBlank" role="tabpanel" aria-labelledby="tabBlank" hidden>
+      <div class="field">
+        <span class="label" id="firstLbl">Pick the first blok</span>
+        <div class="np-types" role="radiogroup" aria-labelledby="firstLbl">
+          <button class="np-type" type="button" role="radio" aria-checked="true" data-type="context"><b>Context</b><span>Who the model is and the world it works in.</span></button>
+          <button class="np-type" type="button" role="radio" aria-checked="false" data-type="constraint"><b>Constraint</b><span>A rule on length, tone or format.</span></button>
+          <button class="np-type" type="button" role="radio" aria-checked="false" data-type="example"><b>Example</b><span>A sample input and the reply you want back.</span></button>
+          <button class="np-type" type="button" role="radio" aria-checked="false" data-type="expects"><b>Expects</b><span>What a good answer always does. Becomes a test, not prompt text.</span></button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <div class="np-actions">
+    <a class="btn btn--lg" href="library.html">Cancel</a>
+    <button class="btn btn--primary btn--lg btn--go" type="submit" form="npForm" id="npCreate"><span class="btn-spin" aria-hidden="true"></span><span id="npCreateLabel">Create prompt</span><svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg></button>
+  </div>
+</main>
+
+<div class="mock-tag" role="note"><span>Mockup · <b>app.41prompts.ai/new</b></span><a href="../index.html">All sheets</a></div>
+
+<script src="../../assets/logo/logo.js"></script>
+<script src="../../assets/js/motion.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/pages/new.js"></script>
+</body>
+</html>

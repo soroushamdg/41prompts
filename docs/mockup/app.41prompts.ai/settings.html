@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en" data-plan="free">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Settings · 41prompts</title>
+<link rel="stylesheet" href="../../assets/css/tokens.css">
+<link rel="stylesheet" href="../../assets/css/components.css">
+<link rel="stylesheet" href="../../assets/css/motion.css">
+<link rel="stylesheet" href="../../assets/css/app.css">
+</head>
+<body class="app app-bg">
+<script src="../../assets/js/icons.js"></script>
+
+<!-- ======================================================================
+     ROUTE  app.41prompts.ai/settings     (#keys #billing #data #account)
+     Model keys (Free), plan and billing through Stripe, export and delete.
+     ====================================================================== -->
+
+<header class="topbar">
+  <a class="logo" data-logo href="library.html" aria-label="41Prompts, library">
+    <svg class="logo-glyphs" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><rect class="logo-plate" x="2.5" y="2.5" width="59" height="59" rx="5"></rect><path class="logo-glyph" data-logo-left d="M18.00 14.00L32.00 14.00L32.00 50.00L25.00 50.00L25.00 41.00L8.00 41.00L8.00 41.00L8.00 41.00L8.00 34.00Z M25.00 17.00L25.00 34.00L15.00 34.00Z" fill-rule="evenodd"></path><path class="logo-glyph" data-logo-right d="M38.00 21.00L44.00 14.00L48.00 14.00L48.00 50.00L41.00 50.00L41.00 21.00Z" fill-rule="evenodd"></path></svg>
+    <span class="logo-word">prompts</span>
+  </a>
+  <nav class="appnav" aria-label="App">
+    <a href="library.html"><svg class="i" aria-hidden="true"><use href="#i-folder"></use></svg>Library</a>
+    <a href="settings.html" aria-current="page"><svg class="i" aria-hidden="true"><use href="#i-sliders"></use></svg>Settings</a>
+  </nav>
+  <div class="topbar__end">
+    <a class="planpill" href="#billing">Free plan <span class="stamp">Upgrade</span></a>
+    <details class="menu">
+      <summary class="avatar" aria-label="Account menu">S</summary>
+      <div class="menu__panel frame">
+        <div class="menu__who"><b>Sora</b><span>[YOUR EMAIL]</span></div>
+        <a href="#keys"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>Model keys</a>
+        <a href="#billing"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg>Plan and billing</a>
+        <a href="sign-in.html"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg>Sign out</a>
+      </div>
+    </details>
+  </div>
+</header>
+
+<main class="page" id="main">
+  <div class="page-head">
+    <div>
+      <span class="sheetno">Sheet A05 · Settings</span>
+      <h1>Settings</h1>
+    </div>
+  </div>
+
+  <div class="set">
+    <nav class="set-nav" aria-label="Settings sections" id="setNav">
+      <a href="#keys" class="is-on"><svg class="i" aria-hidden="true"><use href="#i-key"></use></svg>Model keys</a>
+      <a href="#billing"><svg class="i" aria-hidden="true"><use href="#i-card"></use></svg>Plan and billing</a>
+      <a href="#data"><svg class="i" aria-hidden="true"><use href="#i-shield"></use></svg>Data and privacy</a>
+      <a href="#account"><svg class="i" aria-hidden="true"><use href="#i-user"></use></svg>Account</a>
+    </nav>
+
+    <div class="set-main">
+      <!-- ---- Keys ------------------------------------------------------------------ -->
+      <section class="set-sec" id="keys" aria-labelledby="keysT">
+        <h2 id="keysT">Model keys</h2>
+        <p>Your keys run your prompts. Each provider bills your own account. Free can run on one model at a time; Performance runs all three side by side.</p>
+        <div class="set-box">
+          <div class="set-row" data-key="openai">
+            <div class="set-row__main"><b>OpenAI</b><span class="mono">Key ending 3f9a · added Oct 2</span></div>
+            <span class="keystate is-ok"><span class="dot"></span><span>Connected</span></span>
+            <span style="display: flex; gap: 8px"><button class="btn btn--sm" type="button" data-test>Test connection</button><button class="btn btn--sm" type="button" data-remove aria-label="Remove OpenAI key">Remove</button></span>
+          </div>
+          <div class="set-row" data-key="anthropic">
+            <div class="set-row__main"><b>Anthropic</b><span class="mono">Key ending 8c1d · added Oct 2</span></div>
+            <span class="keystate is-ok"><span class="dot"></span><span>Connected</span></span>
+            <span style="display: flex; gap: 8px"><button class="btn btn--sm" type="button" data-test>Test connection</button><button class="btn btn--sm" type="button" data-remove aria-label="Remove Anthropic key">Remove</button></span>
+          </div>
+          <div class="set-row" data-key="google" id="googleRow">
+            <div class="set-row__main"><b>Google Gemini</b><span>Needed to run prompts on Gemini.</span></div>
+            <span class="keystate" id="gState"><span class="dot"></span><span>Not connected</span></span>
+            <form class="keyform" id="gForm" novalidate>
+              <label class="sr-only" for="gKey">Google Gemini API key</label>
+              <input class="input input--mono" id="gKey" type="password" autocomplete="off" placeholder="Paste your Gemini API key">
+              <button class="btn btn--primary btn--sm" type="submit" id="gSave" disabled>Save key</button>
+            </form>
+          </div>
+          <div class="set-foot"><svg class="i" aria-hidden="true"><use href="#i-lock"></use></svg>Encrypted at rest. Shown once when you save it, never again, and never written to logs.</div>
+        </div>
+      </section>
+
+      <!-- ---- Billing ----------------------------------------------------------------- -->
+      <section class="set-sec" id="billing" aria-labelledby="billT">
+        <h2 id="billT">Plan and billing</h2>
+        <p>Free is unlimited for writing, saving, versioning and copying prompts. Performance adds the tools that test, measure and share them.</p>
+        <div class="planrow">
+          <article class="plancard frame">
+            <div class="plancard__top"><span class="label">Free</span><span class="chip chip--ok"><span class="dot"></span>Current plan</span></div>
+            <div class="plancard__price"><b>$0</b><span>forever</span></div>
+            <ul>
+              <li>Unlimited prompts, bloks and versions</li>
+              <li>Bloks editor with the compiled prompt</li>
+              <li>One-click copy, template or filled</li>
+              <li>Run on one model with your key</li>
+              <li>Library with search by name</li>
+              <li>Export everything, delete anytime</li>
+            </ul>
+          </article>
+          <article class="plancard plancard--perf frame frame--live">
+            <div class="plancard__top"><span class="label" style="color: var(--chalk)">Performance</span><span class="stamp">Performance</span></div>
+            <div class="plancard__price"><b class="tbd">$TBD</b><span>/ month</span></div>
+            <ul>
+              <li>Everything in Free</li>
+              <li>Failure attribution to the exact blok <small>P01</small></li>
+              <li>Linter and decompiler <small>P02 · P03</small></li>
+              <li>Tests from expects bloks <small>P04</small></li>
+              <li>Side-by-side runs with cost and latency <small>P05</small></li>
+              <li>Search inside prompts, tags, filters <small>P06</small></li>
+              <li>Semantic diffs, shared workspaces <small>P07 · P08</small></li>
+              <li>Share pages, typed export, presence <small>D01–D03</small></li>
+            </ul>
+            <a class="btn btn--primary btn--block btn--go" href="#billing" id="checkout"><span class="btn-spin" aria-hidden="true"></span><span id="checkoutLabel">Upgrade with Stripe</span><svg class="i" aria-hidden="true"><use href="#i-arrow-right"></use></svg></a>
+            <p class="stripe-state" id="stripeState" role="status"><span>In the product this opens Stripe Checkout. You return here once payment goes through.</span></p>
+          </article>
+        </div>
+        <div class="set-box">
+          <div class="set-row">
+            <div class="set-row__main"><b>Billing portal</b><span>Change your card, download invoices or cancel. Run by Stripe. Available once you subscribe.</span></div>
+            <button class="btn btn--sm" type="button" disabled><svg class="i" aria-hidden="true"><use href="#i-external"></use></svg>Manage billing in Stripe</button>
+          </div>
+          <div class="set-row">
+            <div class="set-row__main"><b>Invoices</b><span>No invoices yet.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---- Data ---------------------------------------------------------------------- -->
+      <section class="set-sec" id="data" aria-labelledby="dataT">
+        <h2 id="dataT">Data and privacy</h2>
+        <div class="set-box">
+          <div class="set-row">
+            <div class="set-row__main"><b>Private by default</b><span>Every prompt and version is visible only to you. Nothing becomes public unless you create a share page.</span></div>
+            <span style="display: inline-flex; align-items: center; gap: 10px; font-family: var(--f-mono); font-size: 11px; color: var(--pass)"><span class="toggle" aria-hidden="true"></span>Always on</span>
+          </div>
+          <div class="set-row">
+            <div class="set-row__main"><b>Export everything</b><span>Your whole library with every version, as Markdown and JSON in one .zip file.</span></div>
+            <button class="btn btn--sm" type="button" id="exportBtn"><svg class="i" aria-hidden="true"><use href="#i-download"></use></svg>Export</button>
+            <div class="export-state" id="exportState" role="status">
+              <div class="progress"><i id="exportBar"></i></div>
+              <span class="mono muted" style="font-size: 11.5px" id="exportLabel">Packing 8 prompts, 48 versions</span>
+            </div>
+          </div>
+        </div>
+        <div class="danger frame">
+          <b>Delete account</b>
+          <p>Deletes your account, every prompt, every version and your saved keys. This cannot be undone. Export first if you want a copy.</p>
+          <form class="danger__form" id="delForm" novalidate>
+            <div class="field">
+              <label class="label" for="delConfirm" style="color: var(--chalk-2)">Type DELETE to confirm</label>
+              <input class="input input--mono" id="delConfirm" type="text" autocomplete="off" spellcheck="false">
+            </div>
+            <button class="btn btn--danger" type="submit" id="delBtn" disabled>Delete account</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ---- Account ------------------------------------------------------------------- -->
+      <section class="set-sec" id="account" aria-labelledby="accT">
+        <h2 id="accT">Account</h2>
+        <div class="set-box">
+          <div class="set-row">
+            <span class="avatar" aria-hidden="true" style="width: 44px; height: 44px">S</span>
+            <div class="set-row__main"><b>Sora</b><span class="mono">[YOUR EMAIL] · signs in with an email link</span></div>
+            <a class="btn btn--sm" href="sign-in.html"><svg class="i" aria-hidden="true"><use href="#i-logout"></use></svg>Sign out</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div class="mock-tag" role="note"><span>Mockup · <b>app.41prompts.ai/settings</b></span><a href="../index.html">All sheets</a></div>
+
+<script src="../../assets/logo/logo.js"></script>
+<script src="../../assets/js/motion.js"></script>
+<script src="../../assets/js/ui.js"></script>
+<script src="../../assets/js/app.js"></script>
+<script src="../../assets/js/pages/settings.js"></script>
+</body>
+</html>
