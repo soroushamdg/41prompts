@@ -1,6 +1,7 @@
 "use client";
 import { forwardRef, useState } from "react";
 import { Icon } from "@/components/icon";
+import { countCopy, useReviewPrompt } from "@/components/review/review";
 import { useToast } from "@/components/toast";
 import { track } from "@/lib/analytics";
 import { type Compiled, countLabel } from "@/lib/compile";
@@ -30,11 +31,13 @@ async function writeClipboard(text: string) {
 export const CompiledPanel = forwardRef<HTMLDivElement, Props>(function CompiledPanel({ compiled, mode, setMode, values, setValue, copyMarkdown, copyJson }, ref) {
   const toast = useToast();
   const [done, setDone] = useState(0);
+  const { askForReview } = useReviewPrompt();
 
   async function copyPrompt() {
     const ok = await writeClipboard(compiled.text);
     if (!ok) return toast("Copy did not work in this browser. Select the text and copy it instead.", { tone: "bad" });
     track("prompt_copied", { format: "text", mode });
+    if (countCopy() >= 5) askForReview("fifth_copy");
     const n = Date.now();
     setDone(n);
     setTimeout(() => setDone((d) => (d === n ? 0 : d)), 1800);

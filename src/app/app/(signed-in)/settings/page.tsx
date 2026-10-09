@@ -15,6 +15,7 @@ import { BillingSection } from "./billing-section";
 import { DataSection } from "./data-section";
 import { KeysSection } from "./keys-section";
 import { SettingsNav } from "./settings-nav";
+import { ProductHuntBadge } from "@/components/review/review";
 import { SignOutButton } from "./sign-out-button";
 import s from "./settings.module.css";
 
@@ -85,6 +86,13 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                     <span className="mono">{viewer.email} · signs in with {methods.join(", ")}</span>
                   </div>
                   <SignOutButton />
+                </div>
+                <div className={s.row}>
+                  <div className={s.rowMain}>
+                    <b>Review 41prompts</b>
+                    <span>If it has saved you some guessing, a short review on Product Hunt helps other people who write prompts find it.</span>
+                  </div>
+                  <ProductHuntBadge />
                 </div>
               </div>
             </section>

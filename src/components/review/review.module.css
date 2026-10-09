@@ -1,0 +1,9 @@
+/* Product Hunt review prompt. */
+.title { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 28px; line-height: 1.1; letter-spacing: -.02em; padding-right: 32px; }
+.p { margin: 0; color: var(--chalk-2); }
+.badge { align-self: flex-start; display: inline-flex; border-radius: 10px; transition: transform var(--dur-2) var(--ease-brand); }
+.badge:hover { transform: translateY(-2px); }
+.badge img { display: block; width: 250px; height: 54px; }
+.actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; border-top: 1px dashed var(--line-3); }
+.note { margin: 0; font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .06em; color: var(--chalk-3); text-transform: uppercase; }
+.dialog :global(.dlg__panel) { --corner: var(--blok-expects); }
