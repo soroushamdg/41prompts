@@ -1,0 +1,8 @@
+/* Global stylesheet for both hosts. Order of authority (docs/DESIGN.md):
+   DESIGN.md, then docs/assets/*.css, then the mockup HTML.
+   Layers: tokens < base < primitives < (unlayered CSS modules). */
+@layer tokens, base, primitives;
+@import "./tokens.css";
+@import "./base.css";
+@import "./primitives.css";
+@import "./motion.css";

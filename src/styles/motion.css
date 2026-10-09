@@ -1,0 +1,59 @@
+/* Motion layer: registered properties, shared keyframes, reveal states and
+   the CAD crosshair. Keyframe names are global on purpose: CSS modules hash
+   any keyframe name they reference, so modules that animate either define
+   their own @keyframes or use these through a global class. */
+
+@property --cl { syntax: "<length>"; inherits: true; initial-value: 10px; }
+@property --reveal { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+
+@keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes pop { 0% { opacity: 0; transform: scale(.6); } 60% { opacity: 1; transform: scale(1.08); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes stamp { 0% { opacity: 0; transform: scale(1.6) rotate(-8deg); } 55% { opacity: 1; transform: scale(.94) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) rotate(-3deg); } }
+@keyframes scanline { from { top: -40px; } to { top: 100%; } }
+@keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes collapse { to { opacity: 0; transform: scaleY(.6); } }
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(156, 195, 255, .6); } 100% { box-shadow: 0 0 0 8px rgba(156, 195, 255, 0); } }
+@keyframes dlg-in { from { opacity: 0; transform: translateY(10px) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes flash { 0% { background: rgba(156, 195, 255, .3); } 100% { background: transparent; } }
+@keyframes blok-in { 0% { opacity: 0; transform: translateY(-10px) scale(.985); --cl: 46px; } 60% { opacity: 1; } 100% { opacity: 1; transform: none; --cl: 10px; } }
+@keyframes blok-out { to { opacity: 0; transform: translateX(-16px) scale(.98); } }
+@keyframes row-out { to { opacity: 0; transform: translateX(24px); } }
+
+@layer base {
+  /* Reveal on scroll. Only hidden once JS has marked <html class="js">, so
+     content is never lost without scripts. */
+  html.js .rv-pre { opacity: 0; transform: translateY(18px); }
+  html.js .rv-pre[data-reveal="fade"] { transform: none; }
+  html.js .rv-pre[data-reveal="left"] { transform: translateX(-24px); }
+  html.js .rv-pre[data-reveal="scale"] { transform: scale(.97); }
+  .rv-in { opacity: 1; transform: none; transition: opacity 700ms var(--ease-brand), transform 900ms var(--ease-brand); }
+
+  /* Shared one-shot animations, applied as global classes. */
+  .anim-rise { animation: rise 420ms var(--ease-brand) both; }
+  .anim-pop { animation: pop 380ms var(--ease-brand) both; }
+  .anim-shake { animation: shake 360ms; }
+  .panel-in { animation: rise 420ms var(--ease-brand); }
+
+  /* CAD crosshair */
+  .xhair { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 300ms var(--ease-brand); z-index: 1; overflow: hidden; }
+  .xhair.is-on { opacity: 1; }
+  .xhair.is-dim { opacity: .25; }
+  .xhair__h, .xhair__v { position: absolute; display: block; }
+  .xhair__h { left: 0; right: 0; top: var(--y, 0); border-top: 1px dashed rgba(156, 195, 255, .32); }
+  .xhair__v { top: 0; bottom: 0; left: var(--x, 0); border-left: 1px dashed rgba(156, 195, 255, .32); }
+  .xhair__read {
+    position: absolute; left: var(--x, 0); top: var(--y, 0); transform: translate(14px, 12px);
+    font-family: var(--f-mono); font-size: 10px; letter-spacing: .06em; color: var(--accent);
+    background: rgba(10, 24, 48, .85); padding: 3px 6px; border: 1px solid var(--line-2); white-space: pre;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js .rv-pre { opacity: 1; transform: none; }
+  .xhair { display: none; }
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; scroll-behavior: auto !important; }
+}
