@@ -1,0 +1,53 @@
+/* Sign in (Sheet A01). Ported from the "Sign in" blocks of docs/assets/css/app.css. */
+
+.auth { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); min-height: 100vh; min-height: 100dvh; }
+.form { display: flex; flex-direction: column; justify-content: center; padding: 48px clamp(20px, 6vw, 88px); gap: 28px; }
+.card { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 18px; }
+.card h1 { margin: 0; font-family: var(--f-display); font-weight: 800; font-size: 36px; letter-spacing: -.03em; line-height: 1.05; }
+.card > p { margin: 0; color: var(--chalk-3); }
+.panel { --frame-bg: rgba(12, 28, 56, .92); padding: 22px; display: flex; flex-direction: column; gap: 12px; }
+.or { display: flex; align-items: center; gap: 12px; font-family: var(--f-mono); font-size: 10px; letter-spacing: .12em; color: var(--chalk-3); }
+.or::before, .or::after { content: ""; flex: 1; border-top: 1px dashed var(--line-3); }
+.err { margin: 0; font-size: 13px; color: var(--fail-text); animation: rise 300ms var(--ease-brand); }
+.sent { display: flex; flex-direction: column; gap: 12px; padding: 18px; --corner: var(--pass); border-color: rgba(111, 227, 165, .5); --frame-bg: rgba(111, 227, 165, .06); animation: rise 420ms var(--ease-brand); }
+.sent svg { width: 64px; height: 44px; }
+.sent svg path, .sent svg rect { fill: none; stroke: var(--pass); stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.sent[data-drawn] svg rect { stroke-dashoffset: 0; transition: stroke-dashoffset 900ms var(--ease-draw) 150ms; }
+.sent[data-drawn] svg path { stroke-dashoffset: 0; transition: stroke-dashoffset 900ms var(--ease-draw) 500ms; }
+.sent b { color: var(--pass); }
+.sent p { margin: 0; color: var(--chalk-2); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.fine { margin: 0; font-size: 12.5px; color: var(--chalk-3); max-width: 420px; }
+.shake { animation: shake 320ms; }
+
+.art { position: relative; overflow: hidden; border-left: 1px solid var(--line-1); display: flex; flex-direction: column; }
+.markSheet { flex: 1; display: grid; place-items: center; padding: 48px; }
+.markSheet svg { width: min(520px, 100%); height: auto; overflow: visible; }
+.cap { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--line-1); }
+
+/* Sheet 00: the mark's construction drawing */
+.ms :global(.ms-grid) path { fill: none; stroke: rgba(156, 195, 255, .16); stroke-width: .12; }
+.ms :global(.ms-grid) :global(.maj) { stroke: rgba(156, 195, 255, .3); stroke-width: .16; }
+.ms :global(.ms-plate) { fill: transparent; stroke: var(--chalk); stroke-width: .35; transition: fill 900ms var(--ease-brand); }
+.ms :global(.ms-glyph) { fill: transparent; stroke: var(--accent); stroke-width: .3; stroke-linejoin: round; transition: fill 900ms var(--ease-brand), stroke 600ms; }
+.ms[data-solid] :global(.ms-plate) { fill: var(--chalk); }
+.ms[data-solid] :global(.ms-glyph) { fill: var(--bp-ground); stroke: rgba(10, 24, 48, 0); }
+.ms :global(.ms-dim) path { fill: none; stroke: var(--accent); stroke-width: .18; }
+.ms :global(.ms-dim) text, .ms :global(.ms-vx) text { font-family: var(--f-mono); font-size: 2.3px; fill: var(--accent); letter-spacing: .05px; }
+.ms :global(.ms-dim) text { opacity: 0; transition: opacity 500ms; }
+.ms[data-dims] :global(.ms-dim) text { opacity: 1; }
+.ms :global(.ms-vx) circle { fill: var(--bp-ground); stroke: var(--fail); stroke-width: .22; transform-box: fill-box; transform-origin: center; transform: scale(0); transition: transform 400ms var(--ease-brand); }
+.ms[data-vx] :global(.ms-vx) circle { transform: scale(1); }
+.ms :global(.ms-vx) text { fill: var(--fail-text); opacity: 0; transition: opacity 400ms; }
+.ms[data-vx] :global(.ms-vx) text { opacity: 1; }
+.ms [data-draw-me] { stroke-dasharray: 1; stroke-dashoffset: 1; }
+.ms[data-drawn] [data-draw-me] { stroke-dashoffset: 0; transition: stroke-dashoffset var(--ms, 1400ms) var(--ease-draw) var(--dl, 0ms), fill 900ms var(--ease-brand), stroke 600ms; }
+:global(.reduce) .ms [data-draw-me] { stroke-dashoffset: 0; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-2px); } }
+
+@media (max-width: 900px) {
+  .auth { grid-template-columns: 1fr; }
+  .art { display: none; }
+}

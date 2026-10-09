@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
-import { getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
+import { getRedirectUrl, getRewrittenUrl, isRewrite, unstable_doesMiddlewareMatch } from "next/experimental/testing/server";
 import { describe, expect, it } from "vitest";
 import nextConfig from "../next.config";
 import { config, maintenanceOn, proxy } from "./proxy";
 
-function req(url: string) {
+function req(url: string, cookie = "better-auth.session_token=abc") {
   const u = new URL(url);
-  return new NextRequest(url, { headers: { host: u.host } });
+  return new NextRequest(url, { headers: { host: u.host, cookie } });
 }
 
 describe("proxy host routing", () => {
@@ -55,6 +55,24 @@ describe("proxy host routing", () => {
     } finally {
       delete process.env.MAINTENANCE_MODE;
     }
+  });
+});
+
+describe("proxy sign-in gate", () => {
+  it("redirects app pages without a session cookie to sign-in, keeping the path", () => {
+    const res = proxy(req("https://app.41prompts.ai/p/support-reply?v=3", ""));
+    expect(getRedirectUrl(res)).toBe("https://app.41prompts.ai/sign-in?next=%2Fp%2Fsupport-reply%3Fv%3D3");
+    expect(getRedirectUrl(proxy(req("https://app.41prompts.ai/", "")))).toBe("https://app.41prompts.ai/sign-in");
+  });
+
+  it("lets public app pages and the site through without a cookie", () => {
+    for (const url of ["https://app.41prompts.ai/sign-in", "https://app.41prompts.ai/sign-in/verify?token=x", "https://app.41prompts.ai/goodbye", "https://41prompts.ai/terms"]) {
+      expect(isRewrite(proxy(req(url, ""))), url).toBe(true);
+    }
+  });
+
+  it("accepts the secure cookie name used in production", () => {
+    expect(isRewrite(proxy(req("https://app.41prompts.ai/settings", "__Secure-better-auth.session_token=abc")))).toBe(true);
   });
 });
 

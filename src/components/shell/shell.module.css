@@ -1,0 +1,33 @@
+/* App shell: top bar, nav, plan pill, crumbs. Ported from docs/assets/css/app.css. */
+
+.topbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30;
+  display: flex; align-items: center; gap: 6px 16px; flex-wrap: wrap;
+  min-height: 60px; padding: 6px 16px;
+  border-bottom: 1px solid var(--line-1);
+  background: rgba(10, 24, 48, .94);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.topbar :global(.logo) { --logo-size: 19px; }
+.nav { display: flex; gap: 2px; }
+.nav a { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 7px; color: var(--chalk-3); text-decoration: none; font-size: 13.5px; transition: color var(--dur-1), background-color var(--dur-1); }
+.nav a:hover { color: var(--chalk); background: rgba(156, 195, 255, .06); }
+.nav a[aria-current="page"] { color: var(--chalk); background: rgba(156, 195, 255, .12); }
+.crumbs { display: flex; align-items: center; gap: 8px; font-family: var(--f-mono); font-size: 12px; color: var(--chalk-3); min-width: 0; }
+.crumbs a { color: var(--chalk-3); text-decoration: none; }
+.crumbs a:hover { color: var(--chalk); }
+.crumbs b { font-weight: 400; color: var(--chalk); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.pill {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px;
+  border: 1px solid var(--line-2); border-radius: var(--r-pill);
+  font-family: var(--f-mono); font-size: 11px; color: var(--chalk-3); text-decoration: none; background: transparent;
+  transition: border-color var(--dur-2);
+}
+.pill[data-upgrade] { padding-right: 6px; }
+.pill:hover { border-color: var(--chalk); color: var(--chalk); }
+
+@media (max-width: 640px) {
+  .nav { order: 3; width: 100%; }
+  .crumbs { display: none; }
+}
