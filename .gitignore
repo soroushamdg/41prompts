@@ -26,3 +26,7 @@ blob-report/
 # os and editors
 .DS_Store
 *.log
+.next-e2e/
+
+# agent worktrees
+.claude/worktrees/
