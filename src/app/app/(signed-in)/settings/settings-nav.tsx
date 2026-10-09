@@ -5,7 +5,7 @@ import type { IconName } from "@/components/icons";
 import s from "./settings.module.css";
 
 const SECTIONS: Array<[id: string, label: string, icon: IconName]> = [
-  ["keys", "Model keys", "key"],
+  ["models", "Models", "cpu"],
   ["billing", "Plan and billing", "card"],
   ["data", "Data and privacy", "shield"],
   ["account", "Account", "user"],
@@ -13,7 +13,7 @@ const SECTIONS: Array<[id: string, label: string, icon: IconName]> = [
 
 /** Section nav with scroll-spy (the mockup's settings.js). */
 export function SettingsNav() {
-  const [on, setOn] = useState("keys");
+  const [on, setOn] = useState("models");
   useEffect(() => {
     const spy = new IntersectionObserver(
       (entries) => entries.forEach((en) => en.isIntersecting && setOn(en.target.id)),

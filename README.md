@@ -1,6 +1,6 @@
 # 41prompts
 
-The workbench for the prompt layer. Paste or write a prompt, break it into typed bloks (context, constraint, example, expects), watch the compiled prompt update, copy it, run it once on one model with your own key, and keep every version.
+The workbench for the prompt layer. Paste or write a prompt, break it into typed bloks (context, constraint, example, expects), watch the compiled prompt update, copy it, run it once on any model you bring (a hosted provider with your own key, any OpenAI-compatible endpoint, or a model on your own machine), and keep every version.
 
 One Next.js app serves two hosts:
 
@@ -13,7 +13,7 @@ One Next.js app serves two hosts:
 
 ## Stack
 
-Next.js 16 (App Router) · TypeScript · plain CSS (global layered primitives in `src/styles`, CSS modules per screen) · Motion for layout animations · Postgres on Neon with Drizzle · Better Auth (email link via Resend, Google, GitHub) · Vercel AI SDK (OpenAI, Anthropic, Google, on each user's own key) · Stripe Checkout with Managed Payments · PostHog (cookieless) · Sentry · Vitest · Playwright · Vercel.
+Next.js 16 (App Router) · TypeScript · plain CSS (global layered primitives in `src/styles`, CSS modules per screen) · Motion for layout animations · Postgres on Neon with Drizzle · Better Auth (email link via Resend, Google, GitHub) · Vercel AI SDK (20+ providers and any OpenAI-compatible endpoint, on each user's own key) · Stripe Checkout with Managed Payments · PostHog (cookieless) · Sentry · Vitest · Playwright · Vercel.
 
 ## Local
 
@@ -78,5 +78,7 @@ Locally: `stripe listen --forward-to localhost:3141/api/stripe/webhook` and use 
 - **Versions are immutable.** Every autosave inserts a `prompt_versions` row with the bloks as JSON and a note derived from the diff ("Edited B3", "Split B1"). Restoring inserts a copy as the new head. Only a version's `name` ever changes.
 - **Autosave** keeps one request in flight with the newest snapshot, retries idempotently, keeps a local draft until the server confirms, and flushes when the tab hides.
 - **Plan** is written only by Stripe webhooks (`user.plan`), read from the database on every check (`requirePerformance`), and never declared to Better Auth, so no client call can change it.
-- **Model keys** are AES-256-GCM encrypted with the user and provider as authenticated data; only the last four characters ever leave the server.
+- **Your models** (`model_connections`, catalog in `src/lib/catalog.ts`): one row per labelled model. Credentials are one AES-256-GCM sealed blob whose authenticated data binds it to the user, the row and its destination (provider, base URL origin, Azure resource), so a saved key cannot be pointed at a new address without typing it again; only the last four characters ever leave the server. Duplicate re-seals on the server.
+- **SSRF guard:** every server-side provider call (runs, model lists, key checks) goes through `src/server/net/guarded-fetch.ts`: https only, no redirects, and an undici agent that refuses private, loopback, link-local, CGNAT and metadata addresses at DNS time and again on the open socket.
+- **Local models run in the browser** (`src/lib/browser-run.ts`): Ollama, LM Studio and custom local addresses are called straight from the tab with `fetch` and parsed as SSE, so nothing passes through our server and their keys stay in `localStorage` (cleared on sign-out). Chrome and Edge reach local addresses after a one-time Local Network Access prompt (plain http on the LAN needs `targetAddressSpace`, which the client sends); Firefox reaches only loopback over http; Safari blocks plain http even to localhost. The server must allow the app's origin in CORS (`OLLAMA_ORIGINS`, LM Studio's Enable CORS).
 - **Privacy:** prompts are private; PostHog never receives prompt text or query strings; Sentry scrubs request bodies and anything key-shaped; deleting the account removes everything at once.

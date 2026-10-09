@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, count, eq, inArray, isNull, sql } from "drizzle-orm";
 import type { Db } from "@/db";
-import { account, modelKeys, prompts, promptVersions, user } from "@/db/schema";
+import { account, modelConnections, prompts, promptVersions, user } from "@/db/schema";
 import type { ExportPrompt } from "@/lib/export";
 
 /* Data and privacy (M09, M10): export pages and account deletion. */
@@ -47,14 +47,14 @@ export async function signInMethods(db: Db, userId: string): Promise<string[]> {
   return ["an email link", ...rows.map((r) => names[r.provider]).filter((x): x is string => Boolean(x))];
 }
 
-export type DeletedCounts = { prompts: number; versions: number; keys: number };
+export type DeletedCounts = { prompts: number; versions: number; models: number };
 
-/** Deletes the user; prompts, versions, keys, sessions and accounts cascade. */
+/** Deletes the user; prompts, versions, models, sessions and accounts cascade. */
 export async function deleteAccount(db: Db, userId: string): Promise<DeletedCounts> {
   return db.transaction(async (tx) => {
     const [p] = await tx.select({ n: count(), v: sql<number>`coalesce(sum(${prompts.headVersion}), 0)::int` }).from(prompts).where(eq(prompts.userId, userId));
-    const [k] = await tx.select({ n: count() }).from(modelKeys).where(eq(modelKeys.userId, userId));
+    const [m] = await tx.select({ n: count() }).from(modelConnections).where(eq(modelConnections.userId, userId));
     await tx.delete(user).where(eq(user.id, userId));
-    return { prompts: p?.n ?? 0, versions: p?.v ?? 0, keys: k?.n ?? 0 };
+    return { prompts: p?.n ?? 0, versions: p?.v ?? 0, models: m?.n ?? 0 };
   });
 }

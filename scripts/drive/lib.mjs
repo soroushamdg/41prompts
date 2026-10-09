@@ -63,3 +63,19 @@ export async function signInViaOutbox(page, email) {
   await page.getByRole("button", { name: "Continue" }).click();
   await page.waitForURL(`${APP}/`);
 }
+
+/** Adds a hosted model through Settings › Models. With E2E_MODE=1 the provider is faked. */
+export async function addModel(page, { provider = "OpenAI", label, key, model }) {
+  await page.goto(`${APP}/settings#models`);
+  await page.getByRole("button", { name: "Add model" }).first().click();
+  const dlg = page.getByRole("dialog");
+  await dlg.getByRole("button", { name: new RegExp(`^${provider}\\b`) }).click();
+  await dlg.getByLabel("Label").fill(label);
+  await dlg.getByLabel("API key").fill(key);
+  await dlg.getByRole("button", { name: "Connect and load models" }).click();
+  await dlg.getByText(/Connected · \d+ ms/).waitFor();
+  await dlg.getByRole("combobox", { name: "Model" }).fill(model);
+  await dlg.getByRole("option", { name: new RegExp(model) }).click();
+  await dlg.getByRole("button", { name: "Save model" }).click();
+  await page.getByText(`Added ${label}.`).waitFor();
+}

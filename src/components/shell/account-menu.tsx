@@ -24,7 +24,7 @@ export function AccountMenu({ name, email }: { name: string; email: string }) {
         <b>{name || email.split("@")[0]}</b>
         <span>{email}</span>
       </div>
-      <Link href="/settings#keys"><Icon name="key" />Model keys</Link>
+      <Link href="/settings#models"><Icon name="cpu" />Models</Link>
       <Link href="/settings#billing"><Icon name="card" />Plan and billing</Link>
       <a href={siteUrl("/")}><Icon name="external" />41prompts.ai</a>
       <a href={PH_REVIEW_URL} target="_blank" rel="noopener noreferrer"><Icon name="share" />Review on Product Hunt</a>

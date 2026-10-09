@@ -1,5 +1,7 @@
 /* Removes anything that could be a model key or a user's prompt from error
-   reports. Keys are encrypted at rest and must never reach Sentry or logs. */
+   reports. Keys are encrypted at rest and must never reach Sentry or logs.
+   Custom models can use any key shape, so secret-named fields and bearer
+   tokens are dropped whatever they look like. */
 
 const KEY_PATTERNS: RegExp[] = [
   /sk-ant-[A-Za-z0-9_-]{10,}/g, // Anthropic
@@ -8,9 +10,20 @@ const KEY_PATTERNS: RegExp[] = [
   /(?:sk|rk|pk)_(?:live|test)_[A-Za-z0-9]{10,}/g, // Stripe
   /whsec_[A-Za-z0-9]{10,}/g,
   /re_[A-Za-z0-9_]{16,}/g, // Resend
+  /sk-or-v1-[A-Za-z0-9]{16,}/g, // OpenRouter
+  /gsk_[A-Za-z0-9]{20,}/g, // Groq
+  /xai-[A-Za-z0-9]{20,}/g, // xAI
+  /hf_[A-Za-z0-9]{20,}/g, // Hugging Face
+  /pplx-[A-Za-z0-9]{20,}/g, // Perplexity
+  /fw_[A-Za-z0-9]{16,}/g, // Fireworks
+  /csk-[A-Za-z0-9]{16,}/g, // Cerebras
+  /vck_[A-Za-z0-9]{16,}/g, // Vercel AI Gateway
+  /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, // AWS access key IDs
+  /\bABSK[A-Za-z0-9+/=]{20,}/g, // Bedrock API keys
+  /\bBearer\s+[A-Za-z0-9._~+/=-]{16,}/g, // any bearer token
 ];
 
-const SECRET_FIELDS = /^(api[-_]?key|key|apikey|authorization|cookie|set-cookie|x-api-key|x-goog-api-key|password|secret|token|prompt|system|messages|requestBodyValues|body|text|bloks)$/i;
+const SECRET_FIELDS = /^(api[-_]?key|key|apikey|authorization|cookie|set-cookie|x-api-key|x-goog-api-key|api-key|password|secret|token|accessKeyId|secretAccessKey|sessionToken|headers|ciphertext|prompt|system|messages|requestBodyValues|body|text|bloks)$/i;
 
 export function redactString(s: string): string {
   let out = s;

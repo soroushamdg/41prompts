@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 import { Topbar } from "@/components/shell/topbar";
 import { db } from "@/db";
-import { PROVIDER_ORDER } from "@/lib/providers";
-import { listKeys } from "@/server/keys";
+import { listConnections } from "@/server/connections";
 import { getPromptBySlug, headBloks, listPrompts } from "@/server/prompts";
 import { requireViewer } from "@/server/session";
 import { listVersions } from "@/server/versions";
@@ -17,14 +16,14 @@ export default async function EditorPage({ params }: { params: Promise<{ slug: s
   const viewer = await requireViewer(`/p/${slug}`);
   const prompt = await getPromptBySlug(db, viewer.id, slug);
   if (!prompt) notFound();
-  const [bloks, versions, library, keys] = await Promise.all([
+  const [bloks, versions, library, models] = await Promise.all([
     headBloks(db, prompt.id, prompt.headVersion),
     listVersions(db, prompt.id),
     listPrompts(db, viewer.id),
-    listKeys(db, viewer.id),
+    listConnections(db, viewer.id),
   ]);
-  const n = keys.length;
-  const keysLabel = n === 0 ? "No model keys yet · add one" : `${n} of ${PROVIDER_ORDER.length} model keys connected`;
+  const n = models.length;
+  const modelsLabel = n === 0 ? "No models yet · add one" : `${n} ${n === 1 ? "model" : "models"}`;
   return (
     <>
       <Topbar crumb={prompt.slug} />
@@ -34,8 +33,8 @@ export default async function EditorPage({ params }: { params: Promise<{ slug: s
         bloks={bloks}
         versions={versions}
         rail={library.filter((p) => !p.archived)}
-        keys={keys}
-        keysLabel={keysLabel}
+        models={models}
+        modelsLabel={modelsLabel}
       />
     </>
   );

@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   turbopack: { root: import.meta.dirname },
+  // The SSRF guard needs undici's own Agent and fetch, not a bundled copy.
+  serverExternalPackages: ["undici"],
   // PostHog reverse proxy: analytics go to our own host, so blockers and
   // third-party cookie rules do not drop them.
   skipTrailingSlashRedirect: true,

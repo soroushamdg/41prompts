@@ -8,7 +8,7 @@ export type AnalyticsEvent =
   | "prompt_created"
   | "prompt_copied"
   | "run_completed"
-  | "key_saved"
+  | "model_added"
   | "export_completed"
   | "account_deleted"
   | "performance_control_clicked"

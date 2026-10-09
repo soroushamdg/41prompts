@@ -81,7 +81,7 @@ export function DataSection({ prompts, versions }: { prompts: number; versions: 
     track("account_deleted");
     setAnalyticsSink(null);
     clearLocalDrafts();
-    window.location.replace(`/goodbye?p=${r.prompts}&v=${r.versions}&k=${r.keys}`);
+    window.location.replace(`/goodbye?p=${r.prompts}&v=${r.versions}&m=${r.models}`);
   }
 
   const busy = progress !== null && progress.pct < 100;

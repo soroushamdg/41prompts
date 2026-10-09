@@ -40,11 +40,13 @@ export default function TermsPage() {
         <p>We do not sell your content and we do not use it to train models.</p>
       </Clause>
 
-      <Clause n={4} title="Model keys and runs">
+      <Clause n={4} title="Your models and runs">
         <p>
-          When you run a prompt, 41prompts sends it to the provider you choose (OpenAI, Anthropic or Google) with your own API key. That provider&rsquo;s terms apply to the
-          request, and the provider bills your account directly. We do not control what a model returns, whether a provider is available, or what it charges.
+          When you run a prompt on a hosted model, 41prompts sends it to the provider you chose with your own API key. A model on your own computer or network is called straight
+          from your browser instead. Either way, that provider&rsquo;s or server&rsquo;s terms apply to the request, and any charges go to your account with the provider. We do
+          not control what a model returns, whether a provider or server is available, or what it charges. Costs shown in 41prompts are estimates from list prices.
         </p>
+        <p>Only connect endpoints you are allowed to use. Our server will not call private or internal addresses on your behalf.</p>
       </Clause>
 
       <Clause n={5} title="Plans and payment">
@@ -66,7 +68,7 @@ export default function TermsPage() {
 
       <Clause n={7} title="Export and deletion">
         <p>
-          You can export everything at any time, as Markdown and JSON in one .zip file. Deleting your account removes your prompts, versions, keys and sign-ins straight away. A
+          You can export everything at any time, as Markdown and JSON in one .zip file. Deleting your account removes your prompts, versions, saved models, keys and sign-ins straight away. A
           prompt you delete on its own is removed for good by a daily cleanup once it has been deleted for 24 hours.
         </p>
       </Clause>

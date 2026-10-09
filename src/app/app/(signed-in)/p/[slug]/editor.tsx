@@ -16,7 +16,7 @@ import { slugify } from "@/lib/slug";
 import { relativeTime } from "@/lib/time";
 import { getVersionAction, nameVersionAction, restoreVersionAction, saveFillValuesAction } from "@/server/actions/editor";
 import { renamePromptAction } from "@/server/actions/prompts";
-import type { KeySummary } from "@/server/keys";
+import type { ConnectionView } from "@/server/connections";
 import type { LibraryItem } from "@/server/prompts";
 import type { SaveResult, VersionMeta } from "@/server/versions";
 import { BlokCard } from "./blok-card";
@@ -34,8 +34,8 @@ export type EditorProps = {
   bloks: Blok[];
   versions: VersionMeta[];
   rail: LibraryItem[];
-  keys: KeySummary[];
-  keysLabel: string;
+  models: ConnectionView[];
+  modelsLabel: string;
 };
 
 type Tab = "compiled" | "run" | "history";
@@ -373,7 +373,7 @@ export function Editor(props: EditorProps) {
 
   return (
     <div className={s.ed}>
-      <Rail items={rail} currentId={prompt.id} keysLabel={props.keysLabel} />
+      <Rail items={rail} currentId={prompt.id} modelsLabel={props.modelsLabel} hasModels={props.models.length > 0} />
       <SearchHotkey />
 
       <main className={cx(s.main, "sheet-area app-bg")} id="main">
@@ -524,7 +524,7 @@ export function Editor(props: EditorProps) {
           />
         </TabPanel>
         <TabPanel idPrefix="out" id="run" active={tab === "run"} className={s.panel}>
-          <RunPanel storageKey={`41p:run:${userId}:${prompt.id}`} keys={props.keys} system={runSystem} missing={variables.filter((v) => !values[v]?.trim())} />
+          <RunPanel storageKey={`41p:run:${userId}:${prompt.id}`} userId={userId} models={props.models} system={runSystem} missing={variables.filter((v) => !values[v]?.trim())} />
         </TabPanel>
         <TabPanel idPrefix="out" id="history" active={tab === "history"} className={s.panel}>
           <HistoryPanel versions={versions} viewing={viewing?.number ?? null} busy={busy} onOpen={open} onRestore={restore} onName={nameHead} />

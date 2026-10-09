@@ -1,51 +1,54 @@
 import { streamText } from "ai";
 import { z } from "zod";
 import { db } from "@/db";
-import { PROVIDERS } from "@/db/schema";
 import { MAX_PROMPT_CHARS } from "@/lib/bloks";
-import { costUsd, findModel } from "@/lib/models";
-import { PROVIDER_LABEL } from "@/lib/providers";
-import { readKey } from "@/server/keys";
-import { languageModel, runErrorMessage } from "@/server/run";
+import { costUsd, providerName } from "@/lib/catalog";
+import type { RunEvent } from "@/lib/run-events";
+import { getConnection, readSecret } from "@/server/connections";
+import { languageModelFor, providerErrorMessage } from "@/server/providers";
 import { currentUserId } from "@/server/session";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const Body = z.object({
-  provider: z.enum(PROVIDERS),
-  model: z.string().max(100),
+  connectionId: z.string().uuid(),
   system: z.string().max(MAX_PROMPT_CHARS + 20_000),
   message: z.string().min(1).max(20_000),
 });
 
-export type RunEvent =
-  | { t: "start"; model: string }
-  | { t: "delta"; text: string }
-  | { t: "done"; inputTokens: number; outputTokens: number; ms: number; cost: number | null }
-  | { t: "error"; message: string };
-
-/* Run once (M06), streamed as NDJSON so errors arrive as events rather than
-   as a silently empty reply. Nothing about the run is stored or logged. */
+/* Run once (M06) on one of the user's server-run models, streamed as NDJSON
+   so errors arrive as events rather than as a silently empty reply. Models
+   on the user's own machine never come here; the browser runs them. Nothing
+   about the run is stored or logged. */
 export async function POST(req: Request) {
   const userId = await currentUserId();
   if (!userId) return Response.json({ error: "Your session ended. Sign in again." }, { status: 401 });
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Write a test message to run." }, { status: 400 });
-  const { provider, model, system, message } = parsed.data;
-  if (!findModel(provider, model)) return Response.json({ error: "That model is not in the list." }, { status: 400 });
-  const apiKey = await readKey(db, userId, provider);
-  if (!apiKey) return Response.json({ error: `Add a ${PROVIDER_LABEL[provider]} key in Settings to run on this model.`, code: "no_key" }, { status: 409 });
+  const { connectionId, system, message } = parsed.data;
+  const row = await getConnection(db, userId, connectionId);
+  if (!row) return Response.json({ error: "That model was removed. Pick another one or add it again in Settings.", code: "no_model" }, { status: 404 });
+  if (row.runsIn !== "server") return Response.json({ error: "This model runs in your browser." }, { status: 409 });
+  // A custom endpoint goes by the user's own label in messages.
+  const name = row.provider === "custom" ? row.label : providerName(row.provider);
+  let secret;
+  try {
+    secret = readSecret(userId, row);
+  } catch {
+    return Response.json({ error: `The saved key for ${row.label} could not be opened. Replace it in Settings.`, code: "no_key" }, { status: 409 });
+  }
 
   const enc = new TextEncoder();
   const t0 = performance.now();
+  const prices = { input: row.inputPerMtok, output: row.outputPerMtok };
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const send = (e: RunEvent) => controller.enqueue(enc.encode(JSON.stringify(e) + "\n"));
-      send({ t: "start", model });
+      send({ t: "start", model: row.modelId });
       try {
         const result = streamText({
-          model: await languageModel(provider, model, apiKey),
+          model: await languageModelFor(row, secret),
           system: system.trim() || undefined,
           prompt: message,
           maxOutputTokens: 2048,
@@ -58,15 +61,15 @@ export async function POST(req: Request) {
           if (part.type === "text-delta") send({ t: "delta", text: part.text });
           else if (part.type === "error") {
             failed = true;
-            send({ t: "error", message: runErrorMessage(provider, part.error) });
+            send({ t: "error", message: providerErrorMessage(name, part.error) });
           } else if (part.type === "finish" && !failed) {
-            const input = part.totalUsage.inputTokens ?? 0;
-            const output = part.totalUsage.outputTokens ?? 0;
-            send({ t: "done", inputTokens: input, outputTokens: output, ms: Math.round(performance.now() - t0), cost: costUsd(provider, model, input, output) });
+            const input = part.totalUsage.inputTokens ?? null;
+            const output = part.totalUsage.outputTokens ?? null;
+            send({ t: "done", inputTokens: input, outputTokens: output, ms: Math.round(performance.now() - t0), cost: costUsd(prices, input, output) });
           }
         }
       } catch (error) {
-        if (!req.signal.aborted) send({ t: "error", message: runErrorMessage(provider, error) });
+        if (!req.signal.aborted) send({ t: "error", message: providerErrorMessage(name, error) });
       } finally {
         controller.close();
       }

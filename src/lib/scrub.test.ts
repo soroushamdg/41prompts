@@ -9,10 +9,16 @@ describe("scrub", () => {
     expect(out.match(/\[redacted\]/g)).toHaveLength(4);
   });
 
+  it("redacts the newer providers' key shapes and any bearer token", () => {
+    const keys = ["sk-or-v1-0123456789abcdef0123", "gsk_0123456789abcdefABCDEFGH", "xai-0123456789abcdefABCDEFGH", "hf_0123456789abcdefABCDEFGH", "pplx-0123456789abcdefABCDEFGH", "fw_0123456789abcdefAB", "AKIAABCDEFGHIJKLMNOP", "ABSKQmVkcm9ja0FQSUtleS0wMTIz", "Bearer my-custom-token-0123456789"];
+    for (const k of keys) expect(redactString(`x ${k} y`)).toBe("x [redacted] y");
+  });
+
   it("drops secret-named fields at any depth", () => {
     expect(redactDeep({ a: { apiKey: "x", requestBodyValues: { messages: [] }, ok: 1 } })).toEqual({
       a: { apiKey: "[redacted]", requestBodyValues: "[redacted]", ok: 1 },
     });
+    expect(redactDeep({ secret: { secretAccessKey: "s", sessionToken: "t", accessKeyId: "a" }, settings: { baseURL: "https://x" } })).toEqual({ secret: "[redacted]", settings: { baseURL: "https://x" } });
   });
 
   it("drops request bodies, cookies and keys in URLs", () => {

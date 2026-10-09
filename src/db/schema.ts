@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, doublePrecision, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import type { Blok } from "@/lib/bloks";
 
 /* Column names are snake_case in the database (drizzle `casing`).
@@ -133,23 +133,59 @@ export const promptVersions = pgTable(
   ],
 );
 
-export const PROVIDERS = ["openai", "anthropic", "google"] as const;
-export type Provider = (typeof PROVIDERS)[number];
+/** Non-secret settings of a model connection (see src/lib/catalog.ts). */
+export type ConnectionSettings = {
+  baseURL?: string;
+  organization?: string;
+  project?: string;
+  resourceName?: string;
+  apiVersion?: string;
+  region?: string;
+  authMode?: "apiKey" | "accessKeys";
+  includeUsage?: boolean;
+  /** A browser model whose key is kept in the user's browser. */
+  localKey?: boolean;
+};
 
-/** API keys, AES-256-GCM encrypted with AAD = userId|provider. */
-export const modelKeys = pgTable(
-  "model_keys",
+/** A model the user brought (M07): one model, its credentials, where it runs.
+    The secret is one AES-256-GCM sealed JSON blob; browser rows never hold one
+    (their optional key stays in that browser). */
+export const modelConnections = pgTable(
+  "model_connections",
   {
+    id: uuid().primaryKey(),
     userId: text().notNull().references(() => user.id, { onDelete: "cascade" }),
-    provider: text({ enum: PROVIDERS }).notNull(),
-    ciphertext: text().notNull(),
-    iv: text().notNull(),
-    authTag: text().notNull(),
-    keyVersion: integer().notNull().default(1),
-    last4: text().notNull(),
+    label: text().notNull(),
+    provider: text().notNull(),
+    runsIn: text({ enum: ["server", "browser"] }).notNull(),
+    modelId: text().notNull(),
+    settings: jsonb().$type<ConnectionSettings>().notNull().default({}),
+    ciphertext: text(),
+    iv: text(),
+    authTag: text(),
+    keyVersion: integer(),
+    secretHint: text(),
+    inputPerMtok: doublePrecision(),
+    outputPerMtok: doublePrecision(),
+    priceSource: text({ enum: ["provider", "catalog", "openrouter", "user", "local"] }),
+    priceAt: timestamp({ withTimezone: true }),
+    lastTestAt: timestamp({ withTimezone: true }),
+    lastTestOk: boolean(),
+    lastTestMs: integer(),
+    lastTestMessage: text(),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [primaryKey({ columns: [t.userId, t.provider] })],
+  (t) => [
+    uniqueIndex("model_connections_user_label_idx").on(t.userId, sql`lower(${t.label})`),
+    index("model_connections_user_created_idx").on(t.userId, t.createdAt),
+    check("model_connections_browser_no_secret", sql`${t.runsIn} = 'server' or ${t.ciphertext} is null`),
+    check(
+      "model_connections_sealed_complete",
+      sql`(${t.ciphertext} is null) = (${t.iv} is null) and (${t.iv} is null) = (${t.authTag} is null) and (${t.authTag} is null) = (${t.keyVersion} is null)`,
+    ),
+    check("model_connections_prices", sql`coalesce(${t.inputPerMtok}, 0) >= 0 and coalesce(${t.outputPerMtok}, 0) >= 0`),
+  ],
 );
 
 /** "Tell me when it opens" on the upgrade sheet, one row per user. */

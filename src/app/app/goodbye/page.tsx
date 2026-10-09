@@ -10,7 +10,7 @@ const plural = (k: number, w: string) => `${k} ${w}${k === 1 ? "" : "s"}`;
 /** After M10: say in plain words what was removed. */
 export default async function GoodbyePage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const q = await searchParams;
-  const [p, v, k] = [n(q.p), n(q.v), n(q.k)];
+  const [p, v, m] = [n(q.p), n(q.v), n(q.m ?? q.k)];
   return (
     <div className={s.auth} style={{ gridTemplateColumns: "1fr" }}>
       <section className={`${s.form} app-bg`} style={{ alignItems: "center" }}>
@@ -19,7 +19,7 @@ export default async function GoodbyePage({ searchParams }: { searchParams: Prom
           <span className="sheetno">Sheet A00 · Closed</span>
           <h1>Your account is deleted.</h1>
           <p>
-            We removed your account, {plural(p, "prompt")}, {plural(v, "version")} and {plural(k, "saved model key")}. Your sessions are signed out. This cannot be undone, and nothing is kept.
+            We removed your account, {plural(p, "prompt")}, {plural(v, "version")} and {plural(m, "saved model")}. Your sessions are signed out. This cannot be undone, and nothing is kept.
           </p>
           <p>If you had Performance, the subscription is cancelled and you will not be billed again.</p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>

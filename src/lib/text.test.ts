@@ -43,13 +43,3 @@ describe("relative times", () => {
     expect(versionTime(new Date(2026, 9, 8, 18, 2), now)).toBe("Yesterday, 18:02");
   });
 });
-
-import { keysNotice } from "./providers";
-describe("keysNotice", () => {
-  it("speaks plainly about missing keys", () => {
-    expect(keysNotice(["openai", "anthropic"])).toBe("2 of 3 model keys connected. Add a Google key to run prompts on Gemini.");
-    expect(keysNotice(["openai"])).toBe("1 of 3 model keys connected. Add Anthropic and Google keys to run prompts on Claude and Gemini.");
-    expect(keysNotice([])).toBe("No model keys yet. Add one to run prompts on your own account.");
-    expect(keysNotice(["openai", "anthropic", "google"])).toBeNull();
-  });
-});

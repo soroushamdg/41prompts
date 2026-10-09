@@ -8,7 +8,7 @@ export const PERFORMANCE_PERKS: ReadonlyArray<readonly [id: string, text: string
   ["P02", "Linter for repeats, conflicts and untestable lines"],
   ["P03", "Decompiler: long prompts split into bloks"],
   ["P04", "Tests from expects bloks"],
-  ["P05", "GPT, Claude and Gemini side by side, with cost and latency"],
+  ["P05", "Your models side by side, with cost and latency"],
   ["P06", "Search inside prompts, tags and filters"],
   ["P07", "Semantic diffs between versions"],
   ["P08", "Shared workspaces with roles"],

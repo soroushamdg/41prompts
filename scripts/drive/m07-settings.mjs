@@ -1,6 +1,7 @@
-/* Drive: model keys, a streamed run, export, and deleting the account.
-   Against a built app started with E2E_MODE=1 (mock model, file outbox). */
-import { APP, assertStyled, check, launch, signInViaOutbox } from "./lib.mjs";
+/* Drive: a model, a streamed run, export, and deleting the account.
+   Against a built app started with E2E_MODE=1 (mock model, file outbox).
+   The add-model dialog itself is driven in depth by m16-models. */
+import { addModel, APP, assertStyled, check, launch, signInViaOutbox } from "./lib.mjs";
 
 const { browser, context, page, shot, errors } = await launch("m07-settings");
 try {
@@ -9,21 +10,12 @@ try {
   await assertStyled(page);
   await shot("settings");
 
-  await page.getByLabel("OpenAI API key").fill("sk-bad-key-for-test");
-  await page.getByRole("button", { name: "Save key" }).first().click();
-  await page.getByText("OpenAI refused that key. Check it and try again.").waitFor();
-  check(true, "a refused key is not saved");
-  await page.getByLabel("OpenAI API key").fill("sk-proj-good-key-3f9a");
-  await page.getByRole("button", { name: "Save key" }).first().click();
-  await page.getByText("Key ending 3f9a").waitFor();
-  check(true, "key saved, shown only by its last four");
-  await page.getByLabel("Anthropic API key").fill("sk-ant-good-key-8c1d");
-  await page.getByRole("button", { name: "Save key" }).first().click();
-  await page.getByText("Key ending 8c1d").waitFor();
-  await page.getByRole("button", { name: "Test connection" }).first().click();
-  await page.getByText("Works · 212 ms").waitFor();
-  check(true, "test connection shows latency");
-  await shot("keys-connected");
+  await addModel(page, { label: "Work GPT", key: "sk-proj-good-key-3f9a", model: "gpt-6.1-sol" });
+  await addModel(page, { provider: "Anthropic", label: "Claude", key: "sk-ant-good-key-8c1d", model: "claude-sonnet-5-5" });
+  await page.getByRole("button", { name: "Test Work GPT" }).click();
+  await page.locator('[data-model="Work GPT"]').getByText("Works · 212 ms").waitFor();
+  check(true, "test shows latency");
+  await shot("models-connected");
   check(!(await page.content()).includes("good-key"), "the key never comes back to the page");
 
   // A run on the mock model.
@@ -53,11 +45,11 @@ try {
   await page.getByText(/Ready · 41prompts-export/).waitFor();
   await shot("export-ready");
 
-  // Remove a key with confirmation.
-  await page.getByRole("button", { name: "Remove Anthropic key" }).click();
-  await page.getByRole("button", { name: "Remove key" }).click();
-  await page.getByText("Removed your Anthropic key.").waitFor();
-  check(true, "a key is removed after confirming");
+  // Remove a model with confirmation.
+  await page.getByRole("button", { name: "Remove Claude" }).click();
+  await page.getByRole("button", { name: "Remove model" }).click();
+  await page.getByText("Removed Claude.").waitFor();
+  check(true, "a model is removed after confirming");
 
   // Delete the account.
   await page.getByLabel("Type DELETE to confirm").fill("DELETE");
@@ -65,7 +57,7 @@ try {
   await page.getByRole("button", { name: "Delete account" }).click();
   await page.waitForURL(/\/goodbye/);
   check((await page.locator("h1").textContent()) === "Your account is deleted.", "goodbye page in plain words");
-  check((await page.locator("main, section").first().textContent()).includes("1 prompt, 1 version and 1 saved model key"), "says exactly what was removed");
+  check((await page.locator("main, section").first().textContent()).includes("1 prompt, 1 version and 1 saved model"), "says exactly what was removed");
   await shot("goodbye");
   await page.goto(`${APP}/`);
   check(page.url().includes("/sign-in"), "signed out after deletion");

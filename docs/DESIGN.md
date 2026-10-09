@@ -32,7 +32,7 @@ The editor stays calm. Motion is reserved for moments that explain how the produ
 | `mockup/app.41prompts.ai/library.html` | `app.41prompts.ai/` | Home after sign-in |
 | `mockup/app.41prompts.ai/new.html` | `app.41prompts.ai/new` | |
 | `mockup/app.41prompts.ai/editor.html` | `app.41prompts.ai/p/:slug` | |
-| `mockup/app.41prompts.ai/settings.html` | `app.41prompts.ai/settings` | Anchors `#keys #billing #data #account` |
+| `mockup/app.41prompts.ai/settings.html` | `app.41prompts.ai/settings` | Anchors `#models #billing #data #account` (`#keys` still lands on Models; `?add=1#models` opens Add model) |
 | Upgrade sheet (injected by `assets/js/app.js`) | any `[data-perf]` control | A dialog, not a route |
 
 Public share pages (D01) will live on `41prompts.ai/p/:id` so viewers never need the app domain.

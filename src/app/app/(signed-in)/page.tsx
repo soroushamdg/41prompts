@@ -4,8 +4,7 @@ import { SearchHotkey } from "@/components/search-hotkey";
 import page from "@/components/shell/page.module.css";
 import { Topbar } from "@/components/shell/topbar";
 import { db } from "@/db";
-import { keysNotice } from "@/lib/providers";
-import { connectedProviders } from "@/server/keys-summary";
+import { countConnections } from "@/server/connections";
 import { listPrompts } from "@/server/prompts";
 import { requireViewer } from "@/server/session";
 import { Library } from "./library";
@@ -14,9 +13,8 @@ export const metadata = { title: "Library" };
 
 export default async function LibraryPage() {
   const viewer = await requireViewer();
-  const [items, providers] = await Promise.all([listPrompts(db, viewer.id), connectedProviders(db, viewer.id)]);
+  const [items, modelCount] = await Promise.all([listPrompts(db, viewer.id), countConnections(db, viewer.id)]);
   const active = items.filter((p) => !p.archived).length;
-  const notice = keysNotice(providers);
   return (
     <>
       <Topbar />
@@ -32,11 +30,11 @@ export default async function LibraryPage() {
             <Link className="btn btn--primary btn--go" href="/new"><Icon name="plus" />New prompt</Link>
           </div>
         </div>
-        {notice && (
+        {modelCount === 0 && (
           <div className="notice">
-            <Icon name="key" />
-            <span>{notice}</span>
-            <Link className="btn btn--sm" href="/settings#keys">Manage keys</Link>
+            <Icon name="cpu" />
+            <span>No models yet. Add one to run prompts on your own account.</span>
+            <Link className="btn btn--sm" href="/settings?add=1#models">Add a model</Link>
           </div>
         )}
         <Library initial={items} />
