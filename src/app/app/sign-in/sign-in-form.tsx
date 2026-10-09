@@ -36,6 +36,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
   const input = useRef<HTMLInputElement>(null);
 
   const callbackURL = mode === "performance" ? "/settings?checkout=1" : next;
+  const newUserCallbackURL = callbackURL + (callbackURL.includes("?") ? "&" : "?") + "welcome=1";
 
   async function sendLink(e: React.FormEvent) {
     e.preventDefault();
@@ -49,7 +50,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
     setBad(false);
     setFailure(null);
     setBusy(true);
-    const { error: err } = await authClient.signIn.magicLink({ email: v, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?via=link" });
+    const { error: err } = await authClient.signIn.magicLink({ email: v, callbackURL, newUserCallbackURL, errorCallbackURL: "/sign-in?via=link" });
     setBusy(false);
     if (err) {
       setFailure(err.status === 429 ? "Too many links in a short time. Wait a minute and try again." : "The link did not send. Check the address and try again.");
@@ -61,7 +62,7 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
 
   function social(provider: "google" | "github") {
     setFailure(null);
-    void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL: callbackURL, errorCallbackURL: "/sign-in?via=oauth" });
+    void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL, errorCallbackURL: "/sign-in?via=oauth" });
   }
 
   return (
