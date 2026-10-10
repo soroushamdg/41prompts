@@ -1,6 +1,13 @@
 # YouTube upload
 
-For the launch film `41prompts-launch-film.mp4`. Thumbnail: `youtube-thumbnail.png` (1280×720, the end card).
+For the launch film `41prompts-launch-film.mp4`.
+
+## Thumbnails (1280×720, under 2 MB)
+
+- `41prompts-youtube-thumbnail-stop-guessing.png` · upload this one. A messy `prompt_FINAL_v7_real.txt` turns into four bloks.
+- `41prompts-youtube-thumbnail-never-lose.png` · the second option for YouTube's Test & Compare. v5 "works on Claude" restored as v19.
+
+Rebuild: `cd src && node thumbnail.mjs && python3 -I thumbnail.py`.
 
 ## Title (63 characters)
 
