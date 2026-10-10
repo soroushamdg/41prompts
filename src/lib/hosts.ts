@@ -16,6 +16,22 @@ export const APP_URL = normalizeUrl(process.env.NEXT_PUBLIC_APP_URL || "http://l
 export const SITE_URL = normalizeUrl(process.env.NEXT_PUBLIC_SITE_URL || "http://site.localhost:3141");
 export const APP_HOST = new URL(APP_URL).host.toLowerCase();
 
+/** The parent domain both hosts share (app.41prompts.ai + 41prompts.ai →
+    41prompts.ai), or null when they share none worth a cookie (localhost and
+    site.localhost, where a bare "localhost" domain is refused). */
+export function sharedCookieDomain(appUrl: string, siteUrl: string): string | null {
+  const labels = (u: string) => new URL(u).hostname.toLowerCase().split(".").reverse();
+  const [a, b] = [labels(appUrl), labels(siteUrl)];
+  const common: string[] = [];
+  for (let i = 0; i < Math.min(a.length, b.length) && a[i] === b[i]; i++) common.push(a[i]!);
+  return common.length >= 2 ? common.reverse().join(".") : null;
+}
+
+/* "This browser is signed in to the app": a hint the landing page reads to
+   swap Sign in and Start free for Go to app. It carries no identity and
+   proves nothing; the app still checks the real session on every request. */
+export const APP_HINT_COOKIE = "41p_app";
+
 export type HostTree = "app" | "site";
 
 /** Which internal tree serves a request with this Host header. Unknown hosts,

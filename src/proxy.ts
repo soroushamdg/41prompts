@@ -1,6 +1,6 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
-import { treeForHost } from "@/lib/hosts";
+import { APP_HINT_COOKIE, APP_URL, SITE_URL, sharedCookieDomain, treeForHost } from "@/lib/hosts";
 
 /** App pages anyone can open. Everything else on the app host needs a session. */
 const PUBLIC_APP_PATHS = ["/sign-in", "/sign-in/verify", "/goodbye", "/kit", "/robots.txt"];
@@ -31,16 +31,34 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
   const tree = treeForHost(request.headers.get("host"));
+  const signedIn = tree === "app" && Boolean(getSessionCookie(request));
   // Optimistic only: no session cookie means sign in first. Pages and
   // handlers still check the session itself.
-  if (tree === "app" && !isPublicAppPath(url.pathname) && !getSessionCookie(request)) {
+  if (tree === "app" && !isPublicAppPath(url.pathname) && !signedIn) {
     const signIn = new URL("/sign-in", request.url);
     if (url.pathname !== "/") signIn.searchParams.set("next", url.pathname + url.search);
-    return NextResponse.redirect(signIn);
+    return syncAppHint(request, NextResponse.redirect(signIn), false);
   }
   url.pathname = `/${tree}${url.pathname === "/" ? "" : url.pathname}`;
   const res = NextResponse.rewrite(url);
-  if (tree === "app") res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  if (tree !== "app") return res;
+  res.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return syncAppHint(request, res, signedIn);
+}
+
+const HINT_DOMAIN = sharedCookieDomain(APP_URL, SITE_URL);
+
+/** Keeps the landing page's "signed in" hint in step with the session cookie. */
+export function syncAppHint(request: NextRequest, res: NextResponse, signedIn: boolean): NextResponse {
+  const hinted = request.cookies.get(APP_HINT_COOKIE)?.value === "1";
+  if (signedIn === hinted) return res;
+  res.cookies.set(APP_HINT_COOKIE, signedIn ? "1" : "", {
+    ...(HINT_DOMAIN ? { domain: HINT_DOMAIN } : {}),
+    path: "/",
+    sameSite: "lax",
+    secure: APP_URL.startsWith("https://"),
+    maxAge: signedIn ? 60 * 60 * 24 * 30 : 0,
+  });
   return res;
 }
 

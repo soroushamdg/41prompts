@@ -1,6 +1,6 @@
 import { Logo } from "@/components/logo";
 import { cx } from "@/lib/cx";
-import { appUrl } from "@/lib/hosts";
+import { HeaderCta } from "./app-cta";
 import { MobileNav, type NavLink } from "./mobile-nav";
 import s from "../landing.module.css";
 
@@ -30,12 +30,7 @@ export function SiteHeader({ pricing, base = "" }: { pricing: boolean; base?: st
           ))}
         </nav>
         <div className={s.siteHeadCta}>
-          <a className="btn btn--sm btn--bare" href={appUrl("/sign-in")}>
-            Sign in
-          </a>
-          <a className="btn btn--sm btn--primary" href={appUrl("/sign-in#start")}>
-            Start free
-          </a>
+          <HeaderCta />
           <MobileNav links={links} />
         </div>
       </div>

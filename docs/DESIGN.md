@@ -134,6 +134,7 @@ All of these are in `assets/css/components.css` unless noted.
 | Hover sync | Editor | Blok ↔ compiled span highlight; the compiled panel scrolls the span into view |
 | Run streaming | Editor › Run | Words stream every 26–70ms with a blinking caret; a meter fills; tokens, time and cost tick up |
 | Upgrade sheet | Dialog | Rises in; the ◆ stamp lands with an overshoot; perks cascade |
+| Go to app | Landing, signed in | 450ms after load, Sign in slides out and every Start free folds into "Go to app" (a view transition: the filled box morphs, the labels cross-fade with blur; without view transitions the button rises in). Hover: the corner ticks measure out, the arrow goes through and returns, and the green "signed in" dot pings |
 | Construction sheet | Sign in | The grid draws, then the plate, dimensions, glyph outlines and vertex markers. The plate fills, then 41 ↔ AI morphs every 3.2s with every vertex marked and its coordinates ticking live |
 
 **In React / Next.js:** use Framer Motion `layout` (or the View Transitions API) for every FLIP case. Keep line drawing as SVG `stroke-dashoffset`, and keep CSS transitions for hover states. Don't animate layout properties outside the Sheet 02 illustration.

@@ -1,0 +1,47 @@
+/* Site-only global styles. The view transition that folds Sign in and
+   Start free into "Go to app" for signed-in visitors (_landing/app-cta.tsx):
+   only the named buttons move; the rest of the page switches in place. */
+
+::view-transition-old(root),
+::view-transition-new(root) { animation: none; }
+
+/* Filled buttons: the group carries the fill and morphs its box, while the
+   two labels cross-fade at their own size, so no text stretches. */
+::view-transition-group(cta-head),
+::view-transition-group(cta-hero),
+::view-transition-group(cta-bom),
+::view-transition-group(cta-band) {
+  background: var(--chalk);
+  border-radius: var(--r-control);
+}
+::view-transition-group(cta-plan) { border: 1px solid var(--line-3); border-radius: var(--r-control); }
+
+::view-transition-group(cta-head),
+::view-transition-group(cta-hero),
+::view-transition-group(cta-bom),
+::view-transition-group(cta-band),
+::view-transition-group(cta-plan),
+::view-transition-group(cta-foot),
+::view-transition-group(cta-signin) {
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(.32, .72, 0, 1);
+}
+
+::view-transition-old(cta-head), ::view-transition-old(cta-hero), ::view-transition-old(cta-bom), ::view-transition-old(cta-band), ::view-transition-old(cta-plan),
+::view-transition-new(cta-head), ::view-transition-new(cta-hero), ::view-transition-new(cta-bom), ::view-transition-new(cta-band), ::view-transition-new(cta-plan) {
+  inset: 0;
+  width: auto;
+  height: 100%;
+  margin: auto;
+}
+::view-transition-old(cta-head), ::view-transition-old(cta-hero), ::view-transition-old(cta-bom), ::view-transition-old(cta-band), ::view-transition-old(cta-plan), ::view-transition-old(cta-foot) {
+  animation: cta-old 240ms cubic-bezier(.32, .72, 0, 1) both;
+}
+::view-transition-new(cta-head), ::view-transition-new(cta-hero), ::view-transition-new(cta-bom), ::view-transition-new(cta-band), ::view-transition-new(cta-plan), ::view-transition-new(cta-foot) {
+  animation: cta-new 420ms 140ms cubic-bezier(.32, .72, 0, 1) both;
+}
+::view-transition-old(cta-signin) { animation: cta-signin-out 320ms cubic-bezier(.32, .72, 0, 1) both; }
+
+@keyframes cta-old { to { opacity: 0; filter: blur(6px); transform: scale(.94); } }
+@keyframes cta-new { from { opacity: 0; filter: blur(6px); transform: scale(1.06); } }
+@keyframes cta-signin-out { to { opacity: 0; filter: blur(4px); transform: translateX(16px) scale(.9); } }

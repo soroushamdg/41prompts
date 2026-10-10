@@ -5,6 +5,7 @@ import { IconSprite } from "@/components/icon";
 import { siteUrl } from "@/lib/hosts";
 import { fontVariables } from "@/styles/fonts";
 import "@/styles/globals.css";
+import "./site.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl("/")),

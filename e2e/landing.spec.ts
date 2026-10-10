@@ -76,3 +76,23 @@ test("robots.txt and the sitemap describe the site", async ({ request }) => {
   expect(sitemap.ok()).toBe(true);
   expect(await sitemap.text()).toContain("/privacy</loc>");
 });
+
+test("a signed-in visitor gets Go to app instead of Sign in and Start free", async ({ page, context }) => {
+  // Set by the app on the shared parent domain in production (proxy.ts);
+  // locally the two hosts share none, so the test sets it on the site host.
+  await context.addCookies([{ name: "41p_app", value: "1", url: SITE_URL }]);
+  await page.goto(`${SITE_URL}/`);
+  const header = page.locator("header").first();
+  await expect(header.getByRole("link", { name: "Go to app" })).toHaveAttribute("href", `${APP_URL}/`);
+  await expect(header.getByRole("link", { name: "Sign in" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Start free" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Go to app" })).toHaveCount(5);
+  await expect(page.locator("footer").getByRole("link", { name: "Go to app" })).toHaveAttribute("href", `${APP_URL}/`);
+});
+
+test("without the hint, the sign-in buttons stay", async ({ page }) => {
+  await page.goto(`${SITE_URL}/`);
+  await page.waitForTimeout(900);
+  await expect(page.locator("header").first().getByRole("link", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Go to app" })).toHaveCount(0);
+});
