@@ -5,6 +5,8 @@ import { IconSprite } from "@/components/icon";
 import { MotionProvider } from "@/components/motion-provider";
 import { ToastProvider } from "@/components/toast";
 import { db } from "@/db";
+import { APP_URL } from "@/lib/hosts";
+import { SOCIAL_DESCRIPTION, socialMetadata } from "@/lib/social";
 import { planFor } from "@/server/plan";
 import { getSession } from "@/server/session";
 import { fontVariables } from "@/styles/fonts";
@@ -13,8 +15,10 @@ import s from "./app.module.css";
 
 export const metadata: Metadata = {
   title: { default: "41prompts", template: "%s · 41prompts" },
+  description: SOCIAL_DESCRIPTION,
   robots: { index: false, follow: false },
   icons: { icon: "/favicon.svg" },
+  ...socialMetadata(APP_URL),
 };
 
 export const viewport: Viewport = { themeColor: "#0A1830", colorScheme: "dark", viewportFit: "cover" };

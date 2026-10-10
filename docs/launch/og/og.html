@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>41prompts · social card</title>
+<style>
+@font-face { font-family: "Archivo"; src: url("../../assets/fonts/archivo-latin-800-normal.woff2") format("woff2"); font-weight: 800; }
+@font-face { font-family: "Archivo"; src: url("../../assets/fonts/archivo-latin-900-normal.woff2") format("woff2"); font-weight: 900; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../../assets/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "IBM Plex Sans"; src: url("../../assets/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+@font-face { font-family: "Martian Mono"; src: url("../../assets/fonts/martian-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; }
+@font-face { font-family: "Martian Mono"; src: url("../../assets/fonts/martian-mono-latin-500-normal.woff2") format("woff2"); font-weight: 500; }
+:root { --ground: #0A1830; --chalk: #E9F1FF; --chalk-2: #C9D7EE; --chalk-3: #93A9CB; --accent: #9CC3FF; --line-2: rgba(156,195,255,.28); --line-3: rgba(156,195,255,.45);
+  --b1: #9CC3FF; --b2: #FFD27A; --b3: #C6A8FF; --b4: #6FE3A5; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1200px; height: 630px; overflow: hidden; background: var(--ground); }
+body { position: relative; font-family: "IBM Plex Sans", sans-serif; color: var(--chalk); -webkit-font-smoothing: antialiased; }
+.bg { position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 44% 62% at 76% 56%, rgba(70,130,235,.34), transparent 70%),
+    radial-gradient(ellipse 120% 100% at 50% 45%, transparent 60%, rgba(2,8,20,.6) 100%),
+    linear-gradient(rgba(156,195,255,.075) 1px, transparent 1px) 18px 18px / 80px 80px,
+    linear-gradient(90deg, rgba(156,195,255,.075) 1px, transparent 1px) 18px 18px / 80px 80px,
+    linear-gradient(rgba(156,195,255,.03) 1px, transparent 1px) 18px 18px / 16px 16px,
+    linear-gradient(90deg, rgba(156,195,255,.03) 1px, transparent 1px) 18px 18px / 16px 16px,
+    var(--ground); }
+.border { position: absolute; inset: 18px; border: 1px solid var(--line-2); --c: var(--chalk); --l: 18px; --w: 2px;
+  background:
+    linear-gradient(var(--c), var(--c)) left top / var(--l) var(--w) no-repeat, linear-gradient(var(--c), var(--c)) left top / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / var(--l) var(--w) no-repeat, linear-gradient(var(--c), var(--c)) right top / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / var(--l) var(--w) no-repeat, linear-gradient(var(--c), var(--c)) left bottom / var(--w) var(--l) no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / var(--l) var(--w) no-repeat, linear-gradient(var(--c), var(--c)) right bottom / var(--w) var(--l) no-repeat;
+  background-origin: border-box; margin: -1px; }
+.logo { position: absolute; left: 64px; top: 58px; display: flex; align-items: center; gap: 12px; z-index: 5; }
+.logo svg { width: 46px; height: 46px; }
+.logo b { font-family: "Archivo"; font-weight: 900; font-size: 34px; letter-spacing: -.045em; }
+.copy { position: absolute; left: 64px; top: 140px; width: 610px; z-index: 5; }
+.eyebrow { display: flex; align-items: center; gap: 12px; font-family: "Martian Mono"; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.eyebrow::before { content: ""; width: 34px; height: 10px; flex: none;
+  background: linear-gradient(var(--accent), var(--accent)) left center / 100% 1px no-repeat, linear-gradient(var(--accent), var(--accent)) left center / 1px 100% no-repeat, linear-gradient(var(--accent), var(--accent)) right center / 1px 100% no-repeat; }
+h1 { font-family: "Archivo"; font-weight: 800; font-size: 84px; line-height: .95; letter-spacing: -.045em; margin: 20px 0 22px; text-wrap: balance; }
+.sub { font-size: 22px; line-height: 1.42; color: var(--chalk-2); width: 540px; }
+.sub b { color: var(--chalk); font-weight: 500; }
+.tb { position: absolute; left: 64px; bottom: 54px; display: inline-grid; grid-auto-flow: column; border: 1px solid var(--line-3); font-family: "Martian Mono"; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--chalk-3); z-index: 5; background: rgba(10,24,48,.85); }
+.tb span { padding: 8px 14px; border-left: 1px solid var(--line-2); white-space: nowrap; }
+.tb span:first-child { border-left: 0; color: var(--chalk); }
+
+/* the exploded blok stack */
+.iso { position: absolute; left: 906px; top: 392px; width: 1px; height: 1px; z-index: 4; perspective: 2400px; }
+.plane { position: absolute; left: -230px; top: -48px; width: 460px; height: 96px; transform-style: preserve-3d; transform: rotateX(52deg) rotateZ(-22deg); }
+.plate { position: absolute; left: 0; top: 0; width: 460px; height: 96px; padding: 14px 20px; border: 1.5px solid var(--c); border-radius: 3px; --cl: 18px; --cw: 3px;
+  background:
+    linear-gradient(var(--c), var(--c)) left top / var(--cl) var(--cw) no-repeat, linear-gradient(var(--c), var(--c)) left top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / var(--cl) var(--cw) no-repeat, linear-gradient(var(--c), var(--c)) right top / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / var(--cl) var(--cw) no-repeat, linear-gradient(var(--c), var(--c)) left bottom / var(--cw) var(--cl) no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / var(--cl) var(--cw) no-repeat, linear-gradient(var(--c), var(--c)) right bottom / var(--cw) var(--cl) no-repeat,
+    rgba(14,32,66,.97);
+  background-origin: border-box; box-shadow: 0 0 40px -8px var(--c); }
+.plate b { display: block; font-family: "Martian Mono"; font-weight: 500; font-size: 20px; letter-spacing: .1em; color: var(--c); margin-bottom: 2px; }
+.plate span { font-size: 20px; color: var(--chalk); white-space: nowrap; }
+.chip { position: absolute; z-index: 6; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; border-radius: 999px; font-family: "Martian Mono"; font-size: 15px; white-space: nowrap; background: rgba(10,24,48,.92); }
+.chip i { width: 9px; height: 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
+.saved { color: var(--b4); border: 1.5px solid rgba(111,227,165,.6); }
+.run { color: var(--chalk); border: 1.5px solid var(--line-3); }
+.run svg { width: 15px; height: 15px; fill: none; stroke: var(--chalk-3); stroke-width: 2; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="border"></div>
+<div class="logo"><svg viewBox="0 0 64 64"><rect x="2.5" y="2.5" width="59" height="59" rx="5" fill="#E9F1FF"/><path fill="#0A1830" fill-rule="evenodd" d="M18 14 L32 14 L32 50 L25 50 L25 41 L8 41 L8 34Z M25 17 L25 34 L15 34Z"/><path fill="#0A1830" d="M38 21 L44 14 L48 14 L48 50 L41 50 L41 21Z"/></svg><b>prompts</b></div>
+<div class="copy">
+  <div class="eyebrow">The workbench for the prompt layer</div>
+  <h1>Stop guessing which prompt works.</h1>
+  <p class="sub">Split any prompt into typed bloks, <b>keep every version</b>, and run it on your own models.</p>
+</div>
+<div class="tb"><span>41prompts.ai</span><span>Free · Unlimited</span><span>No card</span></div>
+
+<div class="iso">
+  <div class="plane">
+    <div class="plate" style="--c:var(--b4);transform:translate3d(30px,0,0)"><b>EXPECTS</b><span>Never promises a refund.</span></div>
+    <div class="plate" style="--c:var(--b3);transform:translate3d(20px,0,92px)"><b>EXAMPLE</b><span>“Sorry about that, Sam.”</span></div>
+    <div class="plate" style="--c:var(--b2);transform:translate3d(10px,0,184px)"><b>CONSTRAINT</b><span>Reply in under 80 words.</span></div>
+    <div class="plate" style="--c:var(--b1);transform:translate3d(0,0,276px)"><b>CONTEXT</b><span>You are a support agent.</span></div>
+  </div>
+</div>
+<div class="chip saved" style="left:968px;top:70px"><i></i>Saved · v18</div>
+<div class="chip run" style="left:742px;top:508px"><svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3"/></svg>Claude · runs on your key</div>
+<script>document.fonts.ready.then(function () { window.__ready = true; });</script>
+</body>
+</html>
