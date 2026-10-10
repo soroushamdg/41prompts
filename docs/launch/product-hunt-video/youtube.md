@@ -19,13 +19,11 @@ Alternatives:
 
 ## Description
 
-Replace `[Product Hunt link]` with the launch URL on the day.
-
 ```
 41prompts is a free prompt workbench. Split any prompt into typed bloks, version every save, and run it on your own models.
 
 Try it free: https://41prompts.ai
-Upvote on Product Hunt: [Product Hunt link]
+On Product Hunt: https://www.producthunt.com/products/41prompts?launch=41prompts-2
 
 Long prompts grow one rule at a time. Then a reply goes wrong, and nobody can say which line caused it or where the version that worked went. 41prompts splits the prompt into parts you can name and keeps every version, so the one that worked is always one click away.
 
