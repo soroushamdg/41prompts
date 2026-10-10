@@ -1,0 +1,717 @@
+{
+ "music": {
+  "bpm": 120,
+  "beat_s": 0.5,
+  "bar_s": 2.0,
+  "length_s": 30.0,
+  "sample_rate": 48000,
+  "key": "D minor / F major",
+  "progression_from_4s": [
+   "Dm9",
+   "Bbmaj7",
+   "Fmaj7",
+   "C6"
+  ],
+  "sections": [
+   {
+    "from": 0.0,
+    "to": 2.0,
+    "music": "no drums; sub swell F1, air pad, shimmer"
+   },
+   {
+    "from": 2.0,
+    "to": 4.0,
+    "music": "heartbeat kick on every beat, soft Dm9 pad"
+   },
+   {
+    "from": 4.0,
+    "to": 14.0,
+    "music": "full groove: kick on beats 1 and 3, clap+snap on 2 and 4, closed hats on 8ths, short plucky sub bass on roots in 8ths, pluck stabs on offbeats; open hat on offbeats added from 8.0"
+   },
+   {
+    "from": 14.0,
+    "to": 16.0,
+    "music": "groove continues under a low-pass filter that opens from 400 Hz to full by 16.0 (the dive)"
+   },
+   {
+    "from": 16.0,
+    "to": 22.0,
+    "music": "full groove, bass a little busier (octave pops)"
+   },
+   {
+    "from": 22.0,
+    "to": 25.5,
+    "music": "four-on-the-floor kick, clap+snap on every manifesto word (8ths), riser 23.0-25.5, snare roll 24.5-25.5; everything stops dead at 25.5"
+   },
+   {
+    "from": 25.5,
+    "to": 27.0,
+    "music": "absolute silence"
+   },
+   {
+    "from": 27.0,
+    "to": 30.0,
+    "music": "massive hit then a held F add9 pad with shimmer, no drums, fades to silence at 30.0"
+   }
+  ]
+ },
+ "events": [
+  {
+   "t": 0.0,
+   "kind": "sub_swell",
+   "dur": 2.0,
+   "note": "F1"
+  },
+  {
+   "t": 0.0,
+   "kind": "air_pad",
+   "dur": 4.0
+  },
+  {
+   "t": 0.25,
+   "kind": "tink",
+   "note": "metallic, corner lights up"
+  },
+  {
+   "t": 0.9,
+   "kind": "reverse_whoosh",
+   "dur": 0.6,
+   "note": "into the camera pull-back at 1.0-1.5"
+  },
+  {
+   "t": 2.0,
+   "kind": "kick_heartbeat"
+  },
+  {
+   "t": 2.5,
+   "kind": "kick_heartbeat"
+  },
+  {
+   "t": 3.0,
+   "kind": "kick_heartbeat"
+  },
+  {
+   "t": 3.5,
+   "kind": "kick_heartbeat"
+  },
+  {
+   "t": 2.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 2.25,
+   "kind": "word_tick"
+  },
+  {
+   "t": 2.5,
+   "kind": "word_tick"
+  },
+  {
+   "t": 2.75,
+   "kind": "word_tick"
+  },
+  {
+   "t": 3.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 2.0,
+   "kind": "pad_chord",
+   "dur": 2.0,
+   "chord": "Dm9"
+  },
+  {
+   "t": 3.5,
+   "kind": "short_riser",
+   "dur": 0.5
+  },
+  {
+   "t": 4.0,
+   "kind": "scan_zip",
+   "dur": 0.75
+  },
+  {
+   "t": 5.0,
+   "kind": "blok_clack",
+   "index": 0
+  },
+  {
+   "t": 5.25,
+   "kind": "blok_clack",
+   "index": 1
+  },
+  {
+   "t": 5.5,
+   "kind": "blok_clack",
+   "index": 2
+  },
+  {
+   "t": 5.75,
+   "kind": "blok_clack",
+   "index": 3
+  },
+  {
+   "t": 6.0,
+   "kind": "label_snap"
+  },
+  {
+   "t": 6.5,
+   "kind": "label_snap"
+  },
+  {
+   "t": 7.0,
+   "kind": "label_snap"
+  },
+  {
+   "t": 7.5,
+   "kind": "label_snap"
+  },
+  {
+   "t": 8.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 8.25,
+   "kind": "word_tick"
+  },
+  {
+   "t": 8.5,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.15,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.3,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.45,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.6,
+   "kind": "word_tick"
+  },
+  {
+   "t": 9.75,
+   "kind": "whoosh",
+   "dur": 0.4,
+   "note": "stack folds flat into the editor at 10.0"
+  },
+  {
+   "t": 10.5,
+   "kind": "compile_tick",
+   "index": 0
+  },
+  {
+   "t": 10.625,
+   "kind": "compile_tick",
+   "index": 1
+  },
+  {
+   "t": 10.75,
+   "kind": "compile_tick",
+   "index": 2
+  },
+  {
+   "t": 10.875,
+   "kind": "compile_tick",
+   "index": 3
+  },
+  {
+   "t": 11.0,
+   "kind": "compile_tick",
+   "index": 4
+  },
+  {
+   "t": 11.125,
+   "kind": "compile_tick",
+   "index": 5
+  },
+  {
+   "t": 11.5,
+   "kind": "flip",
+   "note": "template to filled"
+  },
+  {
+   "t": 12.5,
+   "kind": "cursor_glide",
+   "dur": 0.5,
+   "note": "very soft air"
+  },
+  {
+   "t": 13.0,
+   "kind": "click",
+   "note": "Copy prompt, crisp mechanical"
+  },
+  {
+   "t": 13.05,
+   "kind": "chime2",
+   "note": "Copied, two notes up"
+  },
+  {
+   "t": 13.25,
+   "kind": "word_tick"
+  },
+  {
+   "t": 13.4,
+   "kind": "word_tick"
+  },
+  {
+   "t": 13.55,
+   "kind": "word_tick"
+  },
+  {
+   "t": 13.7,
+   "kind": "whoosh_in",
+   "dur": 0.3,
+   "note": "camera dives into v7 badge"
+  },
+  {
+   "t": 14.0,
+   "kind": "impact",
+   "note": "lands on the timeline"
+  },
+  {
+   "t": 14.25,
+   "kind": "node_tick",
+   "index": 0,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.375,
+   "kind": "node_tick",
+   "index": 1,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.5,
+   "kind": "node_tick",
+   "index": 2,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.625,
+   "kind": "node_tick",
+   "index": 3,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.75,
+   "kind": "node_tick",
+   "index": 4,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.875,
+   "kind": "node_tick",
+   "index": 5,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.0,
+   "kind": "node_tick",
+   "index": 6,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.125,
+   "kind": "node_tick",
+   "index": 7,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.25,
+   "kind": "node_tick",
+   "index": 8,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.375,
+   "kind": "node_tick",
+   "index": 9,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.5,
+   "kind": "node_tick",
+   "index": 10,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.625,
+   "kind": "node_tick",
+   "index": 11,
+   "note": "rising scale"
+  },
+  {
+   "t": 15.75,
+   "kind": "node_tick",
+   "index": 12,
+   "note": "rising scale"
+  },
+  {
+   "t": 14.5,
+   "kind": "word_tick"
+  },
+  {
+   "t": 14.65,
+   "kind": "word_tick"
+  },
+  {
+   "t": 14.8,
+   "kind": "word_tick"
+  },
+  {
+   "t": 16.0,
+   "kind": "chime_name",
+   "note": "works on Claude tag"
+  },
+  {
+   "t": 16.5,
+   "kind": "restore_swoosh",
+   "dur": 0.75
+  },
+  {
+   "t": 17.25,
+   "kind": "chime_arp",
+   "note": "Restored v5 as v13"
+  },
+  {
+   "t": 17.4,
+   "kind": "word_tick"
+  },
+  {
+   "t": 17.55,
+   "kind": "word_tick"
+  },
+  {
+   "t": 17.7,
+   "kind": "word_tick"
+  },
+  {
+   "t": 18.5,
+   "kind": "click",
+   "note": "Run once"
+  },
+  {
+   "t": 18.75,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 18.7928,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 18.8289,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 18.8622,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 18.9284,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 18.9799,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.0362,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.0866,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.1294,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.1876,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.239,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.2994,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.3545,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.4174,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.4627,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.4956,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.5282,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.586,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.6193,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.6741,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.7275,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.7561,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.8166,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.844,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.9082,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 19.9712,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.0067,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.0646,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.1229,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.1544,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.2098,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.2413,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.3075,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.3638,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.4329,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.4613,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.5012,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.5545,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.6073,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.6413,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.7063,
+   "kind": "stream_tick"
+  },
+  {
+   "t": 20.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 20.25,
+   "kind": "word_tick"
+  },
+  {
+   "t": 20.5,
+   "kind": "word_tick"
+  },
+  {
+   "t": 21.0,
+   "kind": "word_tick"
+  },
+  {
+   "t": 21.25,
+   "kind": "word_tick"
+  },
+  {
+   "t": 21.5,
+   "kind": "word_tick"
+  },
+  {
+   "t": 22.0,
+   "kind": "manifesto_hit",
+   "word": "Paste.",
+   "index": 0
+  },
+  {
+   "t": 22.25,
+   "kind": "manifesto_hit",
+   "word": "Split.",
+   "index": 1
+  },
+  {
+   "t": 22.5,
+   "kind": "manifesto_hit",
+   "word": "Name.",
+   "index": 2
+  },
+  {
+   "t": 22.75,
+   "kind": "manifesto_hit",
+   "word": "Reorder.",
+   "index": 3
+  },
+  {
+   "t": 23.0,
+   "kind": "manifesto_hit",
+   "word": "Compile.",
+   "index": 4
+  },
+  {
+   "t": 23.25,
+   "kind": "manifesto_hit",
+   "word": "Copy.",
+   "index": 5
+  },
+  {
+   "t": 23.5,
+   "kind": "manifesto_hit",
+   "word": "Version.",
+   "index": 6
+  },
+  {
+   "t": 23.75,
+   "kind": "manifesto_hit",
+   "word": "Restore.",
+   "index": 7
+  },
+  {
+   "t": 24.0,
+   "kind": "manifesto_hit",
+   "word": "Run.",
+   "index": 8
+  },
+  {
+   "t": 24.25,
+   "kind": "manifesto_hit",
+   "word": "Search.",
+   "index": 9
+  },
+  {
+   "t": 24.5,
+   "kind": "manifesto_hit",
+   "word": "Export.",
+   "index": 10
+  },
+  {
+   "t": 24.75,
+   "kind": "manifesto_hit",
+   "word": "Ship.",
+   "index": 11
+  },
+  {
+   "t": 23.0,
+   "kind": "riser",
+   "dur": 2.5
+  },
+  {
+   "t": 24.5,
+   "kind": "snare_roll",
+   "dur": 1.0,
+   "note": "16ths accelerating to 32nds, ends exactly at 25.5"
+  },
+  {
+   "t": 25.5,
+   "kind": "silence",
+   "dur": 1.5,
+   "note": "absolute digital silence until 27.0"
+  },
+  {
+   "t": 27.0,
+   "kind": "massive_hit"
+  },
+  {
+   "t": 27.0,
+   "kind": "final_chord",
+   "dur": 3.0,
+   "chord": "Fadd9",
+   "note": "rings out, fade to 0 by 30.0"
+  },
+  {
+   "t": 27.5,
+   "kind": "morph_shimmer",
+   "dur": 0.5
+  },
+  {
+   "t": 28.25,
+   "kind": "morph_shimmer_small",
+   "dur": 0.4
+  },
+  {
+   "t": 28.5,
+   "kind": "word_tick",
+   "note": "soft"
+  },
+  {
+   "t": 28.75,
+   "kind": "word_tick",
+   "note": "soft"
+  },
+  {
+   "t": 29.0,
+   "kind": "word_tick",
+   "note": "soft"
+  }
+ ]
+}
