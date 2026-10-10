@@ -31,11 +31,14 @@ test("magic link signs up, works once, and signs out", async ({ page }) => {
   await expect(page).toHaveURL(/\/sign-in\?via=link&error=/);
   await expect(page.getByText("That sign-in link has expired or was already used.", { exact: false })).toBeVisible();
 
-  // Sign in again, then sign out from the account menu.
+  // Sign in again: the landing page's "signed in" hint is set. Signing out clears it.
+  const hint = async () => (await page.context().cookies()).find((c) => c.name === "41p_app")?.value;
   await signIn(page, email);
+  expect(await hint()).toBe("1");
   await page.getByLabel("Account menu").click();
   await page.getByRole("button", { name: "Sign out" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
+  expect(await hint()).toBeUndefined();
   await page.goto("/");
   await expect(page).toHaveURL(/\/sign-in$/);
 });

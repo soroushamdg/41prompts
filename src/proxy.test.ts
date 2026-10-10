@@ -86,3 +86,30 @@ describe("maintenanceOn", () => {
   });
 });
 
+
+describe("the landing page's signed-in hint", () => {
+  const hint = (res: Response) => res.headers.getSetCookie().find((c) => c.startsWith("41p_app="));
+
+  it("is set on the shared parent domain while a session cookie exists", () => {
+    const set = hint(proxy(req("https://app.41prompts.ai/settings")));
+    expect(set).toMatch(/^41p_app=1;/);
+    expect(set).toMatch(/Domain=41prompts\.ai/i);
+    expect(set).toMatch(/Secure/i);
+    expect(set).not.toMatch(/HttpOnly/i);
+  });
+
+  it("is left alone when already in step, and never set from the site host", () => {
+    expect(hint(proxy(req("https://app.41prompts.ai/settings", "better-auth.session_token=abc; 41p_app=1")))).toBeUndefined();
+    expect(hint(proxy(req("https://app.41prompts.ai/sign-in", "")))).toBeUndefined();
+    expect(hint(proxy(req("https://41prompts.ai/", "better-auth.session_token=abc")))).toBeUndefined();
+  });
+
+  it("is cleared once the session cookie is gone, including on the sign-in redirect", () => {
+    for (const url of ["https://app.41prompts.ai/sign-in", "https://app.41prompts.ai/goodbye", "https://app.41prompts.ai/settings"]) {
+      const set = hint(proxy(req(url, "41p_app=1")));
+      expect(set, url).toMatch(/^41p_app=;/);
+      expect(set, url).toMatch(/Max-Age=0/i);
+      expect(set, url).toMatch(/Domain=41prompts\.ai/i);
+    }
+  });
+});

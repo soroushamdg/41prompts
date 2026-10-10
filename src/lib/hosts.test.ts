@@ -13,3 +13,13 @@ describe("normalizeUrl", () => {
     expect(normalizeUrl("http://127.0.0.1:3142")).toBe("http://127.0.0.1:3142");
   });
 });
+
+describe("sharedCookieDomain", () => {
+  it("finds the parent domain both hosts share", async () => {
+    const { sharedCookieDomain } = await import("./hosts");
+    expect(sharedCookieDomain("https://app.41prompts.ai", "https://41prompts.ai")).toBe("41prompts.ai");
+    expect(sharedCookieDomain("https://app.41prompts.ai", "https://www.41prompts.ai")).toBe("41prompts.ai");
+    expect(sharedCookieDomain("http://localhost:3141", "http://site.localhost:3141")).toBeNull();
+    expect(sharedCookieDomain("https://app.example.com", "https://41prompts.ai")).toBeNull();
+  });
+});

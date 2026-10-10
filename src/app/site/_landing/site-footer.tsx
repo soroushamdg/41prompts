@@ -1,6 +1,6 @@
 import { Logo } from "@/components/logo";
 import { cx } from "@/lib/cx";
-import { appUrl } from "@/lib/hosts";
+import { FootAppLink } from "./app-cta";
 import { FootMark } from "./foot-mark";
 import { ProductHuntBadge } from "./product-hunt-badge";
 import s from "../landing.module.css";
@@ -21,7 +21,7 @@ export function SiteFooter({ pricing, supportEmail, base = "" }: { pricing: bool
             <h2 className="label">Product</h2>
             <a href={`${base}#how`}>How it works</a>
             {pricing && <a href={`${base}#pricing`}>Pricing</a>}
-            <a href={appUrl("/sign-in")}>Sign in</a>
+            <FootAppLink />
           </nav>
           {supportEmail && (
             <nav aria-label="Company">

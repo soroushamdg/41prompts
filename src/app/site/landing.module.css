@@ -420,6 +420,41 @@
 }
 
 /* ---- Keyframes (module-local; see the note at the top) ----------------------- */
+/* ---- Go to app (app-cta.tsx) -------------------------------------------
+   For signed-in visitors. A dot says "signed in"; on hover the corner ticks
+   measure out like .frame--live and the arrow goes through and comes back.
+   Without view transitions, the button rises in instead of morphing. */
+.go { position: relative; isolation: isolate; animation: go-in 520ms var(--ease-brand) both; }
+:global(html[data-cta-morph="vt"]) .go { animation: none; }
+.go::before {
+  content: ""; position: absolute; inset: -2px; z-index: -1; pointer-events: none; opacity: 0;
+  --c: var(--chalk);
+  background:
+    linear-gradient(var(--c), var(--c)) left top / 8px 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) left top / 1.5px 8px no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / 8px 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) right top / 1.5px 8px no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / 8px 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) left bottom / 1.5px 8px no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / 8px 1.5px no-repeat,
+    linear-gradient(var(--c), var(--c)) right bottom / 1.5px 8px no-repeat;
+  transition: inset var(--dur-3) var(--ease-brand), opacity var(--dur-2) var(--ease-brand);
+}
+.go:hover::before, .go:focus-visible::before { inset: -7px; opacity: 1; }
+.goDot { position: relative; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #1E9E62; color: #1E9E62; }
+.go:not(:global(.btn--primary)) .goDot { background: var(--pass); color: var(--pass); }
+.goDot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 1.5px currentColor; opacity: 0; }
+.go .goDot::after { animation: go-ping 1200ms 900ms var(--ease-brand) 2; }
+.go:hover .goDot::after { animation: go-ping 1200ms var(--ease-brand) infinite; }
+.goArrow { position: relative; display: inline-block; flex: none; width: 16px; height: 16px; overflow: hidden; }
+.go:global(.btn--lg) .goArrow { width: 18px; height: 18px; }
+.goArrow :global(.i) { position: absolute; inset: 0; margin: auto; transition: transform var(--dur-3) var(--ease-brand); }
+.goArrow :global(.i):last-child { transform: translateX(-150%); }
+.go:hover .goArrow :global(.i):first-child { transform: translateX(150%); }
+.go:hover .goArrow :global(.i):last-child { transform: none; }
+@keyframes go-in { from { opacity: 0; transform: scale(.92); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes go-ping { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(2.6); } }
+
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 @keyframes grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ln-up { from { transform: translateY(108%); } to { transform: none; } }

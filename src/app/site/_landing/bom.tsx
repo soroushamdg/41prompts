@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { Icon } from "@/components/icon";
 import { cx } from "@/lib/cx";
 import { drawPath, prepPath } from "../_motion/draw-path";
+import { StartCta } from "./app-cta";
 import { revealClass, useReveal } from "../_motion/use-reveal";
 import s from "../landing.module.css";
 
@@ -26,7 +26,7 @@ const ROWS: ReadonlyArray<readonly [item: string, part: string, qty: string, not
 
 type Vars = React.CSSProperties & Record<`--${string}`, string | number>;
 
-export function Bom({ startHref, showPrice }: { startHref: string; showPrice: boolean }) {
+export function Bom({ showPrice }: { showPrice: boolean }) {
   const tableRef = useRef<HTMLTableElement>(null);
   const { ref, revealed } = useReveal<HTMLDivElement>({
     onReveal: () => {
@@ -83,9 +83,7 @@ export function Bom({ startHref, showPrice }: { startHref: string; showPrice: bo
           <span>Sheet 03</span>
           <span>Free plan</span>
         </span>
-        <a className="btn btn--primary btn--go" href={startHref}>
-          Start free <Icon name="arrow-right" />
-        </a>
+        <StartCta name="cta-bom" className="btn btn--primary btn--go" />
       </div>
     </div>
   );

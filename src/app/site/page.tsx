@@ -2,8 +2,8 @@ import { Icon } from "@/components/icon";
 import type { IconName } from "@/components/icons";
 import { cx } from "@/lib/cx";
 import { PRICING_ENABLED, SUPPORT_EMAIL } from "@/lib/env";
-import { appUrl } from "@/lib/hosts";
 import { Count, Reveal } from "./_motion/reveal";
+import { PerformanceCta, StartCta } from "./_landing/app-cta";
 import { Attribution } from "./_landing/attribution";
 import { Bom } from "./_landing/bom";
 import { HeroCrosshair } from "./_landing/hero-crosshair";
@@ -16,7 +16,8 @@ import s from "./landing.module.css";
 
 /* 41prompts.ai/, the marketing page. Ported from
    docs/mockup/41prompts.ai/index.html with the choreography of
-   docs/assets/js/landing.js. Sign in and Start free go to the app host.
+   docs/assets/js/landing.js. Sign in and Start free go to the app host;
+   signed-in visitors get Go to app instead (app-cta.tsx).
    With NEXT_PUBLIC_PRICING_ENABLED off, nothing on this page names a price:
    no Pricing section or links, no "$", no Start Performance. */
 
@@ -81,7 +82,6 @@ const RUNS = [
 
 export default function LandingPage() {
   const pricing = PRICING_ENABLED;
-  const startHref = appUrl("/sign-in#start");
   return (
     <div className={s.landing}>
       <a className={s.skip} href="#main">
@@ -114,9 +114,7 @@ export default function LandingPage() {
                 Break any prompt into bloks, see exactly what each one adds to the prompt you ship, and keep every version. When something breaks, find the blok that did it.
               </p>
               <div className={s.heroCtas}>
-                <a className="btn btn--primary btn--lg btn--go" href={startHref}>
-                  Start free <Icon name="arrow-right" />
-                </a>
+                <StartCta name="cta-hero" className="btn btn--primary btn--lg btn--go" />
                 <a className="btn btn--lg" href="#how">
                   See how it works
                 </a>
@@ -167,7 +165,7 @@ export default function LandingPage() {
               <h2 id="free-title">Everything you need to write, keep and ship a prompt. Free, with no limits.</h2>
               <p className={s.secHeadP}>No trial clock, no prompt cap, no version cap. The Free plan is the whole workbench for writing prompts.</p>
             </Reveal>
-            <Bom startHref={startHref} showPrice={pricing} />
+            <Bom showPrice={pricing} />
           </div>
         </section>
 
@@ -287,7 +285,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {pricing && <Pricing startHref={startHref} />}
+        {pricing && <Pricing />}
 
         {/* FAQ */}
         <section className={s.faq} id="faq" aria-labelledby="faq-title">
@@ -324,9 +322,7 @@ export default function LandingPage() {
               <span className={s.ctaCaret} aria-hidden="true" />
             </h2>
             <div className={s.ctaBtns}>
-              <a className="btn btn--primary btn--lg btn--go" href={startHref}>
-                Start free <Icon name="arrow-right" />
-              </a>
+              <StartCta name="cta-band" className="btn btn--primary btn--lg btn--go" />
               {pricing ? (
                 <a className="btn btn--lg" href="#pricing">
                   See pricing
@@ -349,7 +345,7 @@ export default function LandingPage() {
 }
 
 /* PRICING: rendered only with NEXT_PUBLIC_PRICING_ENABLED=true. */
-function Pricing({ startHref }: { startHref: string }) {
+function Pricing() {
   return (
     <section className={s.pricing} id="pricing" aria-labelledby="pricing-title">
       <div className={s.wrap}>
@@ -382,9 +378,7 @@ function Pricing({ startHref }: { startHref: string }) {
               <li>Private library with search by name</li>
               <li>Export everything, delete anytime</li>
             </ul>
-            <a className="btn btn--block btn--lg" href={startHref}>
-              Start free
-            </a>
+            <StartCta name="cta-plan" className="btn btn--block btn--lg" arrow={false} />
           </Reveal>
 
           <Reveal as="article" className={cx(s.plan, s.planPerf, "frame frame--chalk frame--live")} delay={120}>
@@ -412,9 +406,7 @@ function Pricing({ startHref }: { startHref: string }) {
               <li>Semantic diffs and shared workspaces</li>
               <li>Share pages and typed function export</li>
             </ul>
-            <a className="btn btn--primary btn--block btn--lg btn--go" href={appUrl("/sign-in#performance")}>
-              Start Performance <Icon name="arrow-right" />
-            </a>
+            <PerformanceCta className="btn btn--primary btn--block btn--lg btn--go" />
             <p className={s.planFine}>
               <Icon name="card" size="sm" />
               Billed monthly through Stripe. Cancel anytime in the billing portal and keep everything on Free.
