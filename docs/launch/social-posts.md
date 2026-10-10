@@ -3,7 +3,7 @@
 Soroush's own accounts: X [@soroucsh](https://x.com/soroucsh), LinkedIn [soroush-bonab](https://www.linkedin.com/in/soroush-bonab/). Product Hunt launch: https://www.producthunt.com/products/41prompts?launch=41prompts-2, Monday 12 October 2026, live from 12:01 AM Pacific (3:01 AM in Montréal).
 
 Assets:
-- Film: `product-hunt-video/41prompts-launch-film.mp4`
+- Film: `product-hunt-video/41prompts-launch-film.mp4` (upload it natively on X and LinkedIn; YouTube: https://www.youtube.com/watch?v=9l8Tv7skc78)
 - Demo: https://app.arcade.software/share/8pimJKiyuin0rXpUph3b
 - Images: `product-hunt-gallery/02-41prompts-prompt-editor-bloks-compiled-prompt.png`, `product-hunt-video/41prompts-youtube-thumbnail-stop-guessing.png`, `…-never-lose.png`
 

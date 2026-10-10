@@ -2,6 +2,8 @@
 
 For the launch film `41prompts-launch-film.mp4`.
 
+**Published:** https://www.youtube.com/watch?v=9l8Tv7skc78
+
 ## Thumbnails (1280×720, under 2 MB)
 
 - `41prompts-youtube-thumbnail-stop-guessing.png` · upload this one. A messy `prompt_FINAL_v7_real.txt` turns into four bloks.
