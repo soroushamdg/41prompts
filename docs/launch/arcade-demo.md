@@ -2,6 +2,8 @@
 
 A click-through of the Free plan, about 60 seconds and 13 steps, recorded with the Arcade Chrome extension and pasted into the launch form's "Link to the demo" field.
 
+**Published:** https://app.arcade.software/share/8pimJKiyuin0rXpUph3b
+
 ## 1. Before you record (10 minutes)
 
 1. **Add a model.** Settings → Your models → Add model. A hosted provider shows a real cost after the run; Ollama or LM Studio shows $0. Do this before recording so no key ever appears on screen.
