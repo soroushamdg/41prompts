@@ -62,12 +62,15 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
     requestAnimationFrame(() => requestAnimationFrame(() => setDrawn(true)));
   }
 
-  function social(provider: "google" | "github") {
+  async function social(provider: "google" | "github") {
     setFailure(null);
     setPending(provider);
-    // The provider's page replaces this one; if the request fails, let them try again.
-    setTimeout(() => setPending(null), 8000);
-    void authClient.signIn.social({ provider, callbackURL, newUserCallbackURL, errorCallbackURL: "/sign-in?via=oauth" });
+    // On success the provider's page replaces this one. On failure, say so and let them try again.
+    const { error: err } = await authClient.signIn.social({ provider, callbackURL, newUserCallbackURL, errorCallbackURL: "/sign-in?via=oauth" }).catch(() => ({ error: { status: 0 } }));
+    if (!err) return;
+    setPending(null);
+    const name = provider === "google" ? "Google" : "GitHub";
+    setFailure(err.status === 429 ? "Too many tries in a short time. Wait a minute and try again." : `${name} sign-in did not start. Try again, or use the email link.`);
   }
 
   return (
@@ -121,13 +124,13 @@ export function SignInForm({ next, error, providers, pricingEnabled }: Props) {
           </button>
           {providers.length > 0 && <div className={s.or}>OR</div>}
           {providers.includes("google") && (
-            <button className={cx("btn btn--block", pending === "google" && "is-busy")} type="button" onClick={() => social("google")} disabled={pending !== null}>
+            <button className={cx("btn btn--block", pending === "google" && "is-busy")} type="button" onClick={() => void social("google")} disabled={pending !== null}>
               {pending === "google" ? <span className="btn-spin" aria-hidden="true" /> : <GoogleIcon />}
               Continue with Google
             </button>
           )}
           {providers.includes("github") && (
-            <button className={cx("btn btn--block", pending === "github" && "is-busy")} type="button" onClick={() => social("github")} disabled={pending !== null}>
+            <button className={cx("btn btn--block", pending === "github" && "is-busy")} type="button" onClick={() => void social("github")} disabled={pending !== null}>
               {pending === "github" ? <span className="btn-spin" aria-hidden="true" /> : <GitHubIcon />}
               Continue with GitHub
             </button>
